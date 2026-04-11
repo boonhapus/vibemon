@@ -55,7 +55,7 @@ frontend/
 backend/
   app/
     providers/
-      __init__.py               # PROVIDER_REGISTRY
+      registry.py               # PROVIDER_REGISTRY
       base.py                   # VibemonProvider ABC, SourceData, GenerationContext
       spotify.py
       github.py
@@ -102,6 +102,8 @@ GET  /api/v1/auth/github/callback   (GitHub OAuth proxy)
 ---
 
 ## Core Data Models
+
+Canonical shapes match [.plans/design.md](../.plans/design.md) §9 and task specs. JSON uses **snake_case** keys aligned with Python field names.
 
 ```python
 @define
@@ -164,23 +166,28 @@ class VisualDNA:
 
 @define
 class Move:
-    name:     str
-    element:  str
-    power:    int            # 40–120
-    accuracy: float          # 0.0–1.0
-    effect:   Optional[str]  # e.g. "burn", "lower_defense"
+    name:          str
+    type:          str       # elemental type, e.g. "Fire" (matches battle STAB rules)
+    category:      str       # "physical" | "special" | "status"
+    power:         int       # 0 for status moves
+    accuracy:      int       # 0–100
+    is_signature:  bool = False
+    effect:        Optional[str] = None
 
 @define
 class VibemonPayload:
-    name:         str
-    stats:        VibemonStats
-    visual_dna:   VisualDNA
-    moves:        list[Move]
-    flavour_text: str
-    stat_origins: dict[str, str]  # {"speed": "BPM 142 avg (Spotify)"}
-    seed:         int
-    fallback:     bool
+    uid:           str
+    name:          str
+    source:        str      # e.g. "merged" | "weather" for traceability
+    stats:         VibemonStats
+    moves:         list[Move]
+    visual_dna:    VisualDNA
+    flavour_text:  str
+    stat_origins:  dict[str, str]
+    fallback:      bool = False
 ```
+
+Deterministic generation for a given request uses `make_seed(user_id, "vibemon")` for the merged player creature (and the same pattern for the enemy `user_id`). Move pools and battle logic treat `Move.type` as the move’s elemental type.
 
 ---
 
@@ -196,7 +203,7 @@ class VibemonProvider(ABC):
     async def fetch(self, context: GenerationContext) -> SourceData: ...
 ```
 
-Register in `providers/__init__.py`:
+Register in `providers/registry.py`:
 
 ```python
 PROVIDER_REGISTRY: list[type[VibemonProvider]] = [
