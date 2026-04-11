@@ -3,6 +3,7 @@ from __future__ import annotations
 import structlog
 from litestar import Litestar
 from litestar.config.cors import CORSConfig
+from litestar.plugins.attrs import AttrsSchemaPlugin
 
 from app.logging import configure_logging
 from app.middleware import RequestContextMiddleware
@@ -25,6 +26,7 @@ def create_app() -> Litestar:
 
     return Litestar(
         route_handlers=[api_v1],
+        plugins=[AttrsSchemaPlugin()],
         cors_config=CORSConfig(
             allow_origins=["http://localhost:5173"],
             allow_methods=["*"],

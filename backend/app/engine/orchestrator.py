@@ -2,9 +2,9 @@ from __future__ import annotations
 
 import asyncio
 from datetime import datetime, timezone
-from typing import Any
+from typing import Any, Optional
 
-from app.engine.models import GenerateRequestBody, VibemonPayload
+from app.engine.models import GenerateRequestBody, VibemonPayload, VibemonStats
 from app.engine.moves import generate_moves
 from app.engine.names import generate_name
 from app.engine.stats import compute_stats, make_seed, merge_source_data, scale_enemy_stats
@@ -80,9 +80,11 @@ def _build_payload(
     ctx: GenerationContext,
     source: str,
     fallback: bool,
+    stats: Optional[VibemonStats] = None,
 ) -> VibemonPayload:
     seed = make_seed(uid, "vibemon")
-    stats = compute_stats(merged, seed)
+    if stats is None:
+        stats = compute_stats(merged, seed)
     visual = generate_visual_dna(merged, stats, seed)
     moves = generate_moves(stats, seed)
     name = generate_name(stats.element, seed)
@@ -144,27 +146,19 @@ async def generate(request: GenerateRequestBody) -> dict[str, Any]:
         longitude=ctx.longitude,
         auth_tokens={},
     )
-    weather = WeatherProvider()
-    enemy_merged = await weather.fetch(enemy_ctx)
+    enemy_merged = await WeatherProvider().fetch(enemy_ctx)
     enemy_seed = make_seed(enemy_uid, "vibemon")
     enemy_stats_raw = compute_stats(enemy_merged, enemy_seed)
     enemy_stats = scale_enemy_stats(player.stats, enemy_stats_raw)
-    enemy_visual = generate_visual_dna(enemy_merged, enemy_stats, enemy_seed)
-    enemy_moves = generate_moves(enemy_stats, enemy_seed)
-    enemy_name = generate_name(enemy_stats.element, enemy_seed)
-    enemy_origins = _build_stat_origins(enemy_merged)
     enemy_fallback = not bool(enemy_merged.raw.get("weather_live"))
 
-    enemy = VibemonPayload(
+    enemy = _build_payload(
         uid=enemy_uid,
-        name=enemy_name,
+        merged=enemy_merged,
+        ctx=enemy_ctx,
         source="weather",
-        stats=enemy_stats,
-        moves=enemy_moves,
-        visual_dna=enemy_visual,
-        flavour_text=enemy_merged.flavour_text or "",
-        stat_origins=enemy_origins,
         fallback=enemy_fallback,
+        stats=enemy_stats,
     )
 
     return {

@@ -66,6 +66,36 @@ _MOVE_POOL: dict[str, list[Move]] = {
         Move("Fortify", "Normal", "status", 0, 100, False, "own_defense_plus_1"),
         Move("Lunge", "Normal", "status", 0, 100, False, "own_speed_plus_1"),
     ],
+    "Dark": [
+        Move("Shadow Claw", "Dark", "physical", 40, 100, False, None),
+        Move("Void Strike", "Dark", "physical", 65, 95, False, None),
+        Move("Abyssal Crash", "Dark", "physical", 90, 85, False, None),
+        Move("Hex Pulse", "Dark", "special", 45, 100, False, None),
+        Move("Umbra Surge", "Dark", "special", 75, 90, False, None),
+        Move("Eclipse", "Dark", "special", 110, 75, True, None),
+        Move("Dread Shroud", "Dark", "status", 0, 100, False, "enemy_sp_atk_minus_1"),
+        Move("Night Veil", "Dark", "status", 0, 100, False, "own_sp_def_plus_1"),
+    ],
+    "Electric": [
+        Move("Spark Jab", "Electric", "physical", 40, 100, False, None),
+        Move("Thunder Slam", "Electric", "physical", 65, 95, False, None),
+        Move("Surge Crash", "Electric", "physical", 90, 85, False, None),
+        Move("Arc Pulse", "Electric", "special", 45, 100, False, None),
+        Move("Bolt Burst", "Electric", "special", 75, 90, False, None),
+        Move("Overdrive", "Electric", "special", 110, 75, True, None),
+        Move("Charge Up", "Electric", "status", 0, 100, False, "own_sp_atk_plus_1"),
+        Move("Static Veil", "Electric", "status", 0, 100, False, "enemy_speed_minus_1"),
+    ],
+    "Psychic": [
+        Move("Mind Slash", "Psychic", "physical", 40, 100, False, None),
+        Move("Psi Strike", "Psychic", "physical", 65, 95, False, None),
+        Move("Force Crash", "Psychic", "physical", 90, 85, False, None),
+        Move("Dream Pulse", "Psychic", "special", 45, 100, False, None),
+        Move("Trance Surge", "Psychic", "special", 75, 90, False, None),
+        Move("Mindquake", "Psychic", "special", 110, 75, True, None),
+        Move("Clarity", "Psychic", "status", 0, 100, False, "own_sp_atk_plus_1"),
+        Move("Psychic Veil", "Psychic", "status", 0, 100, False, "own_sp_def_plus_1"),
+    ],
 }
 
 
@@ -76,7 +106,8 @@ def _pool_for_element(element: str) -> list[Move]:
 def generate_moves(stats: VibemonStats, seed: int) -> list[Move]:
     rng = random.Random(seed)
     pool = _pool_for_element(stats.element)
-    signature = next(m for m in pool if m.is_signature)
+    signatures = [m for m in pool if m.is_signature]
+    signature = signatures[0] if signatures else pool[0]
     candidates = [m for m in pool if not m.is_signature]
 
     def weight(m: Move) -> float:

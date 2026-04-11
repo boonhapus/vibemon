@@ -91,10 +91,6 @@ def _weather_to_source(
     if precip_mm > 5:
         defense_factor = min(1.0, defense_factor + 0.35)
 
-    code = 0 if weather_code is None else int(weather_code)
-    sp_attack_factor = max(0.0, min(1.0, 0.42 + (code % 11) / 100.0))
-    sp_defense_factor = max(0.0, min(1.0, 0.48 + (code % 7) / 120.0))
-
     loc_hint = ""
     if lat is not None and lon is not None:
         loc_hint = f" near {lat:.1f}°, {lon:.1f}°"
@@ -107,8 +103,6 @@ def _weather_to_source(
         hp_factor=hp_factor,
         attack_factor=attack_factor,
         defense_factor=defense_factor,
-        sp_attack_factor=sp_attack_factor,
-        sp_defense_factor=sp_defense_factor,
         speed_factor=speed_factor,
         element_votes=votes,
         hue_primary=_hue_from_temperature(temp_c),
