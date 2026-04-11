@@ -1,5 +1,10 @@
 export type Hsl = [number, number, number];
 
+export interface Point {
+	x: number;
+	y: number;
+}
+
 export interface VibemonStats {
 	hp: number;
 	attack: number;
