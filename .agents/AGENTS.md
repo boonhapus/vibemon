@@ -2,7 +2,7 @@
 
 Vibemon is a browser-based monster-battling game. Connect Spotify and GitHub, share your location, and a unique creature is generated whose stats, appearance, and element reflect your real digital life. You then battle a procedurally generated enemy derived from the current time and local weather.
 
-No database. The backend is fully stateless per-request.
+No database. The backend is fully stateless per-request. Battle state is not stored server-side — the full `BattleState` travels with every `/battle/turn` request (stateless echo). All game logic (damage, type effectiveness, enemy AI, turn order) lives in `engine/battle.py` as pure Python with no HTTP dependency. The HTTP routes are thin wrappers. A terminal client can `import app.engine.battle` and call `start_battle` / `execute_turn` directly.
 
 **Python:** use **3.12 or newer** project-wide (asyncio `TaskGroup`, `asyncio.timeout`, `except*` / exception groups).
 
@@ -42,15 +42,15 @@ frontend/
   src/
     routes/
       +page.svelte              # Auth screen (Spotify PKCE, GitHub OAuth, location)
-      battle/+page.svelte       # Battle screen
+      battle/+page.svelte       # Battle screen (pure renderer — no game logic)
     lib/
       components/
         VibemonRenderer.svelte  # VisualDNA + seed → deterministic SVG blob
       stores/
-        battle.ts               # Battle state machine (phases, HP, log, turns)
+        battle.ts               # Thin state holder: last BattleState from server
       utils/
         blobRenderer.ts         # Hull generation, path smoothing, limbs, eyes, texture
-        seededRandom.ts         # Mulberry32 PRNG
+        seededRandom.ts         # Mulberry32 PRNG (renderer only — blob hull gen)
 
 backend/
   app/
@@ -65,8 +65,10 @@ backend/
       visual.py                 # generate_visual_dna
       moves.py                  # generate_moves
       names.py                  # syllable name generator
+      battle.py                 # start_battle(), execute_turn() — pure Python, no HTTP
     routes/
       generate.py               # POST /api/v1/generate
+      battle.py                 # POST /api/v1/battle/start, POST /api/v1/battle/turn
       auth.py                   # GET /api/v1/auth/github/callback
 ```
 
@@ -76,6 +78,8 @@ backend/
 
 ```
 POST /api/v1/generate               → GenerateRequest → GenerateResponse
+POST /api/v1/battle/start           → { player, enemy } → BattleState
+POST /api/v1/battle/turn            → { state, move_index } → { state, events }
 GET  /api/v1/health
 GET  /api/v1/auth/github/callback   (GitHub OAuth proxy)
 ```
@@ -188,6 +192,41 @@ class VibemonPayload:
 ```
 
 Deterministic generation for a given request uses `make_seed(user_id, "vibemon")` for the merged player creature (and the same pattern for the enemy `user_id`). Move pools and battle logic treat `Move.type` as the move’s elemental type.
+
+```python
+@define
+class BattleMon:
+    vibemon:       VibemonPayload
+    current_hp:    int
+    max_hp:        int
+    stat_stages:   dict[str, int]   = field(factory=lambda: {
+                       "attack": 0, "defense": 0,
+                       "sp_attack": 0, "sp_defense": 0, "speed": 0
+                   })
+    status_effect: Optional[str]   = None  # "seed" | "drain" | "burrowed" | None
+
+@define
+class BattleState:
+    phase:      str          # "player-turn" | "enemy-turn" | "victory" | "defeat"
+    player:     BattleMon
+    enemy:      BattleMon
+    log:        list[str]
+    turn:       int
+    rng_seed:   int          # advances each turn for deterministic replay
+
+@define
+class TurnEvent:
+    type:          str            # "attack"|"miss"|"damage"|"stat_change"|"status_applied"
+                                  # |"ko"|"phase_change"|"seed_drain"|"heal"
+    actor:         str            # "player" | "enemy"
+    move_name:     Optional[str]  = None
+    damage:        Optional[int]  = None
+    effectiveness: Optional[str]  = None  # "super-effective"|"not-very-effective"|"immune"
+    stat_key:      Optional[str]  = None
+    stat_delta:    Optional[int]  = None
+    heal:          Optional[int]  = None
+    message:       str            = ""    # ready-to-display text for any renderer
+```
 
 ---
 

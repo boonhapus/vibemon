@@ -39,7 +39,9 @@ You then battle a procedurally generated enemy: a "creature of the moment" born 
 
 ### Scope
 
-The current version covers a single-player battle against a procedurally generated opponent. There is no persistent collection, no multiplayer, and no capture mechanic. The battle system is client-side only.
+The current version covers a single-player battle against a procedurally generated opponent. There is no persistent collection, no multiplayer, and no capture mechanic.
+
+The battle system runs entirely on the backend. All game logic — damage calculation, type effectiveness, enemy AI, turn order, stat stages — lives in Python. The frontend is a pure renderer: it sends the current `BattleState` plus a move index, receives a new `BattleState` and a list of `TurnEvent` objects describing what happened, and renders accordingly. This makes the engine headless by design: a terminal client, a bot, or any other renderer can drive the same engine directly.
 
 ---
 
@@ -55,9 +57,11 @@ The current version covers a single-player battle against a procedurally generat
 │  │ - Spotify      │    │  │Player Vibemon│ │Enemy Vibemon │   │ │
 │  │ - GitHub       │    │  │ (Blob SVG)   │ │ (Blob SVG)   │   │ │
 │  │ - Location     │    │  └──────────────┘ └──────────────┘   │ │
-│  └───────┬────────┘    │      Battle Store (battle.ts)        │ │
+│  └───────┬────────┘    │  last BattleState (render only)      │ │
 │          │             └──────────────────────────────────────┘ │
 │          │ POST /api/v1/generate                                │
+│          │ POST /api/v1/battle/start                           │
+│          │ POST /api/v1/battle/turn                            │
 └──────────┼──────────────────────────────────────────────────────┘
            │
            ▼
@@ -75,6 +79,14 @@ The current version covers a single-player battle against a procedurally generat
 │  │  7. Return player + enemy VibemonPayloads                 │  │
 │  └───────────────────────────────────────────────────────────┘  │
 │                                                                 │
+│  ┌───────────────────────────────────────────────────────────┐  │
+│  │                    Battle Engine                          │  │
+│  │  start_battle(player, enemy) → BattleState               │  │
+│  │  execute_turn(state, move_index) → (BattleState,         │  │
+│  │                                     list[TurnEvent])     │  │
+│  │  (pure Python module — no HTTP dependency)               │  │
+│  └───────────────────────────────────────────────────────────┘  │
+│                                                                 │
 │  ┌─────────────┐  ┌─────────────┐  ┌────────────────────────┐  │
 │  │  Spotify    │  │   GitHub    │  │  Weather / Datetime    │  │
 │  │  Provider   │  │   Provider  │  │  Provider              │  │
@@ -88,7 +100,7 @@ The current version covers a single-player battle against a procedurally generat
     (key in env vars)
 ```
 
-The backend is stateless per-request. There is no session management and no database. The frontend holds the generated Vibemon payload in memory for the duration of a battle session.
+The backend is stateless per-request. There is no session management and no database. Battle state is not stored server-side — the full `BattleState` object travels with every request and response (stateless echo pattern). The frontend holds the last `BattleState` the server returned, passes it back on the next action, and renders whatever the server sends. No game logic runs in the browser.
 
 ---
 
@@ -652,7 +664,38 @@ A `<pattern>` element is applied over the body path at 15–25% opacity, allowin
 
 ## 7. Battle System
 
-The battle system is entirely client-side. All state lives in a Svelte store. There is no server validation.
+All battle logic runs on the Python backend. The engine is a pure module (`engine/battle.py`) with no HTTP dependency — the HTTP routes are thin wrappers around it. A terminal client, test harness, or any other renderer can import and call the engine directly without going through HTTP.
+
+### Stateless Echo Pattern
+
+The battle is stateless server-side. The full `BattleState` travels with every request:
+
+```
+POST /api/v1/battle/start
+  body:  { player: VibemonPayload, enemy: VibemonPayload }
+  → 200: BattleState
+
+POST /api/v1/battle/turn
+  body:  { state: BattleState, move_index: int }
+  → 200: { state: BattleState, events: list[TurnEvent] }
+```
+
+The `TurnEvent` list describes everything that happened during the turn (who attacked, damage dealt, effectiveness, stat changes, KO). The frontend uses this list to sequence animations. A terminal renderer would print them as text.
+
+### Headless Usage
+
+```python
+# Terminal client — no HTTP
+from app.engine.battle import start_battle, execute_turn
+from app.engine.models import VibemonPayload
+
+state = start_battle(player_payload, enemy_payload)
+while state.phase == "player-turn":
+    move_index = int(input("Choose move (0-3): "))
+    state, events = execute_turn(state, move_index)
+    for e in events:
+        print(e.message)
+```
 
 ### Moves
 
@@ -845,66 +888,163 @@ Stat stages modify A and D:
 
 `×0` = immune.
 
-### Battle State
+### Battle State Models
 
-```typescript
-// src/lib/stores/battle.ts
+```python
+# engine/battle.py
 
-type Phase = 'player-turn' | 'enemy-turn' | 'animating' | 'victory' | 'defeat';
+from __future__ import annotations
+from typing import Literal, Optional
+from attrs import define, field
 
-type BattleMon = {
-  vibemon:      Vibemon;
-  currentHp:    number;
-  maxHp:        number;
-  statStages:   Record<'attack' | 'defense' | 'spAttack' | 'spDefense' | 'speed', number>;
-  statusEffect: 'drain' | 'seed' | 'burrowed' | null;
-};
+Phase = Literal["player-turn", "enemy-turn", "victory", "defeat"]
 
-type BattleState = {
-  phase:  Phase;
-  player: BattleMon;
-  enemy:  BattleMon;
-  log:    string[];
-  turn:   number;
-};
+@define
+class BattleMon:
+    vibemon:       VibemonPayload
+    current_hp:    int
+    max_hp:        int
+    stat_stages:   dict[str, int]   = field(factory=lambda: {
+                       "attack": 0, "defense": 0,
+                       "sp_attack": 0, "sp_defense": 0, "speed": 0
+                   })
+    status_effect: Optional[str]   = None  # "seed" | "drain" | "burrowed" | None
+
+
+@define
+class BattleState:
+    phase:      Phase
+    player:     BattleMon
+    enemy:      BattleMon
+    log:        list[str]
+    turn:       int
+    rng_seed:   int     # advances each turn; keeps battle deterministic/replayable
+
+
+@define
+class TurnEvent:
+    """
+    Describes a single thing that happened during a turn.
+    The renderer (browser, terminal, etc.) decides how to display each event.
+    """
+    type:          str            # "attack" | "miss" | "damage" | "stat_change"
+                                  # | "status_applied" | "ko" | "phase_change"
+                                  # | "seed_drain" | "heal"
+    actor:         str            # "player" | "enemy"
+    move_name:     Optional[str]  = None
+    damage:        Optional[int]  = None
+    effectiveness: Optional[str]  = None   # "super-effective" | "not-very-effective"
+                                           # | "immune" | None (neutral)
+    stat_key:      Optional[str]  = None   # e.g. "sp_attack"
+    stat_delta:    Optional[int]  = None   # e.g. +1 or -1
+    heal:          Optional[int]  = None
+    message:       str            = ""     # human-readable; used directly by terminal renderer
+```
+
+### Engine Functions
+
+```python
+def start_battle(player: VibemonPayload, enemy: VibemonPayload) -> BattleState:
+    """Initialise a new battle. Call once after /generate."""
+    seed = make_seed(player.uid, "battle")
+    return BattleState(
+        phase="player-turn",
+        player=BattleMon(vibemon=player, current_hp=player.stats.hp, max_hp=player.stats.hp),
+        enemy=BattleMon(vibemon=enemy,   current_hp=enemy.stats.hp,  max_hp=enemy.stats.hp),
+        log=[],
+        turn=1,
+        rng_seed=seed,
+    )
+
+
+def execute_turn(state: BattleState, move_index: int) -> tuple[BattleState, list[TurnEvent]]:
+    """
+    Process one full turn (player move + enemy response).
+    Returns the mutated state and an ordered list of events for the renderer.
+    Does NOT mutate the input state — returns a new BattleState.
+    """
+    ...
 ```
 
 ### Turn Flow
 
 ```
-Player selects a move
+execute_turn(state, move_index)
   │
-  ├── Compare Speed (with stat stage modifiers); ties broken by RNG
+  ├── Select enemy move via choose_enemy_move(state, rng)
+  │
+  ├── Compare effective Speed (base × stage multiplier); RNG breaks ties
   │
   ├── Faster attacker executes move:
-  │   ├── Accuracy roll → Math.random() * 100 < move.accuracy
-  │   ├── On hit: calculate damage, apply to target HP
-  │   ├── Apply move effect (stat stage, drain, seed, burrow)
-  │   ├── Trigger hit animation
-  │   └── Check KO → if so, resolve victory/defeat
+  │   ├── Accuracy roll (rng.random() * 100 < move.accuracy)
+  │   ├── On hit: calculate_damage(attacker, defender, move, rng)
+  │   ├── Apply move effect (stat stage, seed, drain, burrow)
+  │   ├── Append TurnEvent(s) to events list
+  │   └── Check KO → if KO, set phase = "victory" or "defeat", return early
+  │
+  ├── Apply end-of-turn status effects (seed drain)
   │
   └── Slower attacker executes move (if still alive):
-      └── Same flow
+      └── Same flow; then advance turn counter + rng_seed
 ```
 
-### Enemy AI
+### Damage Formula (Python)
 
-```typescript
-function chooseEnemyMove(state: BattleState): Move {
-  const { enemy, player } = state;
-  const available = enemy.vibemon.moves;
-  const playerHpRatio = player.currentHp / player.maxHp;
-  const enemyHpRatio  = enemy.currentHp  / enemy.maxHp;
+```python
+def calculate_damage(
+    attacker: BattleMon,
+    defender: BattleMon,
+    move: Move,
+    rng: random.Random,
+) -> tuple[int, str | None]:
+    """Returns (damage, effectiveness_label)."""
+    a = _staged(attacker, "attack" if move.category == "physical" else "sp_attack")
+    d = _staged(defender, "defense" if move.category == "physical" else "sp_defense")
 
-  return weightedChoice(available, available.map(m => {
-    let w = 1.0;
-    if (playerHpRatio < 0.25 && m.power > 80) w *= 3.0;
-    if (enemyHpRatio  < 0.50 && m.category === 'status') w *= 1.5;
-    if (m.category === 'physical') w *= enemy.vibemon.stats.attack    / 128;
-    if (m.category === 'special')  w *= enemy.vibemon.stats.spAttack  / 128;
-    return w;
-  }));
-}
+    base    = ((2 * 50 / 5 + 2) * move.power * a / d) / 50 + 2
+    stab    = 1.5 if move.type == attacker.vibemon.stats.element else 1.0
+    eff     = TYPE_CHART[move.type][defender.vibemon.stats.element]
+    rand    = rng.uniform(0.85, 1.00)
+    damage  = max(1, math.floor(base * stab * eff * rand))
+
+    label = (
+        "super-effective"     if eff >= 2.0  else
+        "not-very-effective"  if eff < 1.0 and eff > 0  else
+        "immune"              if eff == 0  else
+        None
+    )
+    return (0, "immune") if eff == 0 else (damage, label)
+
+
+def _staged(mon: BattleMon, stat: str) -> int:
+    """Apply Gen I stat stage multiplier."""
+    STAGE_MULT = {-6: 0.25, -5: 0.29, -4: 0.33, -3: 0.40,
+                  -2: 0.50, -1: 0.67,  0: 1.00,  1: 1.50,
+                   2: 2.00,  3: 2.50,  4: 3.00,  5: 3.50,  6: 4.00}
+    base  = getattr(mon.vibemon.stats, stat)
+    stage = mon.stat_stages.get(stat, 0)
+    return max(1, round(base * STAGE_MULT[stage]))
+```
+
+### Enemy AI (Python)
+
+```python
+def choose_enemy_move(state: BattleState, rng: random.Random) -> int:
+    """Returns a move index (0–3)."""
+    enemy, player = state.enemy, state.player
+    player_hp_ratio = player.current_hp / player.max_hp
+    enemy_hp_ratio  = enemy.current_hp  / enemy.max_hp
+
+    weights = []
+    for m in enemy.vibemon.moves:
+        w = 1.0
+        if player_hp_ratio < 0.25 and m.power > 80:    w *= 3.0
+        if enemy_hp_ratio  < 0.50 and m.category == "status": w *= 1.5
+        if m.category == "physical": w *= enemy.vibemon.stats.attack    / 128
+        if m.category == "special":  w *= enemy.vibemon.stats.sp_attack / 128
+        weights.append(max(w, 0.1))
+
+    return rng.choices(range(len(enemy.vibemon.moves)), weights=weights, k=1)[0]
 ```
 
 ---
@@ -941,6 +1081,47 @@ Generates both the player's Vibemon and the enemy Vibemon in a single request.
 **`422 Unprocessable Entity`** — location is missing and no city name fallback was provided.
 
 **`200 OK` with `"fallback": true`** — all providers failed; response contains a valid payload generated from datetime only.
+
+### `POST /battle/start`
+
+Initialises a new battle from two previously generated payloads.
+
+**Request body:**
+```json
+{
+  "player": { "uid": "...", "name": "Pyrox", "stats": {}, "moves": [], "visual_dna": {}, ... },
+  "enemy":  { "..." }
+}
+```
+
+**Response `200 OK`:** `BattleState` (see §9)
+
+### `POST /battle/turn`
+
+Executes one full turn (player move + enemy response). The full `BattleState` is echoed back — no server-side session is maintained.
+
+**Request body:**
+```json
+{
+  "state":      { ... },
+  "move_index": 2
+}
+```
+
+**Response `200 OK`:**
+```json
+{
+  "state":  { ... },
+  "events": [
+    { "type": "attack",  "actor": "player", "move_name": "Inferno", "message": "Pyrox used Inferno!" },
+    { "type": "damage",  "actor": "enemy",  "damage": 94, "effectiveness": "super-effective", "message": "It's super effective! Ember-Flax took 94 damage." },
+    { "type": "attack",  "actor": "enemy",  "move_name": "Void", "message": "Ember-Flax used Void!" },
+    { "type": "damage",  "actor": "player", "damage": 41, "message": "Pyrox took 41 damage." }
+  ]
+}
+```
+
+**`422 Unprocessable Entity`** — invalid `move_index` or `state` is already in a terminal phase (`victory` / `defeat`).
 
 ### `GET /auth/github/callback`
 
@@ -1027,6 +1208,43 @@ class VibemonPayload:
     fallback:     bool = False
 ```
 
+### Battle Models
+
+```python
+@define
+class BattleMon:
+    vibemon:       VibemonPayload
+    current_hp:    int
+    max_hp:        int
+    stat_stages:   dict[str, int]   # keys: attack, defense, sp_attack, sp_defense, speed
+    status_effect: Optional[str]    # "seed" | "drain" | "burrowed" | None
+
+
+@define
+class BattleState:
+    phase:      str          # "player-turn" | "enemy-turn" | "victory" | "defeat"
+    player:     BattleMon
+    enemy:      BattleMon
+    log:        list[str]    # human-readable summary of all turns so far
+    turn:       int
+    rng_seed:   int          # advances each turn; keeps battles deterministic
+
+
+@define
+class TurnEvent:
+    type:          str            # "attack" | "miss" | "damage" | "stat_change"
+                                  # | "status_applied" | "ko" | "phase_change"
+                                  # | "seed_drain" | "heal"
+    actor:         str            # "player" | "enemy"
+    move_name:     Optional[str]  = None
+    damage:        Optional[int]  = None
+    effectiveness: Optional[str]  = None  # "super-effective" | "not-very-effective" | "immune"
+    stat_key:      Optional[str]  = None
+    stat_delta:    Optional[int]  = None
+    heal:          Optional[int]  = None
+    message:       str            = ""    # ready-to-display text for any renderer
+```
+
 ### Name Generation
 
 Names are 2–3 syllable portmanteaus drawn from a per-element syllable bank, seeded by the Vibemon's RNG. Each bank contains ~40 syllables, producing names like "Pyrox", "Embrath", "Glacyn", "Voidrel".
@@ -1065,13 +1283,14 @@ src/
 │   │   ├── HpBar.svelte
 │   │   └── MoveButton.svelte
 │   ├── stores/
-│   │   └── battle.ts
+│   │   └── battle.ts         # Thin state holder: last BattleState from server
 │   ├── utils/
-│   │   ├── rng.ts            # Mulberry32 seeded RNG
-│   │   ├── damage.ts         # Damage formula
+│   │   ├── rng.ts            # Mulberry32 seeded RNG (renderer only — blob hull gen)
 │   │   └── blobRenderer.ts   # Hull generation, path smoothing
 │   └── types.ts
 ```
+
+No game logic lives in the frontend. `damage.ts` and `typeChart.ts` do not exist — damage and type effectiveness are computed by the backend. `battle.ts` holds only the last `BattleState` received from the server and the in-flight/loading state for the API call.
 
 ### Auth Screen (`/`)
 
@@ -1109,18 +1328,22 @@ src/
 └──────────────────────────────────────────────────────┘
 ```
 
+The battle screen is a pure renderer of `BattleState`. On mount it calls `POST /api/v1/battle/start` with the player and enemy payloads from `/generate`. When the player selects a move, it calls `POST /api/v1/battle/turn` with the current state and the chosen move index. The response `BattleState` replaces the old state; the `TurnEvent[]` drives animation sequencing. Move buttons are disabled while the request is in-flight and when `phase !== "player-turn"`.
+
+HP values, stat stages, phase, and the battle log all come from the server. The frontend never computes damage, never runs type effectiveness, and never decides turn order.
+
 ### Animations
 
-| Event | Implementation |
-|---|---|
-| HP loss | `tweened` store, `cubicOut` easing, 600ms |
-| Hit received | CSS `@keyframes shake` on SVG wrapper, 300ms |
-| Critical hit | White flash overlay on SVG, 150ms |
-| Fainting | `translateY(30px)` + `opacity: 0`, 800ms |
-| Move button press | Svelte `spring` store, scale 0.95 → 1.0 |
-| Idle float | CSS `@keyframes float` (±6px), period = `animation_speed` seconds |
-| Glow pulse | CSS `@keyframes` on SVG filter `stdDeviation`, period = `animation_speed × 1.5`s |
-| Victory | Player blob scales up via spring; CSS particle burst |
+| Event | Trigger | Implementation |
+|---|---|---|
+| HP loss | `BattleState.player/enemy.current_hp` changes | `Tween` from `svelte/motion`, `cubicOut`, 600ms |
+| Hit received | `TurnEvent { type: "damage" }` | CSS `@keyframes shake` on SVG wrapper, 300ms |
+| Super effective | `TurnEvent { effectiveness: "super-effective" }` | White flash overlay on SVG, 150ms |
+| Fainting | `TurnEvent { type: "ko" }` | `translateY(30px)` + `opacity: 0`, 800ms |
+| Move button press | Click (before API responds) | `Spring` from `svelte/motion`, scale 0.95 → 1.0 |
+| Idle float | Always | CSS `@keyframes float` (±6px), period = `animation_speed` seconds |
+| Glow pulse | Always | CSS `@keyframes` on SVG filter `stdDeviation`, period = `animation_speed × 1.5`s |
+| Victory | `state.phase === "victory"` | Player blob scales up via `Spring`; CSS particle burst |
 
 ---
 
