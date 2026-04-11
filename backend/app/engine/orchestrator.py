@@ -33,43 +33,62 @@ def _provider_active(p: VibemonProvider, ctx: GenerationContext) -> bool:
 
 def _build_stat_origins(merged: SourceData) -> dict[str, str]:
     r = merged.raw
-    label = "Weather"
+    origins: dict[str, list[str]] = {
+        "hp": [], "attack": [], "defense": [],
+        "sp_attack": [], "sp_defense": [], "speed": [],
+    }
+
     if r.get("weather_live") is True:
-        hp = (
-            f"Humidity {float(r['relative_humidity_pct']):.0f}% ({label})"
-            if r.get("relative_humidity_pct") is not None
-            else f"Moisture signal ({label})"
-        )
-        atk = (
-            f"Clear skies / UV boost ({label})"
-            if r.get("uv_index") is not None and float(r["uv_index"]) > 6
-            else f"Sky conditions ({label})"
-        )
-        if r.get("precipitation_mm") is not None and float(r["precipitation_mm"]) > 5:
-            defe = f"Heavy precipitation shield ({label})"
+        label = "Weather"
+        if r.get("relative_humidity_pct") is not None:
+            origins["hp"].append(f"Humidity {float(r['relative_humidity_pct']):.0f}% ({label})")
         else:
-            defe = f"Atmospheric stability ({label})"
-        spa = f"Weather pattern variety ({label})"
-        spd = (
-            f"Wind {float(r['wind_kmh']):.0f} km/h ({label})"
-            if r.get("wind_kmh") is not None
-            else f"Airflow ({label})"
-        )
-        spd_def = f"Pressure patterns ({label})"
-    else:
-        hp = "Seasonal endurance (datetime fallback)"
-        atk = "Weekday intensity (datetime fallback)"
-        defe = "Stability baseline (datetime fallback)"
-        spa = "Creative drift (datetime fallback)"
-        spd_def = "Focus baseline (datetime fallback)"
-        spd = "Daily tempo curve (datetime fallback)"
+            origins["hp"].append(f"Moisture signal ({label})")
+        if r.get("uv_index") is not None and float(r["uv_index"]) > 6:
+            origins["attack"].append(f"Clear skies / UV boost ({label})")
+        else:
+            origins["attack"].append(f"Sky conditions ({label})")
+        if r.get("precipitation_mm") is not None and float(r["precipitation_mm"]) > 5:
+            origins["defense"].append(f"Heavy precipitation shield ({label})")
+        else:
+            origins["defense"].append(f"Atmospheric stability ({label})")
+        origins["sp_attack"].append(f"Weather pattern variety ({label})")
+        origins["sp_defense"].append(f"Pressure patterns ({label})")
+        if r.get("wind_kmh") is not None:
+            origins["speed"].append(f"Wind {float(r['wind_kmh']):.0f} km/h ({label})")
+        else:
+            origins["speed"].append(f"Airflow ({label})")
+    elif not r.get("spotify"):
+        origins["hp"].append("Seasonal endurance (datetime fallback)")
+        origins["attack"].append("Weekday intensity (datetime fallback)")
+        origins["defense"].append("Stability baseline (datetime fallback)")
+        origins["sp_attack"].append("Creative drift (datetime fallback)")
+        origins["sp_defense"].append("Focus baseline (datetime fallback)")
+        origins["speed"].append("Daily tempo curve (datetime fallback)")
+
+    if r.get("spotify"):
+        label = "Spotify"
+        if r.get("track_count_7d") is not None:
+            origins["hp"].append(f"{r['track_count_7d']} tracks in 7d ({label})")
+        if r.get("avg_bpm") is not None:
+            origins["speed"].append(f"BPM avg {r['avg_bpm']} ({label})")
+        if r.get("genre_count") is not None:
+            origins["sp_attack"].append(f"{r['genre_count']} genres ({label})")
+        tags = r.get("enrichment_tags", [])
+        aggressive = [t for t in tags if t in ("metal", "punk", "hardcore")]
+        calm = [t for t in tags if t in ("classical", "ambient", "folk")]
+        if aggressive:
+            origins["attack"].append(f"Genre intensity: {', '.join(aggressive[:3])} ({label})")
+        if calm:
+            origins["sp_defense"].append(f"Genre depth: {', '.join(calm[:3])} ({label})")
+        if r.get("avg_listening_hour") is not None:
+            h = r["avg_listening_hour"]
+            if h >= 22 or h < 4:
+                origins["sp_defense"].append(f"Night listener avg {h:.0f}h ({label})")
+
     return {
-        "hp": hp,
-        "attack": atk,
-        "defense": defe,
-        "sp_attack": spa,
-        "sp_defense": spd_def,
-        "speed": spd,
+        stat: " + ".join(parts) if parts else "Baseline"
+        for stat, parts in origins.items()
     }
 
 
@@ -122,16 +141,23 @@ async def generate(request: GenerateRequestBody) -> dict[str, Any]:
         *[p.fetch(ctx) for p in active],
         return_exceptions=True,
     )
-    sources = [o for o in outcomes if isinstance(o, SourceData)]
+    succeeded_ids: list[str] = []
+    sources: list[SourceData] = []
+    for p, o in zip(active, outcomes):
+        if isinstance(o, SourceData):
+            sources.append(o)
+            succeeded_ids.append(p.source_id)
     merged = merge_source_data(sources)
     weather_live = bool(merged.raw.get("weather_live"))
     player_fallback = not weather_live
+
+    source_label = "+".join(succeeded_ids) if succeeded_ids else "merged"
 
     player = _build_payload(
         uid=request.user_id,
         merged=merged,
         ctx=ctx,
-        source="merged",
+        source=source_label,
         fallback=player_fallback,
     )
 

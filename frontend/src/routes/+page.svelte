@@ -2,6 +2,7 @@
 	import { onMount } from 'svelte';
 	import { goto } from '$app/navigation';
 	import { generation } from '$lib/stores/generation.svelte';
+	import { startSpotifyAuth } from '$lib/auth/spotify';
 	import type { GenerateResponse } from '$lib/types';
 
 	type UiPhase = 'geo' | 'city' | 'ready' | 'loading';
@@ -60,23 +61,47 @@
 		}
 	}
 
+	function connectSpotify() {
+		if (generation.spotifyExpired) {
+			generation.clearSpotify();
+		}
+		startSpotifyAuth();
+	}
+
+	function disconnectSpotify() {
+		generation.clearSpotify();
+	}
+
 	async function doGenerate() {
 		if (lat === null || lon === null) {
 			errMsg = 'Location required';
 			return;
 		}
+
+		if (generation.spotifyToken && generation.spotifyExpired) {
+			generation.clearSpotify();
+			errMsg = 'Spotify token expired — please reconnect or generate without it.';
+			return;
+		}
+
 		submitting = true;
 		phase = 'loading';
 		errMsg = '';
+
+		const authTokens: Record<string, string> = {};
+		if (generation.spotifyConnected && generation.spotifyToken) {
+			authTokens.spotify = generation.spotifyToken;
+		}
+
 		try {
 			const res = await fetch('/api/v1/generate', {
 				method: 'POST',
 				headers: { 'Content-Type': 'application/json' },
 				body: JSON.stringify({
-					user_id: `web-${crypto.randomUUID()}`,
+					user_id: generation.spotifyConnected ? `spotify-user` : `web-${crypto.randomUUID()}`,
 					latitude: lat,
 					longitude: lon,
-					auth_tokens: {}
+					auth_tokens: authTokens
 				})
 			});
 			if (res.status === 422) {
@@ -102,7 +127,20 @@
 
 <div class="layout">
 	<h1>Vibemon</h1>
-	<p class="muted">Share your location to generate a creature from the weather pipeline.</p>
+	<p class="muted">Share your location and connect your accounts to generate a unique creature.</p>
+
+	<div class="auth-section">
+		<h2>Data Sources</h2>
+		<div class="auth-row">
+			{#if generation.spotifyConnected}
+				<span class="auth-status connected">✓ Spotify connected</span>
+				<button type="button" class="btn-small" onclick={disconnectSpotify}>Disconnect</button>
+			{:else}
+				<button type="button" onclick={connectSpotify}>Connect Spotify</button>
+				<span class="auth-hint">Optional — enriches your Vibemon with listening data</span>
+			{/if}
+		</div>
+	</div>
 
 	{#if phase === 'loading'}
 		<p class="muted">Working…</p>
@@ -135,3 +173,37 @@
 		<p class="error">{errMsg}</p>
 	{/if}
 </div>
+
+<style>
+	.auth-section {
+		margin: 1.5rem 0;
+		padding: 1rem 1.25rem;
+		border: 1px solid #222836;
+		border-radius: 10px;
+		background: #13161d;
+		text-align: left;
+	}
+	.auth-section h2 {
+		margin: 0 0 0.75rem;
+		font-size: 1rem;
+		color: #9aa3b2;
+	}
+	.auth-row {
+		display: flex;
+		align-items: center;
+		gap: 0.75rem;
+		flex-wrap: wrap;
+	}
+	.auth-status.connected {
+		color: #6ddf8b;
+		font-weight: 500;
+	}
+	.auth-hint {
+		color: #6b7385;
+		font-size: 0.85rem;
+	}
+	.btn-small {
+		padding: 0.3rem 0.7rem;
+		font-size: 0.85rem;
+	}
+</style>
