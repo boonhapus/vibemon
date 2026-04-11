@@ -1,0 +1,5 @@
+# Ignore Secrets
+.env
+
+# Ignore local project data
+.data/
