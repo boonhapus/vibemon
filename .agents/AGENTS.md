@@ -325,3 +325,31 @@ GITHUB_CLIENT_SECRET
 # Frontend — safe to expose (PKCE flow, no secret needed)
 PUBLIC_SPOTIFY_CLIENT_ID
 ```
+
+---
+
+## Cursor Cloud specific instructions
+
+### Services
+
+| Service | Directory | Dev command | Port |
+|---------|-----------|-------------|------|
+| Backend (Litestar/uvicorn) | `backend/` | `uv run python run.py` | 8000 |
+| Frontend (SvelteKit/Vite) | `frontend/` | `pnpm dev` | 5173 |
+
+The frontend proxies `/api` requests to `http://localhost:8000` via Vite config — start the backend first.
+
+### Key commands
+
+- **Backend tests:** `cd backend && uv run pytest`
+- **Frontend type-check:** `cd frontend && pnpm check`
+- **Frontend build:** `cd frontend && pnpm build`
+- No dedicated lint tools (ruff/eslint) are configured yet.
+
+### Gotchas
+
+- `uv` is not pre-installed on the VM — the update script installs it via `curl -LsSf https://astral.sh/uv/install.sh | sh`.
+- The backend has no `.env.example`; API keys (`LASTFM_API_KEY`, `GITHUB_CLIENT_ID`, `GITHUB_CLIENT_SECRET`) are optional — the app works without them using only the WeatherProvider (Open-Meteo, no key needed).
+- The `backend/main.py` at the repo root is a hello-world stub — the real ASGI app entry is `app.main:app`, launched via `backend/run.py`.
+- The frontend uses `adapter-static` with `ssr: false` — it's a pure SPA. The `pnpm build` output goes to `frontend/build/`.
+- Browser geolocation is unavailable in headless/automated environments; use the city-name fallback input instead.
