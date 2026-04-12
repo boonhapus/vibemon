@@ -7,6 +7,7 @@ from typing import Any, Optional
 from app.engine.models import GenerateRequestBody, VibemonPayload, VibemonStats
 from app.engine.moves import generate_moves
 from app.engine.names import generate_name
+from app.engine.sprites import BattleContext, ensure_sprite
 from app.engine.stats import compute_stats, make_seed, merge_source_data, scale_enemy_stats
 from app.engine.visual import generate_visual_dna
 from app.providers.registry import PROVIDER_REGISTRY
@@ -186,6 +187,13 @@ async def generate(request: GenerateRequestBody) -> dict[str, Any]:
         fallback=enemy_fallback,
         stats=enemy_stats,
     )
+
+    player_url, enemy_url = await asyncio.gather(
+        ensure_sprite(player, BattleContext.PLAYER),
+        ensure_sprite(enemy, BattleContext.ENEMY),
+    )
+    player.sprite_url = player_url
+    enemy.sprite_url = enemy_url
 
     return {
         "player": to_jsonable(player),

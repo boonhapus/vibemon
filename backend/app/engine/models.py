@@ -60,6 +60,7 @@ class VibemonPayload:
     flavour_text: str
     stat_origins: dict[str, str]
     fallback: bool = False
+    sprite_url: Optional[str] = None
 
 
 @define

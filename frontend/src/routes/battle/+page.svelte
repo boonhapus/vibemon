@@ -16,14 +16,6 @@
 
 	let player = $derived(generation.payload?.player);
 	let enemy = $derived(generation.payload?.enemy);
-
-	function seedFromUid(uid: string): number {
-		let hash = 0;
-		for (let i = 0; i < uid.length; i++) {
-			hash = (Math.imul(31, hash) + uid.charCodeAt(i)) | 0;
-		}
-		return hash >>> 0;
-	}
 </script>
 
 {#if ready && player && enemy}
@@ -37,10 +29,8 @@
 				</div>
 				<div class="mon-render">
 					<VibemonRenderer
-						dna={enemy.visual_dna}
-						seed={seedFromUid(enemy.uid)}
-						uid={enemy.uid}
-						flipped={true}
+						spriteUrl={enemy.sprite_url}
+						animationSpeed={enemy.visual_dna.animation_speed}
 					/>
 				</div>
 			</div>
@@ -49,9 +39,8 @@
 			<div class="mon-slot player-slot">
 				<div class="mon-render">
 					<VibemonRenderer
-						dna={player.visual_dna}
-						seed={seedFromUid(player.uid)}
-						uid={player.uid}
+						spriteUrl={player.sprite_url}
+						animationSpeed={player.visual_dna.animation_speed}
 					/>
 				</div>
 				<div class="mon-info">

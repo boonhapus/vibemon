@@ -1,12 +1,21 @@
 from __future__ import annotations
 
+from pathlib import Path
+
 import structlog
+from dotenv import load_dotenv
 from litestar import Litestar
 from litestar.config.cors import CORSConfig
 from litestar.plugins.attrs import AttrsSchemaPlugin
+from litestar.static_files import StaticFilesConfig
 
 from app.logging import configure_logging
 from app.middleware import RequestContextMiddleware
+
+# Load .env from repo root (one level above the backend/ directory)
+load_dotenv(Path(__file__).parent.parent.parent / ".env")
+
+STATIC_DIR = Path(__file__).parent.parent / "static"
 
 log = structlog.get_logger(__name__)
 
@@ -34,6 +43,13 @@ def create_app() -> Litestar:
         ),
         middleware=[RequestContextMiddleware()],
         on_startup=[_log_startup],
+        static_files_config=[
+            StaticFilesConfig(
+                directories=[STATIC_DIR],
+                path="/static",
+                html_mode=False,
+            )
+        ],
     )
 
 

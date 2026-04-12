@@ -56,6 +56,7 @@ export interface VibemonPayload {
 	flavour_text: string;
 	stat_origins: Record<string, string>;
 	fallback: boolean;
+	sprite_url: string | null;
 }
 
 export interface GenerateResponse {
