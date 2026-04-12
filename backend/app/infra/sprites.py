@@ -18,7 +18,7 @@ import structlog
 from rembg import remove as rembg_remove
 from together import AsyncTogether
 
-from app.engine.models import VibemonPayload
+from app.domain.models import VibemonPayload
 
 log = structlog.get_logger(__name__)
 

@@ -28,8 +28,8 @@ def create_app() -> Litestar:
     configure_logging()
     from litestar import Router
 
-    from app.routes.generate import generate_endpoint
-    from app.routes.health import health
+    from app.api.routes.generate import generate_endpoint
+    from app.api.routes.health import health
 
     api_v1 = Router(path="/api/v1", route_handlers=[health, generate_endpoint])
 

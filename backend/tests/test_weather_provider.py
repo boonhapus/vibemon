@@ -5,9 +5,9 @@ from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
 
-from app.engine.fallback import datetime_only_source
-from app.providers.base import GenerationContext
-from app.providers.weather import WeatherProvider, _map_temperature_votes
+from app.domain.context import GenerationContext
+from app.domain.fallback import datetime_only_source
+from app.infra.providers.weather import WeatherProvider, _map_temperature_votes
 
 
 @pytest.mark.asyncio
@@ -48,7 +48,7 @@ async def test_weather_open_meteo_mock() -> None:
     fake_session.__aexit__ = AsyncMock(return_value=None)
     fake_session.get = AsyncMock(return_value=fake_resp)
 
-    with patch("app.providers.weather.niquests.AsyncSession", return_value=fake_session):
+    with patch("app.infra.providers.weather.niquests.AsyncSession", return_value=fake_session):
         out = await WeatherProvider().fetch(ctx)
 
     assert out.speed_factor == pytest.approx(40 / 80.0)
@@ -74,7 +74,7 @@ async def test_weather_api_failure_falls_back() -> None:
     fake_session.__aexit__ = AsyncMock(return_value=None)
     fake_session.get = boom
 
-    with patch("app.providers.weather.niquests.AsyncSession", return_value=fake_session):
+    with patch("app.infra.providers.weather.niquests.AsyncSession", return_value=fake_session):
         out = await WeatherProvider().fetch(ctx)
 
     fb = datetime_only_source(ctx.timestamp, ctx.latitude)

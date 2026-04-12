@@ -1,7 +1,7 @@
 from __future__ import annotations
 
-from app.engine.names import generate_name
-from app.engine.stats import make_seed
+from app.domain.names import generate_name
+from app.domain.stats import make_seed
 
 
 def test_name_deterministic() -> None:

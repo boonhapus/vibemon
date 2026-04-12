@@ -1,9 +1,9 @@
 from __future__ import annotations
 
-from app.engine.models import VibemonStats
-from app.engine.stats import make_seed
-from app.engine.visual import ELEMENT_EYE_SHAPES, generate_visual_dna
-from app.providers.base import SourceData
+from app.domain.context import SourceData
+from app.domain.models import VibemonStats
+from app.domain.stats import make_seed
+from app.domain.visual import ELEMENT_EYE_SHAPES, generate_visual_dna
 
 
 def test_visual_dna_ranges_extremes() -> None:

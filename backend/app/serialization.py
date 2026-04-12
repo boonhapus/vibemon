@@ -13,6 +13,6 @@ def to_jsonable(obj: Any) -> Any:
 
 
 def structure_generate_request(data: dict[str, Any]) -> Any:
-    from app.engine.models import GenerateRequestBody
+    from app.domain.models import GenerateRequestBody
 
     return converter.structure(data, GenerateRequestBody)

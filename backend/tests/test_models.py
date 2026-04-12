@@ -1,7 +1,7 @@
 from __future__ import annotations
 
-from app.engine.models import Move, VisualDNA, VibemonPayload, VibemonStats
-from app.providers.base import SourceData
+from app.domain.context import SourceData
+from app.domain.models import Move, VisualDNA, VibemonPayload, VibemonStats
 from app.serialization import converter, to_jsonable
 
 

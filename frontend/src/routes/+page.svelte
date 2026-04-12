@@ -3,7 +3,7 @@
 	import { goto } from '$app/navigation';
 	import { generation } from '$lib/stores/generation.svelte';
 	import { startSpotifyAuth } from '$lib/auth/spotify';
-	import type { GenerateResponse } from '$lib/types';
+	import { ApiError, postGenerate } from '$lib/api/generate';
 
 	type UiPhase = 'geo' | 'city' | 'ready' | 'loading';
 
@@ -94,30 +94,25 @@
 		}
 
 		try {
-			const res = await fetch('/api/v1/generate', {
-				method: 'POST',
-				headers: { 'Content-Type': 'application/json' },
-				body: JSON.stringify({
-					user_id: generation.spotifyConnected ? `spotify-user` : `web-${crypto.randomUUID()}`,
-					latitude: lat,
-					longitude: lon,
-					auth_tokens: authTokens
-				})
+			const res = await postGenerate({
+				user_id: generation.spotifyConnected ? `spotify-user` : `web-${crypto.randomUUID()}`,
+				latitude: lat,
+				longitude: lon,
+				auth_tokens: authTokens
 			});
-			if (res.status === 422) {
+			generation.payload = res;
+			await goto('/battle');
+		} catch (e) {
+			if (e instanceof ApiError && e.status === 422) {
 				errMsg = 'Location required';
 				phase = 'city';
 				return;
 			}
-			if (!res.ok) {
-				errMsg = `Request failed (${res.status})`;
-				phase = 'ready';
-				return;
+			if (e instanceof ApiError) {
+				errMsg = `Request failed (${e.status})`;
+			} else {
+				errMsg = 'Network error';
 			}
-			generation.payload = (await res.json()) as GenerateResponse;
-			await goto('/battle');
-		} catch {
-			errMsg = 'Network error';
 			phase = 'ready';
 		} finally {
 			submitting = false;

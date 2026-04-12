@@ -4,7 +4,7 @@ import math
 from datetime import datetime
 from typing import Optional
 
-from app.providers.base import SourceData
+from app.domain.context import SourceData
 
 
 def datetime_only_source(

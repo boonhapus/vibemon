@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-from abc import ABC, abstractmethod
 from datetime import datetime
 from typing import Optional
 
@@ -32,12 +31,3 @@ class GenerationContext:
     latitude: Optional[float]
     longitude: Optional[float]
     auth_tokens: dict[str, str] = field(factory=dict)
-
-
-class VibemonProvider(ABC):
-    @property
-    @abstractmethod
-    def source_id(self) -> str: ...
-
-    @abstractmethod
-    async def fetch(self, context: GenerationContext) -> SourceData: ...

@@ -34,6 +34,7 @@ def test_generate_returns_player_and_enemy() -> None:
                 "latitude": 51.5,
                 "longitude": -0.1,
                 "auth_tokens": {},
+                "render_assets": "none",
             },
         )
         assert r.status_code == 200

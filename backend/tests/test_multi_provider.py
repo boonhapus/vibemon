@@ -5,9 +5,9 @@ from unittest.mock import AsyncMock, patch
 
 import pytest
 
-from app.engine.orchestrator import generate
-from app.engine.models import GenerateRequestBody
-from app.providers.base import SourceData
+from app.domain.context import SourceData
+from app.domain.models import GenerateRequestBody
+from app.services.generate_service import generate
 
 
 def _weather_source() -> SourceData:
@@ -64,8 +64,9 @@ async def test_weather_only_generation():
         latitude=40.7,
         longitude=-74.0,
         auth_tokens={},
+        render_assets="none",
     )
-    with patch("app.providers.weather.WeatherProvider.fetch", new_callable=AsyncMock) as mock_w:
+    with patch("app.infra.providers.weather.WeatherProvider.fetch", new_callable=AsyncMock) as mock_w:
         mock_w.return_value = _weather_source()
         result = await generate(request)
 
@@ -83,21 +84,23 @@ async def test_multi_provider_generates_different_stats():
         latitude=40.7,
         longitude=-74.0,
         auth_tokens={},
+        render_assets="none",
     )
     request_multi = GenerateRequestBody(
         user_id="test-compare",
         latitude=40.7,
         longitude=-74.0,
         auth_tokens={"spotify": "fake-token"},
+        render_assets="none",
     )
 
-    with patch("app.providers.weather.WeatherProvider.fetch", new_callable=AsyncMock) as mock_w:
+    with patch("app.infra.providers.weather.WeatherProvider.fetch", new_callable=AsyncMock) as mock_w:
         mock_w.return_value = _weather_source()
         result_weather = await generate(request_weather)
 
-    with patch("app.providers.weather.WeatherProvider.fetch", new_callable=AsyncMock) as mock_w:
+    with patch("app.infra.providers.weather.WeatherProvider.fetch", new_callable=AsyncMock) as mock_w:
         mock_w.return_value = _weather_source()
-        with patch("app.providers.spotify.SpotifyProvider.fetch", new_callable=AsyncMock) as mock_s:
+        with patch("app.infra.providers.spotify.SpotifyProvider.fetch", new_callable=AsyncMock) as mock_s:
             mock_s.return_value = _spotify_source()
             result_multi = await generate(request_multi)
 
@@ -119,11 +122,12 @@ async def test_multi_provider_source_label():
         latitude=40.7,
         longitude=-74.0,
         auth_tokens={"spotify": "fake-token"},
+        render_assets="none",
     )
 
-    with patch("app.providers.weather.WeatherProvider.fetch", new_callable=AsyncMock) as mock_w:
+    with patch("app.infra.providers.weather.WeatherProvider.fetch", new_callable=AsyncMock) as mock_w:
         mock_w.return_value = _weather_source()
-        with patch("app.providers.spotify.SpotifyProvider.fetch", new_callable=AsyncMock) as mock_s:
+        with patch("app.infra.providers.spotify.SpotifyProvider.fetch", new_callable=AsyncMock) as mock_s:
             mock_s.return_value = _spotify_source()
             result = await generate(request)
 
@@ -139,11 +143,12 @@ async def test_multi_provider_stat_origins_include_spotify():
         latitude=40.7,
         longitude=-74.0,
         auth_tokens={"spotify": "fake-token"},
+        render_assets="none",
     )
 
-    with patch("app.providers.weather.WeatherProvider.fetch", new_callable=AsyncMock) as mock_w:
+    with patch("app.infra.providers.weather.WeatherProvider.fetch", new_callable=AsyncMock) as mock_w:
         mock_w.return_value = _weather_source()
-        with patch("app.providers.spotify.SpotifyProvider.fetch", new_callable=AsyncMock) as mock_s:
+        with patch("app.infra.providers.spotify.SpotifyProvider.fetch", new_callable=AsyncMock) as mock_s:
             mock_s.return_value = _spotify_source()
             result = await generate(request)
 
@@ -159,11 +164,12 @@ async def test_spotify_failure_falls_back_to_weather():
         latitude=40.7,
         longitude=-74.0,
         auth_tokens={"spotify": "bad-token"},
+        render_assets="none",
     )
 
-    with patch("app.providers.weather.WeatherProvider.fetch", new_callable=AsyncMock) as mock_w:
+    with patch("app.infra.providers.weather.WeatherProvider.fetch", new_callable=AsyncMock) as mock_w:
         mock_w.return_value = _weather_source()
-        with patch("app.providers.spotify.SpotifyProvider.fetch", new_callable=AsyncMock) as mock_s:
+        with patch("app.infra.providers.spotify.SpotifyProvider.fetch", new_callable=AsyncMock) as mock_s:
             mock_s.side_effect = Exception("API error")
             result = await generate(request)
 

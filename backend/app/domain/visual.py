@@ -3,8 +3,8 @@ from __future__ import annotations
 import random
 from typing import Tuple
 
-from app.engine.models import VisualDNA, VibemonStats
-from app.providers.base import SourceData
+from app.domain.context import SourceData
+from app.domain.models import VisualDNA, VibemonStats
 
 ELEMENT_BASE_HUES = {
     "Fire": 20.0,

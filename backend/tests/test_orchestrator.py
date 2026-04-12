@@ -5,10 +5,12 @@ from unittest.mock import AsyncMock, patch
 
 import pytest
 
-from app.engine.models import GenerateRequestBody
-from app.engine.orchestrator import _build_stat_origins, _provider_active, generate
-from app.providers.base import GenerationContext, SourceData, VibemonProvider
-from app.providers.weather import WeatherProvider
+from app.domain.context import GenerationContext, SourceData
+from app.domain.generation import build_stat_origins, provider_active
+from app.domain.models import GenerateRequestBody
+from app.infra.providers.protocol import VibemonProvider
+from app.infra.providers.weather import WeatherProvider
+from app.services.generate_service import generate
 
 _TS = datetime(2024, 6, 15, 14, 0, 0, tzinfo=timezone.utc)
 
@@ -41,10 +43,10 @@ def _live_source() -> SourceData:
     )
 
 
-# --- _provider_active ---
+# --- provider_active ---
 
 def test_weather_always_active() -> None:
-    assert _provider_active(WeatherProvider(), _ctx()) is True
+    assert provider_active(WeatherProvider(), _ctx()) is True
 
 
 def test_non_weather_requires_token() -> None:
@@ -56,15 +58,15 @@ def test_non_weather_requires_token() -> None:
         async def fetch(self, context: GenerationContext) -> SourceData:  # pragma: no cover
             return SourceData()
 
-    assert _provider_active(FakeProvider(), _ctx()) is False
-    assert _provider_active(FakeProvider(), _ctx(auth_tokens={"spotify": "tok"})) is True
+    assert provider_active(FakeProvider(), _ctx()) is False
+    assert provider_active(FakeProvider(), _ctx(auth_tokens={"spotify": "tok"})) is True
 
 
-# --- _build_stat_origins ---
+# --- build_stat_origins ---
 
 def test_stat_origins_live_weather() -> None:
     src = _live_source()
-    o = _build_stat_origins(src)
+    o = build_stat_origins(src)
     assert "Weather" in o["hp"]
     assert "Weather" in o["speed"]
     assert "Weather" in o["attack"]
@@ -74,13 +76,13 @@ def test_stat_origins_live_weather() -> None:
 def test_stat_origins_uv_boost_reflected() -> None:
     src = _live_source()
     src.raw["uv_index"] = 9.0
-    o = _build_stat_origins(src)
+    o = build_stat_origins(src)
     assert "UV" in o["attack"] or "uv" in o["attack"].lower() or "boost" in o["attack"].lower()
 
 
 def test_stat_origins_fallback() -> None:
     src = SourceData(raw={"weather_live": False})
-    o = _build_stat_origins(src)
+    o = build_stat_origins(src)
     assert "fallback" in o["hp"].lower()
     assert "fallback" in o["speed"].lower()
 
@@ -109,8 +111,8 @@ def test_enemy_uid_changes_with_hour() -> None:
 @pytest.mark.asyncio
 async def test_generate_returns_both_payloads() -> None:
     live = _live_source()
-    with patch("app.providers.weather.WeatherProvider.fetch", new_callable=AsyncMock, return_value=live):
-        req = GenerateRequestBody(user_id="u1", latitude=51.5, longitude=-0.1)
+    with patch("app.infra.providers.weather.WeatherProvider.fetch", new_callable=AsyncMock, return_value=live):
+        req = GenerateRequestBody(user_id="u1", latitude=51.5, longitude=-0.1, render_assets="none")
         result = await generate(req)
 
     assert set(result) == {"player", "enemy"}
@@ -125,8 +127,8 @@ async def test_generate_returns_both_payloads() -> None:
 async def test_generate_enemy_bst_within_band() -> None:
     """Enemy BST must be within ±15% of player BST after scaling."""
     live = _live_source()
-    with patch("app.providers.weather.WeatherProvider.fetch", new_callable=AsyncMock, return_value=live):
-        req = GenerateRequestBody(user_id="bst-test", latitude=51.5, longitude=-0.1)
+    with patch("app.infra.providers.weather.WeatherProvider.fetch", new_callable=AsyncMock, return_value=live):
+        req = GenerateRequestBody(user_id="bst-test", latitude=51.5, longitude=-0.1, render_assets="none")
         result = await generate(req)
 
     def bst(s: dict) -> int:
@@ -152,10 +154,10 @@ async def test_generate_provider_exception_skipped() -> None:
 
     live = _live_source()
     with (
-        patch("app.engine.orchestrator.PROVIDER_REGISTRY", [WeatherProvider, BoomProvider]),
-        patch("app.providers.weather.WeatherProvider.fetch", new_callable=AsyncMock, return_value=live),
+        patch("app.services.generate_service.PROVIDER_REGISTRY", [WeatherProvider, BoomProvider]),
+        patch("app.infra.providers.weather.WeatherProvider.fetch", new_callable=AsyncMock, return_value=live),
     ):
-        req = GenerateRequestBody(user_id="u2", latitude=51.5, longitude=-0.1)
+        req = GenerateRequestBody(user_id="u2", latitude=51.5, longitude=-0.1, render_assets="none")
         result = await generate(req)
 
     assert "player" in result
@@ -164,11 +166,37 @@ async def test_generate_provider_exception_skipped() -> None:
 @pytest.mark.asyncio
 async def test_generate_fallback_flag_when_weather_unavailable() -> None:
     """If WeatherProvider returns a fallback source, player.fallback must be True."""
-    from app.engine.fallback import datetime_only_source
+    from app.domain.fallback import datetime_only_source
 
     fallback_src = datetime_only_source(_TS, 51.5)
-    with patch("app.providers.weather.WeatherProvider.fetch", new_callable=AsyncMock, return_value=fallback_src):
-        req = GenerateRequestBody(user_id="u3", latitude=51.5, longitude=-0.1)
+    with patch("app.infra.providers.weather.WeatherProvider.fetch", new_callable=AsyncMock, return_value=fallback_src):
+        req = GenerateRequestBody(user_id="u3", latitude=51.5, longitude=-0.1, render_assets="none")
         result = await generate(req)
 
     assert result["player"]["fallback"] is True
+
+
+@pytest.mark.asyncio
+async def test_generate_render_none_skips_sprites() -> None:
+    live = _live_source()
+    with (
+        patch("app.infra.providers.weather.WeatherProvider.fetch", new_callable=AsyncMock, return_value=live),
+        patch("app.services.generate_service.ensure_sprite", new_callable=AsyncMock) as mock_sprite,
+    ):
+        req = GenerateRequestBody(user_id="u-sprite", latitude=51.5, longitude=-0.1, render_assets="none")
+        result = await generate(req)
+    mock_sprite.assert_not_called()
+    assert result["player"].get("sprite_url") in (None, "")
+
+
+@pytest.mark.asyncio
+async def test_generate_render_raster_calls_sprite() -> None:
+    live = _live_source()
+    with (
+        patch("app.infra.providers.weather.WeatherProvider.fetch", new_callable=AsyncMock, return_value=live),
+        patch("app.services.generate_service.ensure_sprite", new_callable=AsyncMock, return_value="/static/x.png") as mock_sprite,
+    ):
+        req = GenerateRequestBody(user_id="u-raster", latitude=51.5, longitude=-0.1, render_assets="raster")
+        result = await generate(req)
+    assert mock_sprite.await_count == 2
+    assert result["player"]["sprite_url"] == "/static/x.png"

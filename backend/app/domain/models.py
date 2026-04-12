@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from typing import Optional
+from typing import Literal, Optional
 
 from attrs import define, field
 
@@ -63,6 +63,9 @@ class VibemonPayload:
     sprite_url: Optional[str] = None
 
 
+RenderAssets = Literal["none", "raster"]
+
+
 @define
 class GenerateRequestBody:
     user_id: str
@@ -70,3 +73,4 @@ class GenerateRequestBody:
     longitude: float
     auth_tokens: dict[str, str] = field(factory=dict)
     timestamp: Optional[str] = None
+    render_assets: RenderAssets = "raster"

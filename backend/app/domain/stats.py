@@ -6,8 +6,8 @@ import uuid
 from collections import defaultdict
 from typing import Iterable
 
-from app.engine.models import VibemonStats
-from app.providers.base import SourceData
+from app.domain.context import SourceData
+from app.domain.models import VibemonStats
 
 MIN_STAT = 30
 MAX_STAT = 230

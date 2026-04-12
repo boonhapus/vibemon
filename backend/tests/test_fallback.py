@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from datetime import datetime, timezone
 
-from app.engine.fallback import datetime_only_source
+from app.domain.fallback import datetime_only_source
 
 
 def test_datetime_only_southern_inverts_season() -> None:

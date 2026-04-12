@@ -7,7 +7,7 @@ from litestar import Request, post
 from litestar.exceptions import HTTPException
 from litestar.status_codes import HTTP_200_OK, HTTP_422_UNPROCESSABLE_ENTITY
 
-from app.engine.orchestrator import generate_from_dict
+from app.services.generate_service import generate_from_dict
 
 log = structlog.get_logger(__name__)
 

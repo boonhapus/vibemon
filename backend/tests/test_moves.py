@@ -2,8 +2,8 @@ from __future__ import annotations
 
 import pytest
 
-from app.engine.models import VibemonStats
-from app.engine.moves import generate_moves, _MOVE_POOL
+from app.domain.models import VibemonStats
+from app.domain.moves import _MOVE_POOL, generate_moves
 
 
 ALL_ELEMENTS = ["Fire", "Water", "Ice", "Electric", "Grass", "Ground", "Dark", "Psychic", "Normal"]

@@ -2,15 +2,15 @@ from __future__ import annotations
 
 import random
 
-from app.engine.stats import (
+from app.domain.stats import (
     compute_stats,
     factor_to_stat,
     make_seed,
     merge_source_data,
     scale_enemy_stats,
 )
-from app.engine.models import VibemonStats
-from app.providers.base import SourceData
+from app.domain.context import SourceData
+from app.domain.models import VibemonStats
 
 
 def test_make_seed_deterministic() -> None:

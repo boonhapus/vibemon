@@ -9,7 +9,8 @@ from typing import Any, Optional
 import niquests
 import structlog
 
-from app.providers.base import GenerationContext, SourceData, VibemonProvider
+from app.domain.context import GenerationContext, SourceData
+from app.infra.providers.protocol import VibemonProvider
 
 log = structlog.get_logger(__name__)
 

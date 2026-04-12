@@ -2,7 +2,7 @@
 
 Vibemon is a browser-based monster-battling game. Connect Spotify and GitHub, share your location, and a unique creature is generated whose stats, appearance, and element reflect your real digital life. You then battle a procedurally generated enemy derived from the current time and local weather.
 
-No database. The backend is fully stateless per-request. Battle state is not stored server-side — the full `BattleState` travels with every `/battle/turn` request (stateless echo). All game logic (damage, type effectiveness, enemy AI, turn order) lives in `engine/battle.py` as pure Python with no HTTP dependency. The HTTP routes are thin wrappers. A terminal client can `import app.engine.battle` and call `start_battle` / `execute_turn` directly.
+No database. The backend is fully stateless per-request. **Layout:** top-level `backend/` and `frontend/` (separate toolchains). **Backend layers:** `app/domain` (pure attrs logic, no Litestar/IO), `app/infra` (HTTP providers, raster sprites to disk), `app/services` (compose domain + infra), `app/api` (Litestar routes only). **Headless:** `python -m app.cli` (or `uv run vibemon-generate` after install) reads JSON from stdin or a file path, forces `render_assets: "none"`, prints JSON (no HTTP, no sprite generation). **`POST /api/v1/generate`** accepts optional `render_assets`: `"raster"` (default, writes `sprite_url`) or `"none"` (data only). **Frontend:** game HTTP goes through `src/lib/api/` (e.g. `postGenerate`); routes do not call `fetch` for `/api/v1/generate` directly.
 
 **Python:** use **3.12 or newer** project-wide (asyncio `TaskGroup`, `asyncio.timeout`, `except*` / exception groups).
 
@@ -41,35 +41,35 @@ Use **Svelte 5 syntax exclusively**. LLMs default to Svelte 4 — do not.
 frontend/
   src/
     routes/
-      +page.svelte              # Auth screen (Spotify PKCE, GitHub OAuth, location)
-      battle/+page.svelte       # Battle screen (pure renderer — no game logic)
+      +page.svelte              # Auth / location; calls $lib/api for generate
+      battle/+page.svelte       # Battle screen (renderer — no game rules)
     lib/
+      api/
+        generate.ts             # postGenerate() — sole owner of /api/v1/generate fetch
       components/
-        VibemonRenderer.svelte  # VisualDNA + seed → deterministic SVG blob
+        VibemonRenderer.svelte
       stores/
-        battle.ts               # Thin state holder: last BattleState from server
-      utils/
-        blobRenderer.ts         # Hull generation, path smoothing, limbs, eyes, texture
-        seededRandom.ts         # Mulberry32 PRNG (renderer only — blob hull gen)
+        generation.svelte.ts
 
 backend/
   app/
-    providers/
-      registry.py               # PROVIDER_REGISTRY
-      base.py                   # VibemonProvider ABC, SourceData, GenerationContext
-      spotify.py
-      github.py
-      weather.py
-    engine/
-      stats.py                  # factor_to_stat, compute_stats, merge_source_data
-      visual.py                 # generate_visual_dna
-      moves.py                  # generate_moves
-      names.py                  # syllable name generator
-      battle.py                 # start_battle(), execute_turn() — pure Python, no HTTP
-    routes/
-      generate.py               # POST /api/v1/generate
-      battle.py                 # POST /api/v1/battle/start, POST /api/v1/battle/turn
-      auth.py                   # GET /api/v1/auth/github/callback
+    domain/
+      context.py                # SourceData, GenerationContext
+      models.py                 # VibemonPayload, GenerateRequestBody, …
+      stats.py, visual.py, moves.py, names.py, fallback.py, generation.py
+    infra/
+      sprites.py                # Together/rembg → static PNG + URL
+      providers/
+        protocol.py             # VibemonProvider ABC
+        registry.py             # PROVIDER_REGISTRY
+        spotify.py, weather.py
+    services/
+      generate_service.py       # async generate(), generate_from_dict()
+    api/routes/
+      generate.py, health.py    # Litestar handlers → services
+    cli.py                      # headless JSON out (render_assets forced none)
+    main.py
+    serialization.py            # cattrs converter, structure_generate_request
 ```
 
 ---
@@ -242,13 +242,12 @@ class VibemonProvider(ABC):
     async def fetch(self, context: GenerationContext) -> SourceData: ...
 ```
 
-Register in `providers/registry.py`:
+Register in `infra/providers/registry.py`:
 
 ```python
 PROVIDER_REGISTRY: list[type[VibemonProvider]] = [
-    SpotifyProvider,
-    GitHubProvider,
     WeatherProvider,
+    SpotifyProvider,
 ]
 ```
 

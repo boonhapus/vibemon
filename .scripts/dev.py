@@ -9,8 +9,16 @@
 """
 Complete setup and dev server for vibemon.
 
-Usage:
+From repo root:
     uv run .scripts/dev.py
+
+Starts:
+  - Backend: `backend/run.py` → uvicorn `app.main:app` (Litestar on :8000, reload on).
+    App code lives under `backend/app/` (domain / infra / services / api — see AGENTS.md).
+  - Frontend: `pnpm dev` in `frontend/` (Vite on :5173; proxies `/api` and `/static`).
+
+Headless generate (no HTTP, no raster sprites), from `backend/`:
+    echo '{"user_id":"u","latitude":51.5,"longitude":-0.1}' | uv run python -m app.cli
 """
 
 from __future__ import annotations
@@ -95,7 +103,11 @@ log.info("starting", service="frontend", url="http://localhost:5173")
 backend = subprocess.Popen(
     [uv, "run", "python", "run.py"],
     cwd=BACKEND_DIR,
-    env={**os.environ, "UV_LINK_MODE": "copy"},
+    env={
+        **os.environ,
+        "UV_LINK_MODE": "copy",
+        "PYTHONUNBUFFERED": "1",
+    },
     stdout=subprocess.PIPE,
     stderr=subprocess.STDOUT,
     text=True,

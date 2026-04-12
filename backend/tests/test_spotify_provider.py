@@ -7,8 +7,8 @@ from typing import Any
 
 import pytest
 
-from app.providers.base import GenerationContext, SourceData
-from app.providers.spotify import (
+from app.domain.context import GenerationContext, SourceData
+from app.infra.providers.spotify import (
     SpotifyProvider,
     derive_hue,
     _normalize_bpm,
@@ -175,11 +175,11 @@ class TestSpotifyProvider:
             _make_spotify_item("Pop Hit", "Pop Star", "2026-04-08T10:00:00Z"),
         ]
 
-        with patch("app.providers.spotify._fetch_spotify_recent", new_callable=AsyncMock) as mock_fetch:
+        with patch("app.infra.providers.spotify._fetch_spotify_recent", new_callable=AsyncMock) as mock_fetch:
             mock_fetch.return_value = items
-            with patch("app.providers.spotify._query_musicbrainz", new_callable=AsyncMock) as mock_mb:
+            with patch("app.infra.providers.spotify._query_musicbrainz", new_callable=AsyncMock) as mock_mb:
                 mock_mb.return_value = {"tags": ["metal", "aggressive"], "bpm": 150}
-                with patch("app.providers.spotify._query_lastfm", new_callable=AsyncMock) as mock_lfm:
+                with patch("app.infra.providers.spotify._query_lastfm", new_callable=AsyncMock) as mock_lfm:
                     mock_lfm.return_value = {}
 
                     ctx = _make_context()
@@ -197,11 +197,11 @@ class TestSpotifyProvider:
     async def test_musicbrainz_fallback_to_lastfm(self):
         items = [_make_spotify_item("Test", "Artist", "2026-04-10T12:00:00Z")]
 
-        with patch("app.providers.spotify._fetch_spotify_recent", new_callable=AsyncMock) as mock_fetch:
+        with patch("app.infra.providers.spotify._fetch_spotify_recent", new_callable=AsyncMock) as mock_fetch:
             mock_fetch.return_value = items
-            with patch("app.providers.spotify._query_musicbrainz", new_callable=AsyncMock) as mock_mb:
+            with patch("app.infra.providers.spotify._query_musicbrainz", new_callable=AsyncMock) as mock_mb:
                 mock_mb.return_value = {}
-                with patch("app.providers.spotify._query_lastfm", new_callable=AsyncMock) as mock_lfm:
+                with patch("app.infra.providers.spotify._query_lastfm", new_callable=AsyncMock) as mock_lfm:
                     mock_lfm.return_value = {"tags": ["chill", "acoustic"]}
 
                     ctx = _make_context()
@@ -218,11 +218,11 @@ class TestSpotifyProvider:
             _make_spotify_item("Song2", "Artist2", "2026-04-09T15:00:00Z"),
         ]
 
-        with patch("app.providers.spotify._fetch_spotify_recent", new_callable=AsyncMock) as mock_fetch:
+        with patch("app.infra.providers.spotify._fetch_spotify_recent", new_callable=AsyncMock) as mock_fetch:
             mock_fetch.return_value = items
-            with patch("app.providers.spotify._query_musicbrainz", new_callable=AsyncMock) as mock_mb:
+            with patch("app.infra.providers.spotify._query_musicbrainz", new_callable=AsyncMock) as mock_mb:
                 mock_mb.return_value = {}
-                with patch("app.providers.spotify._query_lastfm", new_callable=AsyncMock) as mock_lfm:
+                with patch("app.infra.providers.spotify._query_lastfm", new_callable=AsyncMock) as mock_lfm:
                     mock_lfm.return_value = {}
 
                     ctx = _make_context()
@@ -236,7 +236,7 @@ class TestSpotifyProvider:
 
     @pytest.mark.asyncio
     async def test_no_recent_tracks(self):
-        with patch("app.providers.spotify._fetch_spotify_recent", new_callable=AsyncMock) as mock_fetch:
+        with patch("app.infra.providers.spotify._fetch_spotify_recent", new_callable=AsyncMock) as mock_fetch:
             mock_fetch.return_value = []
 
             ctx = _make_context()
@@ -254,11 +254,11 @@ class TestSpotifyProvider:
             _make_spotify_item("Song3", "Artist", "2026-04-10T22:30:00Z"),
         ]
 
-        with patch("app.providers.spotify._fetch_spotify_recent", new_callable=AsyncMock) as mock_fetch:
+        with patch("app.infra.providers.spotify._fetch_spotify_recent", new_callable=AsyncMock) as mock_fetch:
             mock_fetch.return_value = items
-            with patch("app.providers.spotify._query_musicbrainz", new_callable=AsyncMock) as mock_mb:
+            with patch("app.infra.providers.spotify._query_musicbrainz", new_callable=AsyncMock) as mock_mb:
                 mock_mb.return_value = {}
-                with patch("app.providers.spotify._query_lastfm", new_callable=AsyncMock) as mock_lfm:
+                with patch("app.infra.providers.spotify._query_lastfm", new_callable=AsyncMock) as mock_lfm:
                     mock_lfm.return_value = {}
 
                     ctx = _make_context()
@@ -272,11 +272,11 @@ class TestSpotifyProvider:
     async def test_stat_factors_from_genre_intensity(self):
         items = [_make_spotify_item("Metal Song", "Metal Band", "2026-04-10T12:00:00Z")]
 
-        with patch("app.providers.spotify._fetch_spotify_recent", new_callable=AsyncMock) as mock_fetch:
+        with patch("app.infra.providers.spotify._fetch_spotify_recent", new_callable=AsyncMock) as mock_fetch:
             mock_fetch.return_value = items
-            with patch("app.providers.spotify._query_musicbrainz", new_callable=AsyncMock) as mock_mb:
+            with patch("app.infra.providers.spotify._query_musicbrainz", new_callable=AsyncMock) as mock_mb:
                 mock_mb.return_value = {"tags": ["metal", "hardcore", "aggressive"], "bpm": 160}
-                with patch("app.providers.spotify._query_lastfm", new_callable=AsyncMock) as mock_lfm:
+                with patch("app.infra.providers.spotify._query_lastfm", new_callable=AsyncMock) as mock_lfm:
                     mock_lfm.return_value = {}
 
                     ctx = _make_context()
@@ -290,11 +290,11 @@ class TestSpotifyProvider:
     async def test_calm_genres_boost_sp_defense(self):
         items = [_make_spotify_item("Calm Song", "Ambient Artist", "2026-04-10T12:00:00Z")]
 
-        with patch("app.providers.spotify._fetch_spotify_recent", new_callable=AsyncMock) as mock_fetch:
+        with patch("app.infra.providers.spotify._fetch_spotify_recent", new_callable=AsyncMock) as mock_fetch:
             mock_fetch.return_value = items
-            with patch("app.providers.spotify._query_musicbrainz", new_callable=AsyncMock) as mock_mb:
+            with patch("app.infra.providers.spotify._query_musicbrainz", new_callable=AsyncMock) as mock_mb:
                 mock_mb.return_value = {"tags": ["classical", "ambient"]}
-                with patch("app.providers.spotify._query_lastfm", new_callable=AsyncMock) as mock_lfm:
+                with patch("app.infra.providers.spotify._query_lastfm", new_callable=AsyncMock) as mock_lfm:
                     mock_lfm.return_value = {}
 
                     ctx = _make_context()

@@ -1,9 +1,8 @@
 from __future__ import annotations
 
 import random
-from typing import Final
 
-from app.engine.models import Move, VibemonStats
+from app.domain.models import Move, VibemonStats
 
 _MOVE_POOL: dict[str, list[Move]] = {
     "Fire": [
