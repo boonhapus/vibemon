@@ -1,0 +1,11 @@
+---
+description: Python 3.12+ baseline; no __future__ annotations import
+globs: "**/*.py"
+alwaysApply: false
+---
+
+# Python 3.12+
+
+- Target **3.12+** only (`TaskGroup`, `asyncio.timeout`, `except*`).
+- **Do not** add `from __future__ import annotations`. Not required for this project; avoid churn + mixed style.
+- Forward refs / cycles: use quoted annotations, `typing.TYPE_CHECKING` blocks, or reorder — do not reach for that future import by default.
