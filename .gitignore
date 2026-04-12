@@ -12,6 +12,7 @@ __pycache__/
 
 # Ignore project-specific build artifacts
 backend/.venv/
+backend/static/sprites/*.png
 frontend/node_modules/
 frontend/build/
 frontend/.svelte-kit/
