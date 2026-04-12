@@ -4,7 +4,7 @@ from app.domain.models import Move, VibemonPayload, VibemonStats, VisualDNA
 from app.infra.sprites import (
     BattleContext,
     _generate_prompt,
-    _together_seed,
+    _sprite_variant_seed,
     vibemon_to_monster_state,
 )
 
@@ -67,10 +67,21 @@ def test_paired_camera_in_player_prompt_when_paired_battle() -> None:
     assert "STYLE LOCK" in text
     assert "this image ONLY" in text
     assert "BACK SPRITE" in text
+    assert "ORIENTATION LOCK" in text
+    assert "RIGHT side of the frame" in text
 
 
-def test_together_seed_differs_by_camera_same_pair_uid() -> None:
+def test_enemy_prompt_orientation_lock_left() -> None:
+    p = _minimal_payload(uid="user-2", source="weather")
+    m = vibemon_to_monster_state(p, BattleContext.ENEMY)
+    text = _generate_prompt(m, p, paired_battle=True)
+    assert "ORIENTATION LOCK" in text
+    assert "FRONT SPRITE" in text
+    assert "LEFT side of the frame" in text
+
+
+def test_sprite_variant_seed_differs_by_camera_same_pair_uid() -> None:
     uid = "same-user"
-    a = _together_seed(uid, BattleContext.PLAYER)
-    b = _together_seed(uid, BattleContext.ENEMY)
+    a = _sprite_variant_seed(uid, BattleContext.PLAYER)
+    b = _sprite_variant_seed(uid, BattleContext.ENEMY)
     assert a != b

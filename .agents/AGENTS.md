@@ -58,7 +58,7 @@ backend/
       models.py                 # VibemonPayload, GenerateRequestBody, …
       stats.py, visual.py, moves.py, names.py, fallback.py, generation.py
     infra/
-      sprites.py                # Together/rembg → static PNG + URL
+      sprites.py                # Gemini image + rembg → static PNG + URL
       providers/
         protocol.py             # VibemonProvider ABC
         registry.py             # PROVIDER_REGISTRY
@@ -317,6 +317,8 @@ Provider failures are silent — generation continues with whatever providers su
 
 ```
 # Backend only — never expose to the browser
+GEMINI_API_KEY
+# (GOOGLE_API_KEY is accepted as a fallback for the same value)
 LASTFM_API_KEY
 GITHUB_CLIENT_ID
 GITHUB_CLIENT_SECRET

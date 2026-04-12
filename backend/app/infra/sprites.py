@@ -1,22 +1,21 @@
 """
-Monster sprite generation via Together AI FLUX.1-schnell.
+Monster sprite generation via Google Gemini image model (default: gemini-2.5-flash-image).
 Maps VibemonPayload → MonsterState → prompt → image.
 Sprites cached to disk by UID.
 """
 from __future__ import annotations
 
 import asyncio
-import base64
 import os
 from dataclasses import dataclass
 from enum import Enum
 from pathlib import Path
 from typing import Optional
 
-import niquests
 import structlog
+from google import genai
+from google.genai import types
 from rembg import remove as rembg_remove
-from together import AsyncTogether
 
 from app.domain.models import VibemonPayload
 from app.domain.stats import make_seed
@@ -24,7 +23,7 @@ from app.domain.stats import make_seed
 log = structlog.get_logger(__name__)
 
 SPRITES_DIR = Path(__file__).parent.parent.parent / "static" / "sprites"
-DEFAULT_MODEL = "black-forest-labs/FLUX.1-schnell"
+DEFAULT_MODEL = "gemini-2.5-flash-image"
 
 
 # ── Enums ─────────────────────────────────────────────────────────────────────
@@ -149,21 +148,34 @@ STANCE_DESCRIPTION = {
     IdleStance.PLAYFUL:    "off-balance lean, one limb raised casually, open expression, loose posture",
 }
 
+# Image models often default both cameras to the same leftward read; lock canvas direction in plain terms.
+ORIENTATION_LOCK = {
+    BattleContext.PLAYER: (
+        "ORIENTATION LOCK — square PNG canvas: the creature's battle-forward read (spine flow, limb reach, "
+        "head turn, snout/tail bias, and where the silhouette opens into empty space) must aim toward the "
+        "RIGHT side of the frame (toward higher x, like 3 o'clock), toward the off-canvas foe. "
+        "Do NOT output a composition mirrored so the creature faces the LEFT edge or 'looks stage-left'."
+    ),
+    BattleContext.ENEMY: (
+        "ORIENTATION LOCK — square PNG canvas: the creature's battle-forward read (gaze, chest, limbs, "
+        "and silhouette mass) must aim toward the LEFT side of the frame (toward lower x, like 9 o'clock), "
+        "toward the off-canvas ally. "
+        "Do NOT output a composition mirrored so the creature faces the RIGHT edge."
+    ),
+}
+
 PERSPECTIVE_DESCRIPTION = {
     BattleContext.PLAYER: (
-        "this image ONLY — Pokémon Gen 3–style ally FRONT SPRITE: "
-        "camera faces the creature head-on; face and chest clearly visible; "
-        "body oriented so the creature faces toward stage-right (its right, camera-left), "
-        "angling its head and torso rightward as if looking across the field at a foe "
-        "positioned to the upper-right of the arena; "
+        "this image ONLY — Pokémon Gen 3–style ally BACK SPRITE: "
+        "camera is directly behind the creature; back, shoulders, and tail silhouette primary; "
+        "head may turn slightly so a profile or three-quarter ear/horn read is visible; "
+        "creature looks away from the viewer toward the enemy off the RIGHT edge of the canvas; "
         "one body only; follow DESIGN LOCK counts and ornaments for this one pose only"
     ),
     BattleContext.ENEMY: (
         "this image ONLY — Pokémon Gen 3–style foe FRONT SPRITE: "
         "camera faces the creature head-on; face and chest clearly visible; "
-        "body oriented so the creature faces toward stage-left (its left, camera-right), "
-        "angling its head and torso leftward as if looking across the field at a foe "
-        "positioned to the lower-left of the arena; "
+        "creature confronts the ally off the LEFT edge of the canvas; "
         "one body only; follow DESIGN LOCK counts and ornaments for this one pose only"
     ),
 }
@@ -450,43 +462,71 @@ def _generate_prompt(m: MonsterState, payload: VibemonPayload, *, paired_battle:
         f"color palette: {m.palette.primary} body, {m.palette.secondary} markings, {m.palette.accent} accents, "
         f"type effect: {m.effect.description}, {m.effect.placement.lower()}, {m.effect.intensity.value.lower()} intensity, "
         f"idle stance: {STANCE_DESCRIPTION[m.idle_stance]}, "
+        f"{ORIENTATION_LOCK[m.battle_context]} "
         f"{PERSPECTIVE_DESCRIPTION[m.battle_context]}, "
         f"{OUTLINE_WEIGHT[m.evolution_stage]} outlines, "
         f"{STATIC_RENDER}"
     )
 
 
-# ── Together AI fetch ─────────────────────────────────────────────────────────
+# ── Gemini image fetch ────────────────────────────────────────────────────────
 
-def _together_seed(pair_identity_uid: str, context: BattleContext) -> int:
-    """Deterministic seed: shared base per creature pair, distinct per camera so FLUX varies pose not palette."""
+
+def _sprite_variant_seed(pair_identity_uid: str, context: BattleContext) -> int:
+    """Deterministic variant id: shared base per creature pair, distinct per camera."""
     base = make_seed(pair_identity_uid, "vibemon_battle_sprite_pair")
     salt = 0x51ED_0000 if context == BattleContext.PLAYER else 0xE11A_0000
     return (base ^ salt) % (2**31 - 1) or 1
 
 
-async def _fetch_image(prompt: str, api_key: str, model: str, *, seed: int) -> bytes:
-    client = AsyncTogether(api_key=api_key)
-    response = await client.images.generate(
-        prompt=prompt,
-        model=model,
-        width=512,
-        height=512,
-        steps=4,
-        n=1,
-        seed=seed,
-        disable_safety_checker=True,
+def _prompt_with_variant(prompt: str, variant_seed: int) -> str:
+    return f"{prompt}\n\nDeterministic render id: {variant_seed}"
+
+
+def _extract_image_bytes(response: types.GenerateContentResponse) -> bytes:
+    parts: list[types.Part] = []
+    rp = getattr(response, "parts", None)
+    if rp:
+        parts = list(rp)
+    elif response.candidates:
+        content = response.candidates[0].content
+        if content and content.parts:
+            parts = list(content.parts)
+    for part in parts:
+        inline = part.inline_data
+        if inline is not None and inline.data:
+            data = inline.data
+            return data if isinstance(data, (bytes, bytearray)) else bytes(data)
+    raise ValueError("Gemini response contained no image bytes")
+
+
+def _fetch_image_sync(prompt: str, api_key: str, model: str, *, variant_seed: int) -> bytes:
+    client = genai.Client(api_key=api_key)
+    full_prompt = _prompt_with_variant(prompt, variant_seed)
+    config = types.GenerateContentConfig(
+        response_modalities=["TEXT", "IMAGE"],
+        image_config=types.ImageConfig(
+            aspect_ratio="1:1",
+            image_size="1K",
+        ),
     )
-    item = response.data[0]
+    response = client.models.generate_content(
+        model=model,
+        contents=[full_prompt],
+        config=config,
+    )
+    return _extract_image_bytes(response)
 
-    # SDK may return b64_json or a URL depending on the model tier
-    if item.b64_json:
-        return base64.b64decode(item.b64_json)
 
-    async with niquests.AsyncSession() as session:
-        img_resp = await session.get(item.url)
-        img_resp.raise_for_status()
-        return img_resp.content
+async def _fetch_image(prompt: str, api_key: str, model: str, *, seed: int) -> bytes:
+    return await asyncio.to_thread(_fetch_image_sync, prompt, api_key, model, variant_seed=seed)
+
+
+def _gemini_api_key() -> str:
+    return (
+        os.environ.get("GEMINI_API_KEY", "").strip()
+        or os.environ.get("GOOGLE_API_KEY", "").strip()
+    )
 
 
 # ── Public API ────────────────────────────────────────────────────────────────
@@ -501,16 +541,15 @@ async def ensure_sprite(
 ) -> Optional[str]:
     """
     Return URL path for a vibemon sprite, generating it if not cached.
-    Returns None when TOGETHER_API_KEY is unset or generation fails.
-    URL is relative to the backend root: /static/sprites/{safe_uid}.png
+    Returns None when GEMINI_API_KEY / GOOGLE_API_KEY is unset or generation fails.
+    URL is relative to the backend root: /static/sprites/{safe_uid}_{player|enemy}.png
     """
-    api_key = os.environ.get("TOGETHER_API_KEY", "")
+    api_key = _gemini_api_key()
     if not api_key:
         log.debug("sprite_skip_no_api_key", uid=payload.uid)
         return None
 
     safe_uid = payload.uid.replace("/", "_").replace("\\", "_").replace(":", "_")
-    # Include context in the filename so player/enemy get different perspectives
     filename = f"{safe_uid}_{context.value.lower()}.png"
     sprite_path = SPRITES_DIR / filename
 
@@ -521,7 +560,7 @@ async def ensure_sprite(
     monster = vibemon_to_monster_state(payload, context)
     prompt  = _generate_prompt(monster, payload, paired_battle=paired_battle)
     seed_uid = pair_identity_uid or payload.uid
-    seed = _together_seed(seed_uid, context)
+    seed = _sprite_variant_seed(seed_uid, context)
 
     try:
         image_bytes = await _fetch_image(prompt, api_key, model, seed=seed)

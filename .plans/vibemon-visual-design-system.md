@@ -428,6 +428,6 @@ Move grid **always** two columns.
 
 ---
 
-## 11. Raster Sprites (Together / FLUX)
+## 11. Raster Sprites (Gemini image)
 
 Battle sprites are **isolated** raster images: one creature, **transparent** background, no ground and no UI in-frame. Prompts use high-fidelity pixel language with **light** neon-friendly rim or accent lighting so creatures read clearly on the synthwave dusk scene without painting an environment in the image.

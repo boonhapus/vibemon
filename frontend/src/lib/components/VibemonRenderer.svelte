@@ -1,13 +1,10 @@
 <script lang="ts">
-	let {
-		spriteUrl,
-		flip = false
-	}: { spriteUrl: string | null; flip?: boolean } = $props();
+	let { spriteUrl }: { spriteUrl: string | null } = $props();
 </script>
 
 <div class="vibemon-wrapper">
 	{#if spriteUrl}
-		<img src={spriteUrl} alt="" class="vibemon-sprite" class:flipped={flip} />
+		<img src={spriteUrl} alt="" class="vibemon-sprite" />
 	{:else}
 		<div class="vibemon-placeholder" aria-hidden="true"></div>
 	{/if}
@@ -25,10 +22,6 @@
 		height: 100%;
 		object-fit: contain;
 		image-rendering: pixelated;
-	}
-
-	.flipped {
-		transform: scaleX(-1);
 	}
 
 	.vibemon-placeholder {

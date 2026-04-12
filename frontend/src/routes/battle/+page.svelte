@@ -90,8 +90,7 @@
 			<!-- Player sprite — lower left (faces right, toward enemy) -->
 			<div class="combatant combatant--player">
 				<div class="sprite sprite--player">
-					<!-- flip=true mirrors the sprite so it faces right (toward enemy) -->
-					<VibemonRenderer spriteUrl={player.sprite_url} flip={true} />
+					<VibemonRenderer spriteUrl={player.sprite_url} />
 				</div>
 				<div class="plat plat--player" aria-hidden="true"></div>
 			</div>
