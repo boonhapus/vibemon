@@ -19,6 +19,7 @@ from rembg import remove as rembg_remove
 from together import AsyncTogether
 
 from app.domain.models import VibemonPayload
+from app.domain.stats import make_seed
 
 log = structlog.get_logger(__name__)
 
@@ -149,9 +150,37 @@ STANCE_DESCRIPTION = {
 }
 
 PERSPECTIVE_DESCRIPTION = {
-    BattleContext.PLAYER: "back-facing, oriented right, facing away from viewer",
-    BattleContext.ENEMY:  "front-facing, oriented left, weight shifted forward",
+    BattleContext.PLAYER: (
+        "this image ONLY — Pokémon Gen 3–style ally BACK SPRITE: "
+        "camera behind the creature like the trainer's view in a classic handheld battle; "
+        "we see the creature's back, spine, tail base, and backs of limbs; "
+        "snout/face must NOT point at the camera (no front portrait, no 3/4 hero facing viewer); "
+        "the creature's body aims up-screen and stage-right into the arena, clearly facing its opponent; "
+        "at most a tiny cheek or ear sliver visible from a head turn; "
+        "follow DESIGN LOCK counts and ornaments for this one pose only"
+    ),
+    BattleContext.ENEMY: (
+        "this image ONLY — Pokémon Gen 3–style foe FRONT SPRITE: "
+        "camera in front of the creature from the trainer's line of sight; "
+        "face and chest readable, body angled slightly down and toward its left "
+        "(toward the opponent's corner), as if addressing the ally across the field; "
+        "one body only; follow DESIGN LOCK counts and ornaments for this one pose only"
+    ),
 }
+
+# Prepended to every prompt so both battle renders share one pipeline (reduces 3D-photo drift).
+STYLE_LOCK = (
+    "STYLE LOCK — one hand-painted 2D game sprite, HD / visual-novel cel quality, "
+    "visible clean line art, flat color regions with soft cel shading only; "
+    "not a photograph, not PBR 3D, not hyperreal plush toy, not cinematic CG render."
+)
+
+# Strong guard: models misread "paired angles" as "draw both angles in one image".
+SINGLE_SUBJECT_GUARD = (
+    "COMPOSITION — exactly ONE creature, one full body, centered, solo; "
+    "no duplicate, no twin, no back-to-back duo, no mirrored pair, "
+    "no turnaround sheet, no model sheet grid, no front-and-back in one frame."
+)
 
 OUTLINE_WEIGHT = {
     EvolutionStage.BABY:  "thin 1px",
@@ -162,11 +191,13 @@ OUTLINE_WEIGHT = {
 STATIC_RENDER = (
     "HD-2D high-fidelity pixel art, crisp pixel aesthetic, "
     "soft cel shading with ambient occlusion, "
+    "subtle synthwave-friendly neon rim light and magenta-teal bounce on edges, "
     "dynamic rim lighting with secondary fill light, "
     "colored outlines matching local surface color with no harsh black edges, "
-    "static idle pose mid-breath-cycle with slight weight shift, "
+    "static idle pose: feet flat, full body weight on feet, soles near bottom edge of frame, "
+    "standing on an implied ground plane — no levitation, no mid-air jump, no hover gap under feet, "
     "isolated on transparent background, "
-    "single subject centered, no background, no ground, no shadow, no UI elements"
+    "no background, no ground disk, no cast shadow, no UI elements"
 )
 
 SIGNATURE_FEATURES: dict[str, str] = {
@@ -243,6 +274,32 @@ def _hsl_color_name(h: float, s: float, l: float) -> str:
     return f"{prefix}red"
 
 
+def _design_lock_paragraph(payload: VibemonPayload) -> str:
+    """Shared, DNA-derived text prepended to every sprite prompt so both cameras describe one design."""
+    d = payload.visual_dna
+    s = payload.stats
+    if d.limb_count == 0:
+        limb_desc = "no limbs (amorphous body mass)"
+    else:
+        limb_desc = f"{d.limb_count} limb(s), limb style {d.limb_style}"
+    motif = SIGNATURE_FEATURES.get(
+        s.element,
+        "Distinctive markings unique to this creature",
+    )
+    return (
+        "DESIGN LOCK — one canonical design; do not add or remove heads, horns, tails, limbs, or flowers; "
+        "keep these counts and shapes whenever this species is drawn: "
+        f"{d.n_points} soft-body anchor points, spikiness {d.spikiness:.2f}, {limb_desc}, "
+        f"{d.eye_count} eye(s) at relative size {d.eye_size:.2f}, eye shape {d.eye_shape}, "
+        f"mouth {d.mouth_style}, skin pattern {d.texture_pattern}, "
+        f"palette primary {_hsl_color_name(*d.color_primary)}, "
+        f"secondary {_hsl_color_name(*d.color_secondary)}, accent {_hsl_color_name(*d.color_accent)}, "
+        f"eyes {_hsl_color_name(*d.color_eye)}, outline emphasis {d.outline_weight:.1f}, "
+        f"surface glow {d.glow_intensity:.2f}, body scale {d.size_scale:.2f}; "
+        f"{s.element}-type motif: {motif}"
+    )
+
+
 def vibemon_to_monster_state(payload: VibemonPayload, context: BattleContext) -> MonsterState:
     stats = payload.stats
     dna   = payload.visual_dna
@@ -281,10 +338,8 @@ def vibemon_to_monster_state(payload: VibemonPayload, context: BattleContext) ->
     else:
         size = SizeClass.LARGE
 
-    # Idle stance
-    if context == BattleContext.PLAYER:
-        stance = IdleStance.AGGRESSIVE
-    elif stats.defense > stats.attack:
+    # Idle stance — same rule for player and enemy so mirror pairs get identical pose language.
+    if stats.defense > stats.attack:
         stance = IdleStance.DEFENSIVE
     else:
         stance = IdleStance.AGGRESSIVE
@@ -372,10 +427,20 @@ def vibemon_to_monster_state(payload: VibemonPayload, context: BattleContext) ->
 
 # ── Prompt builder ────────────────────────────────────────────────────────────
 
-def _generate_prompt(m: MonsterState) -> str:
+def _generate_prompt(m: MonsterState, payload: VibemonPayload, *, paired_battle: bool) -> str:
     features = ", ".join(f.value for f in m.extra_features) if m.extra_features else "none"
     secondary = f"{m.secondary_type.value}/" if m.secondary_type else ""
+    lock = _design_lock_paragraph(payload)
+    # Enemy payload uses source=mirror, but PLAYER must get the same clause — both renders are one pair.
+    pair_note = ""
+    if paired_battle:
+        pair_note = (
+            "BATTLE SET — player and foe sprites share this DESIGN LOCK and STYLE LOCK in the same session; "
+            "match palette, body mass, and ornament layout to that spec; "
+            "still output only the single camera described below, never two creatures or two angles in one image. "
+        )
     return (
+        f"{STYLE_LOCK} {SINGLE_SUBJECT_GUARD} {pair_note}{lock}. "
         f"{secondary}{m.primary_type.value}-type {m.size_class.value.lower()} "
         f"{m.body_type.value.lower()} monster, {m.evolution_stage.value.lower()} evolution stage, "
         f"{STAGE_COMPLEXITY[m.evolution_stage]}, "
@@ -385,7 +450,7 @@ def _generate_prompt(m: MonsterState) -> str:
         f"color palette: {m.palette.primary} body, {m.palette.secondary} markings, {m.palette.accent} accents, "
         f"type effect: {m.effect.description}, {m.effect.placement.lower()}, {m.effect.intensity.value.lower()} intensity, "
         f"idle stance: {STANCE_DESCRIPTION[m.idle_stance]}, "
-        f"perspective: {PERSPECTIVE_DESCRIPTION[m.battle_context]}, "
+        f"{PERSPECTIVE_DESCRIPTION[m.battle_context]}, "
         f"{OUTLINE_WEIGHT[m.evolution_stage]} outlines, "
         f"{STATIC_RENDER}"
     )
@@ -393,7 +458,14 @@ def _generate_prompt(m: MonsterState) -> str:
 
 # ── Together AI fetch ─────────────────────────────────────────────────────────
 
-async def _fetch_image(prompt: str, api_key: str, model: str) -> bytes:
+def _together_seed(pair_identity_uid: str, context: BattleContext) -> int:
+    """Deterministic seed: shared base per creature pair, distinct per camera so FLUX varies pose not palette."""
+    base = make_seed(pair_identity_uid, "vibemon_battle_sprite_pair")
+    salt = 0x51ED_0000 if context == BattleContext.PLAYER else 0xE11A_0000
+    return (base ^ salt) % (2**31 - 1) or 1
+
+
+async def _fetch_image(prompt: str, api_key: str, model: str, *, seed: int) -> bytes:
     client = AsyncTogether(api_key=api_key)
     response = await client.images.generate(
         prompt=prompt,
@@ -402,6 +474,7 @@ async def _fetch_image(prompt: str, api_key: str, model: str) -> bytes:
         height=512,
         steps=4,
         n=1,
+        seed=seed,
     )
     item = response.data[0]
 
@@ -421,6 +494,9 @@ async def ensure_sprite(
     payload: VibemonPayload,
     context: BattleContext,
     model: str = DEFAULT_MODEL,
+    *,
+    paired_battle: bool = True,
+    pair_identity_uid: Optional[str] = None,
 ) -> Optional[str]:
     """
     Return URL path for a vibemon sprite, generating it if not cached.
@@ -442,10 +518,12 @@ async def ensure_sprite(
         return f"/static/sprites/{filename}"
 
     monster = vibemon_to_monster_state(payload, context)
-    prompt  = _generate_prompt(monster)
+    prompt  = _generate_prompt(monster, payload, paired_battle=paired_battle)
+    seed_uid = pair_identity_uid or payload.uid
+    seed = _together_seed(seed_uid, context)
 
     try:
-        image_bytes = await _fetch_image(prompt, api_key, model)
+        image_bytes = await _fetch_image(prompt, api_key, model, seed=seed)
         image_bytes = await asyncio.to_thread(rembg_remove, image_bytes)
         SPRITES_DIR.mkdir(parents=True, exist_ok=True)
         sprite_path.write_bytes(image_bytes)

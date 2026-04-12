@@ -1,22 +1,18 @@
 <script lang="ts">
-	let { spriteUrl, animationSpeed = 1.5 }: {
-		spriteUrl: string | null;
-		animationSpeed?: number;
-	} = $props();
-
-	let floatDuration = $derived(`${animationSpeed.toFixed(2)}s`);
+	let { spriteUrl }: { spriteUrl: string | null; role?: 'player' | 'enemy' } = $props();
 </script>
 
-<div class="vibemon-wrapper" style="--float-duration: {floatDuration};">
+<div class="vibemon-wrapper">
 	{#if spriteUrl}
-		<img src={spriteUrl} alt="vibemon sprite" class="vibemon-sprite" />
+		<img src={spriteUrl} alt="" class="vibemon-sprite" />
+	{:else}
+		<div class="vibemon-placeholder" aria-hidden="true"></div>
 	{/if}
 </div>
 
 <style>
 	.vibemon-wrapper {
 		display: inline-block;
-		animation: float var(--float-duration, 1.5s) ease-in-out infinite alternate;
 	}
 
 	.vibemon-sprite {
@@ -26,8 +22,12 @@
 		image-rendering: pixelated;
 	}
 
-	@keyframes float {
-		0%   { transform: translateY(0); }
-		100% { transform: translateY(-6px); }
+	.vibemon-placeholder {
+		width: 100%;
+		height: 100%;
+		min-height: 120px;
+		border: 1px dashed var(--vb-border);
+		border-radius: var(--r-md);
+		background: rgba(6, 4, 15, 0.35);
 	}
 </style>

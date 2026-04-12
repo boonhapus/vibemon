@@ -46,3 +46,7 @@ def test_generate_returns_player_and_enemy() -> None:
         e = data["enemy"]
         assert e["uid"].startswith("enemy_")
         assert len(e["moves"]) == 4
+        assert e["source"] == "mirror"
+        assert e["name"] == p["name"]
+        assert e["stats"] == p["stats"]
+        assert e["visual_dna"] == p["visual_dna"]

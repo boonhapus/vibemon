@@ -8,7 +8,7 @@
 
 ## Objective
 
-Add hit/critical/faint animations to the Vibemon SVG wrappers and build the victory and defeat screens that conclude a battle. Animations are driven by the `TurnEvent[]` returned by `POST /api/v1/battle/turn` — the frontend never decides what happened, only how to show it.
+Add hit, damage flash, and faint animations on the **VibemonRenderer** wrapper (sprite or procedural), plus victory and defeat screens. Timing and motion names align with [.plans/vibemon-visual-design-system.md](../vibemon-visual-design-system.md) §7. Animations are driven by `TurnEvent[]` from `POST /api/v1/battle/turn` — the frontend never decides outcomes, only presentation.
 
 ---
 
@@ -38,35 +38,30 @@ Move buttons remain disabled while `playEvents` is running. Set a `$state animat
 
 ## Tasks
 
-### 1. Hit shake animation
+### 1. Hit shake (`attack-shake`)
 
-- When a `TurnEvent` with `type === "damage"` is processed, apply CSS `@keyframes shake` to the target Vibemon's SVG wrapper
-- Duration: 300ms, horizontal displacement ±5px
-- `actor` field identifies the target: `"player"` → enemy attacked player, so shake player SVG; vice versa
-- Use a `$state isHit = false` prop on `VibemonRenderer.svelte`; set it true, await 300ms, set false
+- On `TurnEvent` with `type === "damage"`, run `attack-shake` on the **target** wrapper (interpret `actor` the same way as today’s battle renderer).
+- Match design system §7.2 / §7.3: ~350ms, horizontal ±8px → ±5px damping (or reuse exact keyframes from the doc).
 
-### 2. Critical hit / super effective flash
+### 2. Damage flash (`damage-flash`)
 
-- When `event.type === "damage"` and `event.effectiveness === "super-effective"`:
-  - Apply a semi-transparent white flash overlay on the target SVG
-  - 150ms fade-in then fade-out
+- On damage events, apply **neutral** `damage-flash` (brightness / saturate per §7.3) on the target — **no** elemental tint.
+- For `super-effective` / `not-very-effective`, intensity or copy in the log may differ; the **flash** treatment stays the same neutral treatment unless copy requires a separate label only.
 
 ### 3. Faint animation
 
 - Triggered by `TurnEvent` with `type === "ko"`
-- `translateY(30px)` + `opacity: 0` over 800ms with `ease-in` on the target Vibemon's SVG
+- `translateY(30px)` + `opacity: 0` over ~800ms with `ease-in` on the target wrapper
 - After the animation resolves, the `state.phase` in the returned state will be `"victory"` or `"defeat"` — show the appropriate end screen
 
 ### 4. Move button press feedback
 
-- Brief colour pulse on button background matching the move's element type
-- Happens on click, before the API response arrives (optimistic feedback)
-- The `Spring` scale animation from P4-T2 already covers the press — add the colour pulse on top
+- **Neutral** feedback only: `Spring` scale (from P4-T2) and/or brief shift to `--vb-raised` — **no** pulse tied to elemental type or generation metadata.
 
 ### 5. Victory screen (`phase === "victory"`)
 
 - Player Vibemon scales up via `Spring` (1.0 → 1.2 → 1.0 bounce)
-- CSS particle burst effect (small coloured dots expanding outward)
+- Optional particle burst using **design tokens** (e.g. `--teal`, `--magenta`, `--gold`) — not elemental type hues
 - Show "Victory!" text, player Vibemon name, and a summary pulled from `state`:
   - `state.turn` — turns taken
   - `state.player.current_hp` / `state.player.max_hp` — remaining HP
@@ -101,7 +96,7 @@ Move buttons remain disabled while `playEvents` is running. Set a `$state animat
 ## Files Modified
 
 ```
-frontend/src/lib/components/VibemonRenderer.svelte  (add isHit, isFainted props)
+frontend/src/lib/components/VibemonRenderer.svelte  (props/classes for shake, flash, faint)
 frontend/src/routes/battle/+page.svelte              (event playback, animating flag, end screens)
 ```
 

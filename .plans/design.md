@@ -31,7 +31,7 @@ You then battle a procedurally generated enemy: a "creature of the moment" born 
 
 **Determinism.** Given the same inputs at the same moment, generation is fully deterministic — the same snapshot of listening history, commits, and weather always produces the same Vibemon. Drift is intentional: as a user's habits evolve, so does their creature. This is a feature, not instability.
 
-**Expressiveness.** Every stat and visual choice has a traceable origin. A player should be able to look at their monster and understand why it is the way it is. The `VibemonPayload` carries a `stat_origins` map so this can be surfaced in a post-battle breakdown screen.
+**Expressiveness.** Every stat and visual choice has a traceable origin. The `VibemonPayload` carries a `stat_origins` map (human-readable strings per stat) for copy, debugging, and optional inline UI — it is not a theming or layout contract for battle components.
 
 **Extensibility.** Data sources are first-class plugins. Adding a new source — Strava, Steam, anything — requires one new file and zero changes to the core engine.
 
@@ -42,6 +42,8 @@ You then battle a procedurally generated enemy: a "creature of the moment" born 
 The current version covers a single-player battle against a procedurally generated opponent. There is no persistent collection, no multiplayer, and no capture mechanic.
 
 The battle system runs entirely on the backend. All game logic — damage calculation, type effectiveness, enemy AI, turn order, stat stages — lives in Python. The frontend is a pure renderer: it sends the current `BattleState` plus a move index, receives a new `BattleState` and a list of `TurnEvent` objects describing what happened, and renders accordingly. This makes the engine headless by design: a terminal client, a bot, or any other renderer can drive the same engine directly.
+
+**Web UI layout and styling** are specified in [vibemon-visual-design-system.md](vibemon-visual-design-system.md) (tokens, battle scene, panel, typography, motion, raster sprite harmony).
 
 ---
 
@@ -55,7 +57,7 @@ The battle system runs entirely on the backend. All game logic — damage calcul
 │  │  Auth Screen   │    │           Battle Screen              │ │
 │  │                │    │  ┌──────────────┐ ┌──────────────┐   │ │
 │  │ - Spotify      │    │  │Player Vibemon│ │Enemy Vibemon │   │ │
-│  │ - GitHub       │    │  │ (Blob SVG)   │ │ (Blob SVG)   │   │ │
+│  │ - GitHub       │    │  │ (sprites)    │ │ (sprites)    │   │ │
 │  │ - Location     │    │  └──────────────┘ └──────────────┘   │ │
 │  └───────┬────────┘    │  last BattleState (render only)      │ │
 │          │             └──────────────────────────────────────┘ │
@@ -1307,9 +1309,9 @@ No game logic lives in the frontend. `damage.ts` and `typeChart.ts` do not exist
 │  EMBER-FLAX   [Fire · Dark]              Lv. 50      │
 │  ████████████████░░░░   142 / 180 HP                 │
 │                                                      │
-│                     [Enemy Blob SVG]                 │
+│                     [Enemy sprite]                   │
 │                                                      │
-│  [Player Blob SVG]                                   │
+│  [Player sprite]                                      │
 │                                                      │
 │  PYROX   [Fire]                          Lv. 50      │
 │  ████████████████████   167 / 167 HP                 │
@@ -1501,11 +1503,3 @@ Add the second data source and bring the project to a production-quality state.
 - Mobile-responsive layout
 - Auth screen visual design
 
----
-
-### Phase 6 — Stretch Goals
-
-- **PvP via shared seed URL** — two players share a link; their Vibemons fight with a deterministic battle RNG derived from the URL seed
-- **Local collection** — `localStorage`-backed Pokédex of encountered Vibemons
-- **Post-battle share card** — `canvas` → PNG export
-- **Additional providers** — Strava (activity data), Steam (playtime and genre)

@@ -1,13 +1,16 @@
 from __future__ import annotations
 
+import copy
 from datetime import datetime, timezone
 from typing import Optional
+
+from attrs import evolve
 
 from app.domain.context import GenerationContext, SourceData
 from app.domain.models import GenerateRequestBody, VibemonPayload, VibemonStats
 from app.domain.moves import generate_moves
 from app.domain.names import generate_name
-from app.domain.stats import compute_stats, make_seed, scale_enemy_stats
+from app.domain.stats import compute_stats, make_seed
 from app.domain.visual import generate_visual_dna
 
 
@@ -124,8 +127,6 @@ def assemble_generation_pair(
     merged: SourceData,
     succeeded_provider_ids: list[str],
     enemy_uid: str,
-    enemy_ctx: GenerationContext,
-    enemy_merged: SourceData,
 ) -> tuple[VibemonPayload, VibemonPayload]:
     weather_live = bool(merged.raw.get("weather_live"))
     player_fallback = not weather_live
@@ -140,17 +141,6 @@ def assemble_generation_pair(
         fallback=player_fallback,
     )
 
-    enemy_seed = make_seed(enemy_uid, "vibemon")
-    enemy_stats_raw = compute_stats(enemy_merged, enemy_seed)
-    enemy_stats = scale_enemy_stats(player.stats, enemy_stats_raw)
-    enemy_fallback = not bool(enemy_merged.raw.get("weather_live"))
-
-    enemy = build_payload(
-        uid=enemy_uid,
-        merged=enemy_merged,
-        ctx=enemy_ctx,
-        source="weather",
-        fallback=enemy_fallback,
-        stats=enemy_stats,
-    )
+    # Mirror match: identical stats/moves/visual/name; separate uid for sprites/battle identity.
+    enemy = evolve(copy.deepcopy(player), uid=enemy_uid, source="mirror")
     return player, enemy

@@ -41,7 +41,7 @@
 </script>
 
 <div class="layout">
-	<h1>Spotify Authorization</h1>
+	<h1 class="callback-title">Spotify</h1>
 	{#if status === 'exchanging'}
 		<p class="muted">Exchanging authorization code…</p>
 		<div class="spinner" aria-hidden="true"></div>
@@ -52,3 +52,12 @@
 		<p class="muted">Redirecting back…</p>
 	{/if}
 </div>
+
+<style>
+	.callback-title {
+		font-family: var(--f-px);
+		font-size: 10px;
+		font-weight: 400;
+		letter-spacing: 0.04em;
+	}
+</style>

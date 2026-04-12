@@ -54,13 +54,9 @@ The Spotify Audio Features API was deprecated in November 2024. **Do not call th
    - valence = ratio of positive to negative mood tags
    - Formula from design doc
 
-7. **Country → hue lookup (stretch)**
-   - From top artist metadata, extract country if available
-   - Map to a hue offset for `hue_secondary`
+7. **Register in `PROVIDER_REGISTRY`**
 
-8. **Register in `PROVIDER_REGISTRY`**
-
-9. **Write tests**
+8. **Write tests**
    - Mock Spotify, MusicBrainz, Last.fm responses
    - Verify stat factor calculations
    - Test MusicBrainz failure → Last.fm fallback

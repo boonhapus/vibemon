@@ -13,7 +13,6 @@ from app.domain.models import GenerateRequestBody
 from app.domain.stats import merge_source_data
 from app.infra.providers.protocol import VibemonProvider
 from app.infra.providers.registry import PROVIDER_REGISTRY as _default_provider_registry
-from app.infra.providers.weather import WeatherProvider
 from app.infra.sprites import BattleContext, ensure_sprite
 from app.serialization import to_jsonable
 
@@ -53,14 +52,6 @@ async def generate(request: GenerateRequestBody) -> dict[str, Any]:
         f"enemy_{ctx.timestamp.strftime('%Y%m%d%H')}"
         f"_{round(ctx.latitude or 0.0, 1)}_{round(ctx.longitude or 0.0, 1)}"
     )
-    enemy_ctx = GenerationContext(
-        user_id=enemy_uid,
-        timestamp=ctx.timestamp,
-        latitude=ctx.latitude,
-        longitude=ctx.longitude,
-        auth_tokens={},
-    )
-    enemy_merged = await WeatherProvider().fetch(enemy_ctx)
 
     player, enemy = assemble_generation_pair(
         request,
@@ -68,17 +59,25 @@ async def generate(request: GenerateRequestBody) -> dict[str, Any]:
         merged,
         succeeded_ids,
         enemy_uid,
-        enemy_ctx,
-        enemy_merged,
     )
 
     if request.render_assets == "raster":
-        player_url, enemy_url = await asyncio.gather(
-            ensure_sprite(player, BattleContext.PLAYER),
-            ensure_sprite(enemy, BattleContext.ENEMY),
-        )
-        player.sprite_url = player_url
-        enemy.sprite_url = enemy_url
+        pair_uid = player.uid
+        # Mirror pair: generate player first so paired-camera prompts stay ordered; same DNA lock on both.
+        if enemy.source == "mirror":
+            player.sprite_url = await ensure_sprite(
+                player, BattleContext.PLAYER, pair_identity_uid=pair_uid
+            )
+            enemy.sprite_url = await ensure_sprite(
+                enemy, BattleContext.ENEMY, pair_identity_uid=pair_uid
+            )
+        else:
+            player_url, enemy_url = await asyncio.gather(
+                ensure_sprite(player, BattleContext.PLAYER, pair_identity_uid=pair_uid),
+                ensure_sprite(enemy, BattleContext.ENEMY, pair_identity_uid=pair_uid),
+            )
+            player.sprite_url = player_url
+            enemy.sprite_url = enemy_url
 
     return {
         "player": to_jsonable(player),
