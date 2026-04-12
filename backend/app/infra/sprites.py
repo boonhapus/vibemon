@@ -151,19 +151,19 @@ STANCE_DESCRIPTION = {
 
 PERSPECTIVE_DESCRIPTION = {
     BattleContext.PLAYER: (
-        "this image ONLY — Pokémon Gen 3–style ally BACK SPRITE: "
-        "camera behind the creature like the trainer's view in a classic handheld battle; "
-        "we see the creature's back, spine, tail base, and backs of limbs; "
-        "snout/face must NOT point at the camera (no front portrait, no 3/4 hero facing viewer); "
-        "the creature's body aims up-screen and stage-right into the arena, clearly facing its opponent; "
-        "at most a tiny cheek or ear sliver visible from a head turn; "
-        "follow DESIGN LOCK counts and ornaments for this one pose only"
+        "this image ONLY — Pokémon Gen 3–style ally FRONT SPRITE: "
+        "camera faces the creature head-on; face and chest clearly visible; "
+        "body oriented so the creature faces toward stage-right (its right, camera-left), "
+        "angling its head and torso rightward as if looking across the field at a foe "
+        "positioned to the upper-right of the arena; "
+        "one body only; follow DESIGN LOCK counts and ornaments for this one pose only"
     ),
     BattleContext.ENEMY: (
         "this image ONLY — Pokémon Gen 3–style foe FRONT SPRITE: "
-        "camera in front of the creature from the trainer's line of sight; "
-        "face and chest readable, body angled slightly down and toward its left "
-        "(toward the opponent's corner), as if addressing the ally across the field; "
+        "camera faces the creature head-on; face and chest clearly visible; "
+        "body oriented so the creature faces toward stage-left (its left, camera-right), "
+        "angling its head and torso leftward as if looking across the field at a foe "
+        "positioned to the lower-left of the arena; "
         "one body only; follow DESIGN LOCK counts and ornaments for this one pose only"
     ),
 }
@@ -475,6 +475,7 @@ async def _fetch_image(prompt: str, api_key: str, model: str, *, seed: int) -> b
         steps=4,
         n=1,
         seed=seed,
+        disable_safety_checker=True,
     )
     item = response.data[0]
 
