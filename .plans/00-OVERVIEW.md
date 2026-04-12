@@ -1,5 +1,7 @@
 # Vibemon — Build Plan Overview
 
+Web UI tokens, battle layout, typography, motion, and raster sprite notes: [vibemon-visual-design-system.md](vibemon-visual-design-system.md).
+
 ## Phases & Tasks
 
 | ID | Task | Dependencies |
@@ -22,14 +24,12 @@
 | P3-T3 | VibemonRenderer Component & Animations | P3-T1, P3-T2 |
 | **Phase 4 — Battle System** | | |
 | P4-T1 | Battle State Machine & Turn Logic | P3-T3, P2-T3, P1-T7 |
-| P4-T2 | Battle UI Components (HP Bar, Moves, Log) | P4-T1 |
+| P4-T2 | Battle UI (Gen 3 layout, HP, neutral moves, log) | P4-T1 |
 | P4-T3 | Battle Animations & End Screens | P4-T1, P4-T2 |
 | **Phase 5 — GitHub Integration & Polish** | | |
 | P5-T1 | GitHub OAuth Proxy & Provider | P1-T6 |
 | P5-T2 | GitHub OAuth Frontend & Guest Mode | P5-T1, P1-T7 |
 | P5-T3 | UI Polish, Error States & Responsive Design | P4-T3, P5-T2 |
-| **Phase 6 — Stretch Goals** | | |
-| P6-T1 | PvP / Collection / Share Card / New Providers | P5-T3 |
 
 ## Dependency Graph
 
@@ -48,7 +48,7 @@ P1-T1
                                     └─► P5-T1 → P5-T2             
                                                                    
 P2-T3 + P3-T3 ─► P4-T1 → P4-T2 → P4-T3 ─┐
-                                           ├─► P5-T3 → P6-T1
+                                           ├─► P5-T3
 P5-T2 ─────────────────────────────────────┘
 ```
 
@@ -72,7 +72,6 @@ P1-T1 → P1-T2 → P1-T3 → P1-T4 → P1-T5 → P1-T6 → P1-T7
 → P2-T1 → P2-T2 → P2-T3
 → P4-T1 → P4-T2 → P4-T3
 → P5-T1 → P5-T2 → P5-T3
-→ P6-T1
 ```
 
 Note: P1-T3 and P1-T4 can be done in parallel since they both only depend on P1-T2.

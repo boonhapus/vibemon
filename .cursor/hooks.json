@@ -1,0 +1,16 @@
+{
+  "version": 1,
+  "hooks": {
+    "beforeReadFile": [
+      {
+        "command": "uv run .cursor/hooks/block_env_read.py",
+        "matcher": "Read|TabRead"
+      }
+    ],
+    "beforeTabFileRead": [
+      {
+        "command": "uv run .cursor/hooks/block_env_read.py"
+      }
+    ]
+  }
+}

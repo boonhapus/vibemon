@@ -2,7 +2,7 @@
 
 Vibemon is a browser-based monster-battling game. Connect Spotify and GitHub, share your location, and a unique creature is generated whose stats, appearance, and element reflect your real digital life. You then battle a procedurally generated enemy derived from the current time and local weather.
 
-No database. The backend is fully stateless per-request.
+No database. The backend is fully stateless per-request. **Layout:** top-level `backend/` and `frontend/` (separate toolchains). **Backend layers:** `app/domain` (pure attrs logic, no Litestar/IO), `app/infra` (HTTP providers, raster sprites to disk), `app/services` (compose domain + infra), `app/api` (Litestar routes only). **Headless:** `python -m app.cli` (or `uv run vibemon-generate` after install) reads JSON from stdin or a file path, forces `render_assets: "none"`, prints JSON (no HTTP, no sprite generation). **`POST /api/v1/generate`** accepts optional `render_assets`: `"raster"` (default, writes `sprite_url`) or `"none"` (data only). **Frontend:** game HTTP goes through `src/lib/api/` (e.g. `postGenerate`); routes do not call `fetch` for `/api/v1/generate` directly.
 
 **Python:** use **3.12 or newer** project-wide (asyncio `TaskGroup`, `asyncio.timeout`, `except*` / exception groups).
 
@@ -41,33 +41,35 @@ Use **Svelte 5 syntax exclusively**. LLMs default to Svelte 4 — do not.
 frontend/
   src/
     routes/
-      +page.svelte              # Auth screen (Spotify PKCE, GitHub OAuth, location)
-      battle/+page.svelte       # Battle screen
+      +page.svelte              # Auth / location; calls $lib/api for generate
+      battle/+page.svelte       # Battle screen (renderer — no game rules)
     lib/
+      api/
+        generate.ts             # postGenerate() — sole owner of /api/v1/generate fetch
       components/
-        VibemonRenderer.svelte  # VisualDNA + seed → deterministic SVG blob
+        VibemonRenderer.svelte
       stores/
-        battle.ts               # Battle state machine (phases, HP, log, turns)
-      utils/
-        blobRenderer.ts         # Hull generation, path smoothing, limbs, eyes, texture
-        seededRandom.ts         # Mulberry32 PRNG
+        generation.svelte.ts
 
 backend/
   app/
-    providers/
-      registry.py               # PROVIDER_REGISTRY
-      base.py                   # VibemonProvider ABC, SourceData, GenerationContext
-      spotify.py
-      github.py
-      weather.py
-    engine/
-      stats.py                  # factor_to_stat, compute_stats, merge_source_data
-      visual.py                 # generate_visual_dna
-      moves.py                  # generate_moves
-      names.py                  # syllable name generator
-    routes/
-      generate.py               # POST /api/v1/generate
-      auth.py                   # GET /api/v1/auth/github/callback
+    domain/
+      context.py                # SourceData, GenerationContext
+      models.py                 # VibemonPayload, GenerateRequestBody, …
+      stats.py, visual.py, moves.py, names.py, fallback.py, generation.py
+    infra/
+      sprites.py                # Gemini image + rembg → static PNG + URL
+      providers/
+        protocol.py             # VibemonProvider ABC
+        registry.py             # PROVIDER_REGISTRY
+        spotify.py, weather.py
+    services/
+      generate_service.py       # async generate(), generate_from_dict()
+    api/routes/
+      generate.py, health.py    # Litestar handlers → services
+    cli.py                      # headless JSON out (render_assets forced none)
+    main.py
+    serialization.py            # cattrs converter, structure_generate_request
 ```
 
 ---
@@ -76,6 +78,8 @@ backend/
 
 ```
 POST /api/v1/generate               → GenerateRequest → GenerateResponse
+POST /api/v1/battle/start           → { player, enemy } → BattleState
+POST /api/v1/battle/turn            → { state, move_index } → { state, events }
 GET  /api/v1/health
 GET  /api/v1/auth/github/callback   (GitHub OAuth proxy)
 ```
@@ -189,6 +193,41 @@ class VibemonPayload:
 
 Deterministic generation for a given request uses `make_seed(user_id, "vibemon")` for the merged player creature (and the same pattern for the enemy `user_id`). Move pools and battle logic treat `Move.type` as the move’s elemental type.
 
+```python
+@define
+class BattleMon:
+    vibemon:       VibemonPayload
+    current_hp:    int
+    max_hp:        int
+    stat_stages:   dict[str, int]   = field(factory=lambda: {
+                       "attack": 0, "defense": 0,
+                       "sp_attack": 0, "sp_defense": 0, "speed": 0
+                   })
+    status_effect: Optional[str]   = None  # "seed" | "drain" | "burrowed" | None
+
+@define
+class BattleState:
+    phase:      str          # "player-turn" | "enemy-turn" | "victory" | "defeat"
+    player:     BattleMon
+    enemy:      BattleMon
+    log:        list[str]
+    turn:       int
+    rng_seed:   int          # advances each turn for deterministic replay
+
+@define
+class TurnEvent:
+    type:          str            # "attack"|"miss"|"damage"|"stat_change"|"status_applied"
+                                  # |"ko"|"phase_change"|"seed_drain"|"heal"
+    actor:         str            # "player" | "enemy"
+    move_name:     Optional[str]  = None
+    damage:        Optional[int]  = None
+    effectiveness: Optional[str]  = None  # "super-effective"|"not-very-effective"|"immune"
+    stat_key:      Optional[str]  = None
+    stat_delta:    Optional[int]  = None
+    heal:          Optional[int]  = None
+    message:       str            = ""    # ready-to-display text for any renderer
+```
+
 ---
 
 ## Provider Interface
@@ -203,13 +242,12 @@ class VibemonProvider(ABC):
     async def fetch(self, context: GenerationContext) -> SourceData: ...
 ```
 
-Register in `providers/registry.py`:
+Register in `infra/providers/registry.py`:
 
 ```python
 PROVIDER_REGISTRY: list[type[VibemonProvider]] = [
-    SpotifyProvider,
-    GitHubProvider,
     WeatherProvider,
+    SpotifyProvider,
 ]
 ```
 
@@ -279,6 +317,8 @@ Provider failures are silent — generation continues with whatever providers su
 
 ```
 # Backend only — never expose to the browser
+GEMINI_API_KEY
+# (GOOGLE_API_KEY is accepted as a fallback for the same value)
 LASTFM_API_KEY
 GITHUB_CLIENT_ID
 GITHUB_CLIENT_SECRET

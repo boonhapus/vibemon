@@ -2,7 +2,7 @@
 
 **Phase:** 5 — GitHub Integration and Polish
 **Dependencies:** P4-T3, P5-T2
-**Depends on this:** P6-T1 (stretch goals)
+**Depends on this:** —
 
 ---
 
@@ -35,15 +35,13 @@ Bring the application to production quality: polished auth screen design, compre
    - Move execution: brief "thinking" indicator during enemy turn delay
 
 4. **Flavour text in battle UI**
-   - Display `flavour_text` from the player's `VibemonPayload` below their name
+   - Display `flavour_text` from the player's `VibemonPayload` where the layout leaves room (e.g. footer or card footnote)
    - Truncate with ellipsis if too long; expand on tap/click
-   - Show stat origins in a collapsible "Why these stats?" panel accessible from the battle screen
 
 5. **Mobile-responsive layout**
    - Auth screen: single column, full-width buttons
-   - Battle screen: stack enemy on top, player below, move buttons in 2×2 grid at bottom
-   - HP bars full-width
-   - Battle log collapsible or in a slide-up panel on mobile
+   - Battle screen: follow [.plans/vibemon-visual-design-system.md](../vibemon-visual-design-system.md) §9 — same 2×2 move grid invariant; adjust scene height, card `min-width`, and name font size at ≤560px
+   - HP bars and log readable at narrow widths (collapsible log or compact strip if needed)
    - Touch targets ≥ 48px
    - Test at 375px (iPhone SE), 390px (iPhone 14), 768px (tablet)
 
@@ -54,9 +52,7 @@ Bring the application to production quality: polished auth screen design, compre
    - Colour contrast: ensure text meets WCAG AA on dark background
 
 7. **Final CSS cleanup**
-   - Consistent spacing scale (4px base)
-   - Consistent colour palette derived from element hues
-   - Transition durations standardised
+   - Spacing, colour, motion tokens from `vibemon-visual-design-system.md` §5–§10 (`--sp-*`, `--vb-*`, `--r-*`, `--t-*`)
    - Remove any debug output or raw JSON displays
 
 ## Acceptance Criteria
