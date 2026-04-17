@@ -1,1 +1,0 @@
-"""Vibemon Litestar application package."""
