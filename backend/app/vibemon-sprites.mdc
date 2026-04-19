@@ -1,0 +1,25 @@
+---
+version: 0.1.0
+---
+CREATURE: {{ creature.name }}
+STYLE: Pokémon Sugimori — flat cel shading, clean confident lineart, #0A0A1A 
+CANVAS: 21:9 ultrawide, 3-panel horizontal split, flat green background (#4CAF50), panels separated by a 40px solid black (#000000) vertical divider stripe — divider color must not appear anywhere else in the image
+
+ANATOMY (all parts must appear):
+{% for label, val in creature.anatomy.named_parts %}
+- {{ label }}: {{ val }}
+{% endfor %}
+{% for limb in creature.anatomy.limbs %}
+- {{ limb.count }}x {{ limb.function }}{% if limb.dominant %} (DOMINANT){% endif %}{% if limb.joint_count is not none %}, {{ limb.joint_count }} joints{% endif %}{% if limb.tip_detail %}, {{ limb.tip_detail }}{% endif %}
+{% endfor %}
+
+COLOR ZONES:
+{% for zone in creature.colors %}
+- {{ zone.region }}: {{ zone.description }} {{ zone.hex }}
+{% endfor %}
+- RULE: {{ creature.glow_rule }}
+
+PANELS:
+1. Over-shoulder back / alert — body facing right, head turned 30° right toward viewer, one primary limb raised, one lowered
+2. Full front / neutral Pokédex pose — primary limbs lowered symmetrically, wings folded, facing directly forward
+3. Three-quarter front / combat — primary limbs raised and spread, head tilted down toward viewer
