@@ -20,9 +20,11 @@ Third party
 import sqlalchemy as sa
 ```
 
-Local
+App modules (package)
 ```
-from vibemon import schema
+from app import gametypes  # NOT from app.gametypes import ...
+from app import schema
+gametypes.VibemonT  # use gametypes.TypeName
 ```
 
 ## Libraries
