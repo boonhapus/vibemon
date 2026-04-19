@@ -1,5 +1,3 @@
-
-
 import structlog
 from app.schema import GenerationContext, SourceData
 from app.plugins.protocol import DataProvider
