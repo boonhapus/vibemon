@@ -18,5 +18,6 @@ frontend/build/
 frontend/.svelte-kit/
 
 # Ignore coding agents
+CLAUDE.md
 .claude/
 .nelson/
