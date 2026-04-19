@@ -32,3 +32,4 @@
 
 ## Skills
 - python-conventions: Python conventions for this project.
+- wrangle-commits: Group changes into logical commits with terse messages.
