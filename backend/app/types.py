@@ -13,6 +13,8 @@ type TrainerId = Annotated[uuid.UUID, "backend trainer identifier"]
 
 
 class VibemonT(str, enum.Enum):
+    """Elemental type classifications for Vibemon species."""
+
     NORMAL = "normal"
     FIRE = "fire"
     WATER = "water"
@@ -34,6 +36,8 @@ class VibemonT(str, enum.Enum):
 
 
 class StatusConditionT(str, enum.Enum):
+    """Status conditions that can affect a Vibemon during battle."""
+
     NONE = "none"
     BURN = "burn"
     POISON = "poison"
@@ -45,12 +49,16 @@ class StatusConditionT(str, enum.Enum):
 
 
 class MoveCategoryT(str, enum.Enum):
+    """Categorization of moves based on their battle effect."""
+
     PHYSICAL = "physical"
     SPECIAL = "special"
     STATUS = "status"
 
 
 class MoveTargetT(str, enum.Enum):
+    """Valid targets for a move during battle."""
+
     SELF = "self"
     SINGLE = "single"
     ALL_OPPONENTS = "all_opponents"
@@ -58,6 +66,8 @@ class MoveTargetT(str, enum.Enum):
 
 
 class WeatherT(str, enum.Enum):
+    """Battle weather conditions that affect certain Vibemon types."""
+
     CLEAR = "clear"
     SUN = "sun"
     RAIN = "rain"
@@ -69,6 +79,8 @@ class WeatherT(str, enum.Enum):
 
 
 class ActionType(str, enum.Enum):
+    """Actions a trainer can take during their turn."""
+
     MOVE = "move"
     SWITCH = "switch"
     ITEM = "item"
@@ -82,6 +94,8 @@ class ActionType(str, enum.Enum):
 
 @attrs.define
 class BaseStats:
+    """Base statistics that define a species' potential in each stat."""
+
     hp: int
     attack: int
     defense: int
@@ -92,6 +106,8 @@ class BaseStats:
 
 @attrs.define
 class StatStages:
+    """Stat stage modifiers accumulated during battle, ranging from -6 to +6."""
+
     attack: int = 0
     defense: int = 0
     sp_attack: int = 0
@@ -108,6 +124,8 @@ class StatStages:
 
 @attrs.define
 class MoveEffect:
+    """Secondary effects that may occur when a move is used."""
+
     status_inflict: StatusConditionT | None = None
     stat_changes: dict[str, int] = attrs.field(factory=dict)
     target_self: bool = False
@@ -116,6 +134,8 @@ class MoveEffect:
 
 @attrs.define
 class Move:
+    """A move that a Vibemon can learn and use in battle."""
+
     name: str
     type: VibemonT
     category: MoveCategoryT
@@ -125,6 +145,7 @@ class Move:
     pp_current: int = 10
     priority: int = 0
     effect: MoveEffect | None = None
+    crit_ratio: int = 0
     makes_contact: bool = False
     target: MoveTargetT = MoveTargetT.SINGLE
 
@@ -136,6 +157,8 @@ class Move:
 
 @attrs.define
 class Action:
+    """An action selected by a trainer to perform during their turn."""
+
     trainer_name: TrainerId
     action_type: ActionType
     value: str
