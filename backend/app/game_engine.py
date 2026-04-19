@@ -1,137 +1,14 @@
 import random
 import uuid
+from collections.abc import Iterator
+
+import attrs
 
 from app import schema, types
+from app.type_chart import get_type_effectiveness
 
 
-TYPE_CHART: dict[tuple[types.VibemonT, types.VibemonT], float] = {
-    (types.VibemonT.NORMAL, types.VibemonT.ROCK): 0.5,
-    (types.VibemonT.NORMAL, types.VibemonT.GHOST): 0.0,
-    (types.VibemonT.NORMAL, types.VibemonT.STEEL): 0.5,
-    (types.VibemonT.FIRE, types.VibemonT.FIRE): 0.5,
-    (types.VibemonT.FIRE, types.VibemonT.WATER): 0.5,
-    (types.VibemonT.FIRE, types.VibemonT.GRASS): 2.0,
-    (types.VibemonT.FIRE, types.VibemonT.ICE): 2.0,
-    (types.VibemonT.FIRE, types.VibemonT.BUG): 2.0,
-    (types.VibemonT.FIRE, types.VibemonT.ROCK): 0.5,
-    (types.VibemonT.FIRE, types.VibemonT.DRAGON): 0.5,
-    (types.VibemonT.WATER, types.VibemonT.FIRE): 2.0,
-    (types.VibemonT.WATER, types.VibemonT.WATER): 0.5,
-    (types.VibemonT.WATER, types.VibemonT.GRASS): 0.5,
-    (types.VibemonT.WATER, types.VibemonT.GROUND): 2.0,
-    (types.VibemonT.WATER, types.VibemonT.ROCK): 2.0,
-    (types.VibemonT.WATER, types.VibemonT.DRAGON): 0.5,
-    (types.VibemonT.ELECTRIC, types.VibemonT.WATER): 2.0,
-    (types.VibemonT.ELECTRIC, types.VibemonT.ELECTRIC): 0.5,
-    (types.VibemonT.ELECTRIC, types.VibemonT.GRASS): 0.5,
-    (types.VibemonT.ELECTRIC, types.VibemonT.GROUND): 0.0,
-    (types.VibemonT.ELECTRIC, types.VibemonT.FLYING): 2.0,
-    (types.VibemonT.ELECTRIC, types.VibemonT.DRAGON): 0.5,
-    (types.VibemonT.GRASS, types.VibemonT.FIRE): 0.5,
-    (types.VibemonT.GRASS, types.VibemonT.WATER): 2.0,
-    (types.VibemonT.GRASS, types.VibemonT.GRASS): 0.5,
-    (types.VibemonT.GRASS, types.VibemonT.POISON): 0.5,
-    (types.VibemonT.GRASS, types.VibemonT.GROUND): 2.0,
-    (types.VibemonT.GRASS, types.VibemonT.FLYING): 0.5,
-    (types.VibemonT.GRASS, types.VibemonT.BUG): 0.5,
-    (types.VibemonT.GRASS, types.VibemonT.ROCK): 2.0,
-    (types.VibemonT.GRASS, types.VibemonT.DRAGON): 0.5,
-    (types.VibemonT.GRASS, types.VibemonT.STEEL): 0.5,
-    (types.VibemonT.ICE, types.VibemonT.FIRE): 0.5,
-    (types.VibemonT.ICE, types.VibemonT.WATER): 0.5,
-    (types.VibemonT.ICE, types.VibemonT.GRASS): 2.0,
-    (types.VibemonT.ICE, types.VibemonT.ICE): 0.5,
-    (types.VibemonT.ICE, types.VibemonT.GROUND): 2.0,
-    (types.VibemonT.ICE, types.VibemonT.FLYING): 2.0,
-    (types.VibemonT.ICE, types.VibemonT.DRAGON): 2.0,
-    (types.VibemonT.ICE, types.VibemonT.STEEL): 0.5,
-    (types.VibemonT.FIGHTING, types.VibemonT.NORMAL): 2.0,
-    (types.VibemonT.FIGHTING, types.VibemonT.ICE): 2.0,
-    (types.VibemonT.FIGHTING, types.VibemonT.POISON): 0.5,
-    (types.VibemonT.FIGHTING, types.VibemonT.FLYING): 0.5,
-    (types.VibemonT.FIGHTING, types.VibemonT.PSYCHIC): 0.5,
-    (types.VibemonT.FIGHTING, types.VibemonT.BUG): 0.5,
-    (types.VibemonT.FIGHTING, types.VibemonT.ROCK): 2.0,
-    (types.VibemonT.FIGHTING, types.VibemonT.GHOST): 0.0,
-    (types.VibemonT.FIGHTING, types.VibemonT.DARK): 2.0,
-    (types.VibemonT.FIGHTING, types.VibemonT.STEEL): 2.0,
-    (types.VibemonT.FIGHTING, types.VibemonT.FAIRY): 0.5,
-    (types.VibemonT.POISON, types.VibemonT.GRASS): 2.0,
-    (types.VibemonT.POISON, types.VibemonT.POISON): 0.5,
-    (types.VibemonT.POISON, types.VibemonT.GROUND): 0.5,
-    (types.VibemonT.POISON, types.VibemonT.ROCK): 0.5,
-    (types.VibemonT.POISON, types.VibemonT.GHOST): 0.5,
-    (types.VibemonT.POISON, types.VibemonT.STEEL): 0.0,
-    (types.VibemonT.POISON, types.VibemonT.FAIRY): 2.0,
-    (types.VibemonT.GROUND, types.VibemonT.FIRE): 2.0,
-    (types.VibemonT.GROUND, types.VibemonT.ELECTRIC): 2.0,
-    (types.VibemonT.GROUND, types.VibemonT.GRASS): 0.5,
-    (types.VibemonT.GROUND, types.VibemonT.POISON): 2.0,
-    (types.VibemonT.GROUND, types.VibemonT.FLYING): 0.0,
-    (types.VibemonT.GROUND, types.VibemonT.BUG): 0.5,
-    (types.VibemonT.GROUND, types.VibemonT.ROCK): 2.0,
-    (types.VibemonT.GROUND, types.VibemonT.STEEL): 2.0,
-    (types.VibemonT.FLYING, types.VibemonT.ELECTRIC): 0.5,
-    (types.VibemonT.FLYING, types.VibemonT.GRASS): 2.0,
-    (types.VibemonT.FLYING, types.VibemonT.FIGHTING): 2.0,
-    (types.VibemonT.FLYING, types.VibemonT.BUG): 2.0,
-    (types.VibemonT.FLYING, types.VibemonT.ROCK): 0.5,
-    (types.VibemonT.FLYING, types.VibemonT.STEEL): 0.5,
-    (types.VibemonT.PSYCHIC, types.VibemonT.FIGHTING): 2.0,
-    (types.VibemonT.PSYCHIC, types.VibemonT.POISON): 2.0,
-    (types.VibemonT.PSYCHIC, types.VibemonT.PSYCHIC): 0.5,
-    (types.VibemonT.PSYCHIC, types.VibemonT.DARK): 0.0,
-    (types.VibemonT.PSYCHIC, types.VibemonT.STEEL): 0.5,
-    (types.VibemonT.BUG, types.VibemonT.FIRE): 0.5,
-    (types.VibemonT.BUG, types.VibemonT.GRASS): 2.0,
-    (types.VibemonT.BUG, types.VibemonT.FIGHTING): 0.5,
-    (types.VibemonT.BUG, types.VibemonT.POISON): 0.5,
-    (types.VibemonT.BUG, types.VibemonT.FLYING): 0.5,
-    (types.VibemonT.BUG, types.VibemonT.PSYCHIC): 2.0,
-    (types.VibemonT.BUG, types.VibemonT.GHOST): 0.5,
-    (types.VibemonT.BUG, types.VibemonT.DARK): 2.0,
-    (types.VibemonT.BUG, types.VibemonT.STEEL): 0.5,
-    (types.VibemonT.BUG, types.VibemonT.FAIRY): 0.5,
-    (types.VibemonT.ROCK, types.VibemonT.FIRE): 2.0,
-    (types.VibemonT.ROCK, types.VibemonT.ICE): 2.0,
-    (types.VibemonT.ROCK, types.VibemonT.FIGHTING): 0.5,
-    (types.VibemonT.ROCK, types.VibemonT.GROUND): 0.5,
-    (types.VibemonT.ROCK, types.VibemonT.FLYING): 2.0,
-    (types.VibemonT.ROCK, types.VibemonT.BUG): 2.0,
-    (types.VibemonT.ROCK, types.VibemonT.STEEL): 0.5,
-    (types.VibemonT.GHOST, types.VibemonT.NORMAL): 0.0,
-    (types.VibemonT.GHOST, types.VibemonT.PSYCHIC): 2.0,
-    (types.VibemonT.GHOST, types.VibemonT.GHOST): 2.0,
-    (types.VibemonT.GHOST, types.VibemonT.DARK): 0.5,
-    (types.VibemonT.DRAGON, types.VibemonT.DRAGON): 2.0,
-    (types.VibemonT.DRAGON, types.VibemonT.STEEL): 0.5,
-    (types.VibemonT.DRAGON, types.VibemonT.FAIRY): 0.0,
-    (types.VibemonT.DARK, types.VibemonT.PSYCHIC): 2.0,
-    (types.VibemonT.DARK, types.VibemonT.GHOST): 2.0,
-    (types.VibemonT.DARK, types.VibemonT.DARK): 0.5,
-    (types.VibemonT.DARK, types.VibemonT.FAIRY): 0.5,
-    (types.VibemonT.STEEL, types.VibemonT.FIRE): 0.5,
-    (types.VibemonT.STEEL, types.VibemonT.WATER): 0.5,
-    (types.VibemonT.STEEL, types.VibemonT.ELECTRIC): 0.5,
-    (types.VibemonT.STEEL, types.VibemonT.ICE): 2.0,
-    (types.VibemonT.STEEL, types.VibemonT.ROCK): 2.0,
-    (types.VibemonT.STEEL, types.VibemonT.STEEL): 0.5,
-    (types.VibemonT.STEEL, types.VibemonT.FAIRY): 2.0,
-    (types.VibemonT.FAIRY, types.VibemonT.FIRE): 0.5,
-    (types.VibemonT.FAIRY, types.VibemonT.FIGHTING): 2.0,
-    (types.VibemonT.FAIRY, types.VibemonT.POISON): 0.5,
-    (types.VibemonT.FAIRY, types.VibemonT.DRAGON): 2.0,
-    (types.VibemonT.FAIRY, types.VibemonT.DARK): 2.0,
-    (types.VibemonT.FAIRY, types.VibemonT.STEEL): 0.5,
-}
-
-
-def get_type_effectiveness(attack_type: types.VibemonT, defend_types: list[types.VibemonT]) -> float:
-    for dtype in defend_types:
-        mod = TYPE_CHART.get((attack_type, dtype), 1.0)
-        if mod != 1.0:
-            return mod
-    return 1.0
+CRIT_THRESHOLDS = [1 / 24, 1 / 8, 1 / 2, 1.0]
 
 
 def _stat_stage_mod(stage: int) -> float:
@@ -140,24 +17,55 @@ def _stat_stage_mod(stage: int) -> float:
     return 2 / (2 ** abs(stage / 2))
 
 
-def calc_damage(attacker: schema.Vibemon, defender: schema.Vibemon, move: types.Move, turn: int) -> int:
+def _is_crit(crit_stage: int, move_crit_ratio: int) -> bool:
+    """Roll for a critical hit using the Gen VI+ stage system.
+
+    Stages stack additively (vibemon crit_stage + move crit_ratio) and index
+    into a probability table: 1/24, 1/8, 1/2, guaranteed. This rewards
+    investment (high-crit moves, Focus Energy) without making crits common
+    at baseline (~4% at stage 0).
+    """
+    effective_stage = min(crit_stage + move_crit_ratio, 3)
+    return random.random() < CRIT_THRESHOLDS[effective_stage]
+
+
+def calc_damage(
+    attacker: schema.BattleVibemon, defender: schema.BattleVibemon, move: types.Move, turn: int
+) -> tuple[int, bool]:
+    """Calculate damage and determine if a critical hit occurred.
+
+    Critical hits multiply final damage by 1.5x, but their real impact is
+    ignoring unfavorable stat stages: the attacker's negative offensive stages
+    and the defender's positive defensive stages are zeroed out. This prevents
+    a heavily-debuffed attacker from being completely neutralized and gives
+    crits strategic value beyond raw damage.
+    """
     if move.category == types.MoveCategoryT.STATUS or move.power is None:
-        return 0
+        return 0, False
 
     if move.category == types.MoveCategoryT.PHYSICAL:
         atk, def_ = attacker.attack, defender.defense
+        atk_stage_field = "attack"
         def_stage_field = "defense"
     else:
         atk, def_ = attacker.sp_attack, defender.sp_defense
+        atk_stage_field = "sp_attack"
         def_stage_field = "sp_defense"
 
-    atk_stage = _stat_stage_mod(attacker.stat_stages.attack)
-    def_stage = _stat_stage_mod(getattr(defender.stat_stages, def_stage_field))
+    is_crit = _is_crit(attacker.crit_stage, move.crit_ratio)
+
+    if is_crit:
+        atk_stage = _stat_stage_mod(max(0, getattr(attacker.stat_stages, atk_stage_field)))
+        def_stage = _stat_stage_mod(min(0, getattr(defender.stat_stages, def_stage_field)))
+        crit = 1.5
+    else:
+        atk_stage = _stat_stage_mod(getattr(attacker.stat_stages, atk_stage_field))
+        def_stage = _stat_stage_mod(getattr(defender.stat_stages, def_stage_field))
+        crit = 1.0
 
     base = (2 * attacker.level / 5 + 2) * move.power * atk * atk_stage / (def_ * def_stage) / 50 + 2
     stab = 1.5 if move.type in attacker.type_list else 1.0
     type_eff = get_type_effectiveness(move.type, defender.type_list)
-    crit = 1.5
     burn = (
         0.5
         if (attacker.status == types.StatusConditionT.BURN and move.category == types.MoveCategoryT.PHYSICAL)
@@ -166,10 +74,170 @@ def calc_damage(attacker: schema.Vibemon, defender: schema.Vibemon, move: types.
     rng = 0.85 + (hash(str(turn)) % 16) / 100
 
     damage = int(base * stab * type_eff * crit * burn * rng)
-    return max(1, damage)
+    return max(1, damage), is_crit
 
 
-def apply_status_damage(v: schema.Vibemon) -> int:
+@attrs.define(frozen=True)
+class PreActionResult:
+    blocked: bool
+    events: list[schema.TurnEvent] = attrs.field(factory=list)
+
+
+def resolve_turn_order(
+    a: schema.BattleVibemon,
+    b: schema.BattleVibemon,
+    action_a: types.Action,
+    action_b: types.Action,
+) -> list[tuple[schema.BattleVibemon, schema.BattleVibemon, types.Action]]:
+    """Return (attacker, defender, action) tuples in resolution order."""
+    if a.speed >= b.speed:
+        return [(a, b, action_a), (b, a, action_b)]
+    return [(b, a, action_b), (a, b, action_a)]
+
+
+def find_move(vibemon: schema.BattleVibemon, move_name: str) -> types.Move:
+    for m in vibemon.moves:
+        if m.name == move_name:
+            return m
+    raise ValueError(f"{vibemon.name} has no move named {move_name!r}")
+
+
+def check_pre_action(v: schema.BattleVibemon) -> PreActionResult:
+    """Tick pre-action status/volatile effects. Returns explicit blocked flag."""
+    if v.status == types.StatusConditionT.SLEEP:
+        v.sleep_turns_remaining -= 1
+        if v.sleep_turns_remaining <= 0:
+            v.status = types.StatusConditionT.NONE
+            return PreActionResult(
+                blocked=False,
+                events=[schema.TurnEvent(actor=v.name, description=f"{v.name} woke up!")],
+            )
+        return PreActionResult(
+            blocked=True,
+            events=[schema.TurnEvent(actor=v.name, description=f"{v.name} is asleep!")],
+        )
+
+    if v.status == types.StatusConditionT.FREEZE:
+        if random.random() < 0.2:
+            v.status = types.StatusConditionT.NONE
+            return PreActionResult(
+                blocked=False,
+                events=[schema.TurnEvent(actor=v.name, description=f"{v.name} thawed out!")],
+            )
+        return PreActionResult(
+            blocked=True,
+            events=[schema.TurnEvent(actor=v.name, description=f"{v.name} is frozen!")],
+        )
+
+    if v.status == types.StatusConditionT.PARALYSIS and random.random() < 0.25:
+        return PreActionResult(
+            blocked=True,
+            events=[schema.TurnEvent(actor=v.name, description=f"{v.name} is paralyzed and can't move!")],
+        )
+
+    if v.is_flinched:
+        v.is_flinched = False
+        return PreActionResult(
+            blocked=True,
+            events=[schema.TurnEvent(actor=v.name, description=f"{v.name} flinched!")],
+        )
+
+    if v.is_confused:
+        v.confusion_turns -= 1
+        if v.confusion_turns <= 0:
+            v.is_confused = False
+            return PreActionResult(
+                blocked=False,
+                events=[schema.TurnEvent(actor=v.name, description=f"{v.name} is no longer confused!")],
+            )
+        if random.random() < 0.5:
+            dmg = v.max_hp // 4
+            v.current_hp = max(0, v.current_hp - dmg)
+            return PreActionResult(
+                blocked=True,
+                events=[
+                    schema.TurnEvent(actor=v.name, hp_delta=-dmg, description=f"{v.name} hurt itself in confusion!")
+                ],
+            )
+
+    return PreActionResult(blocked=False)
+
+
+def apply_move_effects(
+    attacker: schema.BattleVibemon, defender: schema.BattleVibemon, move: types.Move
+) -> list[schema.TurnEvent]:
+    events: list[schema.TurnEvent] = []
+    if not move.effect or random.random() >= move.effect.chance:
+        return events
+
+    if move.effect.status_inflict and defender.status == types.StatusConditionT.NONE:
+        defender.status = move.effect.status_inflict
+        events.append(
+            schema.TurnEvent(
+                actor=attacker.name,
+                status_change=defender.status,
+                description=f"{defender.name} got {defender.status.value}!",
+            )
+        )
+
+    for stat, change in move.effect.stat_changes.items():
+        if hasattr(defender.stat_stages, stat):
+            new_stage = max(-6, min(6, getattr(defender.stat_stages, stat) + change))
+            setattr(defender.stat_stages, stat, new_stage)
+            if change < 0:
+                events.append(
+                    schema.TurnEvent(
+                        actor=attacker.name,
+                        stat_stage_changes={stat: change},
+                        description=f"{defender.name}'s {stat} fell!",
+                    )
+                )
+
+    return events
+
+
+def execute_attack(
+    attacker: schema.BattleVibemon, defender: schema.BattleVibemon, move: types.Move, turn: int
+) -> list[schema.TurnEvent]:
+    """Accuracy roll, damage, effects. Assumes pre-action checks passed."""
+    if move.accuracy and random.random() > move.accuracy:
+        return [
+            schema.TurnEvent(
+                actor=attacker.name,
+                missed=True,
+                move_used=move.name,
+                description=f"{attacker.name}'s {move.name} missed!",
+            )
+        ]
+
+    damage, is_crit = calc_damage(attacker, defender, move, turn)
+    defender.current_hp = max(0, defender.current_hp - damage)
+
+    type_eff = get_type_effectiveness(move.type, defender.type_list)
+    eff_text = " Super effective!" if type_eff > 1 else " Not very effective..." if type_eff < 1 else ""
+    crit_text = " Critical hit!" if is_crit else ""
+
+    events: list[schema.TurnEvent] = [
+        schema.TurnEvent(
+            actor=attacker.name,
+            move_used=move.name,
+            hp_delta=-damage,
+            description=f"{attacker.name} used {move.name}! {damage} damage.{crit_text}{eff_text}",
+        )
+    ]
+    events.extend(apply_move_effects(attacker, defender, move))
+    return events
+
+
+def determine_winner(battle: schema.BattleState) -> schema.Trainer | None:
+    if battle.trainer_a.active_vibemon.is_fainted:
+        return battle.trainer_b
+    if battle.trainer_b.active_vibemon.is_fainted:
+        return battle.trainer_a
+    return None
+
+
+def apply_status_damage(v: schema.BattleVibemon) -> int:
     if v.status == types.StatusConditionT.BURN:
         dmg = v.max_hp // 8
         v.current_hp = max(0, v.current_hp - dmg)
@@ -195,47 +263,49 @@ class GameEngine:
             turn_history=[],
         )
 
-    def run(self) -> dict:
+    def __iter__(self) -> Iterator[schema.BattleState]:
         while not self.battle.is_over:
-            events = self._execute_turn()
-            self.battle.turn_history.append(schema.TurnRecord(turn_number=self.battle.turn_number, events=events))
+            yield self.battle
 
-            if self._check_winner():
-                break
+    def submit(self, action_a: types.Action, action_b: types.Action) -> list[schema.TurnEvent]:
+        events = self._execute_turn(action_a, action_b)
+        self.battle.turn_history.append(
+            schema.TurnRecord(
+                turn_number=self.battle.turn_number,
+                actions=[action_a, action_b],
+                events=events,
+            )
+        )
+        self.battle.winner = determine_winner(self.battle)
+        if not self.battle.is_over:
             self.battle.turn_number += 1
+        return events
 
-        return self._to_json()
-
-    def _execute_turn(self) -> list[schema.TurnEvent]:
+    def _execute_turn(self, action_a: types.Action, action_b: types.Action) -> list[schema.TurnEvent]:
         events: list[schema.TurnEvent] = []
         a = self.battle.trainer_a.active_vibemon
         b = self.battle.trainer_b.active_vibemon
 
-        order = (
-            [self.battle.trainer_a, self.battle.trainer_b]
-            if a.speed >= b.speed
-            else [self.battle.trainer_b, self.battle.trainer_a]
-        )
+        for attacker, defender, action in resolve_turn_order(a, b, action_a, action_b):
+            if action.action_type != types.ActionType.MOVE or not attacker.moves:
+                continue
 
-        for trainer in order:
-            attacker = trainer.active_vibemon
-            defender = (
-                self.battle.trainer_b.active_vibemon
-                if trainer == self.battle.trainer_a
-                else self.battle.trainer_a.active_vibemon
-            )
+            pre = check_pre_action(attacker)
+            events.extend(pre.events)
 
-            ev = self._execute_attack(attacker, defender)
-            if ev:
-                events.extend(ev)
+            if not pre.blocked:
+                move = find_move(attacker, action.value)
+                move.pp_current -= 1
+                events.extend(execute_attack(attacker, defender, move, self.battle.turn_number))
 
             if defender.is_fainted:
-                events.append(schema.TurnEvent(actor=defender.name, fainted=True, description=f"{defender.name} fainted!"))
+                events.append(
+                    schema.TurnEvent(actor=defender.name, fainted=True, description=f"{defender.name} fainted!")
+                )
                 return events
 
-        for v in [a, b]:
-            dmg = apply_status_damage(v)
-            if dmg > 0:
+        for v in (a, b):
+            if dmg := apply_status_damage(v):
                 events.append(
                     schema.TurnEvent(actor=v.name, hp_delta=-dmg, description=f"{v.name} takes status damage: {dmg}")
                 )
@@ -244,172 +314,19 @@ class GameEngine:
 
         return events
 
-    def _execute_attack(self, attacker: schema.Vibemon, defender: schema.Vibemon) -> list[schema.TurnEvent]:
-        events: list[schema.TurnEvent] = []
-
-        if not attacker.moves:
-            return events
-
-        status_ev = self._handle_status(attacker)
-        if status_ev:
-            events.append(status_ev)
-            return events
-
-        move = attacker.moves[0]
-        move.pp_current -= 1
-
-        if move.accuracy and random.random() > move.accuracy:
-            events.append(
-                schema.TurnEvent(
-                    actor=attacker.name,
-                    missed=True,
-                    move_used=move.name,
-                    description=f"{attacker.name}'s {move.name} missed!",
-                )
-            )
-            return events
-
-        damage = calc_damage(attacker, defender, move, self.battle.turn_number)
-        defender.current_hp = max(0, defender.current_hp - damage)
-
-        type_eff = get_type_effectiveness(move.type, defender.type_list)
-        eff_text = " super effective!" if type_eff > 1 else " not very effective..." if type_eff < 1 else ""
-
-        events.append(
-            schema.TurnEvent(
-                actor=attacker.name,
-                move_used=move.name,
-                hp_delta=-damage,
-                description=f"{attacker.name} used {move.name}! {damage} damage{eff_text}",
-            )
-        )
-
-        if move.effect and random.random() < move.effect.chance:
-            if move.effect.status_inflict and defender.status == types.StatusConditionT.NONE:
-                defender.status = move.effect.status_inflict
-                events.append(
-                    schema.TurnEvent(
-                        actor=attacker.name,
-                        status_change=defender.status,
-                        description=f"{defender.name} got {defender.status.value}!",
-                    )
-                )
-
-            for stat, change in move.effect.stat_changes.items():
-                if hasattr(defender.stat_stages, stat):
-                    setattr(defender.stat_stages, stat, max(-6, min(6, getattr(defender.stat_stages, stat) + change)))
-                    if change < 0:
-                        events.append(
-                            schema.TurnEvent(
-                                actor=attacker.name,
-                                stat_stage_changes={stat: change},
-                                description=f"{defender.name}'s {stat} fell!",
-                            )
-                        )
-
-        return events
-
-    def _handle_status(self, v: schema.Vibemon) -> schema.TurnEvent | None:
-        if v.status == types.StatusConditionT.SLEEP:
-            v.sleep_turns_remaining -= 1
-            if v.sleep_turns_remaining <= 0:
-                v.status = types.StatusConditionT.NONE
-                return schema.TurnEvent(actor=v.name, description=f"{v.name} woke up!")
-            return schema.TurnEvent(actor=v.name, description=f"{v.name} is asleep!")
-
-        if v.status == types.StatusConditionT.FREEZE:
-            if random.random() < 0.2:
-                v.status = types.StatusConditionT.NONE
-                return schema.TurnEvent(actor=v.name, description=f"{v.name} thawed out!")
-            return schema.TurnEvent(actor=v.name, description=f"{v.name} is frozen!")
-
-        if v.status == types.StatusConditionT.PARALYSIS:
-            if random.random() < 0.25:
-                return schema.TurnEvent(actor=v.name, description=f"{v.name} is paralyzed and can't move!")
-
-        if v.is_flinched:
-            v.is_flinched = False
-            return schema.TurnEvent(actor=v.name, description=f"{v.name} flinched!")
-
-        if v.is_confused:
-            v.confusion_turns -= 1
-            if v.confusion_turns <= 0:
-                v.is_confused = False
-                return schema.TurnEvent(actor=v.name, description=f"{v.name} is no longer confused!")
-            else:
-                if random.random() < 0.5:
-                    dmg = v.max_hp // 4
-                    v.current_hp = max(0, v.current_hp - dmg)
-                    return schema.TurnEvent(actor=v.name, hp_delta=-dmg, description=f"{v.name} hurt itself in confusion!")
-
-        return None
-
-    def _check_winner(self) -> bool:
-        a = self.battle.trainer_a.active_vibemon
-        b = self.battle.trainer_b.active_vibemon
-
-        if a.is_fainted:
-            self.battle.winner = self.battle.trainer_b.id
-            print(f"\n*** {self.battle.trainer_b.name} wins! ***")
-            return True
-        if b.is_fainted:
-            self.battle.winner = self.battle.trainer_a.id
-            print(f"\n*** {self.battle.trainer_a.name} wins! ***")
-            return True
-        return False
-
-    def _to_json(self) -> dict:
-        return {
-            "schema.trainer_a": self.battle.trainer_a.name,
-            "schema.trainer_b": self.battle.trainer_b.name,
-            "winner": str(self.battle.winner),
-            "turns": len(self.battle.turn_history),
-            "history": [
-                {
-                    "turn": tr.turn_number,
-                    "events": [
-                        {
-                            "actor": e.actor,
-                            "description": e.description,
-                            "hp_delta": e.hp_delta,
-                            "status_change": e.status_change.value if e.status_change else None,
-                            "move_used": e.move_used,
-                            "missed": e.missed,
-                            "fainted": e.fainted,
-                        }
-                        for e in tr.events
-                    ],
-                }
-                for tr in self.battle.turn_history
-            ],
-        }
-
-
-def run_battle(
-    name_a: str,
-    vibemon_a: schema.Vibemon,
-    name_b: str,
-    vibemon_b: schema.Vibemon,
-) -> dict:
-    trainer_a = schema.Trainer(id=uuid.uuid4(), name=name_a, team=[vibemon_a])
-    trainer_b = schema.Trainer(id=uuid.uuid4(), name=name_b, team=[vibemon_b])
-
-    engine = GameEngine(trainer_a, trainer_b)
-    return engine.run()
-
 
 if __name__ == "__main__":
-    import json
+    import random
 
-    pikachu = schema.Vibemon(
+    pikachu = schema.BattleVibemon(
         name="Pikachu",
         type_list=[types.VibemonT.ELECTRIC],
-        max_hp=111,
-        attack=55,
-        defense=40,
-        sp_attack=50,
-        sp_defense=50,
-        speed=90,
+        base_hp=111,
+        base_attack=55,
+        base_defense=40,
+        base_sp_attack=50,
+        base_sp_defense=50,
+        base_speed=90,
         moves=[
             types.Move(
                 name="Thunderbolt",
@@ -462,15 +379,15 @@ if __name__ == "__main__":
         ],
     )
 
-    charizard = schema.Vibemon(
+    charizard = schema.BattleVibemon(
         name="Charizard",
+        base_hp=148,
+        base_attack=84,
+        base_defense=78,
+        base_sp_attack=109,
+        base_sp_defense=85,
+        base_speed=100,
         type_list=[types.VibemonT.FIRE, types.VibemonT.FLYING],
-        max_hp=148,
-        attack=84,
-        defense=78,
-        sp_attack=109,
-        sp_defense=85,
-        speed=100,
         moves=[
             types.Move(
                 name="Flamethrower",
@@ -485,5 +402,26 @@ if __name__ == "__main__":
         ],
     )
 
-    result = run_battle("Ash", pikachu, "Gary", charizard)
-    print(json.dumps(result, indent=2))
+    engine = GameEngine(
+        trainer_a=schema.Trainer(id=uuid.uuid4(), name="Red", team=[pikachu]),
+        trainer_b=schema.Trainer(id=uuid.uuid4(), name="Blue", team=[charizard]),
+    )
+
+    for battle_state in engine:
+        action_a = types.Action(
+            trainer_name=battle_state.trainer_a.id,
+            action_type=types.ActionType.MOVE,
+            value=random.choice(battle_state.trainer_a.active_vibemon.moves).name,
+        )
+        action_b = types.Action(
+            trainer_name=battle_state.trainer_b.id,
+            action_type=types.ActionType.MOVE,
+            value=random.choice(battle_state.trainer_b.active_vibemon.moves).name,
+        )
+
+        engine.submit(action_a, action_b)
+
+    assert engine.battle.is_over and engine.battle.winner is not None, "Battle is in an unresolved state."
+    print(f"\n*** {engine.battle.winner.name} wins! ***")
+
+    print(engine.battle.to_json())
