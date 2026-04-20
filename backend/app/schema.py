@@ -4,12 +4,13 @@ import math
 import attrs
 import cattrs
 
-from app import types
+from app import types, const
 
 
 @attrs.define
 class Vibemon:
     """Innate properties of a Vibemon with derived actual stats."""
+
     name: str
 
     base_hp: int
@@ -20,24 +21,24 @@ class Vibemon:
     base_speed: int
 
     type_list: list = attrs.field(factory=list)
-    level: int = 1
+    level: int = const.DEFAULT_LEVEL
     moves: list[types.Move] = attrs.field(factory=list)
 
     @property
     def bst(self) -> int:
         """
         The Base Stat Total (BST).
-        
-        Calculates the sum of all six base stats to provide a single value 
+
+        Calculates the sum of all six base stats to provide a single value
         representing the species' overall power tier.
         """
         return (
-            self.base_hp + 
-            self.base_attack + 
-            self.base_defense + 
-            self.base_sp_attack + 
-            self.base_sp_defense + 
-            self.base_speed
+            self.base_hp
+            + self.base_attack
+            + self.base_defense
+            + self.base_sp_attack
+            + self.base_sp_defense
+            + self.base_speed
         )
 
     # ── Derived Properties (The "Actual" Stats) ───────────────────────────────────────
@@ -45,23 +46,22 @@ class Vibemon:
     def _calculate_core(self, base_value: int) -> int:
         """
         Computes the linear scaling core for a stat.
-        
-        The formula (2 * Base * Level / 100) + 5 is designed so that:
-          1. At Level 100, the stat is exactly (2 * Base) + 5, making the base an intuitive predictor of endgame power.
-          2. At Level  50, the stat is exactly half of its species potential.
-          3. The +5 constant acts as a true floor.
+
+        Formula: (2 * Base * Level / 100) + 5
+        At Level 100: (2 * Base) + 5 = exact base + 5
+        At Level 50: Half of species potential + 5
+        +5 constant acts as true floor.
         """
-        return math.floor((2 * base_value * self.level) / 100) + 5
+        return math.floor((2 * base_value * self.level) / const.STAT_FORMULA_LEVEL_DENOM) + const.STAT_FORMULA_ADDEND
 
     @property
     def hp(self) -> int:
         """
         Calculates the actual HP stat.
-        
-        Unlike other stats, HP scales with an additional buffer to
-        ensure enough survivability to participate in low level combat.
+
+        HP adds level scaling for extra survivability at higher levels.
         """
-        return self._calculate_core(self.base_hp) + self.level + 5
+        return self._calculate_core(self.base_hp) + self.level + const.HP_SCALING_OFFSET
 
     @property
     def attack(self) -> int:
@@ -109,6 +109,8 @@ class BattleVibemon(Vibemon):
     bad_poison_counter: int = 0
     sleep_turns_remaining: int = 0
     is_seeded: bool = False
+    taunt_turns: int = 0
+    bound_turns: int = 0
 
     @property
     def max_hp(self) -> int:
@@ -166,7 +168,7 @@ class BattleState:
     @property
     def is_over(self) -> bool:
         return self.winner is not None
-    
+
     def to_json(self) -> dict[str, Any]:
         """Serialize the battle."""
         return cattrs.unstructure(self)
