@@ -27,6 +27,7 @@ class Delta:
     delta_stats: dict[str, int] = attrs.field(factory=dict)
     delta_visual: VisualDelta = attrs.field(factory=VisualDelta)
     delta_level: int = 0
+    delta_description: str | None = None
 
 
 @attrs.define
@@ -69,9 +70,10 @@ def clamp_stat(value: int) -> int:
 def merge_deltas(
     base_stats: dict[str, int],
     deltas: list[tuple[float, Delta]],
-) -> tuple[dict[str, int], VisualDelta]:
+) -> tuple[dict[str, int], VisualDelta, list[str]]:
     final_stats = dict(base_stats)
     merged_visual = VisualDelta()
+    description_fragments: list[str] = []
 
     for intensity, delta in deltas:
         for stat, value in delta.delta_stats.items():
@@ -98,4 +100,7 @@ def merge_deltas(
         if delta.delta_visual.glow_rule_override is not None:
             merged_visual.glow_rule_override = delta.delta_visual.glow_rule_override
 
-    return final_stats, merged_visual
+        if delta.delta_description is not None:
+            description_fragments.append(delta.delta_description)
+
+    return final_stats, merged_visual, description_fragments

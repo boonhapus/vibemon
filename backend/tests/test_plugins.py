@@ -49,32 +49,32 @@ class TestMergeDeltas:
     def test_neutral_intensity_no_stat_change(self):
         base = {"max_hp": 100, "attack": 50}
         delta = Delta(delta_stats={"max_hp": 80, "attack": 40})
-        final, visual = merge_deltas(base, [(0.0, delta)])
+        final, visual, _ = merge_deltas(base, [(0.0, delta)])
         assert final == {"max_hp": 100, "attack": 50}
 
     def test_full_intensity_applies_deltas(self):
         base = {"max_hp": 100, "attack": 50}
         delta = Delta(delta_stats={"max_hp": 10, "attack": 20})
-        final, visual = merge_deltas(base, [(1.0, delta)])
+        final, visual, _ = merge_deltas(base, [(1.0, delta)])
         assert final == {"max_hp": 110, "attack": 70}
 
     def test_stat_clamped_to_255(self):
         base = {"max_hp": 250}
         delta = Delta(delta_stats={"max_hp": 100})
-        final, _ = merge_deltas(base, [(1.0, delta)])
+        final, _, _ = merge_deltas(base, [(1.0, delta)])
         assert final["max_hp"] == 255
 
     def test_stat_clamped_to_0(self):
         base = {"attack": 10}
         delta = Delta(delta_stats={"attack": -50})
-        final, _ = merge_deltas(base, [(1.0, delta)])
+        final, _, _ = merge_deltas(base, [(1.0, delta)])
         assert final["attack"] == 0
 
     def test_multiple_providers_accumulate(self):
         base = {"speed": 50}
         d1 = Delta(delta_stats={"speed": 20})
         d2 = Delta(delta_stats={"speed": 15})
-        final, _ = merge_deltas(base, [(1.0, d1), (1.0, d2)])
+        final, _, _ = merge_deltas(base, [(1.0, d1), (1.0, d2)])
         assert final["speed"] == 85
 
     def test_visual_color_shifts_merge(self):
@@ -88,7 +88,7 @@ class TestMergeDeltas:
                 color_shifts={"primary": ColorShift(hue_rotation=15.0)}
             )
         )
-        _, visual = merge_deltas({}, [(1.0, d1), (1.0, d2)])
+        _, visual, _ = merge_deltas({}, [(1.0, d1), (1.0, d2)])
         assert visual.color_shifts["primary"].hue_rotation == 25.0
 
     def test_hex_override_last_writer_wins(self):
@@ -102,13 +102,13 @@ class TestMergeDeltas:
                 color_shifts={"primary": ColorShift(hex_override="#00FF00")}
             )
         )
-        _, visual = merge_deltas({}, [(1.0, d1), (1.0, d2)])
+        _, visual, _ = merge_deltas({}, [(1.0, d1), (1.0, d2)])
         assert visual.color_shifts["primary"].hex_override == "#00FF00"
 
     def test_glow_rule_override_last_writer_wins(self):
         d1 = Delta(delta_visual=VisualDelta(glow_rule_override="rule_a"))
         d2 = Delta(delta_visual=VisualDelta(glow_rule_override="rule_b"))
-        _, visual = merge_deltas({}, [(1.0, d1), (1.0, d2)])
+        _, visual, _ = merge_deltas({}, [(1.0, d1), (1.0, d2)])
         assert visual.glow_rule_override == "rule_b"
 
 
@@ -235,7 +235,7 @@ class TestEndToEndMerge:
             "sp_defense": 50,
             "speed": 50,
         }
-        final_stats, visual = merge_deltas(base_stats, deltas)
+        final_stats, visual, _ = merge_deltas(base_stats, deltas)
 
         # intensity is 0 for both in MVP, so stats unchanged
         assert final_stats == base_stats
