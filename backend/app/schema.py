@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 from typing import Annotated, Any
 import math
 
@@ -5,6 +7,7 @@ import attrs
 import cattrs
 
 from app import types, const
+from app.sprite import Creature
 
 
 @attrs.define
@@ -23,6 +26,8 @@ class Vibemon:
     type_list: list = attrs.field(factory=list)
     level: int = const.DEFAULT_LEVEL
     moves: list[types.Move] = attrs.field(factory=list)
+    description: str = ""
+    creature: Creature | None = None
 
     @property
     def bst(self) -> int:
