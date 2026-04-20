@@ -3,16 +3,15 @@ import attrs
 import enum
 import uuid
 
+from app import const
+
 
 type TrainerId = Annotated[uuid.UUID, "backend trainer identifier"]
 
 
-# ---------------------------------------------------------------------------
-# Enums
-# ---------------------------------------------------------------------------
+# ── Enums ────────────────────────────────────────────────────────────────────────────
 
-
-class VibemonT(str, enum.Enum):
+class VibemonTypeT(str, enum.Enum):
     """Elemental type classifications for Vibemon species."""
 
     NORMAL = "normal"
@@ -87,22 +86,7 @@ class ActionType(str, enum.Enum):
     RUN = "run"
 
 
-# ---------------------------------------------------------------------------
-# Stats
-# ---------------------------------------------------------------------------
-
-
-@attrs.define
-class BaseStats:
-    """Base statistics that define a species' potential in each stat."""
-
-    hp: int
-    attack: int
-    defense: int
-    sp_attack: int
-    sp_defense: int
-    speed: int
-
+# ── Stats ────────────────────────────────────────────────────────────────────────────
 
 @attrs.define
 class StatStages:
@@ -117,10 +101,7 @@ class StatStages:
     evasion: int = 0
 
 
-# ---------------------------------------------------------------------------
-# Move
-# ---------------------------------------------------------------------------
-
+# ── Move ────────────────────────────────────────────────────────────────────────────
 
 @attrs.define
 class MoveEffect:
@@ -137,12 +118,12 @@ class Move:
     """A move that a Vibemon can learn and use in battle."""
 
     name: str
-    type: VibemonT
+    type: VibemonTypeT
     category: MoveCategoryT
     power: int | None = None
     accuracy: float | None = 1.0
-    pp: int = 10
-    pp_current: int = 10
+    pp: int = const.PP_DEFAULT
+    pp_current: int = const.PP_DEFAULT
     priority: int = 0
     effect: MoveEffect | None = None
     crit_ratio: int = 0
@@ -150,10 +131,7 @@ class Move:
     target: MoveTargetT = MoveTargetT.SINGLE
 
 
-# ---------------------------------------------------------------------------
-# Action
-# ---------------------------------------------------------------------------
-
+# ── Action ────────────────────────────────────────────────────────────────────────────
 
 @attrs.define
 class Action:

@@ -3,7 +3,6 @@ from app import schema as _schema
 
 Action = _types.Action
 ActionType = _types.ActionType
-BaseStats = _types.BaseStats
 BattleState = _schema.BattleState
 Move = _types.Move
 MoveCategoryT = _types.MoveCategoryT
@@ -16,13 +15,12 @@ TrainerId = _types.TrainerId
 TurnEvent = _schema.TurnEvent
 TurnRecord = _schema.TurnRecord
 Vibemon = _schema.Vibemon
-VibemonT = _types.VibemonT
+VibemonTypeT = _types.VibemonTypeT
 WeatherT = _types.WeatherT
 
 __all__ = [
     "Action",
     "ActionType",
-    "BaseStats",
     "BattleState",
     "Move",
     "MoveCategoryT",
@@ -35,6 +33,6 @@ __all__ = [
     "TurnEvent",
     "TurnRecord",
     "Vibemon",
-    "VibemonT",
+    "VibemonTypeT",
     "WeatherT",
 ]
