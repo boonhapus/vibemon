@@ -22,9 +22,10 @@ import sqlalchemy as sa
 
 App modules (package)
 ```
-from app import gametypes  # NOT from app.gametypes import ...
+from app import types  # NOT from app.types import ...
 from app import schema
-gametypes.VibemonT  # use gametypes.TypeName
+
+types.VibemonTypeT  # use gametypes.TypeName
 ```
 
 ## Libraries
