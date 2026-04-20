@@ -3,16 +3,17 @@ import attrs
 import enum
 import uuid
 
+from app import const
+
 
 type TrainerId = Annotated[uuid.UUID, "backend trainer identifier"]
 
 
-# ---------------------------------------------------------------------------
-# Enums
-# ---------------------------------------------------------------------------
+# ── Enums ────────────────────────────────────────────────────────────────────────────
 
+class VibemonTypeT(str, enum.Enum):
+    """Elemental type classifications for Vibemon species."""
 
-class VibemonT(str, enum.Enum):
     NORMAL = "normal"
     FIRE = "fire"
     WATER = "water"
@@ -34,6 +35,8 @@ class VibemonT(str, enum.Enum):
 
 
 class StatusConditionT(str, enum.Enum):
+    """Status conditions that can affect a Vibemon during battle."""
+
     NONE = "none"
     BURN = "burn"
     POISON = "poison"
@@ -45,12 +48,16 @@ class StatusConditionT(str, enum.Enum):
 
 
 class MoveCategoryT(str, enum.Enum):
+    """Categorization of moves based on their battle effect."""
+
     PHYSICAL = "physical"
     SPECIAL = "special"
     STATUS = "status"
 
 
 class MoveTargetT(str, enum.Enum):
+    """Valid targets for a move during battle."""
+
     SELF = "self"
     SINGLE = "single"
     ALL_OPPONENTS = "all_opponents"
@@ -58,6 +65,8 @@ class MoveTargetT(str, enum.Enum):
 
 
 class WeatherT(str, enum.Enum):
+    """Battle weather conditions that affect certain Vibemon types."""
+
     CLEAR = "clear"
     SUN = "sun"
     RAIN = "rain"
@@ -69,29 +78,20 @@ class WeatherT(str, enum.Enum):
 
 
 class ActionType(str, enum.Enum):
+    """Actions a trainer can take during their turn."""
+
     MOVE = "move"
     SWITCH = "switch"
     ITEM = "item"
     RUN = "run"
 
 
-# ---------------------------------------------------------------------------
-# Stats
-# ---------------------------------------------------------------------------
-
-
-@attrs.define
-class BaseStats:
-    hp: int
-    attack: int
-    defense: int
-    sp_attack: int
-    sp_defense: int
-    speed: int
-
+# ── Stats ────────────────────────────────────────────────────────────────────────────
 
 @attrs.define
 class StatStages:
+    """Stat stage modifiers accumulated during battle, ranging from -6 to +6."""
+
     attack: int = 0
     defense: int = 0
     sp_attack: int = 0
@@ -101,13 +101,12 @@ class StatStages:
     evasion: int = 0
 
 
-# ---------------------------------------------------------------------------
-# Move
-# ---------------------------------------------------------------------------
-
+# ── Move ────────────────────────────────────────────────────────────────────────────
 
 @attrs.define
 class MoveEffect:
+    """Secondary effects that may occur when a move is used."""
+
     status_inflict: StatusConditionT | None = None
     stat_changes: dict[str, int] = attrs.field(factory=dict)
     target_self: bool = False
@@ -116,26 +115,28 @@ class MoveEffect:
 
 @attrs.define
 class Move:
+    """A move that a Vibemon can learn and use in battle."""
+
     name: str
-    type: VibemonT
+    type: VibemonTypeT
     category: MoveCategoryT
     power: int | None = None
     accuracy: float | None = 1.0
-    pp: int = 10
-    pp_current: int = 10
+    pp: int = const.PP_DEFAULT
+    pp_current: int = const.PP_DEFAULT
     priority: int = 0
     effect: MoveEffect | None = None
+    crit_ratio: int = 0
     makes_contact: bool = False
     target: MoveTargetT = MoveTargetT.SINGLE
 
 
-# ---------------------------------------------------------------------------
-# Action
-# ---------------------------------------------------------------------------
-
+# ── Action ────────────────────────────────────────────────────────────────────────────
 
 @attrs.define
 class Action:
+    """An action selected by a trainer to perform during their turn."""
+
     trainer_name: TrainerId
     action_type: ActionType
     value: str

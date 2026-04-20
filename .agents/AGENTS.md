@@ -31,5 +31,23 @@
 - Define a verifiable done-when before writing code, not after.
 
 ## Skills
+
+This project inherits global skills from `C:/Users/boonhapus/.agents/skills/`:
+
+- **caveman** — Ultra-compressed communication mode. Speaks terse like a smart caveman while keeping technical accuracy. Triggers: "caveman mode", "talk like caveman", "/caveman"
+- **caveman-commit** — Ultra-compressed commit message generator. Conventional Commits format, terse. Triggers: "write a commit", "/commit", "/caveman-commit"
+- **nelson** — Multi-agent orchestration using Royal Navy squadron metaphor. Triggers: any multi-agent task requiring parallel execution
+- **karpathy-guidelines** — Karpathy-inspired behavioral guidelines to avoid overcomplication
+
+Local skills for this project:
 - python-conventions: Python conventions for this project.
 - wrangle-commits: Group changes into logical commits with terse messages.
+
+## Schema vs Types Module Organization
+
+**Principle:** `types` = properties/enums, `schema` = data/containers.
+
+- `types.py`: Enums (`VibemonTypeT`, `StatusConditionT`, `MoveCategoryT`), simple containers with no cross-module dependencies (`StatStages`, `Move`, `MoveEffect`, `Action`), and type aliases (`TrainerId`).
+- `schema.py`: Domain objects that layer over types (`Vibemon`, `BattleVibemon`, `Trainer`, `BattleState`, `TurnEvent`, `TurnRecord`).
+
+Cross-imports: schema imports types (for type annotations). Game engine imports both. Never the reverse.

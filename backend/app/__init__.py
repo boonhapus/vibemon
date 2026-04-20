@@ -1,28 +1,26 @@
-from app import gametypes as _gametypes
+from app import types as _types
 from app import schema as _schema
 
-Action = _gametypes.Action
-ActionType = _gametypes.ActionType
-BaseStats = _gametypes.BaseStats
+Action = _types.Action
+ActionType = _types.ActionType
 BattleState = _schema.BattleState
-Move = _gametypes.Move
-MoveCategoryT = _gametypes.MoveCategoryT
-MoveEffect = _gametypes.MoveEffect
-MoveTargetT = _gametypes.MoveTargetT
-StatStages = _gametypes.StatStages
-StatusConditionT = _gametypes.StatusConditionT
+Move = _types.Move
+MoveCategoryT = _types.MoveCategoryT
+MoveEffect = _types.MoveEffect
+MoveTargetT = _types.MoveTargetT
+StatStages = _types.StatStages
+StatusConditionT = _types.StatusConditionT
 Trainer = _schema.Trainer
-TrainerId = _gametypes.TrainerId
+TrainerId = _types.TrainerId
 TurnEvent = _schema.TurnEvent
 TurnRecord = _schema.TurnRecord
 Vibemon = _schema.Vibemon
-VibemonT = _gametypes.VibemonT
-WeatherT = _gametypes.WeatherT
+VibemonTypeT = _types.VibemonTypeT
+WeatherT = _types.WeatherT
 
 __all__ = [
     "Action",
     "ActionType",
-    "BaseStats",
     "BattleState",
     "Move",
     "MoveCategoryT",
@@ -35,6 +33,6 @@ __all__ = [
     "TurnEvent",
     "TurnRecord",
     "Vibemon",
-    "VibemonT",
+    "VibemonTypeT",
     "WeatherT",
 ]

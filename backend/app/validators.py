@@ -8,7 +8,7 @@ base_converter = cattrs.Converter()
 # ── Inform cattrs about enum types ────────────────────────────────────────────────────
 
 _must_restructure = (
-    types.VibemonT,
+    types.VibemonTypeT,
     types.StatusConditionT,
     types.MoveCategoryT,
     types.WeatherT,
