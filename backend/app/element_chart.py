@@ -1,6 +1,6 @@
 from app import types
 
-TYPE_CHART: dict[tuple[types.VibemonTypeT, types.VibemonTypeT], float] = {
+ELEMENT_CHART: dict[tuple[types.VibemonTypeT, types.VibemonTypeT], float] = {
     (types.VibemonTypeT.NORMAL, types.VibemonTypeT.ROCK): 0.5,
     (types.VibemonTypeT.NORMAL, types.VibemonTypeT.GHOST): 0.0,
     (types.VibemonTypeT.NORMAL, types.VibemonTypeT.STEEL): 0.5,
@@ -122,19 +122,21 @@ TYPE_CHART: dict[tuple[types.VibemonTypeT, types.VibemonTypeT], float] = {
 }
 
 
-def get_type_effectiveness(attack_type: types.VibemonTypeT, defender_types: list[types.VibemonTypeT]) -> float:
+def get_element_effectiveness(
+    attack_type: types.VibemonTypeT, defender_elements: list[types.VibemonTypeT]
+) -> float:
     """
-    Multiply the attacker's type modifier against each of the defender's types.
+    Multiply the attacker's type modifier against each of the defender's elements.
 
-    Dual Type defenders produce combined multipliers
+    Dual-element defenders produce combined multipliers
       4.00x = double weakness
       0.25x = double resistance
-      1.00x = neutralization, when one type is weak and the other resists
-      0.00x = absolute immunity, immunity on either type trumps any weakness on the other
+      1.00x = neutralization, when one element is weak and the other resists
+      0.00x = absolute immunity, immunity on either element trumps any weakness on the other
     """
     modifier = 1.0
 
-    for defender_type in defender_types:
-        modifier *= TYPE_CHART.get((attack_type, defender_type), 1.0)
+    for defender_element in defender_elements:
+        modifier *= ELEMENT_CHART.get((attack_type, defender_element), 1.0)
 
     return modifier

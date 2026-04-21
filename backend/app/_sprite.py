@@ -1,4 +1,3 @@
-from typing import ClassVar
 import pathlib
 import re
 
@@ -11,6 +10,8 @@ _env = jinja2.Environment(
     lstrip_blocks=True,
     keep_trailing_newline=True,
 )
+
+DEFAULT_SPRITE_TEMPLATE = "vibemon-sprites.mdc"
 
 
 @attrs.define
@@ -83,6 +84,6 @@ if __name__ == "__main__":
         glow_rule="Cyan glow only on lure tip and segment trim lines — never on limbs or face",
     )
 
-    creature_prompt = creature.render("vibemon-sprites.mdc")
+    creature_prompt = creature.render(DEFAULT_SPRITE_TEMPLATE)
 
     print(creature_prompt)

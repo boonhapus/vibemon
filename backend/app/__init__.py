@@ -1,5 +1,6 @@
 from app import types as _types
 from app import schema as _schema
+from app import element_chart as _element_chart
 
 Action = _types.Action
 ActionType = _types.ActionType
@@ -17,6 +18,7 @@ TurnRecord = _schema.TurnRecord
 Vibemon = _schema.Vibemon
 VibemonTypeT = _types.VibemonTypeT
 WeatherT = _types.WeatherT
+element_chart = _element_chart
 
 __all__ = [
     "Action",
@@ -35,4 +37,5 @@ __all__ = [
     "Vibemon",
     "VibemonTypeT",
     "WeatherT",
+    "element_chart",
 ]
