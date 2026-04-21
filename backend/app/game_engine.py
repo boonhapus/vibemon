@@ -7,7 +7,7 @@ import random
 
 import attrs
 
-from app import const, schema, types, type_chart
+from app import const, element_chart, schema, types
 
 type StackEntry = tuple[schema.BattleVibemon, schema.BattleVibemon, types.Action]
 
@@ -290,8 +290,8 @@ def calc_damage(attacker: schema.BattleVibemon, defender: schema.BattleVibemon, 
     base = (2 * attacker.level / 5 + const.DAMAGE_BASE_ADDEND) * move.power * atk * atk_stage / (
         def_ * def_stage
     ) / const.DAMAGE_DIVISOR + const.DAMAGE_BASE_ADDEND
-    stab = const.STAB_MULTIPLIER if move.type in attacker.type_list else 1.0
-    type_eff = type_chart.get_type_effectiveness(move.type, defender.type_list)
+    stab = const.STAB_MULTIPLIER if move.type in attacker.elements else 1.0
+    type_eff = element_chart.get_element_effectiveness(move.type, defender.elements)
     burn = (
         const.BURN_PHYSICAL_REDUCTION
         if (attacker.status == types.StatusConditionT.BURN and move.category == types.MoveCategoryT.PHYSICAL)
@@ -469,7 +469,7 @@ def execute_attack(
 
     if damage > 0:
         defender.current_hp = max(0, defender.current_hp - damage)
-        type_eff = type_chart.get_type_effectiveness(move.type, defender.type_list)
+        type_eff = element_chart.get_element_effectiveness(move.type, defender.elements)
         eff_text = " Super effective!" if type_eff > 1 else " Not very effective..." if type_eff < 1 else ""
         crit_text = " Critical hit!" if is_crit else ""
         events.append(

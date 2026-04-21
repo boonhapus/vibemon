@@ -192,7 +192,7 @@ class TestEndToEnd:
     def test_battle_runs_to_completion(self):
         pikachu = schema.BattleVibemon(
             name="Pikachu",
-            type_list=[types.VibemonTypeT.ELECTRIC],
+            elements=[types.VibemonTypeT.ELECTRIC],
             base_hp=111,
             base_attack=55,
             base_defense=40,
@@ -219,7 +219,7 @@ class TestEndToEnd:
             base_sp_attack=109,
             base_sp_defense=85,
             base_speed=100,
-            type_list=[types.VibemonTypeT.FIRE, types.VibemonTypeT.FLYING],
+            elements=[types.VibemonTypeT.FIRE, types.VibemonTypeT.FLYING],
             moves=[
                 types.Move(
                     name="Flamethrower",
@@ -420,7 +420,7 @@ class TestStatusMoveEvent:
     def test_status_move_no_damage_text(self):
         attacker = schema.BattleVibemon(
             name="A",
-            type_list=[types.VibemonTypeT.ELECTRIC],
+            elements=[types.VibemonTypeT.ELECTRIC],
             base_hp=100,
             base_attack=100,
             base_defense=100,
