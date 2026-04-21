@@ -1,35 +1,82 @@
 ---
 name: python-conventions
 description: >
-  Python conventions for this project.
+  Python rules (must) and conventions (should) for the vibemon backend.
 ---
 
-## Imports
+## What this skill is for
 
-Prefer standard `import` syntax, do not use `from X import Y` or `import as Z` unless noted below.
+It tells you which Python libraries to use and how to write imports in `backend/app`.
 
-Standard library
+---
+
+## Rules (must follow)
+
+Do not switch these libraries unless a human says so in a ticket or doc.
+
+**HTTP**
+
+- Use: niquests
+- Do not use: httpx (for new code)
+
+**Data classes and parsing**
+
+- Use: attrs and cattrs
+- Do not use: Pydantic or stdlib dataclasses for the same job (for new code)
+
+**Logging**
+
+- Use: structlog
+- Do not use: stdlib `logging` as the main API (for new code)
+
+---
+
+## Conventions (should follow)
+
+### Rule of thumb for imports
+
+1. Import the **module**.
+2. Use the **module name** before each symbol.
+
+Good:
+
+```python
+from app import types
+from app import schema
+
+x = types.VibemonTypeT
+y = schema.BattleVibemon
 ```
+
+Avoid for app code (unless the file already does it and you are only making a small edit):
+
+```python
+from app.types import VibemonTypeT
+```
+
+### Standard library
+
+These patterns are fine:
+
+```python
 from typing import ...
 import datetime as dt
 import functools as ft
 ```
 
-Third party
-```
+### Other third-party libs
+
+Example of a short import name for a big lib:
+
+```python
 import sqlalchemy as sa
 ```
 
-App modules (package)
-```
-from app import types  # NOT from app.types import ...
-from app import schema
+Copy the same style as other files in the repo.
 
-types.VibemonTypeT  # use gametypes.TypeName
-```
+---
 
-## Libraries
+## If you are unsure
 
-- Use `niquests` instead of `httpx`
-- Use `cattrs`/`attrs` instead of `pydantic`/`dataclasses`
-- Use `structlog` instead of `logging`
+- Editing an old file: match that file’s import style.
+- New file: use the rules and conventions above.
