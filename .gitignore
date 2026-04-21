@@ -1,21 +1,16 @@
 # Ignore Secrets
 .env
 
-# Ignore local project data
-.data/
-
 # Ignore python artifacts
 .python-version
 __pycache__/
 *.py[cod]
 .pytest_cache/
+.mypy_cache/
 
 # Ignore project-specific build artifacts
-backend/.venv/
-backend/static/sprites/*.png
-frontend/node_modules/
-frontend/build/
-frontend/.svelte-kit/
+.venv/
+.data/
 
 # Ignore coding agents
 CLAUDE.md
