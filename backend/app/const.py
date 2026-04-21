@@ -78,6 +78,12 @@ DAMAGE_BASE_ADDEND = 2
 
 # ── Stat Calculation Constants ────────────────────────────────────────────────────────────
 
+BASE_STAT_MIN = 5
+"""Default minimum base stat floor for Vibemon construction."""
+
+BASE_STAT_MAX = 255
+"""Default maximum base stat floor for Vibemon construction."""
+
 STAT_FORMULA_LEVEL_DENOM = 100
 """Denominator in stat calculation formula."""
 
@@ -101,3 +107,6 @@ MAX_LEVEL = 100
 
 PP_DEFAULT = 10
 """Default PP (Power Points) for a move."""
+
+STARTING_MOVE_COUNT = 2
+"""The minimum number of moves a Vibemon will start off with."""

@@ -1,15 +1,18 @@
 from typing import Annotated
-import attrs
 import enum
 import uuid
+
+import attrs
 
 from app import const
 
 
 type TrainerId = Annotated[uuid.UUID, "backend trainer identifier"]
+type BaseStat = Annotated[int, "a positive integer within the range [5, 255]"]
 
 
 # ── Enums ────────────────────────────────────────────────────────────────────────────
+
 
 class VibemonTypeT(str, enum.Enum):
     """Elemental type classifications for Vibemon species."""
@@ -88,6 +91,7 @@ class ActionType(str, enum.Enum):
 
 # ── Stats ────────────────────────────────────────────────────────────────────────────
 
+
 @attrs.define
 class StatStages:
     """Stat stage modifiers accumulated during battle, ranging from -6 to +6."""
@@ -103,6 +107,7 @@ class StatStages:
 
 # ── Move ────────────────────────────────────────────────────────────────────────────
 
+
 @attrs.define
 class MoveEffect:
     """Secondary effects that may occur when a move is used."""
@@ -113,25 +118,35 @@ class MoveEffect:
     chance: float = 1.0
 
 
-@attrs.define
+@attrs.define(eq=False)
 class Move:
     """A move that a Vibemon can learn and use in battle."""
 
     name: str
+    flavor_text: str
     type: VibemonTypeT
     category: MoveCategoryT
     power: int | None = None
     accuracy: float | None = 1.0
     pp: int = const.PP_DEFAULT
+    effect: MoveEffect | None = None
+
     pp_current: int = const.PP_DEFAULT
     priority: int = 0
-    effect: MoveEffect | None = None
     crit_ratio: int = 0
-    makes_contact: bool = False
     target: MoveTargetT = MoveTargetT.SINGLE
+
+    def __eq__(self, other: object) -> bool:
+        if not isinstance(other, Move):
+            return NotImplemented
+        return self.name == other.name
+
+    def __hash__(self) -> int:
+        return hash(self.name)
 
 
 # ── Action ────────────────────────────────────────────────────────────────────────────
+
 
 @attrs.define
 class Action:

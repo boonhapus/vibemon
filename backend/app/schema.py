@@ -1,13 +1,39 @@
-from __future__ import annotations
-
-from typing import Annotated, Any
+from typing import Annotated, Any, Self
+import datetime as dt
 import math
+import random
+import itertools as it
 
+import attr
 import attrs
 import cattrs
 
-from app import types, const
-from app.sprite import Creature
+from app import const, types
+
+
+@attrs.define
+class BirthContext:
+    """Represents the context in which a Vibemon is being created under."""
+    seed: str
+    timestamp: dt.datetime
+    geo_coords: tuple[float, float]
+    weather_conditions: Any
+    providers: dict[str, Affinity]
+
+
+@attrs.define
+class Affinity:
+    """Represents a data provider's contributing to the Vibemon's nature."""
+    intensity: float = 1.0
+    description: str = ""
+    elements: list[types.VibemonTypeT] = attrs.field(factory=list)
+    base_hp: int = 120
+    base_attack: int = 60
+    base_defense: int = 60
+    base_sp_attack: int = 60
+    base_sp_defense: int = 60
+    base_speed: int = 60
+    moves: list[types.Move] = attrs.field(factory=list)
 
 
 @attrs.define
@@ -15,19 +41,74 @@ class Vibemon:
     """Innate properties of a Vibemon with derived actual stats."""
 
     name: str
+    description: str
 
-    base_hp: int
-    base_attack: int
-    base_defense: int
-    base_sp_attack: int
-    base_sp_defense: int
-    base_speed: int
+    base_hp: types.BaseStat
+    base_attack: types.BaseStat
+    base_defense: types.BaseStat
+    base_sp_attack: types.BaseStat
+    base_sp_defense: types.BaseStat
+    base_speed: types.BaseStat
 
-    type_list: list = attrs.field(factory=list)
+    elements: list[types.VibemonTypeT] = attrs.field(factory=lambda: [types.VibemonTypeT.NORMAL])
     level: int = const.DEFAULT_LEVEL
     moves: list[types.Move] = attrs.field(factory=list)
-    description: str = ""
-    creature: Creature | None = None
+
+    @classmethod
+    def from_affinities(cls, *affinities: Affinity, name: str, description: str) -> Self:
+        """Create a Vibemon from a number of affinities."""
+        if not affinities:
+            raise ValueError("from_affinities requires at least one Affinity")
+
+        total_intensity = sum(a.intensity for a in affinities)
+
+        elements: list[types.VibemonTypeT] = []
+        moves: list[types.Move] = []
+
+        base_stats = {
+            "base_hp": 0,
+            "base_attack": 0,
+            "base_defense": 0,
+            "base_sp_attack": 0,
+            "base_sp_defense": 0,
+            "base_speed": 0,
+        }
+
+        for affinity in sorted(affinities, key=lambda a: a.intensity, reverse=True):
+            weighted_average = affinity.intensity / total_intensity
+
+            if affinity.description:
+                description += f"  {affinity.description} ({weighted_average:.2f}%)"
+
+            if random_elements := random.sample(affinity.elements, k=random.randint(0, 2)):
+                elements = list({*elements, *random_elements})[:2]
+
+            if random_moves := random.sample(affinity.moves, k=random.randint(0, 2)):
+                moves = [*moves, *random_moves][:4]
+
+            for stat in base_stats:
+                base_stats[stat] += math.floor(getattr(affinity, stat) * weighted_average)
+
+        if not elements:
+            elements = [types.VibemonTypeT.NORMAL]
+
+        while len(moves) < const.STARTING_MOVE_COUNT:
+            mpool = list(it.chain.from_iterable(a.moves for a in affinities))
+            addtl = random.sample(mpool, k=const.STARTING_MOVE_COUNT - len(moves))
+            moves = list({*moves, *addtl})
+
+        return cls(
+            name=name,
+            description=description,
+            elements=elements,
+            **base_stats,
+            level=1,
+            moves=moves,
+        )
+
+    @property
+    def visual_dna(self) -> VisualDNA:
+        ...
 
     @property
     def bst(self) -> int:
