@@ -4,7 +4,6 @@ import math
 import random
 import itertools as it
 
-import attr
 import attrs
 import cattrs
 
@@ -14,6 +13,7 @@ from app import const, types
 @attrs.define
 class BirthContext:
     """Represents the context in which a Vibemon is being created under."""
+
     seed: str
     timestamp: dt.datetime
     geo_coords: tuple[float, float]
@@ -21,12 +21,21 @@ class BirthContext:
     providers: dict[str, Affinity]
 
 
+@attrs.frozen
+class AffinitySignature:
+    """Identity + narrative for an Affinity that survives merge onto a Vibemon."""
+
+    provider_id: str
+    intensity: float = 1.0
+    visual_notes: str | None = None
+    elements: tuple[types.VibemonTypeT, ...] = ()
+
+
 @attrs.define
 class Affinity:
-    """Represents a data provider's contributing to the Vibemon's nature."""
-    intensity: float = 1.0
-    description: str = ""
-    elements: list[types.VibemonTypeT] = attrs.field(factory=list)
+    """A data provider's contribution to a Vibemon's nature."""
+
+    signature: AffinitySignature
     base_hp: int = 120
     base_attack: int = 60
     base_defense: int = 60
@@ -54,13 +63,16 @@ class Vibemon:
     level: int = const.DEFAULT_LEVEL
     moves: list[types.Move] = attrs.field(factory=list)
 
+    birth_affinities: tuple[AffinitySignature, ...] = ()
+    """Immutable per-provider signatures captured at merge time. Drives visual DNA."""
+
     @classmethod
     def from_affinities(cls, *affinities: Affinity, name: str, description: str) -> Self:
         """Create a Vibemon from a number of affinities."""
         if not affinities:
             raise ValueError("from_affinities requires at least one Affinity")
 
-        total_intensity = sum(a.intensity for a in affinities)
+        total_intensity = sum(a.signature.intensity for a in affinities)
 
         elements: list[types.VibemonTypeT] = []
         moves: list[types.Move] = []
@@ -74,17 +86,17 @@ class Vibemon:
             "base_speed": 0,
         }
 
-        for affinity in sorted(affinities, key=lambda a: a.intensity, reverse=True):
-            weighted_average = affinity.intensity / total_intensity
+        for affinity in sorted(affinities, key=lambda a: a.signature.intensity, reverse=True):
+            signature = affinity.signature
+            weighted_average = signature.intensity / total_intensity
+            n_elements = min(2, len(signature.elements))
+            n_moves = min(2, len(affinity.moves))
 
-            if affinity.description:
-                description += f"  {affinity.description} ({weighted_average:.2f}%)"
+            if signature.elements and (e := random.sample(signature.elements, k=random.randint(0, n_elements))):
+                elements = list({*elements, *e})[:2]
 
-            if random_elements := random.sample(affinity.elements, k=random.randint(0, 2)):
-                elements = list({*elements, *random_elements})[:2]
-
-            if random_moves := random.sample(affinity.moves, k=random.randint(0, 2)):
-                moves = [*moves, *random_moves][:4]
+            if affinity.moves and (m := random.sample(affinity.moves, k=random.randint(0, n_moves))):
+                moves = [*moves, *m][:4]
 
             for stat in base_stats:
                 base_stats[stat] += math.floor(getattr(affinity, stat) * weighted_average)
@@ -104,11 +116,17 @@ class Vibemon:
             **base_stats,
             level=1,
             moves=moves,
+            birth_affinities=tuple(a.signature for a in affinities),
         )
 
     @property
     def visual_dna(self) -> VisualDNA:
-        ...
+        """Build a prompt-ready VisualDNA snapshot from this Vibemon's state."""
+        # Local import to avoid a module-level cycle: ``visual`` imports ``schema``
+        # for the Vibemon/AffinitySignature types it consumes.
+        from app import visual
+
+        return visual.build_visual_dna(self)
 
     @property
     def bst(self) -> int:
