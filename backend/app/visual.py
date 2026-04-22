@@ -5,19 +5,26 @@ itself against ``vibemon-sprites.mdc``. Keep the template dumb: each prompt sect
 is a single string built here.
 """
 
+from typing import Self
 from collections.abc import Iterable
+import json
+import os
 import pathlib
 import re
 
 import attrs
+import dotenv
+from google import genai
 import jinja2
 
 from app import schema, types
 
 
 DEFAULT_SPRITE_TEMPLATE = "vibemon-sprites.mdc"
+DEFAULT_VISUAL_NAME_MODEL = "gemini-2.0-flash-lite"
 
 _RE_MARKDOWN_FRONTMATTER = re.compile(r"^---\n.*?\n---\n\n?", re.DOTALL)
+_RE_PRIMARY_ELEMENT = re.compile(r"^- ([a-z]+):", re.MULTILINE)
 
 _env = jinja2.Environment(
     loader=jinja2.FileSystemLoader(pathlib.Path(__file__).parent),
@@ -25,6 +32,7 @@ _env = jinja2.Environment(
     lstrip_blocks=True,
     keep_trailing_newline=True,
 )
+dotenv.load_dotenv()
 
 
 # ── Static lexicons ──────────────────────────────────────────────────────────────────
@@ -110,8 +118,10 @@ def stat_signature(mon: "schema.Vibemon") -> str:
 def element_visuals(elements: Iterable[types.VibemonTypeT]) -> str:
     """One lexicon line per element. Dual-type interaction is deferred to the LLM."""
     unique = list(dict.fromkeys(elements))  # preserve order, drop dupes
+
     if not unique:
         unique = [types.VibemonTypeT.NORMAL]
+
     return "\n".join(f"- {element.value}: {ELEMENT_LEXICON[element]}" for element in unique)
 
 
@@ -126,6 +136,7 @@ def trainer_steering(description: str, *, max_chars: int = 500) -> str:
 def provider_echo(signatures: Iterable["schema.AffinitySignature"]) -> str:
     """Bulleted per-provider visual echo, sorted by intensity descending."""
     ordered = sorted(signatures, key=lambda s: s.intensity, reverse=True)
+
     if not ordered:
         return "- (no provider contributions recorded)"
 
@@ -140,6 +151,52 @@ def provider_echo(signatures: Iterable["schema.AffinitySignature"]) -> str:
     return "\n".join(lines)
 
 
+def _sanitize_name_candidate(raw: str) -> str | None:
+    cleaned = raw.splitlines()[0].strip().strip("`\"'")
+    cleaned = re.sub(r"^name:\s*", "", cleaned, flags=re.IGNORECASE)
+    cleaned = re.sub(r"[^A-Za-z0-9' -]", "", cleaned)
+    cleaned = re.sub(r"\s+", " ", cleaned).strip()
+    if not cleaned:
+        return None
+    return " ".join(cleaned.split()[:2])[:24].strip()
+
+
+def _fallback_generated_name(payload: dict[str, str]) -> str:
+    element_visuals_value = payload.get("element_visuals", "")
+    element_match = _RE_PRIMARY_ELEMENT.search(element_visuals_value)
+    element_word = (element_match.group(1) if element_match else "vibe").title()
+
+    stat_signature_value = payload.get("stat_signature", "")
+    tier_word = stat_signature_value.split(";")[0].split()[-1] if stat_signature_value else "Mon"
+
+    return _sanitize_name_candidate(f"{element_word}{tier_word.title()}") or "Vibemon"
+
+
+def _generate_name_from_llm(payload: dict[str, str]) -> str | None:
+    api_key = os.getenv("GOOGLE_API_KEY")
+    if not api_key:
+        return None
+
+    model_name = os.getenv("VISUAL_DNA_NAME_MODEL", DEFAULT_VISUAL_NAME_MODEL)
+    prompt = (
+        "Generate one original creature name for this monster profile. "
+        "Use only letters, numbers, spaces, apostrophes, or hyphens. "
+        "Max 24 chars. Return only the name.\n"
+        f"{json.dumps(payload, ensure_ascii=True, sort_keys=True)}"
+    )
+
+    try:
+        client = genai.Client(api_key=api_key)
+        response = client.models.generate_content(model=model_name, contents=prompt)
+    except Exception:
+        return None
+
+    if not response.text:
+        return None
+
+    return _sanitize_name_candidate(response.text)
+
+
 # ── VisualDNA ────────────────────────────────────────────────────────────────────────
 
 
@@ -150,15 +207,41 @@ class VisualDNA:
     All fields are pre-rendered strings; the template only substitutes, never formats.
     """
 
-    name: str
     stat_signature: str
-    element_visuals: str
-    trainer_steering: str
+    """Describes the body type based on BST values."""
+
+    element_visuals: list[str] = attrs.field(factory=list)
+    """Describes visual effects and ornatery."""
+
     provider_echo: str
+    """ """
+
     bg_hex: str = "#C47A7A"
+    """Background color for more effective chroma-keying."""
+
+    trainer_steering: str | None = None
+    """User-driven descriptive characteristics."""
+
+    name: str | None = None
+    """User driven name for the Vibemon, fallback to LLM-generated."""
+
+    @classmethod
+    def infer_from_vibemon(cls, vibemon: Vibemon) -> Self:
+        return cls()
 
     def render(self, template: str = DEFAULT_SPRITE_TEMPLATE) -> str:
-        raw = _env.get_template(template).render(visual=self)
+        visual_payload = self
+
+        if not self.name:
+            non_null_fields = {
+                key: str(value)
+                for key, value in attrs.asdict(self).items()
+                if key != "name" and value is not None
+            }
+            generated_name = _generate_name_from_llm(non_null_fields) or _fallback_generated_name(non_null_fields)
+            visual_payload = attrs.evolve(self, name=generated_name)
+
+        raw = _env.get_template(template).render(visual=visual_payload)
         return _RE_MARKDOWN_FRONTMATTER.sub("", raw)
 
 

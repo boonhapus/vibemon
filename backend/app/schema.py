@@ -49,15 +49,15 @@ class Affinity:
 class Vibemon:
     """Innate properties of a Vibemon with derived actual stats."""
 
-    name: str
-    description: str
-
     base_hp: types.BaseStat
     base_attack: types.BaseStat
     base_defense: types.BaseStat
     base_sp_attack: types.BaseStat
     base_sp_defense: types.BaseStat
     base_speed: types.BaseStat
+
+    name: str | None = None
+    description: str | None = None
 
     elements: list[types.VibemonTypeT] = attrs.field(factory=lambda: [types.VibemonTypeT.NORMAL])
     level: int = const.DEFAULT_LEVEL
