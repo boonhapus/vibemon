@@ -20,7 +20,6 @@ import sys
 from collections.abc import Coroutine
 from typing import Any, TypeVar
 
-import attrs
 import dotenv
 from rich import box
 from rich.console import Console, Group
@@ -45,12 +44,6 @@ def run_coro(coro: Coroutine[Any, Any, _T]) -> _T:
         return pool.submit(lambda: asyncio.run(coro)).result()
 
 
-def slug_from_condition(text: str, max_len: int = 24) -> str:
-    """Short ASCII slug for a default species name."""
-    s = re.sub(r"[^a-z0-9]+", "-", (text or "vibemon").lower())[:max_len].strip("-")
-    return s or "vibemon"
-
-
 def birth_context(latitude: float, longitude: float) -> schema.BirthContext:
     return schema.BirthContext(
         seed=secrets.token_hex(4),
@@ -70,14 +63,6 @@ async def fetch_two_affinities(ctx: schema.BirthContext) -> tuple[schema.Affinit
         return first, second
     finally:
         await provider.teardown()
-
-
-def vibemon_from_affinity(tag: str, affinity: schema.Affinity) -> schema.Vibemon:
-    """Build species; replace description so the panel shows clean copy (not from_affinities % suffixes)."""
-    name = f"{slug_from_condition(affinity.description)}-{tag.lower()}"
-    raw_description = affinity.description or ""
-    mon = schema.Vibemon.from_affinities(affinity, name=name, description="")
-    return attrs.evolve(mon, description=raw_description)
 
 
 def print_vibemon(mon: schema.Vibemon) -> None:
@@ -129,7 +114,7 @@ def main() -> None:
     dotenv.load_dotenv()
 
     if not os.environ.get("WEATHER_API_KEY"):
-        console.print("[red]Set WEATHER_API_KEY (WeatherAPI.com).[/red]", file=sys.stderr)
+        console.print("[red]Set WEATHER_API_KEY (WeatherAPI.com).[/red]")
         sys.exit(1)
 
     lat = float(os.environ.get("VIBEMON_LAT", "51.5074"))
@@ -140,8 +125,11 @@ def main() -> None:
 
     affinity_a, affinity_b = run_coro(fetch_two_affinities(ctx))
 
-    for tag, affinity in (("A", affinity_a), ("B", affinity_b)):
-        print_vibemon(vibemon_from_affinity(tag, affinity))
+    for tag, affinity in (("Birdmon", affinity_a), ("Goober", affinity_b)):
+        vibemon = schema.Vibemon.from_affinities(affinity, name=tag, description="")
+        print_vibemon(vibemon)
+        console.print()
+        console.print(vibemon.visual_dna.render())
         console.print()
 
 

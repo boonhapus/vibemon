@@ -13,7 +13,6 @@ type BaseStat = Annotated[int, "a positive integer within the range [5, 255]"]
 
 # ── Enums ────────────────────────────────────────────────────────────────────────────
 
-
 class VibemonTypeT(str, enum.Enum):
     """Elemental type classifications for Vibemon species."""
 
@@ -91,7 +90,6 @@ class ActionType(str, enum.Enum):
 
 # ── Stats ────────────────────────────────────────────────────────────────────────────
 
-
 @attrs.define
 class StatStages:
     """Stat stage modifiers accumulated during battle, ranging from -6 to +6."""
@@ -106,7 +104,6 @@ class StatStages:
 
 
 # ── Move ────────────────────────────────────────────────────────────────────────────
-
 
 @attrs.define
 class MoveEffect:
@@ -146,7 +143,6 @@ class Move:
 
 
 # ── Action ────────────────────────────────────────────────────────────────────────────
-
 
 @attrs.define
 class Action:
