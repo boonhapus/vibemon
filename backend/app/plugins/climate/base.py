@@ -8,6 +8,7 @@ from . import element_list, move_list, utils, weather
 
 class ClimateProvider(Base):
     """A data source which fetches the current weather."""
+
     __provider_name__ = "climate"
 
     def __init__(self):
@@ -22,9 +23,12 @@ class ClimateProvider(Base):
         d = r.json()
 
         affinity = schema.Affinity(
-            intensity=1.0,
-            description=d["current"]["condition"]["text"],
-            elements=element_list.infer_elements(d),
+            signature=schema.AffinitySignature(
+                provider_id=self.__provider_name__,
+                intensity=1.0,
+                elements=tuple(element_list.infer_elements(d)),
+                visual_notes=d["current"]["condition"]["text"],
+            ),
             moves=random.sample(move_list.MOVES, k=10),
         )
 
