@@ -76,24 +76,6 @@ DAMAGE_BASE_ADDEND = 2
 """Additive constant at end of damage formula."""
 
 
-# ── Stat Calculation Constants ────────────────────────────────────────────────────────────
-
-BASE_STAT_MIN = 5
-"""Default minimum base stat floor for Vibemon construction."""
-
-BASE_STAT_MAX = 255
-"""Default maximum base stat floor for Vibemon construction."""
-
-STAT_FORMULA_LEVEL_DENOM = 100
-"""Denominator in stat calculation formula."""
-
-STAT_FORMULA_ADDEND = 5
-"""Additive constant in stat formula."""
-
-HP_SCALING_OFFSET = 5
-"""Additional HP scaling for extra survivability."""
-
-
 # ── Level Scaling Constants ────────────────────────────────────────────────────────────
 
 DEFAULT_LEVEL = 1
