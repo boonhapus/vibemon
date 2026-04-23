@@ -243,7 +243,7 @@ def _build_vibemon_panel(
     return panel.Panel(body, border_style=STYLE_COLORS[color], box=box.ROUNDED, expand=True)
 
 
-def print_matchup(battle: schema.BattleState) -> None:
+def print_matchup(battle: schema.Battle) -> None:
     ta = battle.trainer_a
     tb = battle.trainer_b
     va = ta.active_vibemon
@@ -395,7 +395,7 @@ def main() -> None:
     print_matchup(engine.battle)
 
     turn_count = 0
-    while not engine.battle.is_over and turn_count < 10:
+    while not engine.battle.concluded and turn_count < 10:
         turn_count += 1
         events = engine.submit(action_a, action_b)
 

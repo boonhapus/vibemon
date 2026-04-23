@@ -49,7 +49,6 @@ def birth_context(latitude: float, longitude: float) -> schema.BirthContext:
         seed=secrets.token_hex(4),
         timestamp=dt.datetime.now(dt.UTC),
         geo_coords=(latitude, longitude),
-        weather_conditions=None,
         providers={},
     )
 
