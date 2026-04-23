@@ -1,0 +1,14 @@
+---
+name: vibemon-name
+description: Generates a Pokémon-style name for a Vibemon given its type elements.
+version: 1.0.0
+---
+Generate a name for a cute Pokémon-style monster that embodies {elements}.
+
+Rules:
+- One word or a hyphenated pair only
+- Invented/coined word (not a real English word)
+- Blend or fuse phonetic sounds from both themes — do not simply concatenate them
+- Should sound like it could be an official Pokémon name (punchy, memorable, 2–3 syllables)
+
+Respond with the name only. No explanation.
