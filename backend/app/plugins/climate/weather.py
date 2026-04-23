@@ -1,9 +1,9 @@
-from collections.abc import Awaitable
 from typing import Any
 import os
 
 import niquests
 
+from app.settings import settings
 from app.plugins import api_hooks
 from app import __project__
 
@@ -20,13 +20,13 @@ class WeatherAPIClient(niquests.AsyncSession):
     """
 
     def __init__(self, api_key: str = "", **session_opts) -> None:
-        if not (api_key := api_key or os.getenv("WEATHER_API_KEY", "")):
+        if not (api_key := api_key or settings.weather_api_key.get_secret_value()):
             raise TypeError("WeatherAPIClient missing 1 required positional argument: 'api_key'")
-        
+
         self._api_key = api_key
 
         super().__init__(
-            base_url=f"http://api.weatherapi.com/v1",
+            base_url="http://api.weatherapi.com/v1",
             hooks=api_hooks.LoggingHook(provider="climate.weather_api"),
             **session_opts,
         )
@@ -38,7 +38,7 @@ class WeatherAPIClient(niquests.AsyncSession):
                 "accept": "application/json",
             }
         )
-   
+
     async def request(self, method: str, url: str, *args: Any, **kwargs: Any) -> niquests.Response:  # type: ignore
         """Inject the API key."""
 
@@ -55,7 +55,7 @@ class WeatherAPIClient(niquests.AsyncSession):
         Find the current weather at a given coordinate.
 
         Further reading:
-          https://www.weatherapi.com/docs/#intro-request        
+          https://www.weatherapi.com/docs/#intro-request
         """
         u = "/current.json"
         p = {"q": f"{latitude},{longitude}"}

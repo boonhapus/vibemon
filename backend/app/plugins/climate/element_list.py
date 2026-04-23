@@ -5,7 +5,7 @@ from app import types
 
 def infer_elements(data: dict[str, Any]) -> list[types.VibemonTypeT]:
     """Map the current weather data to Vibemon elements using uniform variable lengths."""
-    
+
     # Standardizing all variable names to exactly 4 characters
     cond = data["current"]["condition"]["text"].lower()
     temp = data["current"]["temp_c"]

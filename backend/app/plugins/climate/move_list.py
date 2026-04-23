@@ -1,4 +1,15 @@
-from app import types
+from app import schema, types as _types
+
+
+class _TypesProxy:
+    Move = schema.Move
+    MoveEffect = schema.MoveEffect
+    VibemonTypeT = _types.VibemonTypeT
+    MoveCategoryT = _types.MoveCategoryT
+    StatusConditionT = _types.StatusConditionT
+
+
+types = _TypesProxy()
 
 
 MOVES = [

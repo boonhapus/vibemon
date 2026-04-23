@@ -1,5 +1,6 @@
 import random
 
+from app.genai.client import generate_vibemon_name
 from app.plugins.base import Base
 from app import schema
 
@@ -22,19 +23,26 @@ class ClimateProvider(Base):
         r = await self.client.current_weather(latitude=ctx.geo_coords[0], longitude=ctx.geo_coords[1])
         d = r.json()
 
+        dummy = schema.Identity(name="")
+        types = element_list.infer_elements(d)
+
+        name = await generate_vibemon_name(elements=types)
+
         affinity = schema.Affinity(
-            signature=schema.AffinitySignature(
-                provider_id=self.__provider_name__,
-                intensity=1.0,
-                elements=tuple(element_list.infer_elements(d)),
-                visual_notes=d["current"]["condition"]["text"],
+            identity=schema.Identity(
+                name=name,
+                elements=tuple(types),
+                base_hp=utils.jitter(dummy.base_hp),
+                base_attack=utils.jitter(dummy.base_attack),
+                base_defense=utils.jitter(dummy.base_defense),
+                base_sp_attack=utils.jitter(dummy.base_sp_attack),
+                base_sp_defense=utils.jitter(dummy.base_sp_defense),
+                base_speed=utils.jitter(dummy.base_speed),
             ),
+            visual_notes=d["current"]["condition"]["text"],
+            provider_id=self.__provider_name__,
+            intensity=1.0,
             moves=random.sample(move_list.MOVES, k=10),
         )
-
-        # APPLY JITTER SO IT'S NOT ALWAYS THE SAME STATS.
-        for base_stat in ("base_hp", "base_attack", "base_defense", "base_sp_attack", "base_sp_defense", "base_speed"):
-            new_value = utils.jitter(getattr(affinity, base_stat))
-            setattr(affinity, base_stat, new_value)
 
         return affinity
