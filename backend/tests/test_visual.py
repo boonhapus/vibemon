@@ -17,7 +17,7 @@ def _make_vibemon(
     base_speed: int = 80,
     elements: list[types.VibemonTypeT] | None = None,
     affinity_narrative: str = "",
-    birth_affinities: tuple[schema.AffinitySignature, ...] = (),
+    birth_affinities: tuple[schema.Identity, ...] = (),
 ) -> schema.Vibemon:
     return schema.Vibemon(
         name=name,
@@ -129,8 +129,8 @@ def test_trainer_steering_caps_length():
 
 
 def test_provider_echo_sorted_by_intensity():
-    sig_a = schema.AffinitySignature(provider_id="a", intensity=0.3, description="low")
-    sig_b = schema.AffinitySignature(provider_id="b", intensity=0.7, description="high")
+    sig_a = schema.Identity(provider_id="a", intensity=0.3, description="low")
+    sig_b = schema.Identity(provider_id="b", intensity=0.7, description="high")
     output = visual.provider_echo([sig_a, sig_b])
     assert output.index("high") < output.index("low")
 
@@ -151,7 +151,7 @@ def _make_affinity(
     elements: tuple[types.VibemonTypeT, ...] = (),
 ) -> schema.Affinity:
     return schema.Affinity(
-        signature=schema.AffinitySignature(
+        signature=schema.Identity(
             provider_id=provider_id,
             intensity=intensity,
             description=description,
@@ -168,7 +168,7 @@ def test_from_affinities_preserves_user_description():
     assert "Sunny" in mon.affinity_narrative
 
 
-def test_from_affinities_populates_birth_affinities():
+def test_from_affinities_populates_birth_identities():
     affinity = _make_affinity(provider_id="climate", description="Rain", intensity=0.8)
     mon = schema.Vibemon.from_affinities(affinity, name="Drip", description="")
     assert len(mon.birth_affinities) == 1
@@ -185,7 +185,7 @@ def test_from_affinities_rejects_empty():
 
 
 def test_visual_dna_render_keeps_style_and_panels_verbatim():
-    sig = schema.AffinitySignature(provider_id="climate", description="Light rain", intensity=1.0)
+    sig = schema.Identity(provider_id="climate", description="Light rain", intensity=1.0)
     mon = _make_vibemon(
         name="Drizzlemite",
         description="trainer said: keep it small",

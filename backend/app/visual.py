@@ -1,6 +1,6 @@
 """Visual DNA assembly for sprite prompts.
 
-Pure builder functions + a thin ``VisualDNA`` attrs object that knows how to render
+Pure builder functions + a thin ``VisualDNA`` model that knows how to render
 itself against ``vibemon-sprites.mdc``. Keep the template dumb: each prompt section
 is a single string built here.
 """
@@ -12,10 +12,10 @@ import os
 import pathlib
 import re
 
-import attrs
 import dotenv
 from google import genai
 import jinja2
+from pydantic import BaseModel, ConfigDict
 
 from app import schema, types
 
@@ -133,7 +133,7 @@ def trainer_steering(description: str, *, max_chars: int = 500) -> str:
     return normalized
 
 
-def provider_echo(signatures: Iterable["schema.AffinitySignature"]) -> str:
+def provider_echo(signatures: Iterable["schema.Identity"]) -> str:
     """Bulleted per-provider visual echo, sorted by intensity descending."""
     ordered = sorted(signatures, key=lambda s: s.intensity, reverse=True)
 
@@ -200,17 +200,18 @@ def _generate_name_from_llm(payload: dict[str, str]) -> str | None:
 # ── VisualDNA ────────────────────────────────────────────────────────────────────────
 
 
-@attrs.frozen
-class VisualDNA:
+class VisualDNA(BaseModel):
     """Prompt payload for the sprite template.
 
     All fields are pre-rendered strings; the template only substitutes, never formats.
     """
 
+    model_config = ConfigDict(frozen=True, use_enum_values=False, extra="forbid")
+
     stat_signature: str
     """Describes the body type based on BST values."""
 
-    element_visuals: list[str] = attrs.field(factory=list)
+    element_visuals: str = ""
     """Describes visual effects and ornatery."""
 
     provider_echo: str
@@ -226,7 +227,7 @@ class VisualDNA:
     """User driven name for the Vibemon, fallback to LLM-generated."""
 
     @classmethod
-    def infer_from_vibemon(cls, vibemon: Vibemon) -> Self:
+    def infer_from_vibemon(cls, vibemon: "schema.Vibemon") -> Self:
         return cls()
 
     def render(self, template: str = DEFAULT_SPRITE_TEMPLATE) -> str:
@@ -234,12 +235,10 @@ class VisualDNA:
 
         if not self.name:
             non_null_fields = {
-                key: str(value)
-                for key, value in attrs.asdict(self).items()
-                if key != "name" and value is not None
+                key: str(value) for key, value in self.model_dump().items() if key != "name" and value is not None
             }
             generated_name = _generate_name_from_llm(non_null_fields) or _fallback_generated_name(non_null_fields)
-            visual_payload = attrs.evolve(self, name=generated_name)
+            visual_payload = self.model_copy(update={"name": generated_name})
 
         raw = _env.get_template(template).render(visual=visual_payload)
         return _RE_MARKDOWN_FRONTMATTER.sub("", raw)
