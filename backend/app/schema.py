@@ -3,127 +3,202 @@ import datetime as dt
 import math
 import random
 import itertools as it
+import uuid
 
-import attrs
-import cattrs
+import pydantic
+from pydantic import BaseModel, ConfigDict, model_validator
 
-from app import const, types
+from app.balance.formulas import base_stat_scaling
+from app import const, types, validators
 
 
-@attrs.define
-class BirthContext:
+# ── INTERNALS ─────────────────────────────────────────────────────────────────────────
+
+class _VibemonBase(BaseModel):
+    """Base configuration for all models."""
+
+    model_config = ConfigDict(
+        extra="forbid",
+        frozen=True,
+    )
+
+
+# ── SEED ──────────────────────────────────────────────────────────────────────────────
+
+class BirthContext(_VibemonBase):
     """Represents the context in which a Vibemon is being created under."""
 
-    seed: str
     timestamp: dt.datetime
     geo_coords: tuple[float, float]
-    weather_conditions: Any
     providers: dict[str, Affinity]
 
 
-@attrs.frozen
-class AffinitySignature:
-    """Identity + narrative for an Affinity that survives merge onto a Vibemon."""
+# ── IDENTITY ──────────────────────────────────────────────────────────────────────────
 
-    provider_id: str
-    intensity: float = 1.0
+class Trainer(_VibemonBase):
+    """A player in the Vibemon universe."""
+
+    id: types.TrainerIdT
+    username: str
+    team: list[BattleVibemon] = pydantic.Field(default_factory=list)
+
+
+# ── IDENTITY ──────────────────────────────────────────────────────────────────────────
+
+class Identity(_VibemonBase):
+    """Represents the core, immutable personality of a Vibemon."""
+
+    name: str
+    """The name of the Vibemon's identity."""
+
     visual_notes: str | None = None
+    """Supplied by the Trainer themselves."""
+
     elements: tuple[types.VibemonTypeT, ...] = ()
-
-
-@attrs.define
-class Affinity:
-    """A data provider's contribution to a Vibemon's nature."""
-
-    signature: AffinitySignature
     base_hp: int = 120
     base_attack: int = 60
     base_defense: int = 60
     base_sp_attack: int = 60
     base_sp_defense: int = 60
     base_speed: int = 60
-    moves: list[types.Move] = attrs.field(factory=list)
 
 
-@attrs.define
-class Vibemon:
+class Affinity(_VibemonBase):
+    """Represents the nature of a Vibemon, steered by the source provider.."""
+
+    identity: Identity
+    """Represents the core, immutable personality of a Vibemon."""
+
+    visual_notes: str | None = None
+    """Supplied by a data provider."""
+
+    provider_id: str
+    """The source of steering."""
+
+    intensity: float = 1.0
+    """The mangitude of the steering relative to other providers."""
+
+    moves: list[Move]
+
+
+# ── MOVES ─────────────────────────────────────────────────────────────────────────────
+
+class Move(_VibemonBase):
+    """A move that a Vibemon can learn and use in battle."""
+
+    name: str
+    """The move's name."""
+
+    flavor_text: str
+    """The move's description, may include visual notes."""
+
+    type: types.VibemonTypeT
+    category: types.MoveCategoryT
+    power: int | None = None
+    accuracy: float | None = 1.0  # NULL = Gauranteed hit.
+    pp: int = 10
+    effect: MoveEffect | None = None
+    level_requirement: int = 1
+
+
+class MoveEffect(_VibemonBase):
+    """Secondary effects that may occur when a move is used."""
+
+    status_inflict: types.StatusConditionT | None = None
+    stat_changes: dict[types.BaseStatNameT, int] = pydantic.Field(default_factory=dict)
+    target_self: bool = False
+    chance: float = 1.0
+
+
+# ── PERSONALITY ───────────────────────────────────────────────────────────────────────
+
+class Vibemon(_VibemonBase):
     """Innate properties of a Vibemon with derived actual stats."""
 
-    base_hp: types.BaseStat
-    base_attack: types.BaseStat
-    base_defense: types.BaseStat
-    base_sp_attack: types.BaseStat
-    base_sp_defense: types.BaseStat
-    base_speed: types.BaseStat
+    nickname: str | None = None
+    """The name given to the Vibemon by the Trainer."""
 
-    name: str | None = None
-    description: str | None = None
+    affinity: Affinity
+    """Represents the nature of a Vibemon, steered by the source provider.."""
 
-    elements: list[types.VibemonTypeT] = attrs.field(factory=lambda: [types.VibemonTypeT.NORMAL])
     level: int = const.DEFAULT_LEVEL
-    moves: list[types.Move] = attrs.field(factory=list)
+    """The Vibemon's current level."""
 
-    birth_affinities: tuple[AffinitySignature, ...] = ()
-    """Immutable per-provider signatures captured at merge time. Drives visual DNA."""
+    birth_affinities: tuple[Affinity, ...] = ()
+    """Immutable per-provider identities captured at merge time. Drives visual DNA."""
 
     @classmethod
-    def from_affinities(cls, *affinities: Affinity, name: str, description: str) -> Self:
+    def merge_affinities(cls, *affinities: Affinity, nickname: str, description: str) -> Self:
         """Create a Vibemon from a number of affinities."""
         if not affinities:
             raise ValueError("from_affinities requires at least one Affinity")
 
-        total_intensity = sum(a.signature.intensity for a in affinities)
-
-        elements: list[types.VibemonTypeT] = []
-        moves: list[types.Move] = []
-
-        base_stats = {
-            "base_hp": 0,
-            "base_attack": 0,
-            "base_defense": 0,
-            "base_sp_attack": 0,
-            "base_sp_defense": 0,
-            "base_speed": 0,
-        }
-
-        for affinity in sorted(affinities, key=lambda a: a.signature.intensity, reverse=True):
-            signature = affinity.signature
-            weighted_average = signature.intensity / total_intensity
-            n_elements = min(2, len(signature.elements))
-            n_moves = min(2, len(affinity.moves))
-
-            if signature.elements and (e := random.sample(signature.elements, k=random.randint(0, n_elements))):
-                elements = list({*elements, *e})[:2]
-
-            if affinity.moves and (m := random.sample(affinity.moves, k=random.randint(0, n_moves))):
-                moves = [*moves, *m][:4]
-
-            for stat in base_stats:
-                base_stats[stat] += math.floor(getattr(affinity, stat) * weighted_average)
-
-        if not elements:
-            elements = [types.VibemonTypeT.NORMAL]
-
-        while len(moves) < const.STARTING_MOVE_COUNT:
-            mpool = list(it.chain.from_iterable(a.moves for a in affinities))
-            addtl = random.sample(mpool, k=const.STARTING_MOVE_COUNT - len(moves))
-            moves = list({*moves, *addtl})
-
-        return cls(
-            name=name,
-            description=description,
-            elements=elements,
-            **base_stats,
-            level=1,
-            moves=moves,
-            birth_affinities=tuple(a.signature for a in affinities),
+        stat_keys = (
+            "base_hp",
+            "base_attack",
+            "base_defense",
+            "base_sp_attack",
+            "base_sp_defense",
+            "base_speed",
         )
 
+        name  = ""
+        total = 0
+        stats = {k: 0 for k in stat_keys}
+        notes = []
+        pop_e: list[tuple[types.VibemonTypeT, int]] = []
+        pop_m: list[tuple[Move, int]] = []
+
+        for idx, affinity in enumerate(sorted(affinities, key=lambda a: a.intensity, reverse=True)):
+            weight = int(affinity.intensity * 100)
+            total += weight
+
+            for k in stat_keys:
+                stats[k] += weight * math.floor(getattr(affinity.identity, k))
+
+            pop_e.extend((e, weight) for e in affinity.identity.elements)
+            pop_m.extend((m, weight) for m in affinity.moves)
+
+            if idx == 0:
+                name = affinity.identity.name
+
+            if affinity.visual_notes:
+                notes.append(f"{affinity.visual_notes} ({weight}%)")
+        
+        stats_merged = {k: math.floor(stats[k] / total) for k in stat_keys}
+        elements = random.sample([e for (e, _) in pop_e], k=random.randint(1, 2), counts=[i for (_, i) in pop_e])
+        moves    = random.sample([e for (e, _) in pop_m], k=random.randint(2, 3), counts=[i for (_, i) in pop_m])
+
+        merged_affinity = Affinity(
+            identity=Identity(
+                name=name,
+                visual_notes=description,
+                elements=tuple(set(elements)),
+                **stats_merged,
+            ),
+            visual_notes=" ".join(notes),
+            provider_id="merged",
+            intensity=1,
+            moves=moves,
+        )
+
+        return cls(
+            nickname=nickname,
+            affinity=merged_affinity,
+            level=1,
+            birth_affinities=affinities,
+        )
+    
     @property
-    def visual_dna(self) -> VisualDNA:
+    def name(self) -> str:
+        """The nickname or identity name of a Vibemon."""
+        return self.nickname or self.affinity.identity.name
+
+    @property
+    def aesthetic(self) -> Any:
         """Build a prompt-ready VisualDNA snapshot from this Vibemon's state."""
         # Local import to avoid a module-level cycle: ``visual`` imports ``schema``
-        # for the Vibemon/AffinitySignature types it consumes.
+        # for the Vibemon/Identity types it consumes.
         from app import visual
 
         return visual.build_visual_dna(self)
@@ -137,26 +212,13 @@ class Vibemon:
         representing the species' overall power tier.
         """
         return (
-            self.base_hp
-            + self.base_attack
-            + self.base_defense
-            + self.base_sp_attack
-            + self.base_sp_defense
-            + self.base_speed
+            self.affinity.identity.base_hp
+            + self.affinity.identity.base_attack
+            + self.affinity.identity.base_defense
+            + self.affinity.identity.base_sp_attack
+            + self.affinity.identity.base_sp_defense
+            + self.affinity.identity.base_speed
         )
-
-    # ── Derived Properties (The "Actual" Stats) ───────────────────────────────────────
-
-    def _calculate_core(self, base_value: int) -> int:
-        """
-        Computes the linear scaling core for a stat.
-
-        Formula: (2 * Base * Level / 100) + 5
-        At Level 100: (2 * Base) + 5 = exact base + 5
-        At Level 50: Half of species potential + 5
-        +5 constant acts as true floor.
-        """
-        return math.floor((2 * base_value * self.level) / const.STAT_FORMULA_LEVEL_DENOM) + const.STAT_FORMULA_ADDEND
 
     @property
     def hp(self) -> int:
@@ -165,72 +227,108 @@ class Vibemon:
 
         HP adds level scaling for extra survivability at higher levels.
         """
-        return self._calculate_core(self.base_hp) + self.level + const.HP_SCALING_OFFSET
+        return base_stat_scaling(self.affinity.identity.base_hp, level=self.level, true_floor=10)
 
     @property
     def attack(self) -> int:
         """Calculates the actual Attack stat."""
-        return self._calculate_core(self.base_attack)
+        return base_stat_scaling(self.affinity.identity.base_attack, level=self.level)
 
     @property
     def defense(self) -> int:
         """Calculates the actual Defense stat."""
-        return self._calculate_core(self.base_defense)
+        return base_stat_scaling(self.affinity.identity.base_defense, level=self.level)
 
     @property
     def sp_attack(self) -> int:
         """Calculates the actual Special Attack stat."""
-        return self._calculate_core(self.base_sp_attack)
+        return base_stat_scaling(self.affinity.identity.base_sp_attack, level=self.level)
 
     @property
     def sp_defense(self) -> int:
         """Calculates the actual Special Defense stat."""
-        return self._calculate_core(self.base_sp_defense)
+        return base_stat_scaling(self.affinity.identity.base_sp_defense, level=self.level)
 
     @property
     def speed(self) -> int:
         """Calculates the actual Speed stat."""
-        return self._calculate_core(self.base_speed)
+        return base_stat_scaling(self.affinity.identity.base_speed, level=self.level)
 
 
-@attrs.define
-class BattleVibemon(Vibemon):
-    """Transient battle state layered on top of a Vibemon's innate properties.
+# ── BATTLE ────────────────────────────────────────────────────────────────────────────
 
-    Separating mutable combat state (HP, status, stat stages) from the immutable
-    species definition lets the engine freely mutate mid-battle values without
-    risk of corrupting the underlying Vibemon data.
-    """
+class StatStages(_VibemonBase):
+    """Stat stage modifiers accumulated during battle, ranging from -6 to +6."""
 
-    current_hp: int = attrs.field(default=attrs.Factory(lambda self: self.hp, takes_self=True))
-    status: types.StatusConditionT = types.StatusConditionT.NONE
-    stat_stages: types.StatStages = attrs.field(factory=types.StatStages)
-    crit_stage: int = 0
+    attack: int = 0
+    defense: int = 0
+    sp_attack: int = 0
+    sp_defense: int = 0
+    speed: int = 0
+    accuracy: int = 0
+    evasion: int = 0
 
-    is_flinched: bool = False
-    is_confused: bool = False
-    confusion_turns: int = 0
-    bad_poison_counter: int = 0
-    sleep_turns_remaining: int = 0
-    is_seeded: bool = False
-    taunt_turns: int = 0
-    bound_turns: int = 0
+
+class BattleAction(_VibemonBase):
+    """An action selected by a trainer to perform during their turn."""
+
+    trainer_name: types.TrainerIdT
+    action_type: types.ActionTypeT
+    value: str
+
+
+class TurnEvent(_VibemonBase):
+    """Represents the result of an action taken of a Vibemon battle."""
+
+    actor: Annotated[str | None, "Vibemon.name"]
+    description: str | None = None
+    hp_delta: int | None = None
+    status_change: types.StatusConditionT | None = None
+    stat_stage_changes: dict[str, int] = pydantic.Field(default_factory=dict)
+    move_used: str | None = None
+    missed: bool = False
+    fainted: bool = False
+
+
+class TurnRecord(_VibemonBase):
+    """Represents a specific turn of a Vibemon battle."""
+    turn_number: int
+    actions: list[BattleAction] = pydantic.Field(default_factory=list)
+    events: list[TurnEvent] = pydantic.Field(default_factory=list)
+
+
+class Battle(_VibemonBase):
+    """Represents the state of a Vibemon battle."""
+    trainer_a: Trainer
+    trainer_b: Trainer
+    turn_number: int = 1
+    turn_history: list[TurnRecord] = pydantic.Field(default_factory=list)
+    winner: Trainer | None = None
 
     @property
-    def max_hp(self) -> int:
-        """Delegates to the inherited HP formula so battle code has a stable reference."""
-        return self.hp
+    def concluded(self) -> bool:
+        """Determines if the battle is over."""
+        return self.winner is not None
 
-    @property
-    def is_fainted(self) -> bool:
-        return self.current_hp <= 0
+    def to_json(self) -> dict[str, Any]:
+        """Serialize the battle."""
+        return self.model_dump(mode="json")
 
 
-@attrs.define
-class Trainer:
-    id: types.TrainerId
-    name: str
-    team: list[BattleVibemon] = attrs.field(factory=list)
+class BattleMove(Move, frozen=False):
+    """ """
+    pp_current: int = -1
+    priority: int = 0
+    crit_ratio: int = 0
+
+    @model_validator(mode='after')
+    def _set_current_pp_if_not_default(self) -> BattleMove:
+        if self.pp_current == -1:
+            self.pp_current = self.pp
+
+        return self
+
+class BattleTrainer(Trainer):
     active_index: int = 0
 
     @property
@@ -242,37 +340,38 @@ class Trainer:
         return any(not p.is_fainted for p in self.team)
 
 
-@attrs.define
-class TurnEvent:
-    actor: Annotated[str, "Vibemon.name"]
-    description: str | None = None
-    hp_delta: int | None = None
-    status_change: types.StatusConditionT | None = None
-    stat_stage_changes: dict[str, int] = attrs.field(factory=dict)
-    move_used: str | None = None
-    missed: bool = False
-    fainted: bool = False
+class BattleVibemon(Vibemon, frozen=False):
+    """Transient battle state layered on top of a Vibemon's innate properties.
 
+    Separating mutable combat state (HP, status, stat stages) from the immutable
+    species definition lets the engine freely mutate mid-battle values without
+    risk of corrupting the underlying Vibemon data.
+    """
 
-@attrs.define
-class TurnRecord:
-    turn_number: int
-    actions: list[types.Action] = attrs.field(factory=list)
-    events: list[TurnEvent] = attrs.field(factory=list)
+    current_hp: int = 0
+    status: types.StatusConditionT = types.StatusConditionT.NONE
+    stat_stages: StatStages = pydantic.Field(default_factory=StatStages)
+    crit_stage: int = 0
 
+    is_flinched: bool = False
+    is_confused: bool = False
+    confusion_turns: int = 0
+    bad_poison_counter: int = 0
+    sleep_turns_remaining: int = 0
+    is_seeded: bool = False
+    taunt_turns: int = 0
+    bound_turns: int = 0
 
-@attrs.define
-class BattleState:
-    trainer_a: Trainer
-    trainer_b: Trainer
-    turn_number: int = 1
-    turn_history: list[TurnRecord] = attrs.field(factory=list)
-    winner: Trainer | None = None
+    @model_validator(mode="before")
+    @classmethod
+    def _apply_current_hp_default(cls, data: Any) -> Any:
+        return validators.infer_current_hp_input_t(data)
 
     @property
-    def is_over(self) -> bool:
-        return self.winner is not None
+    def max_hp(self) -> int:
+        """Delegates to the inherited HP formula so battle code has a stable reference."""
+        return self.hp
 
-    def to_json(self) -> dict[str, Any]:
-        """Serialize the battle."""
-        return cattrs.unstructure(self)
+    @property
+    def is_fainted(self) -> bool:
+        return self.current_hp <= 0

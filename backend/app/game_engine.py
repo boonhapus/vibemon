@@ -5,11 +5,12 @@ import abc
 import enum
 import random
 
-import attrs
+import pydantic
+from pydantic import BaseModel
 
 from app import const, element_chart, schema, types
 
-type StackEntry = tuple[schema.BattleVibemon, schema.BattleVibemon, types.Action]
+type StackEntry = tuple[schema.BattleVibemon, schema.BattleVibemon, schema.Action]
 
 
 class Phase(enum.Enum):
@@ -25,7 +26,7 @@ class Phase(enum.Enum):
 class BattleStateMachine:
     """State machine owning transient execution state."""
 
-    def __init__(self, battle: schema.BattleState) -> None:
+    def __init__(self, battle: schema.Battle) -> None:
         self.battle = battle
         self._events: list[schema.TurnEvent] = []
         self._phase: Phase = Phase.ACTION_SORTING
@@ -111,7 +112,7 @@ class PreActionChecksState(PhaseState):
             return
 
         attacker, defender, action = entry
-        if action.action_type != types.ActionType.MOVE or not attacker.moves:
+        if action.action_type != types.ActionTypeT.MOVE or not attacker.moves:
             self.machine.advance_stack()
             self.machine.transition(Phase.PRE_ACTION_CHECKS)
             return
@@ -137,7 +138,7 @@ class ExecuteStackState(PhaseState):
 
         attacker, defender, action = entry
 
-        if action.action_type == types.ActionType.MOVE and attacker.moves:
+        if action.action_type == types.ActionTypeT.MOVE and attacker.moves:
             move = find_move(attacker, action.value)
             move.pp_current -= 1
             events = execute_attack(attacker, defender, move)
@@ -255,7 +256,7 @@ def _is_crit(crit_stage: int, move_crit_ratio: int) -> bool:
     return random.random() < const.CRIT_THRESHOLDS[effective_stage]
 
 
-def calc_damage(attacker: schema.BattleVibemon, defender: schema.BattleVibemon, move: types.Move) -> tuple[int, bool]:
+def calc_damage(attacker: schema.BattleVibemon, defender: schema.BattleVibemon, move: schema.Move) -> tuple[int, bool]:
     """Calculate damage and determine if a critical hit occurred.
 
     Critical hits multiply final damage by 1.5x, but their real impact is
@@ -303,30 +304,29 @@ def calc_damage(attacker: schema.BattleVibemon, defender: schema.BattleVibemon, 
     return max(1, damage), is_crit
 
 
-@attrs.define
-class PreActionResult:
+class PreActionResult(BaseModel):
     """Result of a pre-action check determining if a vibemon can act."""
 
     blocked: bool
-    events: list[schema.TurnEvent] = attrs.field(factory=list)
+    events: list[schema.TurnEvent] = pydantic.Field(default_factory=list)
 
 
 def resolve_turn_order(
     a: schema.BattleVibemon,
     b: schema.BattleVibemon,
-    action_a: types.Action,
-    action_b: types.Action,
+    action_a: schema.Action,
+    action_b: schema.Action,
 ) -> list[StackEntry]:
     """Return (attacker, defender, action) tuples in resolution order.
 
     Priority brackets (+5 to -7) from spec. Higher priority moves first.
     Speed tie resolved via random bit.
     """
-    if action_a.action_type == types.ActionType.MOVE:
+    if action_a.action_type == types.ActionTypeT.MOVE:
         move_a = find_move(a, action_a.value)
     else:
         move_a = None
-    if action_b.action_type == types.ActionType.MOVE:
+    if action_b.action_type == types.ActionTypeT.MOVE:
         move_b = find_move(b, action_b.value)
     else:
         move_b = None
@@ -345,7 +345,7 @@ def resolve_turn_order(
     return [(b, a, action_b), (a, b, action_a)]
 
 
-def find_move(vibemon: schema.BattleVibemon, move_name: str) -> types.Move:
+def find_move(vibemon: schema.BattleVibemon, move_name: str) -> schema.Move:
     """Look up a move by name on a vibemon, raising ValueError if not found."""
     for m in vibemon.moves:
         if m.name == move_name:
@@ -414,7 +414,7 @@ def check_pre_action(v: schema.BattleVibemon) -> PreActionResult:
 
 
 def apply_move_effects(
-    attacker: schema.BattleVibemon, defender: schema.BattleVibemon, move: types.Move
+    attacker: schema.BattleVibemon, defender: schema.BattleVibemon, move: schema.Move
 ) -> list[schema.TurnEvent]:
     """Roll for and apply secondary move effects (status infliction, stat changes)."""
     events: list[schema.TurnEvent] = []
@@ -448,7 +448,7 @@ def apply_move_effects(
 
 
 def execute_attack(
-    attacker: schema.BattleVibemon, defender: schema.BattleVibemon, move: types.Move
+    attacker: schema.BattleVibemon, defender: schema.BattleVibemon, move: schema.Move
 ) -> list[schema.TurnEvent]:
     """Accuracy roll with modifiers per spec, then damage/effects."""
     if move.accuracy is not None:
@@ -493,7 +493,7 @@ def execute_attack(
     return events
 
 
-def determine_winner(battle: schema.BattleState) -> schema.Trainer | None:
+def determine_winner(battle: schema.Battle) -> schema.Trainer | None:
     """Return winning trainer if opponent's active vibemon fainted, else None."""
     if battle.trainer_a.active_vibemon.is_fainted:
         return battle.trainer_b
@@ -545,14 +545,14 @@ class GameEngine:
     """Battle engine managing the turn-by-turn execution of a Pokémon-style battle."""
 
     def __init__(self, trainer_a: schema.Trainer, trainer_b: schema.Trainer) -> None:
-        self.battle = schema.BattleState(
+        self.battle = schema.Battle(
             trainer_a=trainer_a,
             trainer_b=trainer_b,
             turn_number=1,
             turn_history=[],
         )
 
-    def submit(self, action_a: types.Action, action_b: types.Action) -> list[schema.TurnEvent]:
+    def submit(self, action_a: schema.Action, action_b: schema.Action) -> list[schema.TurnEvent]:
         """Process a turn with the given actions and return resulting events."""
         self.battle.turn_history.append(
             schema.TurnRecord(
@@ -564,7 +564,7 @@ class GameEngine:
 
         machine = BattleStateMachine(self.battle)
 
-        while not self.battle.is_over:
+        while not self.battle.concluded:
             state_class = PHASE_STATE_MAP[machine.current_phase]
             state = state_class(machine)
             state.execute()

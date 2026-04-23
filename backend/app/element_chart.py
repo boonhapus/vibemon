@@ -122,9 +122,7 @@ ELEMENT_CHART: dict[tuple[types.VibemonTypeT, types.VibemonTypeT], float] = {
 }
 
 
-def get_element_effectiveness(
-    attack_type: types.VibemonTypeT, defender_elements: list[types.VibemonTypeT]
-) -> float:
+def get_element_effectiveness(attack_type: types.VibemonTypeT, defender_elements: list[types.VibemonTypeT]) -> float:
     """
     Multiply the attacker's type modifier against each of the defender's elements.
 
