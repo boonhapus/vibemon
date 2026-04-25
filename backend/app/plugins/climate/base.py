@@ -23,26 +23,30 @@ class ClimateProvider(Base):
         r = await self.client.current_weather(latitude=ctx.geo_coords[0], longitude=ctx.geo_coords[1])
         d = r.json()
 
-        dummy = schema.Identity(name="")
-        types = element_list.infer_elements(d)
+        dummy = schema.Identity.null_identity()
 
-        name = await generate_vibemon_name(elements=types)
+        ident = schema.Identity(
+            name="UNNAMED",
+            elements=element_list.infer_elements(d),
+            base_hp=utils.jitter(dummy.base_hp),
+            base_attack=utils.jitter(dummy.base_attack),
+            base_defense=utils.jitter(dummy.base_defense),
+            base_sp_attack=utils.jitter(dummy.base_sp_attack),
+            base_sp_defense=utils.jitter(dummy.base_sp_defense),
+            base_speed=utils.jitter(dummy.base_speed),
+        )
+
+        notes = d["current"]["condition"]["text"]
+        moves = random.sample(move_list.MOVES, k=10)
+
+        name = await generate_vibemon_name(identity=ident, moves=moves, visual_notes=notes)
 
         affinity = schema.Affinity(
-            identity=schema.Identity(
-                name=name,
-                elements=tuple(types),
-                base_hp=utils.jitter(dummy.base_hp),
-                base_attack=utils.jitter(dummy.base_attack),
-                base_defense=utils.jitter(dummy.base_defense),
-                base_sp_attack=utils.jitter(dummy.base_sp_attack),
-                base_sp_defense=utils.jitter(dummy.base_sp_defense),
-                base_speed=utils.jitter(dummy.base_speed),
-            ),
-            visual_notes=d["current"]["condition"]["text"],
-            provider_id=self.__provider_name__,
+            identity=ident.model_copy(update={"name": name}),
+            visual_notes=notes,
             intensity=1.0,
-            moves=random.sample(move_list.MOVES, k=10),
+            provider_id=self.__provider_name__,
+            moves=moves,
         )
 
         return affinity

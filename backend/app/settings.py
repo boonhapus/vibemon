@@ -7,8 +7,9 @@ class Settings(pydantic_settings.BaseSettings):
     weather_api_key: pydantic.SecretStr
     google_api_key: pydantic.SecretStr
 
-    texts_ai_model: str = "gemini-flash-lite-latest"
-    image_ai_model: str = "gemini-3.1-flash-image-preview"
+    txt_ai_model: str = "gemini-flash-lite-latest"
+    # img_ai_model: str = "gemini-3.1-flash-image-preview"
+    img_ai_model: str = "gemini-2.5-flash-image"
 
     model_config = pydantic_settings.SettingsConfigDict(env_file=(".env", "../.env"), env_file_encoding="utf-8")
 

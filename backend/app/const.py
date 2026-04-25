@@ -1,4 +1,4 @@
-# ── Status Chance Constants ────────────────────────────────────────────────────────────
+# ── Status Chance Constants ───────────────────────────────────────────────────────────
 
 FREEZE_THAW_CHANCE = 0.2
 """Chance per turn for a frozen Pokémon to thaw. 20% in Gen VI+."""
@@ -10,7 +10,7 @@ CONFUSION_SELF_HIT_CHANCE = 0.33
 """Chance per turn for a confused Pokémon to hurt itself instead of acting."""
 
 
-# ── Status Damage Constants ────────────────────────────────────────────────────────────
+# ── Status Damage Constants ───────────────────────────────────────────────────────────
 
 BURN_DAMAGE_DIVISOR = 16
 """Burn deals 1/16 of max HP per turn."""
@@ -52,7 +52,7 @@ STAT_ACCURACY_DIVISOR = 3
 """Base for accuracy/evasion stat stage formulas. Multiplier = (3 + stage) / 3 when positive."""
 
 
-# ── Damage Formula Constants ────────────────────────────────────────────────────────────
+# ── Damage Formula Constants ──────────────────────────────────────────────────────────
 
 DAMAGE_RANDOM_MIN = 0.85
 """Minimum random damage multiplier."""
@@ -76,7 +76,7 @@ DAMAGE_BASE_ADDEND = 2
 """Additive constant at end of damage formula."""
 
 
-# ── Level Scaling Constants ────────────────────────────────────────────────────────────
+# ── Level Scaling Constants ───────────────────────────────────────────────────────────
 
 DEFAULT_LEVEL = 1
 """Default level for Vibemon when not specified."""
@@ -85,10 +85,16 @@ MAX_LEVEL = 100
 """Maximum level for Vibemon."""
 
 
-# ── Move Constants ────────────────────────────────────────────────────────────────
+# ── Move Constants ────────────────────────────────────────────────────────────────────
 
 PP_DEFAULT = 10
 """Default PP (Power Points) for a move."""
 
 STARTING_MOVE_COUNT = 2
 """The minimum number of moves a Vibemon will start off with."""
+
+
+# ── Miscellaneous ─────────────────────────────────────────────────────────────────────
+
+MYTHIC_ODDS = 4096
+"""A rare, alternative style that differs from its peer identities' appearance."""

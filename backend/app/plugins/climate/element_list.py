@@ -3,7 +3,7 @@ from typing import Any
 from app import types
 
 
-def infer_elements(data: dict[str, Any]) -> list[types.VibemonTypeT]:
+def infer_elements(data: dict[str, Any]) -> tuple[types.VibemonTypeT]:
     """Map the current weather data to Vibemon elements using uniform variable lengths."""
 
     # Standardizing all variable names to exactly 4 characters
@@ -47,4 +47,4 @@ def infer_elements(data: dict[str, Any]) -> list[types.VibemonTypeT]:
             if not elem:
                 elem.append(types.VibemonTypeT.NORMAL)
 
-    return list(set(elem))
+    return tuple(set(elem))

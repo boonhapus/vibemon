@@ -9,7 +9,7 @@ type BaseStatNameT = Literal["attack", "defense", "sp_attack", "sp_defense", "sp
 # ── Enums ────────────────────────────────────────────────────────────────────────────
 
 
-class VibemonTypeT(str, enum.Enum):
+class VibemonTypeT(enum.StrEnum):
     """Elemental type classifications for Vibemon species."""
 
     NORMAL = "normal"
@@ -32,7 +32,16 @@ class VibemonTypeT(str, enum.Enum):
     FAIRY = "fairy"
 
 
-class StatusConditionT(str, enum.Enum):
+class EvolutionStageT(enum.IntEnum):
+    """The evolution stages."""
+
+    BASE = 1
+    STAGE_1 = 2
+    STAGE_2 = 3
+    LEGENDARY = 10
+
+
+class StatusConditionT(enum.StrEnum):
     """Status conditions that can affect a Vibemon during battle."""
 
     NONE = "none"
@@ -45,7 +54,7 @@ class StatusConditionT(str, enum.Enum):
     FAINTED = "fainted"
 
 
-class MoveCategoryT(str, enum.Enum):
+class MoveCategoryT(enum.StrEnum):
     """Categorization of moves based on their battle effect."""
 
     PHYSICAL = "physical"
@@ -53,7 +62,7 @@ class MoveCategoryT(str, enum.Enum):
     STATUS = "status"
 
 
-class MoveTargetT(str, enum.Enum):
+class MoveTargetT(enum.StrEnum):
     """Valid targets for a move during battle."""
 
     SELF = "self"
@@ -62,7 +71,7 @@ class MoveTargetT(str, enum.Enum):
     ALL_ADJACENT = "all_adjacent"
 
 
-class WeatherT(str, enum.Enum):
+class WeatherT(enum.StrEnum):
     """Battle weather conditions that affect certain Vibemon types."""
 
     CLEAR = "clear"
@@ -75,7 +84,7 @@ class WeatherT(str, enum.Enum):
     STRONG_WINDS = "strong_winds"
 
 
-class ActionTypeT(str, enum.Enum):
+class ActionTypeT(enum.StrEnum):
     """Actions a trainer can take during their turn."""
 
     MOVE = "move"
