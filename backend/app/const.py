@@ -78,9 +78,6 @@ DAMAGE_BASE_ADDEND = 2
 
 # ── Level Scaling Constants ───────────────────────────────────────────────────────────
 
-DEFAULT_LEVEL = 1
-"""Default level for Vibemon when not specified."""
-
 MAX_LEVEL = 100
 """Maximum level for Vibemon."""
 

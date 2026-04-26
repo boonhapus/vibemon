@@ -1,3 +1,4 @@
+from typing import TYPE_CHECKING
 import re
 
 from pydantic_ai.providers.google import GoogleProvider
@@ -7,7 +8,9 @@ import structlog
 
 from app.settings import settings
 from app.genai import utils
-from app import schema
+
+if TYPE_CHECKING:
+    from app import schema
 
 _LOGGER = structlog.get_logger(__name__)
 
