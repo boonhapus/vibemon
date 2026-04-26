@@ -46,5 +46,8 @@ def infer_elements(data: dict[str, Any]) -> tuple[types.VibemonTypeT]:
         case (1, c) if "clear" in c or "sunny" in c or "partly cloudy" in c:
             if not elem:
                 elem.append(types.VibemonTypeT.NORMAL)
+    
+    if not elem:
+        elem.append(types.VibemonTypeT.NORMAL)
 
     return tuple(set(elem))
