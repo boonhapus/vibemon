@@ -43,15 +43,15 @@ async def main() -> None:
     lat = float(os.environ.get("VIBEMON_LAT", "35.658034"))
     lon = float(os.environ.get("VIBEMON_LON", "139.701636"))
 
+    rich_console.print(f"[dim]Coords[/] {lat:.4f}, {lon:.4f}\n")
+
     ctx = schema.BirthContext(
         timestamp=dt.datetime.now(tz=dt.timezone.utc),
         geo_coords=(lat, lon),
         providers=[ClimateProvider()],
     )
 
-    affinities = ctx.regenerate()
-
-    rich_console.print(f"[dim]Coords[/] {lat:.4f}, {lon:.4f}\n")
+    affinities = await ctx.regenerate()
 
     vibemon = await schema.Vibemon.birth(*affinities, core_identity="Has a sunny disposition")
 

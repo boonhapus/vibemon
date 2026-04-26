@@ -21,8 +21,8 @@ Do not switch these libraries unless a human says so in a ticket or doc.
 
 **Data classes and parsing**
 
-- Use: attrs and cattrs
-- Do not use: Pydantic or stdlib dataclasses for the same job (for new code)
+- Use: Pydantic
+- Do not use: cattrs/attrs or stdlib dataclasses for the same job (for new code)
 
 **Logging**
 
@@ -78,5 +78,5 @@ Copy the same style as other files in the repo.
 
 ## If you are unsure
 
-- Editing an old file: match that file’s import style.
+- Editing an old file: match that file's import style.
 - New file: use the rules and conventions above.

@@ -186,7 +186,7 @@ class Affinity(_Static):
     moves: list[Move]
 
     @classmethod
-    def affinities(cls, *affinities: Affinity, core_identity_description: str | None = None) -> Affinity:
+    def merge(cls, *affinities: Affinity, core_identity_description: str | None = None) -> Affinity:
         """Create an Affinity by merging a number of affinities."""
         stat_keys = (
             "base_hp",
@@ -323,8 +323,6 @@ class Vibemon(_Transient):
         instance._aesthetic = await Aesthetic.from_vibemon(instance)
 
         return instance
-
-    @classmethod
     
     @property
     def name(self) -> str:
