@@ -25,7 +25,7 @@ This file tells coding agents what the vibemon project uses and what to follow.
 **Python libraries (see also `python-conventions` skill)**
 
 - HTTP client: niquests
-- Data classes: attrs and cattrs
+- Data models and parsing: Pydantic
 - Logs: structlog
 
 More Python import rules: `.agents/SKILLS/python-conventions/SKILL.md`
