@@ -1,6 +1,9 @@
-from typing import Annotated, Literal
+from typing import Annotated, Literal, TypedDict, NotRequired
 import enum
 import uuid
+
+from PIL import Image
+
 
 type TrainerIdT = Annotated[uuid.UUID, "backend trainer identifier"]
 type BaseStatT = Annotated[int, "a clamped value between [5, 255]"]
@@ -91,3 +94,12 @@ class ActionTypeT(enum.StrEnum):
     SWITCH = "switch"
     ITEM = "item"
     RUN = "run"
+
+
+class SpriteLayout(TypedDict):
+    """The types of sprites that a Vibemon can be generated in."""
+
+    sheet: NotRequired[Image.Image]
+    perspective_player: Image.Image
+    perspective_opponent: Image.Image
+    showcase: Image.Image
