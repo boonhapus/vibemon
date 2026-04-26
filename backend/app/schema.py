@@ -101,6 +101,62 @@ class Identity(_Static):
             + self.base_speed
         )
 
+    @property
+    def battle_role(self) -> tuple[str, str]:
+        """
+        Determines the battle role based on stat distribution.
+
+        Returns a tuple of (role_name, description) classifying the Vibemon as:
+        - OFFENSIVE (Sweeper, Wallbreaker, Glass Cannon, Revenge Killer)
+        - DEFENSIVE (Wall, Tank, Staller)
+        - UTILITY (Pivot, Entry Hazard Lead, Cleric, Screen Setter, Suicide Lead)
+
+        Uses percentages to determine relative stat distribution.
+        """
+        offense_weight = self.base_attack + self.base_sp_attack + self.base_speed
+        defense_weight = self.base_hp + self.base_defense + self.base_sp_defense
+        speed_weight = self.base_speed
+
+        off_pct = offense_weight / self.bst
+        def_pct = defense_weight / self.bst
+        spd_pct = speed_weight / self.bst
+        ehp_pct = self.base_hp / self.bst
+
+        atk = self.base_attack
+        sp_atk = self.base_sp_attack
+        defense = self.base_defense
+        sp_def = self.base_sp_defense
+        speed = self.base_speed
+
+        is_fast = speed >= 80
+        is_slow = speed < 50
+        is_squishy = defense < 50 and sp_def < 50
+        is_tanky = defense >= 70 or sp_def >= 70
+        is_fast_breaker = is_fast and (atk >= 70 or sp_atk >= 70)
+        is_slow_breaker = is_slow and (atk >= 70 or sp_atk >= 70)
+
+        match (True):
+            case _ if def_pct > 0.5 and is_tanky and ehp_pct > 0.2:
+                return ("DEFENSIVE_WALL", "A resilient wall with high HP and defenses designed to absorb hits.")
+            case _ if def_pct > 0.4 and (atk >= 50 or sp_atk >= 50):
+                return ("DEFENSIVE_TANK", "A defensive tank that can absorb hits and fight back.")
+            case _ if def_pct > 0.45 and is_slow:
+                return ("DEFENSIVE_STALLER", "A slow but durable staller that outlasts opponents.")
+            case _ if off_pct > 0.55 and is_fast and is_squishy:
+                return ("OFFENSIVE_GLASS_CANNON", "Extreme speed and power but fragile — must OHKO or faint.")
+            case _ if off_pct > 0.55 and is_fast_breaker:
+                return ("OFFENSIVE_SWEEPER", "Fast and powerful — designed to sweep weakened teams.")
+            case _ if off_pct > 0.55 and is_slow_breaker:
+                return ("OFFENSIVE_WALLBREAKER", "Slow but devastating — breaks through defensive Pokemon.")
+            case _ if off_pct > 0.5 and spd_pct > 0.25:
+                return ("OFFENSIVE_REVENGE_KILLER", "Fast pivot designed to pick off weakened opponents.")
+            case _ if spd_pct > 0.3 and def_pct > 0.35:
+                return ("UTILITY_PIVOT", "A balanced pivot that switches out to maintain momentum.")
+            case _ if off_pct < 0.45 and def_pct < 0.45:
+                return ("UTILITY_CLERIC", "A support-focused role that heals and clears status.")
+            case _:
+                return ("UTILITY", "A balanced utility role that supports the team.")
+
 
 class Affinity(_Static):
     """Represents the nature of a Vibemon, steered by the source provider.."""
@@ -136,6 +192,15 @@ class Aesthetic(_Static):
 
 # ── MOVES ─────────────────────────────────────────────────────────────────────────────
 
+class MoveEffect(_Static):
+    """Secondary effects that may occur when a move is used."""
+
+    status_inflict: types.StatusConditionT | None = None
+    stat_changes: dict[types.BaseStatNameT, int] = pydantic.Field(default_factory=dict)
+    target_self: bool = False
+    chance: float = 1.0
+
+
 class Move(_Static):
     """A move that a Vibemon can learn and use in battle."""
 
@@ -153,15 +218,6 @@ class Move(_Static):
     priority: Annotated[int, validators.ensure_between_abs_7] = 0
     effect: MoveEffect | None = None
     level_requirement: int = 1
-
-
-class MoveEffect(_Static):
-    """Secondary effects that may occur when a move is used."""
-
-    status_inflict: types.StatusConditionT | None = None
-    stat_changes: dict[types.BaseStatNameT, int] = pydantic.Field(default_factory=dict)
-    target_self: bool = False
-    chance: float = 1.0
 
 
 # ── PERSONALITY ───────────────────────────────────────────────────────────────────────
@@ -221,14 +277,14 @@ class Vibemon(_Transient):
         
         stats_merged = {k: math.floor(stats[k] / total) for k in stat_keys}
         elements = random.sample([e for (e, _) in pop_e], k=random.randint(1, 2), counts=[i for (_, i) in pop_e])
-        moves    = random.sample([e for (e, _) in pop_m], k=random.randint(2, 3), counts=[i for (_, i) in pop_m])
+        moves    = random.sample([e for (e, _) in pop_m], k=random.randint(2, 3), counts=[i for (_, i) in pop_m]))
 
         merged_affinity = Affinity(
             identity=Identity(
                 name=name,
                 visual_notes=description,
                 elements=tuple(set(elements)),
-                **stats_merged,  # type: ignore
+                **stats_merged,
             ),
             visual_notes=" ".join(notes),
             provider_id="merged",
@@ -343,7 +399,7 @@ class BattleMove(Move, frozen=False):
     crit_ratio: int = 0
 
     @model_validator(mode='after')
-    def _set_current_pp_if_not_default(self) -> BattleMove:
+    def _set_current_pp_if_not_default(self) -> Self:
         if self.pp_current == -1:
             self.pp_current = self.pp
 

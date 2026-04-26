@@ -29,6 +29,66 @@ rich_console = console.Console()
 REMBG_SESSION = rembg.new_session("birefnet-general")
 
 
+def extract_sprites(sprite_sheet: bytes) -> dict[str, Image.Image]:
+    """
+    Extract 3 individual sprites from a horizontally-arranged sprite sheet.
+    
+    Algorithm:
+    1. Open the image and find overall content bounds
+    2. Divide the content area into 3 equal horizontal regions
+    3. For each region, find tight bounds and crop
+    4. Pad all sprites to the same dimensions
+    
+    Returns dict with keys: "perspective_player", "showcase", "opponent_perspective"
+    """
+    removed = rembg.remove(sprite_sheet, session=REMBG_SESSION)
+
+    with Image.open(io.BytesIO(removed)) as sheet:
+        w, h = sheet.size
+        
+        sheet_bbox = sheet.getbbox()
+        if sheet_bbox is None:
+            return {
+                "perspective_player": Image.new("RGBA", (w // 3, h)),
+                "showcase": Image.new("RGBA", (w // 3, h)),
+                "opponent_perspective": Image.new("RGBA", (w // 3, h)),
+            }
+        
+        content_left, content_top, content_right, content_bottom = sheet_bbox
+        content_width = content_right - content_left
+        
+        third_width = content_width // 3
+        
+        sprites = []
+        max_width = 0
+        max_height = 0
+        
+        for i in range(3):
+            region_left = content_left + (i * third_width)
+            region_right = content_left + ((i + 1) * third_width)
+            
+            region = sheet.crop((region_left, content_top, region_right, content_bottom))
+            region_bbox = region.getbbox()
+            
+            if region_bbox:
+                tight = region.crop(region_bbox)
+                sprites.append(tight)
+                max_width = max(max_width, tight.width)
+                max_height = max(max_height, tight.height)
+        
+        while len(sprites) < 3:
+            sprites.append(Image.new("RGBA", (max_width, max_height), (0, 0, 0, 0)))
+        
+        keys = ["perspective_player", "showcase", "opponent_perspective"]
+        result = {}
+        for key, sprite in zip(keys, sprites):
+            canvas = Image.new("RGBA", (max_width, max_height), (0, 0, 0, 0))
+            canvas.paste(sprite, (0, 0))
+            result[key] = canvas
+        
+        return result
+
+
 async def main() -> None:
     dotenv.load_dotenv()
 
@@ -36,8 +96,14 @@ async def main() -> None:
         rich_console.print("[red]Set WEATHER_API_KEY (WeatherAPI.com).[/red]")
         sys.exit(1)
 
-    lat = float(os.environ.get("VIBEMON_LAT", "51.5074"))
-    lon = float(os.environ.get("VIBEMON_LON", "-0.1278"))
+    # AMAZON RAINFOREST
+    # lat = float(os.environ.get("VIBEMON_LAT", "-4.0000"))
+    # lon = float(os.environ.get("VIBEMON_LON", "-63.0000"))
+
+    # LAS VEGAS
+    lat = float(os.environ.get("VIBEMON_LAT", "36.1159"))
+    lon = float(os.environ.get("VIBEMON_LON", "-115.1719"))
+
     ctx = schema.BirthContext(
         timestamp=dt.datetime.now(tz=dt.timezone.utc),
         geo_coords=(lat, lon),
@@ -52,21 +118,13 @@ async def main() -> None:
     vibemon = schema.Vibemon.merge_affinities(affinity, description="Has a sunny disposition")
     sprites = await generate_vibemon_sprite(vibemon=vibemon, bg_hex="#C47A7A")
 
-    removed = rembg.remove(sprites, session=REMBG_SESSION)
     img_dir = pathlib.Path(__file__).parent
     
-    # Write the sprite sheet
     with img_dir.joinpath(f'{vibemon.name.lower()}.png').open(mode='wb') as f:
         f.write(sprites)
 
-    # Write the individual cutouts
-    # TODO: tight cropping, more scientific splitting.
-    with Image.open(io.BytesIO(removed)) as sheet:
-        w, h = sheet.size
-        step = w // 3
-        for i in range(3):
-            box = (i * step, 0, (i + 1) * step, h)
-            sheet.crop(box).save(img_dir / f"{vibemon.name.lower()}_pose{i + 1}.png")
+    for key, sprite in extract_sprites(sprite_sheet=sprites).items():
+        sprite.save(img_dir / f"{vibemon.name.lower()}_{key}.png")
 
     rich_console.print(vibemon)
 
