@@ -1,0 +1,91 @@
+---
+name: vibemon-sprite-sheet
+description: Generates a Pokémon-style sprite sheet for a Vibemon.
+version: 1.1.0
+---
+
+{%- set bst = vibemon.affinity.identity.bst -%}
+{%- if bst < 400 -%}
+  {% set tier_file = "tiers/runt.j2" %}
+{%- elif bst < 500 -%}
+  {% set tier_file = "tiers/mid.j2" %}
+{%- elif bst < 570 -%}
+  {% set tier_file = "tiers/solid.j2" %}
+{%- elif bst < 670 -%}
+  {% set tier_file = "tiers/apex.j2" %}
+{%- else -%}
+  {% set tier_file = "tiers/mythic.j2" %}
+{%- endif -%}
+{%- set role_file = "roles/" + vibemon.affinity.identity.battle_role[0] | lower + ".j2" -%}
+
+Render ONE continuous image showing a single Pokémon-style creature named "{{ vibemon.affinity.identity.name }}" in three positions arranged horizontally across the canvas. The same creature appears in all three positions — identical silhouette, proportions, palette, and design features. Only the pose changes.
+
+STYLE
+- Pokémon Sugimori aesthetic: flat cel shading, clean confident lineart in #0A0A1A, soft gradient fills.
+- No text, numbers, labels, borders, panel dividers, watermarks, or UI elements anywhere in the image.
+
+CANVAS
+- 21:9 ultrawide, split into three equal horizontal panels, seamless (no visible borders).
+- ONE continuous background: flat matte {{ bg_hex }} filling the entire canvas edge to edge as a single uniform color. Do NOT render panel divisions, gutters, borders, seams, or any color variation across the canvas. The background is a single unbroken wash.
+- No gradient, no vignette, no ground shadow, no floor line.
+
+SUBJECT
+- Name: {{ vibemon.affinity.identity.name }}
+- Types: {{ vibemon.affinity.identity.elements | join(", ") }} — the silhouette, color palette, and accent details should read this typing at a glance.
+- Design Tier BST: {{ bst }} (see tier reference below)
+- Battle role: {{ vibemon.affinity.identity.battle_role[0] }} — {{ vibemon.affinity.identity.battle_role[1] }} (see role reference below; role dictates stance, body language, and expression across all three poses)
+{% if vibemon.affinity.identity.visual_notes -%}
+- Design notes: {{ vibemon.affinity.identity.visual_notes }}
+{% endif %}
+
+DESIGN PRIORITIES (when blocks conflict, resolve in this order)
+- TIER dictates HOW MUCH the creature has — silhouette complexity, color zones, accent count, size.
+- ROLE dictates HOW the creature carries itself — stance, limbs, expression, energy.
+- TYPE dictates WHAT MATERIALS the creature is made of — palette, motifs, textures.
+- INFLUENCES add specific visual elements layered onto the above.
+- DESIGN NOTES modulate personality and expression only — they do not override typing, tier, or role.
+
+INFLUENCES (earlier entries dominate; later entries are accents).
+Translate each influence into concrete visual language — shape, texture, color, material, motif, or motion. If an influence is abstract (a mood, a weather state, a concept), invent a specific visual metaphor for it rather than ignoring it. Every listed influence must be visible in the final design.
+{% for affinity in vibemon.birth_affinities -%}
+{% if affinity.visual_notes -%}
+- {{ affinity.visual_notes }} ({{ affinity.intensity * 100 | round(2) }}%)
+{% endif -%}
+{% endfor %}
+
+BASE ANATOMY
+The creature's base body plan should not default to common "cute mammal" templates (cat, fox, dog, rabbit, bear). Draw from a diverse anatomical palette — plant, fungal, insect, arachnid, crustacean, mollusk, reptile, amphibian, avian, aquatic, elemental, or invented hybrid. Let the type(s) suggest non-obvious body plans: a grass creature can be a walking seedpod or a moss-covered amphibian, not just a leafy mammal.
+
+================================================================
+DESIGN TIER REFERENCE (BST → visual language)
+The tier's complexity budget is a CEILING, not a target. Stay under it.
+================================================================
+
+{% include tier_file %}
+
+================================================================
+BATTLE ROLE REFERENCE (role → stance, body language, expression)
+Read the STANCE, LIMBS, and ENERGY descriptors and bake them into every pose.
+================================================================
+
+{% include role_file %}
+
+================================================================
+SCENE FRAMING
+================================================================
+
+The three positions together depict a single battle scene: the LEFT creature and the RIGHT creature are facing each other as opponents, with the CENTER pose as a hero presentation between them. This framing drives the pose geometry below.
+
+POSES (left → center → right, same creature throughout)
+All three poses must express the creature's BATTLE ROLE. Read the role's STANCE, LIMBS, ENERGY, and SILHOUETTE descriptors above and bake them into every pose — a Glass Cannon's combat stance differs fundamentally from a Wall's combat stance, even at the same camera angle. Tier dictates how much detail; role dictates how the body is held.
+
+1. LEFT — Full back view, expressing the role from behind.
+   The camera is positioned behind the creature. Only the back, rear, tail, and backs of the ears/wings/limbs are visible. The face is NOT visible — at most a tiny sliver of cheek or the back of the head. Body oriented toward the right side of the canvas, as if squaring up against the creature in the right position. Body posture must convey the role's energy from behind: a Wall stands square and rooted from behind; a Glass Cannon's back is coiled and ready to spring; a Cleric's back is open and unguarded; a Wallbreaker's shoulders are loaded and bunched. Think: a trainer's view of their own Pokémon from behind during a battle.
+
+2. CENTER — Hero showcase pose, facing the viewer, expressing the role front-on.
+   Official Pokémon artwork style — the creature's flagship presentation image. Facing the camera directly (or at most a subtle 5-10° turn), full body visible. Expression and gesture must read the BATTLE ROLE clearly: a Sweeper smirks confidently mid-stride, a Wall stands immovable with arms crossed, a Cleric extends open palms, a Glass Cannon coils with manic intensity, a Staller stands serene and unhurried. The signature gesture should communicate role + typing simultaneously. NOT a neutral at-rest pose — this is the creature's "cover of the box" moment.
+
+3. RIGHT — Combat stance specific to the role's archetypal attack form.
+   The exact stance is dictated by the role's STANCE and LIMBS descriptors — NOT a generic "aggressive ready" pose. A Wallbreaker winds up a heavy strike; a Sweeper is mid-stride extending forward; a Wall plants and braces in defense; a Staller barely shifts weight; a Glass Cannon is mid-pounce; a Cleric raises arms to channel energy. Body angled three-quarter toward the viewer, facing the LEFT pose's back. Intensity calibrated to the design tier — restrained for runt, commanding for apex, reality-bending for mythic.
+
+Adapt all pose language to the creature's actual anatomy. If it has no arms, no wings, or unusual anatomy (serpentine, blob, quadruped, floating), interpret "limbs raised," "signature gesture," "arms crossed," or "squared up" accordingly. Do NOT add wings, arms, or features that aren't part of the established design.
