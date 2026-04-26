@@ -1,4 +1,6 @@
 from typing import Annotated, Any, Self
+from collections.abc import Iterable
+import asyncio
 import datetime as dt
 import math
 import random
@@ -7,8 +9,9 @@ from pydantic import BaseModel, ConfigDict, model_validator
 import pydantic
 
 from app.balance.formulas import base_stat_scaling
+from app.genai.client import generate_vibemon_sprite
 from app.plugins.base import Base
-from app import const, types, validators
+from app import const, types, utils, validators
 
 
 # ── INTERNALS ─────────────────────────────────────────────────────────────────────────
@@ -19,6 +22,7 @@ class _Static(BaseModel):
     model_config = ConfigDict(
         extra="forbid",
         frozen=True,
+        arbitrary_types_allowed=True,
     )
 
 
@@ -28,6 +32,7 @@ class _Transient(BaseModel):
     model_config = ConfigDict(
         extra="forbid",
         frozen=False,
+        arbitrary_types_allowed=True,
     )
 
 
@@ -38,7 +43,12 @@ class BirthContext(_Static, arbitrary_types_allowed=True):
 
     timestamp: dt.datetime
     geo_coords: tuple[float, float]
-    providers: dict[str, Base]
+    providers: list[Base]
+
+    async def regenerate(self) -> Iterable[Affinity]:
+        """Given the context, create the nature of a vibemon."""
+        affinities = await asyncio.gather(*(p.generate(self) for p in self.providers))
+        return affinities
 
 
 # ── IDENTITY ──────────────────────────────────────────────────────────────────────────
@@ -175,19 +185,77 @@ class Affinity(_Static):
 
     moves: list[Move]
 
+    @classmethod
+    def affinities(cls, *affinities: Affinity, core_identity_description: str | None = None) -> Affinity:
+        """Create an Affinity by merging a number of affinities."""
+        stat_keys = (
+            "base_hp",
+            "base_attack",
+            "base_defense",
+            "base_sp_attack",
+            "base_sp_defense",
+            "base_speed",
+        )
+
+        name  = ""
+        total = 0
+        stats = {k: 0 for k in stat_keys}
+        notes = []
+        pop_e: list[tuple[types.VibemonTypeT, int]] = []
+        pop_m: list[tuple[Move, int]] = []
+
+        for idx, affinity in enumerate(sorted(affinities, key=lambda a: a.intensity, reverse=True)):
+            weight = int(affinity.intensity * 100)
+            total += weight
+
+            for k in stat_keys:
+                stats[k] += weight * math.floor(getattr(affinity.identity, k))
+
+            pop_e.extend((e, weight) for e in affinity.identity.elements)
+            pop_m.extend((m, weight) for m in affinity.moves)
+
+            if idx == 0:
+                name = affinity.identity.name
+
+            if affinity.visual_notes:
+                notes.append(f"{affinity.visual_notes} ({weight}%)")
+        
+        stats_merged = {k: math.floor(stats[k] / total) for k in stat_keys}
+        elements = random.sample([e for (e, _) in pop_e], k=random.randint(1, min(2, len(pop_e))), counts=[i for (_, i) in pop_e])
+        moves    = random.sample([e for (e, _) in pop_m], k=random.randint(2, min(3, len(pop_m))), counts=[i for (_, i) in pop_m])
+
+        merged_affinity = Affinity(
+            identity=Identity(
+                name=name,
+                visual_notes=core_identity_description,
+                elements=tuple(set(elements)),
+                **stats_merged,
+            ),
+            visual_notes=" ".join(notes),
+            provider_id="merged",
+            intensity=1,
+            moves=moves,
+        )
+
+        return merged_affinity
+
 
 class Aesthetic(_Static):
-    """ """
+    """The visual and aural DNA of a Vibemon based on its attributes."""
 
-    bg_hex: str = "#C47A7A"
-    """Background color for more effective chroma-keying."""
+    sprites: types.SpriteLayout
+    """All sprites that represent the vibemon."""
 
-    async def render(self, vibemon) -> bytes:
-        """ """
-        from app.genai.client import generate_vibemon_sprite
+    @classmethod
+    async def from_vibemon(cls, vibemon: Vibemon, bg_hex: str = "#C47A7A") -> Self:
+        """Generalize from the Vibemon's attributes."""
+        sprite_sheet = await generate_vibemon_sprite(vibemon=vibemon, bg_hex=bg_hex)
 
-        b = await generate_vibemon_sprite(vibemon=vibemon, bg_hex=self.bg_hex)
-        return b
+        data = {
+            "sprites": utils.extract_sprites(sprite_sheet=sprite_sheet)
+        }
+
+        return cls(**data)
 
 
 # ── MOVES ─────────────────────────────────────────────────────────────────────────────
@@ -231,78 +299,45 @@ class Vibemon(_Transient):
     affinity: Affinity
     """Represents the nature of a Vibemon, steered by the source provider.."""
 
-    level: int = const.DEFAULT_LEVEL
+    level: int
     """The Vibemon's current level."""
 
     birth_affinities: tuple[Affinity, ...] = ()
-    """Immutable per-provider identities captured at merge time. Drives visual DNA."""
+    """The lineage of this Vibemon's aesthetic."""
+
+    _aesthetic: Aesthetic = pydantic.PrivateAttr()
 
     @classmethod
-    def merge_affinities(cls, *affinities: Affinity, nickname: str | None = None, description: str | None = None) -> Self:
-        """Create a Vibemon from a number of affinities."""
+    async def birth(cls, *affinities: Affinity, nickname: str | None = None, core_identity: str | None = None) -> Self:
+        """Create a Vibemon from a given context."""
         if not affinities:
-            raise ValueError("from_affinities requires at least one Affinity")
-
-        stat_keys = (
-            "base_hp",
-            "base_attack",
-            "base_defense",
-            "base_sp_attack",
-            "base_sp_defense",
-            "base_speed",
-        )
-
-        name  = ""
-        total = 0
-        stats = {k: 0 for k in stat_keys}
-        notes = []
-        pop_e: list[tuple[types.VibemonTypeT, int]] = []
-        pop_m: list[tuple[Move, int]] = []
-
-        for idx, affinity in enumerate(sorted(affinities, key=lambda a: a.intensity, reverse=True)):
-            weight = int(affinity.intensity * 100)
-            total += weight
-
-            for k in stat_keys:
-                stats[k] += weight * math.floor(getattr(affinity.identity, k))
-
-            pop_e.extend((e, weight) for e in affinity.identity.elements)
-            pop_m.extend((m, weight) for m in affinity.moves)
-
-            if idx == 0:
-                name = affinity.identity.name
-
-            if affinity.visual_notes:
-                notes.append(f"{affinity.visual_notes} ({weight}%)")
+            raise ValueError("Vibemon must be born from at least one Affinity!")
         
-        stats_merged = {k: math.floor(stats[k] / total) for k in stat_keys}
-        elements = random.sample([e for (e, _) in pop_e], k=random.randint(1, 2), counts=[i for (_, i) in pop_e])
-        moves    = random.sample([e for (e, _) in pop_m], k=random.randint(2, 3), counts=[i for (_, i) in pop_m]))
-
-        merged_affinity = Affinity(
-            identity=Identity(
-                name=name,
-                visual_notes=description,
-                elements=tuple(set(elements)),
-                **stats_merged,
-            ),
-            visual_notes=" ".join(notes),
-            provider_id="merged",
-            intensity=1,
-            moves=moves,
-        )
-
-        return cls(
+        instance = cls(
             nickname=nickname,
-            affinity=merged_affinity,
+            affinity=Affinity.merge(*affinities, core_identity_description=core_identity),
             level=1,
             birth_affinities=affinities,
         )
+
+        instance._aesthetic = await Aesthetic.from_vibemon(instance)
+
+        return instance
+
+    @classmethod
     
     @property
     def name(self) -> str:
         """The nickname or identity name of a Vibemon."""
         return self.nickname or self.affinity.identity.name
+    
+    @property
+    def aesthetic(self) -> Aesthetic:
+        """The visual and aural layout of the Vibemon."""
+        if not hasattr(self, "_aesthetic"):
+            raise RuntimeError("You must call vibemon.")
+
+        return self._aesthetic
 
     @property
     def hp(self) -> int:
