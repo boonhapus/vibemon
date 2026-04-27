@@ -8,7 +8,7 @@ import pydantic_ai
 import structlog
 
 from app.settings import settings
-from app.genai import structured_output, utils
+from app.genai import _image, structured_output, utils
 
 if TYPE_CHECKING:
     from app import schema
@@ -16,13 +16,9 @@ if TYPE_CHECKING:
 _LOGGER = structlog.get_logger(__name__)
 
 _eleven_labs = AsyncElevenLabs(api_key=settings.eleven_labs_api_key.get_secret_value())
-_ai_provider = GoogleProvider(api_key=settings.google_api_key.get_secret_value())
-_texts_model = GoogleModel(settings.txt_ai_model, provider=_ai_provider)
-_image_model = GoogleModel(settings.img_ai_model, provider=_ai_provider)
 
-FAST_TXT_AGENT = pydantic_ai.Agent(_texts_model)
-FAST_IMG_AGENT = pydantic_ai.Agent(_image_model)
-
+FAST_TXT_AGENT = pydantic_ai.Agent(settings.txt_ai_model)
+FAST_IMG_AGENT = _image.build_image_agent(settings.img_ai_model)
 
 # ── CLEANERS ──────────────────────────────────────────────────────────────────────────
 
@@ -43,7 +39,7 @@ async def generate_vibemon_name(identity: schema.Identity, moves: list[schema.Mo
 async def generate_vibemon_sprite(vibemon: schema.Vibemon, bg_hex: str) -> bytes:
     """Generate a Vibemon's sprite sheet."""
     p = utils.load_prompt("sprite-sheet.mdc", vibemon=vibemon, bg_hex=bg_hex)
-    r = await FAST_IMG_AGENT.run(p, builtin_tools=[pydantic_ai.ImageGenerationTool()], output_type=pydantic_ai.BinaryImage)
+    r = await FAST_IMG_AGENT.run(p)
     await _LOGGER.adebug("Generate :: Vibemon sprite", vibemon=vibemon.name, prompt=p)
     d = r.output.data
     return d
