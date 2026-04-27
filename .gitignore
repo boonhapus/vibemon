@@ -1,5 +1,5 @@
 # Ignore Secrets
-.env
+*.env
 
 # Ignore python artifacts
 .python-version
