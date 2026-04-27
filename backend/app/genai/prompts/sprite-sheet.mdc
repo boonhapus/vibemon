@@ -3,19 +3,6 @@ name: vibemon-sprite-sheet
 description: Generates a Pokémon-style sprite sheet for a Vibemon.
 version: 1.1.0
 ---
-
-{%- set bst = vibemon.affinity.identity.bst -%}
-{%- if bst < 400 -%}
-  {% set tier_file = "tiers/runt.j2" %}
-{%- elif bst < 500 -%}
-  {% set tier_file = "tiers/mid.j2" %}
-{%- elif bst < 570 -%}
-  {% set tier_file = "tiers/solid.j2" %}
-{%- elif bst < 670 -%}
-  {% set tier_file = "tiers/apex.j2" %}
-{%- else -%}
-  {% set tier_file = "tiers/mythic.j2" %}
-{%- endif -%}
 {%- set role_file = "roles/" + vibemon.affinity.identity.battle_role[0] | lower + ".j2" -%}
 
 Render ONE continuous image showing a single Pokémon-style creature named "{{ vibemon.affinity.identity.name }}" in three positions arranged horizontally across the canvas. The same creature appears in all three positions — identical silhouette, proportions, palette, and design features. Only the pose changes.
@@ -32,7 +19,7 @@ CANVAS
 SUBJECT
 - Name: {{ vibemon.affinity.identity.name }}
 - Types: {{ vibemon.affinity.identity.elements | join(", ") }} — the silhouette, color palette, and accent details should read this typing at a glance.
-- Design Tier BST: {{ bst }} (see tier reference below)
+- Design Tier BST: {{ vibemon.affinity.identity.bst }} (see tier reference below)
 - Battle role: {{ vibemon.affinity.identity.battle_role[0] }} — {{ vibemon.affinity.identity.battle_role[1] }} (see role reference below; role dictates stance, body language, and expression across all three poses)
 {% if vibemon.affinity.identity.visual_notes -%}
 - Design notes: {{ vibemon.affinity.identity.visual_notes }}
@@ -61,7 +48,7 @@ DESIGN TIER REFERENCE (BST → visual language)
 The tier's complexity budget is a CEILING, not a target. Stay under it.
 ================================================================
 
-{% include tier_file %}
+{% include "tiers/" ~ vibemon.affinity.identity.tier ~ "/visual.j2" %}
 
 ================================================================
 BATTLE ROLE REFERENCE (role → stance, body language, expression)
