@@ -1,21 +1,21 @@
 import random
 
-from app.genai.client import generate_vibemon_name
-from app.plugins.base import Base
+from app.plugins.base import VibeProvider
 from app import schema
 
 from . import element_list, move_list, utils, weather
 
 
-class ClimateProvider(Base):
+class ClimateProvider(VibeProvider):
     """A data source which fetches the current weather."""
 
     __provider_name__ = "climate"
 
-    def __init__(self):
+    def __init__(self) -> None:
         self.client = weather.WeatherAPIClient()
 
     async def teardown(self) -> None:
+        """Clean up provider-owned resources."""
         await self.client.close()
 
     async def generate(self, ctx: schema.BirthContext) -> schema.Affinity:
@@ -36,17 +36,12 @@ class ClimateProvider(Base):
             base_speed=utils.jitter(dummy.base_speed),
         )
 
-        notes = d["current"]["condition"]["text"]
-        moves = random.sample(move_list.MOVES, k=10)
-
-        name = await generate_vibemon_name(identity=ident, moves=moves, visual_notes=notes)
-
         affinity = schema.Affinity(
-            identity=ident.model_copy(update={"name": name}),
-            visual_notes=notes,
+            identity=ident,
+            visual_notes=d["current"]["condition"]["text"],
             intensity=1.0,
             provider_id=self.__provider_name__,
-            moves=moves,
+            moves=random.sample(move_list.MOVES, k=10),
         )
 
         return affinity
