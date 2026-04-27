@@ -8,9 +8,10 @@ import random
 import pydantic
 from pydantic import BaseModel
 
-from app import const, element_chart, schema, types
+from app import const, schema, types
+from app.balance import element_chart
 
-type StackEntry = tuple[schema.BattleVibemon, schema.BattleVibemon, schema.Action]
+type StackEntry = tuple[schema.BattleVibemon, schema.BattleVibemon, schema.BattleAction]
 
 
 class Phase(enum.Enum):
@@ -26,8 +27,9 @@ class Phase(enum.Enum):
 class BattleStateMachine:
     """State machine owning transient execution state."""
 
-    def __init__(self, battle: schema.Battle) -> None:
+    def __init__(self, battle: schema.Battle, rng: random.Random) -> None:
         self.battle = battle
+        self.rng = rng
         self._events: list[schema.TurnEvent] = []
         self._phase: Phase = Phase.ACTION_SORTING
         self._execution_stack: list[StackEntry] = []
@@ -97,7 +99,7 @@ class ActionSortingState(PhaseState):
         b = self.machine.battle.trainer_b.active_vibemon
         action_a = self.machine.battle.turn_history[-1].actions[0]
         action_b = self.machine.battle.turn_history[-1].actions[1]
-        stack = resolve_turn_order(a, b, action_a, action_b)
+        stack = resolve_turn_order(a, b, action_a, action_b, self.machine.rng)
         self.machine.set_execution_stack(stack)
         self.machine.transition(Phase.PRE_ACTION_CHECKS)
 
@@ -117,7 +119,7 @@ class PreActionChecksState(PhaseState):
             self.machine.transition(Phase.PRE_ACTION_CHECKS)
             return
 
-        result = check_pre_action(attacker)
+        result = check_pre_action(attacker, rng=self.machine.rng)
         self.machine.add_events(result.events)
 
         if not result.blocked:
@@ -141,7 +143,7 @@ class ExecuteStackState(PhaseState):
         if action.action_type == types.ActionTypeT.MOVE and attacker.moves:
             move = find_move(attacker, action.value)
             move.pp_current -= 1
-            events = execute_attack(attacker, defender, move)
+            events = execute_attack(attacker, defender, move, rng=self.machine.rng)
             self.machine.add_events(events)
 
             if defender.is_fainted:
@@ -236,15 +238,15 @@ def effective_speed(v: schema.BattleVibemon) -> float:
     return v.speed * stat_stage_multiplier(v.stat_stages.speed)
 
 
-def resolve_speed_tie(a_speed: float, b_speed: float) -> tuple[int, int]:
+def resolve_speed_tie(a_speed: float, b_speed: float, rng: random.Random) -> tuple[int, int]:
     """Resolve speed tie with random bit. Returns (slot_a, slot_b) order."""
     if a_speed == b_speed:
-        bit = random.randint(0, 1)
+        bit = rng.randint(0, 1)
         return (1 - bit, bit)
     return (0, 1) if a_speed >= b_speed else (1, 0)
 
 
-def _is_crit(crit_stage: int, move_crit_ratio: int) -> bool:
+def _is_crit(crit_stage: int, move_crit_ratio: int, rng: random.Random) -> bool:
     """Roll for a critical hit using the Gen VI+ stage system.
 
     Stages stack additively (vibemon crit_stage + move crit_ratio) and index
@@ -253,10 +255,15 @@ def _is_crit(crit_stage: int, move_crit_ratio: int) -> bool:
     at baseline (~4% at stage 0).
     """
     effective_stage = min(crit_stage + move_crit_ratio, 3)
-    return random.random() < const.CRIT_THRESHOLDS[effective_stage]
+    return rng.random() < const.CRIT_THRESHOLDS[effective_stage]
 
 
-def calc_damage(attacker: schema.BattleVibemon, defender: schema.BattleVibemon, move: schema.Move) -> tuple[int, bool]:
+def calc_damage(
+    attacker: schema.BattleVibemon,
+    defender: schema.BattleVibemon,
+    move: schema.BattleMove,
+    rng: random.Random,
+) -> tuple[int, bool]:
     """Calculate damage and determine if a critical hit occurred.
 
     Critical hits multiply final damage by 1.5x, but their real impact is
@@ -277,7 +284,7 @@ def calc_damage(attacker: schema.BattleVibemon, defender: schema.BattleVibemon, 
         atk_stage_field = "sp_attack"
         def_stage_field = "sp_defense"
 
-    is_crit = _is_crit(attacker.crit_stage, move.crit_ratio)
+    is_crit = _is_crit(attacker.crit_stage, move.crit_ratio, rng)
 
     if is_crit:
         atk_stage = stat_stage_multiplier(max(0, getattr(attacker.stat_stages, atk_stage_field)))
@@ -298,9 +305,9 @@ def calc_damage(attacker: schema.BattleVibemon, defender: schema.BattleVibemon, 
         if (attacker.status == types.StatusConditionT.BURN and move.category == types.MoveCategoryT.PHYSICAL)
         else 1.0
     )
-    rng = random.uniform(const.DAMAGE_RANDOM_MIN, const.DAMAGE_RANDOM_MAX)
+    damage_randomness = rng.uniform(const.DAMAGE_RANDOM_MIN, const.DAMAGE_RANDOM_MAX)
 
-    damage = int(base * stab * type_eff * crit * burn * rng)
+    damage = int(base * stab * type_eff * crit * burn * damage_randomness)
     return max(1, damage), is_crit
 
 
@@ -314,8 +321,9 @@ class PreActionResult(BaseModel):
 def resolve_turn_order(
     a: schema.BattleVibemon,
     b: schema.BattleVibemon,
-    action_a: schema.Action,
-    action_b: schema.Action,
+    action_a: schema.BattleAction,
+    action_b: schema.BattleAction,
+    rng: random.Random,
 ) -> list[StackEntry]:
     """Return (attacker, defender, action) tuples in resolution order.
 
@@ -339,13 +347,13 @@ def resolve_turn_order(
             return [(a, b, action_a), (b, a, action_b)]
         return [(b, a, action_b), (a, b, action_a)]
 
-    order = resolve_speed_tie(effective_speed(a), effective_speed(b))
+    order = resolve_speed_tie(effective_speed(a), effective_speed(b), rng)
     if order[0] == 0:
         return [(a, b, action_a), (b, a, action_b)]
     return [(b, a, action_b), (a, b, action_a)]
 
 
-def find_move(vibemon: schema.BattleVibemon, move_name: str) -> schema.Move:
+def find_move(vibemon: schema.BattleVibemon, move_name: str) -> schema.BattleMove:
     """Look up a move by name on a vibemon, raising ValueError if not found."""
     for m in vibemon.moves:
         if m.name == move_name:
@@ -353,7 +361,7 @@ def find_move(vibemon: schema.BattleVibemon, move_name: str) -> schema.Move:
     raise ValueError(f"{vibemon.name} has no move named {move_name!r}")
 
 
-def check_pre_action(v: schema.BattleVibemon) -> PreActionResult:
+def check_pre_action(v: schema.BattleVibemon, *, rng: random.Random) -> PreActionResult:
     """Tick pre-action status/volatile effects per spec order.
 
     Spec: Faint → Sleep/Freeze → Flinch → Paralysis → Confusion.
@@ -375,7 +383,7 @@ def check_pre_action(v: schema.BattleVibemon) -> PreActionResult:
         )
 
     if v.status == types.StatusConditionT.FREEZE:
-        if random.random() < const.FREEZE_THAW_CHANCE:
+        if rng.random() < const.FREEZE_THAW_CHANCE:
             v.status = types.StatusConditionT.NONE
             return PreActionResult(
                 blocked=False,
@@ -393,14 +401,14 @@ def check_pre_action(v: schema.BattleVibemon) -> PreActionResult:
             events=[schema.TurnEvent(actor=v.name, description=f"{v.name} flinched!")],
         )
 
-    if v.status == types.StatusConditionT.PARALYSIS and random.random() < const.PARALYSIS_FULLY_PARALYZED_CHANCE:
+    if v.status == types.StatusConditionT.PARALYSIS and rng.random() < const.PARALYSIS_FULLY_PARALYZED_CHANCE:
         return PreActionResult(
             blocked=True,
             events=[schema.TurnEvent(actor=v.name, description=f"{v.name} is paralyzed and can't move!")],
         )
 
     if v.is_confused:
-        if random.random() < const.CONFUSION_SELF_HIT_CHANCE:
+        if rng.random() < const.CONFUSION_SELF_HIT_CHANCE:
             dmg = v.max_hp // const.CONFUSION_SELF_HIT_DIVISOR
             v.current_hp = max(0, v.current_hp - dmg)
             return PreActionResult(
@@ -414,11 +422,14 @@ def check_pre_action(v: schema.BattleVibemon) -> PreActionResult:
 
 
 def apply_move_effects(
-    attacker: schema.BattleVibemon, defender: schema.BattleVibemon, move: schema.Move
+    attacker: schema.BattleVibemon,
+    defender: schema.BattleVibemon,
+    move: schema.BattleMove,
+    rng: random.Random,
 ) -> list[schema.TurnEvent]:
     """Roll for and apply secondary move effects (status infliction, stat changes)."""
     events: list[schema.TurnEvent] = []
-    if not move.effect or random.random() >= move.effect.chance:
+    if not move.effect or rng.random() >= move.effect.chance:
         return events
 
     if move.effect.status_inflict and defender.status == types.StatusConditionT.NONE:
@@ -448,13 +459,16 @@ def apply_move_effects(
 
 
 def execute_attack(
-    attacker: schema.BattleVibemon, defender: schema.BattleVibemon, move: schema.Move
+    attacker: schema.BattleVibemon,
+    defender: schema.BattleVibemon,
+    move: schema.BattleMove,
+    rng: random.Random,
 ) -> list[schema.TurnEvent]:
     """Accuracy roll with modifiers per spec, then damage/effects."""
     if move.accuracy is not None:
         acc_mod = _accuracy_modifier(attacker.stat_stages.accuracy, defender.stat_stages.evasion)
         final_accuracy = move.accuracy * acc_mod
-        if random.random() > final_accuracy:
+        if rng.random() > final_accuracy:
             return [
                 schema.TurnEvent(
                     actor=attacker.name,
@@ -464,7 +478,7 @@ def execute_attack(
                 )
             ]
 
-    damage, is_crit = calc_damage(attacker, defender, move)
+    damage, is_crit = calc_damage(attacker, defender, move, rng)
     events: list[schema.TurnEvent] = []
 
     if damage > 0:
@@ -489,11 +503,11 @@ def execute_attack(
             )
         )
 
-    events.extend(apply_move_effects(attacker, defender, move))
+    events.extend(apply_move_effects(attacker, defender, move, rng))
     return events
 
 
-def determine_winner(battle: schema.Battle) -> schema.Trainer | None:
+def determine_winner(battle: schema.Battle) -> schema.BattleTrainer | None:
     """Return winning trainer if opponent's active vibemon fainted, else None."""
     if battle.trainer_a.active_vibemon.is_fainted:
         return battle.trainer_b
@@ -544,7 +558,14 @@ def end_of_turn_maintenance(v: schema.BattleVibemon) -> list[schema.TurnEvent]:
 class GameEngine:
     """Battle engine managing the turn-by-turn execution of a Pokémon-style battle."""
 
-    def __init__(self, trainer_a: schema.Trainer, trainer_b: schema.Trainer) -> None:
+    def __init__(
+        self,
+        trainer_a: schema.BattleTrainer,
+        trainer_b: schema.BattleTrainer,
+        *,
+        rng: random.Random | None = None,
+    ) -> None:
+        self._rng = rng or random.Random()
         self.battle = schema.Battle(
             trainer_a=trainer_a,
             trainer_b=trainer_b,
@@ -552,7 +573,7 @@ class GameEngine:
             turn_history=[],
         )
 
-    def submit(self, action_a: schema.Action, action_b: schema.Action) -> list[schema.TurnEvent]:
+    def submit(self, action_a: schema.BattleAction, action_b: schema.BattleAction) -> list[schema.TurnEvent]:
         """Process a turn with the given actions and return resulting events."""
         self.battle.turn_history.append(
             schema.TurnRecord(
@@ -562,7 +583,7 @@ class GameEngine:
             )
         )
 
-        machine = BattleStateMachine(self.battle)
+        machine = BattleStateMachine(self.battle, self._rng)
 
         while not self.battle.concluded:
             state_class = PHASE_STATE_MAP[machine.current_phase]
