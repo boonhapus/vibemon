@@ -565,6 +565,23 @@ wheels = [
 ]
 
 [[package]]
+name = "elevenlabs"
+version = "2.44.0"
+source = { registry = "https://pypi.org/simple" }
+dependencies = [
+    { name = "httpx" },
+    { name = "pydantic" },
+    { name = "pydantic-core" },
+    { name = "requests" },
+    { name = "typing-extensions" },
+    { name = "websockets" },
+]
+sdist = { url = "https://files.pythonhosted.org/packages/a8/ea/e6283ef10e1e6d13639e80c5ac562c49cd932626c8d7b3a6f18d83aeb8e0/elevenlabs-2.44.0.tar.gz", hash = "sha256:1e061032aadbfed8e435ec1c5986bcf09937f921c7ef02d3750a55fba4be051a", size = 551614, upload-time = "2026-04-21T11:00:49.98Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/83/3c/0f637dbfb61bbe3491accd31e430b0dcfcc7d77377d2c58980d6fe50fdab/elevenlabs-2.44.0-py3-none-any.whl", hash = "sha256:289ba6cdcdd2f809e1e3f18571a273aa5bad4ccff8070d4c2830798695c058fe", size = 1513401, upload-time = "2026-04-21T11:00:47.855Z" },
+]
+
+[[package]]
 name = "email-validator"
 version = "2.3.0"
 source = { registry = "https://pypi.org/simple" }
@@ -3657,6 +3674,7 @@ name = "vibemon-backend"
 version = "0.1.0"
 source = { editable = "." }
 dependencies = [
+    { name = "elevenlabs" },
     { name = "google-genai" },
     { name = "jinja2" },
     { name = "litestar" },
@@ -3681,6 +3699,7 @@ dev = [
 
 [package.metadata]
 requires-dist = [
+    { name = "elevenlabs", specifier = ">=1.15.0" },
     { name = "google-genai", specifier = ">=1.0.0" },
     { name = "jinja2", specifier = ">=3.1.6" },
     { name = "litestar", specifier = ">=2.21.1" },
