@@ -3,7 +3,6 @@ name: vibemon-sprite-sheet
 description: Generates a Pokémon-style sprite sheet for a Vibemon.
 version: 1.1.0
 ---
-{%- set role_file = "roles/" + vibemon.affinity.identity.battle_role[0] | lower + ".j2" -%}
 
 Render ONE continuous image showing a single Pokémon-style creature named "{{ vibemon.affinity.identity.name }}" in three positions arranged horizontally across the canvas. The same creature appears in all three positions — identical silhouette, proportions, palette, and design features. Only the pose changes.
 
@@ -55,7 +54,7 @@ BATTLE ROLE REFERENCE (role → stance, body language, expression)
 Read the STANCE, LIMBS, and ENERGY descriptors and bake them into every pose.
 ================================================================
 
-{% include role_file %}
+{% include "roles/" ~ vibemon.affinity.identity.battle_role[0] | lower ~ ".j2" %}
 
 ================================================================
 SCENE FRAMING
