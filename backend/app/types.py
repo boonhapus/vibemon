@@ -35,6 +35,16 @@ class VibemonTypeT(enum.StrEnum):
     FAIRY = "fairy"
 
 
+class TierT(enum.StrEnum):
+    """Tier classifications for Vibemon."""
+
+    RUNT = "runt"
+    MID = "mid"
+    SOLID = "solid"
+    APEX = "apex"
+    MYTHIC = "mythic"
+
+
 class EvolutionStageT(enum.IntEnum):
     """The evolution stages."""
 

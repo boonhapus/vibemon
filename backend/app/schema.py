@@ -8,7 +8,7 @@ import random
 import pydantic
 
 from app.balance.formulas import base_stat_scaling
-from app.genai.client import generate_vibemon_name, generate_vibemon_sprite
+from app.genai.client import generate_vibemon_name, generate_battle_cry, generate_vibemon_sprite
 from app.plugins.base import VibeProvider
 from app import const, types, utils, validators
 
@@ -112,6 +112,29 @@ class Identity(_Static):
             + self.base_sp_defense
             + self.base_speed
         )
+    
+    @property
+    def tier(self) -> types.TierT:
+        """
+        Determines the tier classification based on BST ranges.
+
+        RUNT .... BST   < 400
+        MID ..... BST 400-499
+        SOLID ... BST 500-569
+        APEX .... BST 570-669
+        MYTHIC .. BST  >= 670
+        """
+        match self.bst:
+            case b if b < 400:
+                return types.TierT.RUNT
+            case b if b < 500:
+                return types.TierT.MID
+            case b if b < 570:
+                return types.TierT.SOLID
+            case b if b < 670:
+                return types.TierT.APEX
+            case _:
+                return types.TierT.MYTHIC
 
     @property
     def battle_role(self) -> tuple[str, str]:
@@ -252,12 +275,18 @@ class Aesthetic(_Static):
     sprites: types.SpriteLayout
     """All sprites that represent the vibemon."""
 
+    battle_cry: bytes
+
     @classmethod
     async def from_vibemon(cls, vibemon: Vibemon, bg_hex: str = "#C47A7A") -> Self:
         """Generalize from the Vibemon's attributes."""
         sprite_sheet = await generate_vibemon_sprite(vibemon=vibemon, bg_hex=bg_hex)
+        battle_cry = await generate_battle_cry(vibemon=vibemon)
 
-        data = {"sprites": utils.extract_sprites(sprite_sheet=sprite_sheet)}
+        data = {
+            "sprites": utils.extract_sprites(sprite_sheet=sprite_sheet),
+            "battle_cry": battle_cry,
+        }
 
         return cls(**data)
 

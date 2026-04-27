@@ -28,12 +28,12 @@ class ClimateProvider(VibeProvider):
         ident = schema.Identity(
             name="UNNAMED",
             elements=element_list.infer_elements(d),
-            base_hp=utils.jitter(dummy.base_hp),
-            base_attack=utils.jitter(dummy.base_attack),
-            base_defense=utils.jitter(dummy.base_defense),
-            base_sp_attack=utils.jitter(dummy.base_sp_attack),
-            base_sp_defense=utils.jitter(dummy.base_sp_defense),
-            base_speed=utils.jitter(dummy.base_speed),
+            base_hp=utils.jitter(dummy.base_hp) + 50,
+            base_attack=utils.jitter(dummy.base_attack) + 50,
+            base_defense=utils.jitter(dummy.base_defense) + 50,
+            base_sp_attack=utils.jitter(dummy.base_sp_attack) + 50,
+            base_sp_defense=utils.jitter(dummy.base_sp_defense) + 50,
+            base_speed=utils.jitter(dummy.base_speed) + 50,
         )
 
         affinity = schema.Affinity(
