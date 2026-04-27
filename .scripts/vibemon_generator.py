@@ -55,8 +55,13 @@ async def main() -> None:
 
     vibemon = await schema.Vibemon.birth(*affinities, core_identity="Has a sunny disposition")
 
+    directory = pathlib.Path(__file__).parent / "generated" / vibemon.name.lower()
+    directory.mkdir(parents=True, exist_ok=True)
+
+    directory.joinpath(f"battle_cry.mp3").write_bytes(vibemon.aesthetic.battle_cry)
+
     for key, sprite in vibemon.aesthetic.sprites.items():
-        sprite.save(pathlib.Path(__file__).parent / "generated" / f"{vibemon.name.lower()}_{key}.png")
+        sprite.save(directory.joinpath(f"{key}.png"))
 
     rich_console.print(vibemon)
 
