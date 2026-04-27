@@ -8,7 +8,8 @@
 
 import uuid
 
-from app import game_engine, schema, types
+from app import schema, types
+from app.battle import game_engine
 from rich import box, columns, console, panel, rule, text
 
 STYLE_COLORS = {
@@ -70,14 +71,14 @@ def hp_bar(current: int, maximum: int, bar_width: int = 20) -> text.Text:
         color = "yellow"
     else:
         color = "red"
-    text = text.Text()
-    text.append("█" * filled, STYLE_COLORS[color])
-    text.append("░" * (bar_width - filled), "dim")
-    text.append(" ")
-    text.append(str(current), STYLE_COLORS[color])
-    text.append("/", "dim")
-    text.append(str(maximum))
-    return text
+    bar = text.Text()
+    bar.append("█" * filled, STYLE_COLORS[color])
+    bar.append("░" * (bar_width - filled), "dim")
+    bar.append(" ")
+    bar.append(str(current), STYLE_COLORS[color])
+    bar.append("/", "dim")
+    bar.append(str(maximum))
+    return bar
 
 
 def type_badge(t: types.VibemonTypeT) -> text.Text:
@@ -107,9 +108,7 @@ def _build_stage_line(v: schema.BattleVibemon) -> text.Text | None:
     for label, attr_name in STAGE_FIELDS:
         value = getattr(v.stat_stages, attr_name)
         if value != 0:
-            stage_parts.append(
-                text.Text(f"{label}{value:+d}", style="green" if value > 0 else "red")
-            )
+            stage_parts.append(text.Text(f"{label}{value:+d}", style="green" if value > 0 else "red"))
 
     if not stage_parts:
         return None
@@ -122,7 +121,7 @@ def _build_stage_line(v: schema.BattleVibemon) -> text.Text | None:
     return stage_line
 
 
-def _build_move_line(move: types.Move) -> text.Text:
+def _build_move_line(move: schema.BattleMove) -> text.Text:
     type_color = TYPE_COLORS.get(move.type.value, "white")
     pp_ratio = move.pp_current / move.pp if move.pp > 0 else 0
     pp_color = "green" if pp_ratio > 0.5 else "yellow" if pp_ratio > 0 else "red"
@@ -130,9 +129,7 @@ def _build_move_line(move: types.Move) -> text.Text:
 
     move_line = text.Text()
     move_line.append(f"{icon} {move.name:<14} ")
-    move_line.append(
-        f"{move.type.value.upper():<10}", style=STYLE_COLORS.get(type_color, "white")
-    )
+    move_line.append(f"{move.type.value.upper():<10}", style=STYLE_COLORS.get(type_color, "white"))
     move_line.append(f" PWR {move.power:<3} PP ")
     move_line.append(str(move.pp_current), style=pp_color)
     move_line.append(f"/{move.pp}")
@@ -181,9 +178,7 @@ def _event_parts(event: schema.TurnEvent) -> list[text.Text]:
     return parts
 
 
-def _build_vibemon_panel(
-    v: schema.BattleVibemon, trainer_name: str, color: str
-) -> panel.Panel:
+def _build_vibemon_panel(v: schema.BattleVibemon, trainer_name: str, color: str) -> panel.Panel:
     lines: list[text.Text] = []
 
     title = text.Text()
@@ -253,8 +248,8 @@ def print_matchup(battle: schema.Battle) -> None:
     rich_console.print(
         columns.Columns(
             [
-                _build_vibemon_panel(va, ta.name, "yellow"),
-                _build_vibemon_panel(vb, tb.name, "magenta"),
+                _build_vibemon_panel(va, ta.username, "yellow"),
+                _build_vibemon_panel(vb, tb.username, "magenta"),
             ],
             equal=True,
             expand=True,
@@ -265,9 +260,7 @@ def print_matchup(battle: schema.Battle) -> None:
 
 def print_events(events: list[schema.TurnEvent]) -> None:
     for event in events:
-        line = text.Text.assemble(
-            ("› ", "dim"), (event.actor, "bold"), (": "), (event.description or "")
-        )
+        line = text.Text.assemble(("› ", "dim"), (event.actor, "bold"), (": "), (event.description or ""))
         parts = _event_parts(event)
 
         if parts:
@@ -283,41 +276,41 @@ def print_events(events: list[schema.TurnEvent]) -> None:
 def create_shocktail() -> schema.BattleVibemon:
     """Fake a new Vibemon."""
     affinity = schema.Affinity(
-        elements=[types.VibemonTypeT.ELECTRIC],
-        base_hp=111,
-        base_attack=55,
-        base_defense=40,
-        base_sp_attack=50,
-        base_sp_defense=50,
-        base_speed=90,
+        identity=schema.Identity(
+            name="Shocktail",
+            elements=(types.VibemonTypeT.ELECTRIC,),
+            base_hp=111,
+            base_attack=55,
+            base_defense=40,
+            base_sp_attack=50,
+            base_sp_defense=50,
+            base_speed=90,
+        ),
+        provider_id="debug",
         moves=[
-            types.Move(
+            schema.Move(
                 name="Arc Burst",
+                flavor_text="A sharp static burst from a storm-charged tail.",
                 type=types.VibemonTypeT.ELECTRIC,
                 category=types.MoveCategoryT.SPECIAL,
                 power=32,
                 accuracy=1.0,
                 pp=20,
-                pp_current=20,
             ),
-            types.Move(
+            schema.Move(
                 name="Dash Claw",
+                flavor_text="A quick slash that lands before slower moves.",
                 type=types.VibemonTypeT.NORMAL,
                 category=types.MoveCategoryT.PHYSICAL,
                 power=24,
                 accuracy=1.0,
                 priority=1,
                 pp=30,
-                pp_current=30,
             ),
-        ]
+        ],
     )
 
-    vibemon = schema.BattleVibemon.from_affinities(
-        affinity,
-        name="Shocktail",
-        description="A storm-chasing quadruped with a whip-tail that stores static arcs.",
-    )
+    vibemon = schema.BattleVibemon(affinity=affinity, level=5)
 
     return vibemon
 
@@ -325,40 +318,40 @@ def create_shocktail() -> schema.BattleVibemon:
 def create_embermoth() -> schema.BattleVibemon:
     """Fake a new Vibemon."""
     affinity = schema.Affinity(
-        elements=[types.VibemonTypeT.FIRE],
-        base_hp=150,
-        base_attack=64,
-        base_defense=92,
-        base_sp_attack=78,
-        base_sp_defense=94,
-        base_speed=88,
+        identity=schema.Identity(
+            name="Embermoth",
+            elements=(types.VibemonTypeT.FIRE,),
+            base_hp=150,
+            base_attack=64,
+            base_defense=92,
+            base_sp_attack=78,
+            base_sp_defense=94,
+            base_speed=88,
+        ),
+        provider_id="debug",
         moves=[
-            types.Move(
+            schema.Move(
                 name="Cinder Lance",
+                flavor_text="A narrow lance of ember-hot air.",
                 type=types.VibemonTypeT.FIRE,
                 category=types.MoveCategoryT.SPECIAL,
                 power=30,
                 accuracy=1.0,
                 pp=20,
-                pp_current=20,
             ),
-            types.Move(
+            schema.Move(
                 name="Ash Flare",
+                flavor_text="A flare of ash and heat from patterned wings.",
                 type=types.VibemonTypeT.FIRE,
                 category=types.MoveCategoryT.SPECIAL,
                 power=22,
                 accuracy=1.0,
                 pp=25,
-                pp_current=25,
             ),
-        ]
+        ],
     )
 
-    vibemon = schema.BattleVibemon.from_affinities(
-        affinity,
-        name="Embermoth",
-        description="A volcanic moth with heat-diffusing wing scales and ember veins.",
-    )
+    vibemon = schema.BattleVibemon(affinity=affinity, level=5)
 
     return vibemon
 
@@ -368,26 +361,26 @@ def main() -> None:
     trainer_b_id = uuid.uuid4()
 
     engine = game_engine.GameEngine(
-        trainer_a=schema.Trainer(
+        trainer_a=schema.BattleTrainer(
             id=trainer_a_id,
-            name="Red",
+            username="Red",
             team=[create_shocktail()],
         ),
-        trainer_b=schema.Trainer(
+        trainer_b=schema.BattleTrainer(
             id=trainer_b_id,
-            name="Blue",
+            username="Blue",
             team=[create_embermoth()],
         ),
     )
 
-    action_a = types.Action(
+    action_a = schema.BattleAction(
         trainer_name=trainer_a_id,
-        action_type=types.ActionType.MOVE,
+        action_type=types.ActionTypeT.MOVE,
         value="Arc Burst",
     )
-    action_b = types.Action(
+    action_b = schema.BattleAction(
         trainer_name=trainer_b_id,
-        action_type=types.ActionType.MOVE,
+        action_type=types.ActionTypeT.MOVE,
         value="Cinder Lance",
     )
 
@@ -418,7 +411,7 @@ def main() -> None:
             text.Text.assemble(
                 ("Winner", "bold green"),
                 (": "),
-                (engine.battle.winner.name, "bold"),
+                (engine.battle.winner.username, "bold"),
                 ("!"),
             )
         )

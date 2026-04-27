@@ -5,31 +5,30 @@ import datetime as dt
 import math
 import random
 
-from pydantic import BaseModel, ConfigDict, model_validator
 import pydantic
 
 from app.balance.formulas import base_stat_scaling
-from app.genai.client import generate_vibemon_sprite
-from app.plugins.base import Base
+from app.genai.client import generate_vibemon_name, generate_vibemon_sprite
+from app.plugins.base import VibeProvider
 from app import const, types, utils, validators
 
 
 # ── INTERNALS ─────────────────────────────────────────────────────────────────────────
 
-class _Static(BaseModel):
+class _Static(pydantic.BaseModel):
     """Base configuration for all models."""
 
-    model_config = ConfigDict(
+    model_config = pydantic.ConfigDict(
         extra="forbid",
         frozen=True,
         arbitrary_types_allowed=True,
     )
 
 
-class _Transient(BaseModel):
+class _Transient(pydantic.BaseModel):
     """Base configuration for all models."""
 
-    model_config = ConfigDict(
+    model_config = pydantic.ConfigDict(
         extra="forbid",
         frozen=False,
         arbitrary_types_allowed=True,
@@ -38,12 +37,13 @@ class _Transient(BaseModel):
 
 # ── SEED ──────────────────────────────────────────────────────────────────────────────
 
+
 class BirthContext(_Static, arbitrary_types_allowed=True):
     """Represents the context in which a Vibemon is being created under."""
 
     timestamp: dt.datetime
     geo_coords: tuple[float, float]
-    providers: list[Base]
+    providers: list[VibeProvider]
 
     async def regenerate(self) -> Iterable[Affinity]:
         """Given the context, create the nature of a vibemon."""
@@ -52,6 +52,7 @@ class BirthContext(_Static, arbitrary_types_allowed=True):
 
 
 # ── IDENTITY ──────────────────────────────────────────────────────────────────────────
+
 
 class Trainer(_Transient):
     """A player in the Vibemon universe."""
@@ -62,6 +63,7 @@ class Trainer(_Transient):
 
 
 # ── IDENTITY ──────────────────────────────────────────────────────────────────────────
+
 
 class Identity(_Static):
     """Represents the core, immutable personality of a Vibemon."""
@@ -145,7 +147,7 @@ class Identity(_Static):
         is_fast_breaker = is_fast and (atk >= 70 or sp_atk >= 70)
         is_slow_breaker = is_slow and (atk >= 70 or sp_atk >= 70)
 
-        match (True):
+        match True:
             case _ if def_pct > 0.5 and is_tanky and ehp_pct > 0.2:
                 return ("DEFENSIVE_WALL", "A resilient wall with high HP and defenses designed to absorb hits.")
             case _ if def_pct > 0.4 and (atk >= 50 or sp_atk >= 50):
@@ -197,7 +199,7 @@ class Affinity(_Static):
             "base_speed",
         )
 
-        name  = ""
+        name = ""
         total = 0
         stats = {k: 0 for k in stat_keys}
         notes = []
@@ -219,10 +221,14 @@ class Affinity(_Static):
 
             if affinity.visual_notes:
                 notes.append(f"{affinity.visual_notes} ({weight}%)")
-        
+
         stats_merged = {k: math.floor(stats[k] / total) for k in stat_keys}
-        elements = random.sample([e for (e, _) in pop_e], k=random.randint(1, min(2, len(pop_e))), counts=[i for (_, i) in pop_e])
-        moves    = random.sample([e for (e, _) in pop_m], k=random.randint(2, min(3, len(pop_m))), counts=[i for (_, i) in pop_m])
+        elements = random.sample(
+            [e for (e, _) in pop_e], k=random.randint(1, min(2, len(pop_e))), counts=[i for (_, i) in pop_e]
+        )
+        moves = random.sample(
+            [e for (e, _) in pop_m], k=random.randint(2, min(3, len(pop_m))), counts=[i for (_, i) in pop_m]
+        )
 
         merged_affinity = Affinity(
             identity=Identity(
@@ -251,14 +257,13 @@ class Aesthetic(_Static):
         """Generalize from the Vibemon's attributes."""
         sprite_sheet = await generate_vibemon_sprite(vibemon=vibemon, bg_hex=bg_hex)
 
-        data = {
-            "sprites": utils.extract_sprites(sprite_sheet=sprite_sheet)
-        }
+        data = {"sprites": utils.extract_sprites(sprite_sheet=sprite_sheet)}
 
         return cls(**data)
 
 
 # ── MOVES ─────────────────────────────────────────────────────────────────────────────
+
 
 class MoveEffect(_Static):
     """Secondary effects that may occur when a move is used."""
@@ -290,6 +295,7 @@ class Move(_Static):
 
 # ── PERSONALITY ───────────────────────────────────────────────────────────────────────
 
+
 class Vibemon(_Transient):
     """Innate properties of a Vibemon with derived actual stats."""
 
@@ -312,10 +318,20 @@ class Vibemon(_Transient):
         """Create a Vibemon from a given context."""
         if not affinities:
             raise ValueError("Vibemon must be born from at least one Affinity!")
-        
+
+        affinity = Affinity.merge(*affinities, core_identity_description=core_identity)
+
+        name = await generate_vibemon_name(
+            identity=affinity.identity,
+            moves=affinity.moves,
+            visual_notes=affinity.visual_notes,
+        )
+
+        affinity = affinity.model_copy(update={"identity": affinity.identity.model_copy(update={"name": name})})
+
         instance = cls(
             nickname=nickname,
-            affinity=Affinity.merge(*affinities, core_identity_description=core_identity),
+            affinity=affinity,
             level=1,
             birth_affinities=affinities,
         )
@@ -323,17 +339,22 @@ class Vibemon(_Transient):
         instance._aesthetic = await Aesthetic.from_vibemon(instance)
 
         return instance
-    
+
     @property
     def name(self) -> str:
         """The nickname or identity name of a Vibemon."""
         return self.nickname or self.affinity.identity.name
-    
+
+    @property
+    def elements(self) -> tuple[types.VibemonTypeT, ...]:
+        """The Vibemon's elemental typing."""
+        return self.affinity.identity.elements
+
     @property
     def aesthetic(self) -> Aesthetic:
         """The visual and aural layout of the Vibemon."""
         if not hasattr(self, "_aesthetic"):
-            raise RuntimeError("You must call vibemon.")
+            raise RuntimeError("You must call vibemon.birth()")
 
         return self._aesthetic
 
@@ -374,6 +395,7 @@ class Vibemon(_Transient):
 
 # ── BATTLE ────────────────────────────────────────────────────────────────────────────
 
+
 class BattleAction(_Static):
     """An action selected by a trainer to perform during their turn."""
 
@@ -395,7 +417,7 @@ class TurnEvent(_Static):
     fainted: bool = False
 
 
-class TurnRecord(_Static):
+class TurnRecord(_Transient):
     """Represents a specific turn of a Vibemon battle."""
 
     turn_number: int
@@ -406,11 +428,11 @@ class TurnRecord(_Static):
 class Battle(_Transient):
     """Represents the state of a Vibemon battle."""
 
-    trainer_a: Trainer
-    trainer_b: Trainer
+    trainer_a: BattleTrainer
+    trainer_b: BattleTrainer
     turn_number: int = 1
     turn_history: list[TurnRecord] = pydantic.Field(default_factory=list)
-    winner: Trainer | None = None
+    winner: BattleTrainer | None = None
 
     @property
     def concluded(self) -> bool:
@@ -431,7 +453,7 @@ class BattleMove(Move, frozen=False):
     priority: int = 0
     crit_ratio: int = 0
 
-    @model_validator(mode='after')
+    @pydantic.model_validator(mode="after")
     def _set_current_pp_if_not_default(self) -> Self:
         if self.pp_current == -1:
             self.pp_current = self.pp
@@ -476,6 +498,7 @@ class BattleVibemon(Vibemon, frozen=False):
     """
 
     current_hp: int = 0
+    moves: list[BattleMove] = pydantic.Field(default_factory=list)
     status: types.StatusConditionT = types.StatusConditionT.NONE
     stat_stages: StatStages = pydantic.Field(default_factory=StatStages)
     crit_stage: int = 0
@@ -489,14 +512,16 @@ class BattleVibemon(Vibemon, frozen=False):
     taunt_turns: int = 0
     bound_turns: int = 0
 
-    @model_validator(mode="before")
-    @classmethod
-    def _apply_current_hp_if_not_given(cls, data: Any) -> Any:
-        """You can't create a Vibemon who is Fainted."""
-        if data["current_hp"] == 0:
-            data["current_hp"] = data["hp"]
+    @pydantic.model_validator(mode="after")
+    def _apply_battle_defaults(self) -> Self:
+        """Initialize transient battle state from the underlying Vibemon."""
+        if self.current_hp == 0:
+            self.current_hp = self.hp
 
-        return data
+        if not self.moves:
+            self.moves = [BattleMove(**move.model_dump()) for move in self.affinity.moves]
+
+        return self
 
     @property
     def max_hp(self) -> int:
