@@ -1,4 +1,5 @@
 from typing import Annotated, Literal, TypedDict, NotRequired
+from annotated_types import Len
 import enum
 import uuid
 
@@ -8,6 +9,7 @@ from PIL import Image
 type TrainerIdT = Annotated[uuid.UUID, "backend trainer identifier"]
 type BaseStatT = Annotated[int, "a clamped value between [5, 255]"]
 type BaseStatNameT = Literal["attack", "defense", "sp_attack", "sp_defense", "speed", "accuracy", "evasion"]
+type IdentityElementsT = Annotated[tuple[VibemonTypeT, ...], Len(min_length=1, max_length=2)]
 
 # ── Enums ────────────────────────────────────────────────────────────────────────────
 

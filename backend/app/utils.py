@@ -9,13 +9,21 @@ from app import types
 REMBG_SESSION = rembg.new_session("birefnet-general")
 
 
-def clamp(value: int, *, minimum: int, maximum: int) -> int:
-    """Ensure value is between minimum and maximum."""
+def clamp(value: float, *, minimum: float, maximum: float) -> float:
+    """Constraints a value within the inclusive range [minimum, maximum]."""
     return max(minimum, min(maximum, value))
 
 
+def normalize(value: float, *, low: float, high: float) -> float:
+    """Maps a value to a 0.0–1.0 scale relative to the range [low, high]."""
+    clamped = clamp(value, minimum=low, maximum=high)
+
+    return (clamped - low) / (high - low)
+
+
 def extract_sprites(sprite_sheet: bytes) -> types.SpriteLayout:
-    """Split a horizontal sheet of three sprites into three same-sized images.
+    """
+    Split a horizontal sheet of three sprites into three same-sized images.
 
     The three output images share dimensions; each sprite is anchored at the
     bottom-center of its canvas so they stand on a common floor.
@@ -29,9 +37,6 @@ def extract_sprites(sprite_sheet: bytes) -> types.SpriteLayout:
     # width are merged into one. Catches the case where the remover briefly disconnects
     # a held item (a leaf, a tool) from the sprite's body.
     HELD_ITEM_GAP_FRACTION = 1 / 40
-
-    # SPRITE_NAMES = ("perspective_player", "showcase", "opponent_perspective")
-    # SPRITE_NAMES = list(types.SpriteLayout.__annotations__.keys())
 
     # 1. Strip the background so only sprite pixels remain opaque.
     transparent_bytes = rembg.remove(sprite_sheet, session=REMBG_SESSION)

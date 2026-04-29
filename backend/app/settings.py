@@ -26,9 +26,6 @@ class Settings(pydantic_settings.BaseSettings):
     together_api_key: pydantic.SecretStr
     """https://api.together.ai/settings/profile"""
 
-    weather_api_key: pydantic.SecretStr
-    """https://www.weatherapi.com/my/"""
-
     # ── Specific models ───────────────────────────────────────────────────────────────
 
     txt_ai_model: str

@@ -7,9 +7,9 @@ import random
 
 import pydantic
 
-from app.balance.formulas import base_stat_scaling
+from app.balance.formulas import base_stat_level_scaling
 from app.genai.client import generate_vibemon_name, generate_battle_cry, generate_vibemon_sprite
-from app.plugins.base import VibeProvider
+from app.plugins.provider import VibeProvider
 from app import const, types, utils, validators
 
 
@@ -47,7 +47,7 @@ class BirthContext(_Static, arbitrary_types_allowed=True):
 
     async def regenerate(self) -> Iterable[Affinity]:
         """Given the context, create the nature of a vibemon."""
-        affinities = await asyncio.gather(*(p.generate(self) for p in self.providers))
+        affinities = await asyncio.gather(*(p.synthesize(self) for p in self.providers))
         return affinities
 
 
@@ -74,13 +74,13 @@ class Identity(_Static):
     visual_notes: str | None = None
     """Supplied by the Trainer themselves."""
 
-    elements: tuple[types.VibemonTypeT, ...] = ()
-    base_hp: int = 110
-    base_attack: int = 50
-    base_defense: int = 50
-    base_sp_attack: int = 50
-    base_sp_defense: int = 50
-    base_speed: int = 50
+    elements: types.IdentityElementsT
+    base_hp: int = 70          # MIN:  1 , MED: 70 , MAX: 255
+    base_attack: int = 75      # MIN:  5 , MED: 75 , MAX: 190
+    base_defense: int = 70     # MIN:  5 , MED: 70 , MAX: 230
+    base_sp_attack: int = 70   # MIN: 10 , MED: 70 , MAX: 194
+    base_sp_defense: int = 70  # MIN: 20 , MED: 70 , MAX: 230
+    base_speed: int = 70       # MIN:  5 , MED: 70 , MAX: 200
 
     evo_seed: int = pydantic.Field(default_factory=lambda: random.randint(1, 3))
     """The number of evolutions for this Vibemon."""
@@ -94,7 +94,7 @@ class Identity(_Static):
     @classmethod
     def null_identity(cls) -> Self:
         """Generates the NULL identity, for base stat manipulation."""
-        return cls(name="NULL", evo_seed=1, is_mythic=False)
+        return cls(name="NULL", elements=(), evo_seed=1, is_mythic=False)
 
     @property
     def bst(self) -> int:
@@ -394,32 +394,32 @@ class Vibemon(_Transient):
 
         HP adds level scaling for extra survivability at higher levels.
         """
-        return base_stat_scaling(self.affinity.identity.base_hp, level=self.level, true_floor=10)
+        return base_stat_level_scaling(self.affinity.identity.base_hp, level=self.level, true_floor=10)
 
     @property
     def attack(self) -> int:
         """Calculates the actual Attack stat."""
-        return base_stat_scaling(self.affinity.identity.base_attack, level=self.level)
+        return base_stat_level_scaling(self.affinity.identity.base_attack, level=self.level)
 
     @property
     def defense(self) -> int:
         """Calculates the actual Defense stat."""
-        return base_stat_scaling(self.affinity.identity.base_defense, level=self.level)
+        return base_stat_level_scaling(self.affinity.identity.base_defense, level=self.level)
 
     @property
     def sp_attack(self) -> int:
         """Calculates the actual Special Attack stat."""
-        return base_stat_scaling(self.affinity.identity.base_sp_attack, level=self.level)
+        return base_stat_level_scaling(self.affinity.identity.base_sp_attack, level=self.level)
 
     @property
     def sp_defense(self) -> int:
         """Calculates the actual Special Defense stat."""
-        return base_stat_scaling(self.affinity.identity.base_sp_defense, level=self.level)
+        return base_stat_level_scaling(self.affinity.identity.base_sp_defense, level=self.level)
 
     @property
     def speed(self) -> int:
         """Calculates the actual Speed stat."""
-        return base_stat_scaling(self.affinity.identity.base_speed, level=self.level)
+        return base_stat_level_scaling(self.affinity.identity.base_speed, level=self.level)
 
 
 # ── BATTLE ────────────────────────────────────────────────────────────────────────────

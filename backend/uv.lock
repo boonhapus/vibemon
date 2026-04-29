@@ -3674,6 +3674,7 @@ name = "vibemon-backend"
 version = "0.1.0"
 source = { editable = "." }
 dependencies = [
+    { name = "annotated-types" },
     { name = "elevenlabs" },
     { name = "google-genai" },
     { name = "jinja2" },
@@ -3699,6 +3700,7 @@ dev = [
 
 [package.metadata]
 requires-dist = [
+    { name = "annotated-types", specifier = ">=0.7.0" },
     { name = "elevenlabs", specifier = ">=1.15.0" },
     { name = "google-genai", specifier = ">=1.0.0" },
     { name = "jinja2", specifier = ">=3.1.6" },
