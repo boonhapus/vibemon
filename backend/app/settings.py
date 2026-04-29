@@ -1,29 +1,31 @@
-from typing import Self
+from typing import Annotated, Self
 import os
 
 import pydantic_settings
 import pydantic
 
+type MirrorToEnv[T] = Annotated[T, "MIRROR_TO_OS.ENVIRON"]
+
 
 class Settings(pydantic_settings.BaseSettings):
     """A collection for API keys."""
 
-    eleven_labs_api_key: pydantic.SecretStr
+    eleven_labs_api_key: MirrorToEnv[pydantic.SecretStr]
     """https://elevenlabs.io/app/api/api-keys"""
 
-    google_api_key: pydantic.SecretStr
+    google_api_key: MirrorToEnv[pydantic.SecretStr]
     """https://aistudio.google.com/api-keys"""
 
-    nvidia_api_key: pydantic.SecretStr | None = None
+    nvidia_api_key: MirrorToEnv[pydantic.SecretStr | None] = None
     """https://build.nvidia.com/settings/api-keys"""
 
-    openai_api_key: pydantic.SecretStr | None = None
+    openai_api_key: MirrorToEnv[pydantic.SecretStr | None] = None
     """https://platform.openai.com/api-keys"""
 
-    opencode_api_key: pydantic.SecretStr | None = None
+    opencode_api_key: MirrorToEnv[pydantic.SecretStr | None] = None
     """..."""
 
-    together_api_key: pydantic.SecretStr
+    together_api_key: MirrorToEnv[pydantic.SecretStr]
     """https://api.together.ai/settings/profile"""
 
     # ── Specific models ───────────────────────────────────────────────────────────────
@@ -47,13 +49,17 @@ class Settings(pydantic_settings.BaseSettings):
 
     @pydantic.model_validator(mode="after")
     def export_to_environ(self) -> Self:
-        for field_name, value in self:
-            field_name = field_name.upper()
+        """Sync loaded settings to os.environ for downstream libraries."""
+        for name, field in self.model_fields.items():
+            if any(m == "MIRROR_TO_OS.ENVIRON" for m in field.metadata):
+                if (val := getattr(self, name)) is None:
+                    continue
 
-            if value is None or "API_KEY" not in field_name:
-                continue
+                if hasattr(val, "get_secret_value"):
+                    val = val.get_secret_value()
 
-            os.environ[field_name] = value.get_secret_value() if isinstance(value, pydantic.SecretStr) else str(value)
+                # Set the environment variable
+                os.environ[name.upper()] = str(val)
 
         return self
 

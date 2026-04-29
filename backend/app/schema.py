@@ -4,6 +4,7 @@ import asyncio
 import datetime as dt
 import math
 import random
+import structlog
 
 import pydantic
 
@@ -209,6 +210,19 @@ class Affinity(_Static):
     """The source of steering."""
 
     moves: list[Move]
+
+    @pydantic.model_validator(mode="after")
+    def _validate_intensity(self) -> Self:
+        """Warn and clamp intensity to [0.0, 1.0] instead of failing."""
+        if self.intensity < 0.0 or self.intensity > 1.0:
+            structlog.get_logger(__name__).warning(
+                "affinity.intensity_out_of_bounds",
+                provider_id=self.provider_id,
+                intensity=self.intensity,
+                clamped_to=max(0.0, min(1.0, self.intensity)),
+            )
+            self.intensity = max(0.0, min(1.0, self.intensity))
+        return self
 
     @classmethod
     def merge(cls, *affinities: Affinity, core_identity_description: str | None = None) -> Affinity:
