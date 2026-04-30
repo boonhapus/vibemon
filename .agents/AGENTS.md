@@ -89,17 +89,8 @@ More Python import rules: `.agents/SKILLS/development/python-conventions/SKILL.m
 - Folder: `~/.agents/skills/`
 - `caveman` — ultra-compressed communication mode
 - `caveman-commit` — ultra-compressed commit messages
-- `find-skills` — discover and install new skills
 - `grill-me` — interview user to stress-test plans
 - `karpathy-guidelines` — reduce LLM coding mistakes
-- `nelson` — multi-agent task orchestration
-- `paseo` — manage agents via Paseo CLI
-- `paseo-chat` — use chat rooms through Paseo
-- `paseo-committee` — form committee for root cause analysis
-- `paseo-handoff` — hand off tasks to other agents
-- `paseo-loop` — run agent loop until exit condition
-- `paseo-orchestrate` — end-to-end implementation orchestrator
-- `paseo-orchestrator` — agent orchestration helper
 - `to-prd` — turn conversation into PRD
 - `wrangle-commits` — group staged changes into logical commits
 

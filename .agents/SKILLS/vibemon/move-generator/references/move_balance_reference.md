@@ -69,6 +69,70 @@ The spine of the whole system. *If you set power, the other two are 80% determin
 
 ---
 
+## 3.5. Power-Band Distribution Quotas (per batch)
+
+§3 anchors *each* move; §3.5 anchors *the batch*. Without quotas, batches drift toward the comfortable middle (65–100 BP) and capstones / spam tiers vanish. The targets below apply to **damaging moves only** (status moves are sized separately by §6 / §7).
+
+Let `D` = damaging move count in the batch.
+
+| Tier label  | Power     | Share of `D` | Per-tier floor | Real anchor                      |
+|-------------|-----------|--------------|----------------|----------------------------------|
+| `spam`      | 10–30     | 5–10%        | `≥0.5×target`  | Tackle, Pound, Vine Whip (45)    |
+| `early-stab`| 40–60     | 15–20%       | `≥0.5×target`  | Ember, Water Gun                 |
+| `mid`       | 65–80     | 25–30%       | `≥0.5×target`  | Bubble Beam, Flame Wheel         |
+| `workhorse` | 80–100    | 25–30%       | `≥0.5×target`  | Flamethrower, Surf, Earthquake   |
+| `high`      | 100–120   | 10–15%       | `≥0.5×target`  | Hydro Pump, Thunder, Fire Blast  |
+| `signature` | 120+      | 3–7%         | `≥1` (capstone)| Megahorn, Focus Blast, Hyper Beam|
+
+**Hard rules:**
+- **Floor**: each tier's realized count must be `≥ 50%` of its target.
+- **Ceiling**: no single tier may hold `> 40%` of `D`.
+- **Capstone**: every batch ships at least one signature (`power ≥ 120`) somewhere.
+
+### Spam-tier worked example — "Tackle"
+
+| Dial            | Value   | Reasoning |
+|-----------------|---------|-----------|
+| Type            | NORMAL  | Theme: bare-bones body check |
+| Category        | Physical| Natural lean |
+| Power           | 40      | Spam tier (§3 row 10–30 / 40–60 boundary) |
+| Accuracy        | 100%    | Cheap moves should hit |
+| PP              | 35      | Top of high-PP band — the *spammability* is the design |
+| Level requirement | L1    | §7 weak-damage band, §6 L1 pool |
+| Secondary       | none    | Cheap moves rarely carry riders (§8a) |
+
+Sanity: power is the cost of high PP, not vice versa. ✅
+
+---
+
+## 3.6. Priority Dial
+
+`schema.Move.priority` is the **turn-order dial** (range `−7..+7`, default `0`). It does not pay through accuracy; it pays through **power cap, PP, and rarity**. Most moves in any batch are priority `0`.
+
+**Per-batch budget:** `≤ 7%` of moves carry elevated priority (`priority ≥ 1`). Provider themes (e.g., wind/storm/quick-strike) may justify hitting the cap; slower or grounded providers should sit well below it.
+
+**Sparsity ladder.** Higher priority brackets are increasingly rare. Maximums below are *ceilings*, not targets — a typical batch leaves the upper rows empty.
+
+| Priority | Use case                        | Power cap     | Real anchor                           | Per-batch ceiling |
+|----------|---------------------------------|---------------|---------------------------------------|-------------------|
+| `+1`     | Quick chip / jab / pre-emptive  | `≤ 40` BP     | Quick Attack (40), Mach Punch (40), Aqua Jet (40), Sucker Punch (70 — pays via conditional miss) | up to ~5% of batch |
+| `+2`     | Signature mover                 | `≤ 80` BP     | Extreme Speed (80, very rare)         | ≤ ~1.5% of batch |
+| `+3`     | First-turn lock-in / setup payoff | status only | Fake Out (40, only first turn — illustrative) | trace |
+| `+4..+5` | Reserved control                | status only   | Quick Guard, priority blockers        | ≤ 1 per batch |
+| `+6..+7` | Capstone / unique mechanic      | status only   | Pursuit-style trapping (rare canon)   | almost never |
+| `0`      | Default                         | any           | most moves                            | rest of batch |
+| `−1..−7` | Slow finishers / last-strike    | high power OK | Vital Throw, Trick Room moves         | trace |
+
+**Anti-patterns:**
+- Priority `≥ 1` on power `≥ 80` without a balancing drawback (self-debuff, conditional miss, recharge).
+- Priority `≥ 3` on a damaging move.
+- Multiple priority moves of the same type in one batch (concentrates pressure on one matchup).
+- Negative priority paired with a weak power tier (the slow downside should buy a strong upside).
+
+**Heuristic:** if you can't name the *anchor* the priority move is paying for (low power, low PP, conditional clause, status-only), it's overtuned — drop priority back to `0` or weaken another dial.
+
+---
+
 ## 4. Type → Category: Natural Fit and When to Cross
 
 Each type leans physical or special based on lore. Cross the lean *only* when the specific move's flavor argues for it.
@@ -285,6 +349,27 @@ If any of these are true, the move is overtuned — weaken a dial.
 - [ ] 5 PP on a move under 90 power and without a heavy effect
 - [ ] Crossed type→category without a flavor reason (a "Special FIGHTING punch" or "Physical PSYCHIC beam")
 - [ ] Common move parked in the 56–80 or 81–100 level band
-- [ ] Batch's L1 ratio drifted far from ~70%
+- [ ] Batch's L1 ratio drifted outside `|L1/N − 0.7| ≤ 0.05` (HARD)
+- [ ] Any single type's L1 share drifted more than `±15pp` from the batch L1 ratio
 - [ ] Batch's damaging-move rider ratio drifted far from ~30% (most common drift: too many riders, making every move feel "loaded")
 - [ ] A damaging move has a rider with no thematic justification — added "because riders are interesting" rather than because the theme demanded it
+- [ ] Power-band distribution: any tier below 50% of §3.5 target, or any tier exceeding 40% of damaging moves
+- [ ] No capstone (power ≥ 120) anywhere in the batch
+- [ ] Elevated priority (`priority ≥ 1`) exceeds 7% of the batch
+- [ ] Priority ≥ 1 on power ≥ 80 without a balancing drawback, or priority ≥ 3 on a damaging move
+
+---
+
+## 3.7. Sure-Hit Budget (`accuracy=None`)
+
+Moves with `accuracy=None` (Sure-Hit) bypass accuracy and evasion checks. This is a powerful trait that must be budgeted tightly.
+
+**Per-batch budget:** `≤ 5%` of total moves.
+
+**Justification:** Only for moves themed around:
+- Homing / Tracking (Radar Jolt)
+- Aura projection / Mental lock-in (Aura Sphere)
+- Unavoidable field conditions (Cinder Draft, if themed as a wide area effect)
+- Magic / Fae trickery (Prism Breeze)
+
+**Default**: `accuracy=1.0` is the standard for reliable moves. Use `None` only when the fantasy *demands* it.

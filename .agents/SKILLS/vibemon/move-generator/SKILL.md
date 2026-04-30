@@ -6,7 +6,7 @@ description: >
   file writes are allowed only after explicit user approval. Uses provider docstring,
   type quotas, and learnset constraints.
 metadata:
-  version: 1.2.0
+  version: 1.3.0
 ---
 
 # Vibemon Move Generator (Orchestrator-First)
@@ -47,13 +47,19 @@ Default behavior is ideation orchestration, not code generation.
 
 ### Step A3 — Balance scaffold (still no code)
 
-- Quotas: `base = N // k`, `rem = N % k`, first `rem` types get +1.
-- Level-1 share: choose `L1` minimizing `|L1 / N - 0.7|` (tiebreak upward).
+- Type quotas: `base = N // k`, `rem = N % k`, first `rem` types get +1.
+- Level-1 share: choose `L1` minimizing `|L1 / N - 0.7|` (tiebreak upward). This is a **hard target**, not advisory — see Step B2.5 gate.
+- Per-type L1 floor: each type's L1 share must land within `±15pp` of the batch L1 ratio. No type may hoard or starve the L1 bucket.
 - Non-L1 levels: use `references/move_balance_reference.md`; keep `56-80` sparse, `81-100` trace.
 - Secondary-effect budget (damaging moves only): target `~70%` with no rider and `~30%` with riders.
   - Compute per-batch rider budget before ideation using `D = damaging_move_count`.
   - Use `R = round(0.3 * D)` as target rider count (acceptable drift: `R ± 1` for small batches).
   - Treat status moves separately: they always have effects and never count toward the damaging-move rider budget.
+- Power-band distribution (damaging moves only): compute per-tier targets from `references/move_balance_reference.md` §3.5.
+  - Floor: each tier must reach `≥50%` of its target count.
+  - Ceiling: no single tier may hold `>40%` of damaging moves.
+  - Capstone rule: at least **one** move at `power ≥120` per batch.
+- Priority budget: at most `~7%` of moves in the batch carry elevated priority (`priority ≥1`). Higher tiers (`+2..+7`) follow the sparsity ladder in `references/move_balance_reference.md` §3.6.
 
 ### Step A4 — Parallel creative subagents (required)
 
@@ -65,7 +71,10 @@ Run 3 subagents in parallel, then synthesize:
 Hard output format:
 - no Python, no code fences, no pseudo-code,
 - structured prose records only with:
-  `name`, `type`, `role`, `fantasy`, `counterplay`, `approx_power_band`, `level_band`, `effect_hook`.
+  `name`, `type`, `role`, `fantasy`, `counterplay`, `approx_power_band`, `power_tier`, `level_band`, `level`, `priority`, `effect_hook`.
+- `power_tier` ∈ {`status`, `spam`, `early-stab`, `mid`, `workhorse`, `high`, `signature`} per `references/move_balance_reference.md` §3.5.
+- `level` is the numeric `level_requirement` (1–100), not a band.
+- `priority` defaults to `0`; non-zero priority must cite §3.6 sparsity bracket.
 
 ### Step A5 — Code leakage handling (hard)
 
@@ -92,10 +101,23 @@ Enforce only within the current batch (no cross-run memory required).
 Present concise concept table. Require either per-row approval or explicit `approve all`.
 No Phase B without this gate.
 
+Before the table, print a **batch summary block** the user can verify at a glance:
+
+```
+Batch summary
+  N: <total>      L1 count: <X> / <N>      target: round(0.7 * N), tolerance ±5pp
+  Damaging: <D>   riders: <R> / <D>        target: round(0.3 * D)
+  Power tiers: spam=<a>  early=<b>  mid=<c>  workhorse=<d>  high=<e>  signature=<f>
+  Priority elevated (≥1): <p> / <N>        cap: round(0.07 * N)
+  Per-type L1 share min/max: <lo>% / <hi>% (must be within ±15pp of batch ratio)
+```
+
+A user cannot `approve all` without seeing this block first.
+
 Suggested columns:
 
-| Name | Type | Role | Fantasy | Power Band | Level Band | Effect Hook | Status |
-|------|------|------|---------|------------|------------|-------------|--------|
+| Name | Type | Role | Fantasy | Power Tier | Power Band | Level | Priority | Effect Hook | Status |
+|------|------|------|---------|------------|------------|-------|----------|-------------|--------|
 
 ---
 
@@ -128,6 +150,9 @@ In merge mode, resolve collisions per move with user input.
   - Let `D` be damaging moves in the rendered set; target `R = round(0.3 * D)` rider-bearing damaging moves.
   - Keep realized rider count within `R ± 1` (small-batch tolerance), preferring fewer riders when tied.
   - For damaging moves outside the rider budget, render with `effect=None`.
+- Enforce power-band distribution from Phase A: realized per-tier counts must respect §3.5 floors and ceiling. Re-tier a concept rather than dropping it from the band.
+- Enforce priority budget: realized count of `priority ≥1` moves must be `≤ round(0.07 * N)`. Respect the §3.6 sparsity ladder for `+2..+7`.
+- Enforce per-type L1 floor: each type's rendered L1 share within `±15pp` of the batch L1 ratio.
 - Quality is non-negotiable: never trade moveset quality for speed, token savings, or mechanical safety.
 - Never flatten effect design (for example: blanket `effect.chance=1.0` across most moves) unless the user explicitly requests a "safe baseline only" pass.
 - For effect-bearing moves, intentionally distribute reliability (`accuracy`, `pp`, `effect.chance`) so utility texture exists across the batch.
@@ -135,18 +160,23 @@ In merge mode, resolve collisions per move with user input.
 - If time-constrained, reduce scope (fewer moves) rather than lowering move quality.
 - Run `uv run ruff format backend/app/plugins/<provider>/moves.py` after rendering.
 
-### Step B2.5 — Mandatory balance quality gate (required)
+### Step B2.5 — Mandatory balance quality gate (BLOCKING)
 
-Before finalizing `moves.py`, perform and pass all checks below:
+Every check below is **MUST-PASS**. Run `uv run .agents/SKILLS/vibemon/move-generator/scripts/audit_moves.py <provider>` to verify metrics — the script exits non-zero on any HARD gate fail and prints a `VERDICT: PASS|FAIL` line. On any failure, revise the rendered set and re-run the gate before presenting completion. Do not ship a partially-passing batch.
 
-- L1 ratio check: verify batch-level level-1 share is near target from `|L1/N - 0.7|` tiebreak-up rule.
-- Level density check: keep `56-80` sparse and `81-100` trace unless explicitly requested otherwise.
-- Dial sanity check: run anti-pattern checks from `references/move_balance_reference.md` §12.
-- Effect texture check: ensure there is meaningful variance in effect reliability and not a dominant single pattern.
-- Damaging-rider ratio check: verify damaging moves are near `~70%` no rider / `~30%` rider-bearing (within Step B2 tolerance).
-- Type/category check: ensure cross-category choices are flavor-justified, not accidental.
+- **Batch Size (HARD)**: `N <= 100` per generation run to maintain quota accuracy. When auditing a provider whose `MOVES` tuple aggregates several past runs, raise the cap with `--cap` (e.g. `uv run .../audit_moves.py climate --cap 300`); quota gates remain proportional.
+- **L1 ratio (HARD)**: `|L1/N - 0.7| ≤ 0.05`. If outside this window, REJECT and rebalance — do not negotiate.
+- **Per-type L1 floor (HARD)**: every type's L1 share within `±15pp` of the batch L1 ratio.
+- **Level density**: keep `56-80` sparse and `81-100` trace unless explicitly requested otherwise.
+- **Power-band distribution (HARD)**: per `references/move_balance_reference.md` §3.5 — every tier ≥50% of target floor, no tier >40% of damaging moves, ≥1 capstone (power ≥120) present.
+- **Priority budget (HARD)**: count of moves with `priority ≥1` must be `≤ round(0.07 * N)`; per-tier sparsity caps from §3.6 hold.
+- **Sure-Hit budget (HARD)**: count of moves with `accuracy=None` must be `≤ round(0.05 * N)`.
+- **Dial sanity**: run anti-pattern checks from `references/move_balance_reference.md` §12.
+- **Effect texture**: meaningful variance in effect reliability; no single pattern dominates.
+- **Damaging-rider ratio (HARD)**: damaging moves at ~`70%` no rider / `~30%` rider-bearing (within Step B2 tolerance). STATUS moves are exempt from the ratio but should not be used to bypass the "Loaded" feel of a moveset.
+- **Type/category fit**: cross-category choices flavor-justified, not accidental.
 
-If any check fails, revise moves before presenting completion.
+After all checks pass, print the same batch summary block from Step A7 with realized values for the user to confirm.
 
 ### Step B3 — Chat output style
 
@@ -162,8 +192,12 @@ If any check fails, revise moves before presenting completion.
 - [ ] `available_types` inferred from docstring + `NORMAL`
 - [ ] `N >= k` enforced (or exception documented)
 - [ ] Per-type quotas computed with even split + enum-order remainder
-- [ ] `L1` chosen by `|L1/N - 0.7|` rule (upward tiebreak)
+- [ ] `L1` chosen by `|L1/N - 0.7|` rule (upward tiebreak), realized within `±5pp` (HARD)
+- [ ] Per-type L1 share within `±15pp` of batch ratio (HARD)
 - [ ] Non-L1 level bands follow `references/move_balance_reference.md` density guidance
+- [ ] Power-band distribution respects §3.5 floors, ceiling, and capstone rule
+- [ ] Priority budget: ≤7% elevated priority (`priority ≥1`); §3.6 sparsity respected
+- [ ] Approval gate showed batch summary block (Step A7) before user signed off
 - [ ] 3 parallel creative subagents were used in Phase A
 - [ ] Any code leakage was rejected and re-run policy applied
 - [ ] Intra-batch anti-repetition checks passed
@@ -181,3 +215,4 @@ If any check fails, revise moves before presenting completion.
 ## Reference
 
 - `references/move_balance_reference.md` (single source of truth for balancing and level placement)
+- `scripts/audit_moves.py` — gate generated moves data against the Step B2.5 HARD checks; prints A7 batch summary + per-gate `[PASS]/[FAIL]` and exits non-zero on any failure (run with `uv run .agents/SKILLS/vibemon/move-generator/scripts/audit_moves.py [provider]`)
