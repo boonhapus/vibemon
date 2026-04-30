@@ -8,7 +8,8 @@ from PIL import Image
 
 type TrainerIdT = Annotated[uuid.UUID, "backend trainer identifier"]
 type BaseStatT = Annotated[int, "a clamped value between [5, 255]"]
-type BaseStatNameT = Literal["attack", "defense", "sp_attack", "sp_defense", "speed", "accuracy", "evasion"]
+type UnitIntervalT = Annotated[float, "a clamped value between [0, 1]"]
+type BaseStatNameT = Literal["hp", "attack", "defense", "sp_attack", "sp_defense", "speed", "accuracy", "evasion"]
 type IdentityElementsT = Annotated[tuple[VibemonTypeT, ...], Len(min_length=1, max_length=2)]
 
 # ── Enums ────────────────────────────────────────────────────────────────────────────

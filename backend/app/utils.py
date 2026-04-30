@@ -14,13 +14,6 @@ def clamp(value: float, *, minimum: float, maximum: float) -> float:
     return max(minimum, min(maximum, value))
 
 
-def normalize(value: float, *, low: float, high: float) -> float:
-    """Maps a value to a 0.0–1.0 scale relative to the range [low, high]."""
-    clamped = clamp(value, minimum=low, maximum=high)
-
-    return (clamped - low) / (high - low)
-
-
 def extract_sprites(sprite_sheet: bytes) -> types.SpriteLayout:
     """
     Split a horizontal sheet of three sprites into three same-sized images.

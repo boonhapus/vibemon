@@ -1,4 +1,4 @@
-from typing import Annotated, Any, Self
+from typing import Annotated, Any, Literal, Self
 from collections.abc import Iterable
 import asyncio
 import datetime as dt
@@ -9,9 +9,10 @@ import structlog
 import pydantic
 
 from app.balance.formulas import base_stat_level_scaling
-from app.genai.client import generate_vibemon_name, generate_battle_cry, generate_vibemon_sprite
 from app.plugins.provider import VibeProvider
 from app import const, types, utils, validators
+
+_LOGGER = structlog.get_logger(__name__)
 
 
 # ── INTERNALS ─────────────────────────────────────────────────────────────────────────
@@ -76,12 +77,12 @@ class Identity(_Static):
     """Supplied by the Trainer themselves."""
 
     elements: types.IdentityElementsT
-    base_hp: int = 70          # MIN:  1 , MED: 70 , MAX: 255
-    base_attack: int = 75      # MIN:  5 , MED: 75 , MAX: 190
-    base_defense: int = 70     # MIN:  5 , MED: 70 , MAX: 230
-    base_sp_attack: int = 70   # MIN: 10 , MED: 70 , MAX: 194
-    base_sp_defense: int = 70  # MIN: 20 , MED: 70 , MAX: 230
-    base_speed: int = 70       # MIN:  5 , MED: 70 , MAX: 200
+    base_hp: int         = pydantic.Field(default=70, ge= 1, le=255, json_schema_extra={"min":  1, "med": 70, "max": 255})
+    base_attack: int     = pydantic.Field(default=75, ge= 5, le=190, json_schema_extra={"min":  5, "med": 75, "max": 190})
+    base_defense: int    = pydantic.Field(default=70, ge= 5, le=230, json_schema_extra={"min":  5, "med": 70, "max": 230})
+    base_sp_attack: int  = pydantic.Field(default=70, ge=10, le=194, json_schema_extra={"min": 10, "med": 70, "max": 194})
+    base_sp_defense: int = pydantic.Field(default=70, ge=20, le=230, json_schema_extra={"min": 20, "med": 70, "max": 230})
+    base_speed: int      = pydantic.Field(default=70, ge= 5, le=200, json_schema_extra={"min":  5, "med": 70, "max": 200})
 
     evo_seed: int = pydantic.Field(default_factory=lambda: random.randint(1, 3))
     """The number of evolutions for this Vibemon."""
@@ -93,9 +94,11 @@ class Identity(_Static):
     """A rare, alternative style that differs from its peer identities' appearance."""
 
     @classmethod
-    def null_identity(cls) -> Self:
-        """Generates the NULL identity, for base stat manipulation."""
-        return cls(name="NULL", elements=(), evo_seed=1, is_mythic=False)
+    def _stat_info(cls, name: types.BaseStatNameT, type: Literal["min", "med", "max"] = "med") -> int | None:
+        """Fetch the descriptive statistic of the base stat field."""
+        if (field := cls.model_fields.get(f"base_{name}")) and field.json_schema_extra:
+            return field.json_schema_extra[type]  # type: ignore
+        return None
 
     @property
     def bst(self) -> int:
@@ -203,7 +206,7 @@ class Affinity(_Static):
     visual_notes: str | None = None
     """Supplied by a data provider."""
 
-    intensity: float = 1.0
+    intensity: float = 0.5
     """The mangitude of the steering relative to other providers."""
 
     provider_id: str
@@ -214,14 +217,20 @@ class Affinity(_Static):
     @pydantic.model_validator(mode="after")
     def _validate_intensity(self) -> Self:
         """Warn and clamp intensity to [0.0, 1.0] instead of failing."""
-        if self.intensity < 0.0 or self.intensity > 1.0:
-            structlog.get_logger(__name__).warning(
-                "affinity.intensity_out_of_bounds",
-                provider_id=self.provider_id,
-                intensity=self.intensity,
-                clamped_to=max(0.0, min(1.0, self.intensity)),
-            )
-            self.intensity = max(0.0, min(1.0, self.intensity))
+        if 0.0 <= self.intensity <= 1.0:
+            return self
+
+        old = float(self.intensity)
+
+        self.intensity = utils.clamp(old, minimum=0.0, maximum=1.0)
+
+        _LOGGER.warning(
+            "Affinity.intensity out of bounds",
+            provider=self.provider_id,
+            original=old,
+            clamp_to=self.intensity,
+        )
+
         return self
 
     @classmethod
@@ -294,6 +303,8 @@ class Aesthetic(_Static):
     @classmethod
     async def from_vibemon(cls, vibemon: Vibemon, bg_hex: str = "#C47A7A") -> Self:
         """Generalize from the Vibemon's attributes."""
+        from app.genai.client import generate_battle_cry, generate_vibemon_sprite
+
         sprite_sheet = await generate_vibemon_sprite(vibemon=vibemon, bg_hex=bg_hex)
         battle_cry = await generate_battle_cry(vibemon=vibemon)
 
@@ -359,6 +370,8 @@ class Vibemon(_Transient):
     @classmethod
     async def birth(cls, *affinities: Affinity, nickname: str | None = None, core_identity: str | None = None) -> Self:
         """Create a Vibemon from a given context."""
+        from app.genai.client import generate_vibemon_name
+
         if not affinities:
             raise ValueError("Vibemon must be born from at least one Affinity!")
 

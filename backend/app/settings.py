@@ -50,7 +50,7 @@ class Settings(pydantic_settings.BaseSettings):
     @pydantic.model_validator(mode="after")
     def export_to_environ(self) -> Self:
         """Sync loaded settings to os.environ for downstream libraries."""
-        for name, field in self.model_fields.items():
+        for name, field in Settings.model_fields.items():
             if any(m == "MIRROR_TO_OS.ENVIRON" for m in field.metadata):
                 if (val := getattr(self, name)) is None:
                     continue
