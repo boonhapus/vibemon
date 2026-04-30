@@ -22,13 +22,13 @@ This file tells coding agents what the vibemon project uses and what to follow.
 - Python 3.14
 - uv (use this to run Python commands)
 
-**Python libraries (see also `python-conventions` skill)**
+**Python libraries (see also `development/python-conventions` skill)**
 
 - HTTP client: niquests
 - Data models and parsing: Pydantic
 - Logs: structlog
 
-More Python import rules: `.agents/SKILLS/python-conventions/SKILL.md`
+More Python import rules: `.agents/SKILLS/development/python-conventions/SKILL.md`
 
 ---
 
@@ -93,5 +93,12 @@ More Python import rules: `.agents/SKILLS/python-conventions/SKILL.md`
 **Inside this repo**
 
 - Path: `.agents/SKILLS/`
-- `python-conventions` — Python imports and libs
-- `wrangle-commits` — how to split commits
+
+**Development**
+
+- `development/python-conventions` — Python imports and libs
+- `development/wrangle-commits` — how to split commits
+
+**Vibemon**
+
+- `vibemon/move-generator` — provider-driven move generation playbook (also read `vibemon/move-generator/references/balance-tables.md`)
