@@ -13,11 +13,22 @@ class VibeProvider(abc.ABC):
     - implement `synthesize()` to translate raw API data to Affinity components
     - optionally override `teardown()` when managing resources
 
-    Use optional helpers from `app.plugins.helpers`:
-    - normalize(value, low, high) -> float
-    - select_elements(scores, primary_min, secondary_ratio) -> tuple
-    - sample_move_pool(weighted_moves, pool_size) -> list[Move]
-    - apply_type_affinity_weights(move_weights, elements) -> dict
+    ──── Docstring convention for subclasses ───────────────────────────────────────────
+
+    A provider's class docstring should follow this five-part shape so that
+    readers can quickly grasp both what it does and the aesthetic it imparts
+    to a Vibemon. See `ClimateProvider` for a worked example.
+
+    1. Opening line — one evocative sentence stating the provider's thematic
+       premise (e.g. "A Vibemon is born from the sky above its birthplace.").
+    2. Preamble — one sentence naming the data source and noting that its
+       signals fold into a `schema.Affinity`.
+    3. Type list — a bullet list of `TYPE — conditions that drive it`,
+       covering every elemental type the provider can score.
+    4. Stats line — one sentence mapping the six signals chosen for HP,
+       Attack, Defense, Sp. Attack, Sp. Defense, and Speed.
+    5. Closer — a short "the result is..." paragraph illustrating how
+       different inputs produce visibly different creatures.
     """
 
     name: ClassVar[str]
