@@ -84,21 +84,27 @@ More Python import rules: `.agents/SKILLS/development/python-conventions/SKILL.m
 ---
 
 ## Skills (extra playbooks)
-
 **On this machine (not in the repo folder)**
 
 - Folder: `~/.agents/skills/`
-- Examples: caveman, caveman-commit, nelson, karpathy-guidelines
+- `caveman` — ultra-compressed communication mode
+- `caveman-commit` — ultra-compressed commit messages
+- `find-skills` — discover and install new skills
+- `grill-me` — interview user to stress-test plans
+- `karpathy-guidelines` — reduce LLM coding mistakes
+- `nelson` — multi-agent task orchestration
+- `paseo` — manage agents via Paseo CLI
+- `paseo-chat` — use chat rooms through Paseo
+- `paseo-committee` — form committee for root cause analysis
+- `paseo-handoff` — hand off tasks to other agents
+- `paseo-loop` — run agent loop until exit condition
+- `paseo-orchestrate` — end-to-end implementation orchestrator
+- `paseo-orchestrator` — agent orchestration helper
+- `to-prd` — turn conversation into PRD
+- `wrangle-commits` — group staged changes into logical commits
 
 **Inside this repo**
 
 - Path: `.agents/SKILLS/`
-
-**Development**
-
 - `development/python-conventions` — Python imports and libs
-- `development/wrangle-commits` — how to split commits
-
-**Vibemon**
-
-- `vibemon/move-generator` — provider-driven move generation playbook (also read `vibemon/move-generator/references/balance-tables.md`)
+- `vibemon/move-generator` — provider-driven move generation playbook (also read `vibemon/move-generator/references/move_balance_reference.md`)

@@ -10,6 +10,7 @@ type TrainerIdT = Annotated[uuid.UUID, "backend trainer identifier"]
 type BaseStatT = Annotated[int, "a clamped value between [5, 255]"]
 type UnitIntervalT = Annotated[float, "a clamped value between [0, 1]"]
 type BaseStatNameT = Literal["hp", "attack", "defense", "sp_attack", "sp_defense", "speed", "accuracy", "evasion"]
+type StatStageNameT = Literal["attack", "defense", "sp_attack", "sp_defense", "speed", "accuracy", "evasion"]
 type IdentityElementsT = Annotated[tuple[VibemonTypeT, ...], Len(min_length=1, max_length=2)]
 
 # ── Enums ────────────────────────────────────────────────────────────────────────────
@@ -76,28 +77,6 @@ class MoveCategoryT(enum.StrEnum):
     PHYSICAL = "physical"
     SPECIAL = "special"
     STATUS = "status"
-
-
-class MoveTargetT(enum.StrEnum):
-    """Valid targets for a move during battle."""
-
-    SELF = "self"
-    SINGLE = "single"
-    ALL_OPPONENTS = "all_opponents"
-    ALL_ADJACENT = "all_adjacent"
-
-
-class WeatherT(enum.StrEnum):
-    """Battle weather conditions that affect certain Vibemon types."""
-
-    CLEAR = "clear"
-    SUN = "sun"
-    RAIN = "rain"
-    SANDSTORM = "sandstorm"
-    HAIL = "hail"
-    HEAVY_RAIN = "heavy_rain"
-    EXTREME_SUN = "extreme_sun"
-    STRONG_WINDS = "strong_winds"
 
 
 class ActionTypeT(enum.StrEnum):

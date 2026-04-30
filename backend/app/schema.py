@@ -323,7 +323,7 @@ class MoveEffect(_Static):
     """Secondary effects that may occur when a move is used."""
 
     status_inflict: types.StatusConditionT | None = None
-    stat_changes: dict[types.BaseStatNameT, int] = pydantic.Field(default_factory=dict)
+    stat_changes: dict[types.StatStageNameT, int] = pydantic.Field(default_factory=dict)
     target_self: bool = False
     chance: float = 1.0
 
