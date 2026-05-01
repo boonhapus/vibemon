@@ -6,7 +6,7 @@ description: >
   file writes are allowed only after explicit user approval. Uses provider docstring,
   type quotas, and learnset constraints.
 metadata:
-  version: 1.3.0
+  version: 1.3.1
 ---
 
 # Vibemon Move Generator (Orchestrator-First)
@@ -135,6 +135,10 @@ In merge mode, resolve collisions per move with user input.
 
 ### Step B2 — Render rules
 
+- **Generation banner (required on every `moves.py` write):** Immediately after the module imports and before `MOVES = (`, include a single full-line comment marking the batch. Format (fixed width, pad with `─` on the right to the line length used in existing files):
+  - `# ── AI GENERATED v<semver> @ YYYY/MM/DD ─────────────────...`
+  - Example: `# ── AI GENERATED v1.1.0 @ 2026/04/30 ──────────────────────────────────────────────────` (see `backend/app/plugins/climate/moves.py` line 3).
+  - Bump `<semver>` appropriately for the change (patch for small batches / fixes, minor for substantial moveset revisions). Use the **actual calendar date** of the write for `YYYY/MM/DD`.
 - Convert approved concepts into `schema.Move`.
 - Use `from app import schema, types` and enum members (no raw strings).
 - Enforce `1 <= level_requirement <= 100`.
@@ -203,6 +207,7 @@ After all checks pass, print the same batch summary block from Step A7 with real
 - [ ] Intra-batch anti-repetition checks passed
 - [ ] Manual concept approval occurred before Phase B
 - [ ] Phase B edits happened only after explicit trigger and write-mode confirmation
+- [ ] `moves.py` opens with the AI GENERATED banner (semver + `YYYY/MM/DD`) after imports, before `MOVES`
 - [ ] Final `moves.py` uses only inlined `schema.Move(...)` entries (no helper maps/builders/generators/comprehensions)
 - [ ] Flavor text is unique and move-specific (not templated boilerplate)
 - [ ] `power`/`accuracy`/`pp`/`level_requirement` were selected by consulting `references/move_balance_reference.md`
