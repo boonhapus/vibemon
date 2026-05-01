@@ -1,16 +1,16 @@
 ---
 name: vibemon-name
 description: Generates a Pokémon-style name for a Vibemon given its identity.
-version: 1.1.0
+version: 1.1.1
 ---
 {% set notes = [identity.visual_notes, visual_notes] | reject("none") | list %}
 
 Generate a name for a Pokémon-style monster that embodies the following characteristics
 
-Type: {{ identity.elements | join(",") }}
+Type: {{ identity.elements | join(", ") }}
 BST: {{ identity.bst }}
 
-Concept: {{ notes | join(",") if notes else "None" }}
+Concept: {{ notes | join(", ") if notes else "None" }}
 
 Moveset:
 {% for move in moves -%}
@@ -25,8 +25,8 @@ BST tier reference:
   670+     mythic  — dense clusters, archaic suffixes (-yx, -oth, -aeus, -ion), uncommon letters (X, Z, Y as vowel), ancient-sounding roots
 
 Rules:
-1. Concept is the primary steering signal — the name must reflect it. Moveset is secondary flavor for whatever Concept leaves unspecified.
-2. Pick two source words: one surface/visual, one underlying mechanic or threat. If Concept supplies only one, draw the second from the moveset's dominant theme. If Concept and moveset contradict, Concept wins.
+1. Fusion contract — **Type** and **Concept** are co-primary: the name should plausibly suggest **both** the listed element(s) and the identity. **Moveset** is tertiary (texture, secondary motif); use it only where Concept is thin. If moveset and Concept disagree, **Concept** wins over moveset (never as an excuse to drop the elemental anchor).
+2. Slots — Fuse **(A) an elemental fragment**: a coined morpheme or tight sound-shape that evokes the Type line without being a plain English type word, and **(B) an identity fragment** from Concept / visual notes. If there are **two Types**, both must leave a trace in the fusion (split across syllables, blended phonemes, or one type-colored onset and one type-colored rime). If Concept is sparse, you may add **at most one** extra cluster from the moveset's dominant theme to reinforce **(B)** — not in place of **(A)**.
 3. Fuse the sources phonetically — overlap shared sounds, elide syllables, or interleave phonemes. End-to-end stitching (magma|mantis) is too weak; the seam should dissolve.
 4. 2–3 syllables, 4 acceptable if the fusion demands it. One word or one hyphenated pair.
 5. Coined word only. No real words, no common compounds, no trivial suffixes on real words (cloudix, stormo).
