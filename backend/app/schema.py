@@ -10,6 +10,7 @@ import pydantic
 
 from app.balance.formulas import base_stat_level_scaling
 from app.plugins.provider import VibeProvider
+from app.settings import settings
 from app import const, types, utils, validators
 
 _LOGGER = structlog.get_logger(__name__)
@@ -269,12 +270,8 @@ class Affinity(_Static):
                 notes.append(f"{affinity.visual_notes} ({weight}%)")
 
         stats_merged = {k: math.floor(stats[k] / total) for k in stat_keys}
-        elements = random.sample(
-            [e for (e, _) in pop_e], k=random.randint(1, min(2, len(pop_e))), counts=[i for (_, i) in pop_e]
-        )
-        moves = random.sample(
-            [e for (e, _) in pop_m], k=random.randint(2, min(3, len(pop_m))), counts=[i for (_, i) in pop_m]
-        )
+        elements = utils.weighted_sample(*zip(*pop_e), k=random.randint(1, min(2, len(pop_e))))
+        moves    = utils.weighted_sample(*zip(*pop_m), k=random.randint(2, min(3, len(pop_m))))
 
         merged_affinity = Affinity(
             identity=Identity(
@@ -346,6 +343,16 @@ class Move(_Static):
     effect: MoveEffect | None = None
     level_requirement: int = 1
 
+    def __hash__(self) -> int:
+        """There should be no two moves named the same."""
+        return hash(self.name)
+    
+    def __eq__(self, other: object) -> bool:
+        """There should be no two moves named the same."""
+        if not isinstance(other, Move):
+            return NotImplemented
+        return self.name == other.name
+
 
 # ── PERSONALITY ───────────────────────────────────────────────────────────────────────
 
@@ -392,7 +399,8 @@ class Vibemon(_Transient):
             birth_affinities=affinities,
         )
 
-        instance._aesthetic = await Aesthetic.from_vibemon(instance)
+        if not settings.headless:
+            instance._aesthetic = await Aesthetic.from_vibemon(instance)
 
         return instance
 

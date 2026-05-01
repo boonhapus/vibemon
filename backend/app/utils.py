@@ -1,4 +1,7 @@
+from collections.abc import Iterable
+import concurrent.futures
 import io
+import random
 
 from PIL import Image
 import numpy as np
@@ -6,12 +9,63 @@ import rembg
 
 from app import types
 
-REMBG_SESSION = rembg.new_session("birefnet-general")
+
+class RembgSessionizer:
+    """
+    A rembg session that loads its model on a background thread.
+
+    Construction returns immediately; the first call to `remove()` blocks if
+    the model isn't loaded yet.
+    """
+
+    def __init__(self, model_name: str) -> None:
+        executor = concurrent.futures.ThreadPoolExecutor(max_workers=1)
+        self._future = executor.submit(rembg.new_session, model_name)
+        executor.shutdown(wait=False)
+
+    def remove(self, image_bytes: bytes, **options) -> bytes:
+        """Remove the background from an input image."""
+        return rembg.remove(image_bytes, **options, session=self._future.result())
+
+    def is_ready(self) -> bool:
+        """True if the model has finished loading (useful for status UI)."""
+        return self._future.done()
+
+
+REMBG_SESSION = RembgSessionizer("birefnet-general")
 
 
 def clamp(value: float, *, minimum: float, maximum: float) -> float:
     """Constraints a value within the inclusive range [minimum, maximum]."""
     return max(minimum, min(maximum, value))
+
+
+def weighted_sample[T](
+    population: Iterable[T],
+    weights: Iterable[float],
+    *,
+    k: int = 1,
+) -> list[T]:
+    """Like random.choices, but without replacement."""
+    # Convert these to lists so we can be sure that indexing and .pop() works.
+    population = list(population)
+    weights    = list(weights)
+
+    if len(population) != len(weights):
+        raise ValueError("population and weights must have the same length")
+
+    if not (0 < k <= len(population)):
+        raise ValueError(f"k must be between 0 and {len(population) + 1}")
+
+    r: list[T] = []
+
+    for s in range(k):
+        i = random.choices(range(len(population)), weights=weights, k=1)[0]
+        _ = weights.pop(i)
+        e = population.pop(i)
+        r.append(e)
+
+    return r
 
 
 def extract_sprites(sprite_sheet: bytes) -> types.SpriteLayout:
@@ -32,7 +86,7 @@ def extract_sprites(sprite_sheet: bytes) -> types.SpriteLayout:
     HELD_ITEM_GAP_FRACTION = 1 / 40
 
     # 1. Strip the background so only sprite pixels remain opaque.
-    transparent_bytes = rembg.remove(sprite_sheet, session=REMBG_SESSION)
+    transparent_bytes = REMBG_SESSION.remove(sprite_sheet)
     sheet = Image.open(io.BytesIO(transparent_bytes)).convert("RGBA")
 
     if sheet.getbbox() is None:

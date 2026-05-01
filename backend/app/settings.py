@@ -1,31 +1,31 @@
-from typing import Annotated, Self
+from typing import Self
 import os
 
 import pydantic_settings
 import pydantic
 
-type MirrorToEnv[T] = Annotated[T, "MIRROR_TO_OS.ENVIRON"]
-
 
 class Settings(pydantic_settings.BaseSettings):
     """A collection for API keys."""
+    headless: bool = False
+    """Whether to generate the Aesthetic or not."""
 
-    eleven_labs_api_key: MirrorToEnv[pydantic.SecretStr]
+    eleven_labs_api_key: pydantic.SecretStr = pydantic.Field(json_schema_extra={"mirror_to_os.environ": True})
     """https://elevenlabs.io/app/api/api-keys"""
 
-    google_api_key: MirrorToEnv[pydantic.SecretStr]
+    google_api_key: pydantic.SecretStr = pydantic.Field(json_schema_extra={"mirror_to_os.environ": True})
     """https://aistudio.google.com/api-keys"""
 
-    nvidia_api_key: MirrorToEnv[pydantic.SecretStr | None] = None
+    nvidia_api_key: pydantic.SecretStr | None = pydantic.Field(None, json_schema_extra={"mirror_to_os.environ": True})
     """https://build.nvidia.com/settings/api-keys"""
 
-    openai_api_key: MirrorToEnv[pydantic.SecretStr | None] = None
+    openai_api_key: pydantic.SecretStr | None = pydantic.Field(None, json_schema_extra={"mirror_to_os.environ": True})
     """https://platform.openai.com/api-keys"""
 
-    opencode_api_key: MirrorToEnv[pydantic.SecretStr | None] = None
+    opencode_api_key: pydantic.SecretStr | None = pydantic.Field(None, json_schema_extra={"mirror_to_os.environ": True})
     """..."""
 
-    together_api_key: MirrorToEnv[pydantic.SecretStr]
+    together_api_key: pydantic.SecretStr = pydantic.Field(json_schema_extra={"mirror_to_os.environ": True})
     """https://api.together.ai/settings/profile"""
 
     # ── Specific models ───────────────────────────────────────────────────────────────
@@ -35,7 +35,11 @@ class Settings(pydantic_settings.BaseSettings):
 
     # ── Configuration ─────────────────────────────────────────────────────────────────
 
-    model_config = pydantic_settings.SettingsConfigDict(env_file=(".env", "../.env"), env_file_encoding="utf-8")
+    model_config = pydantic_settings.SettingsConfigDict(
+        env_file=(".env", "../.env"),
+        env_file_encoding="utf-8",
+        extra="ignore",
+    )
 
     @pydantic.field_validator("txt_ai_model", "img_ai_model")
     @classmethod
@@ -51,15 +55,20 @@ class Settings(pydantic_settings.BaseSettings):
     def export_to_environ(self) -> Self:
         """Sync loaded settings to os.environ for downstream libraries."""
         for name, field in Settings.model_fields.items():
-            if any(m == "MIRROR_TO_OS.ENVIRON" for m in field.metadata):
-                if (val := getattr(self, name)) is None:
-                    continue
+            if field.json_schema_extra is None:
+                continue
+            if not isinstance(field.json_schema_extra, dict):
+                continue
+            if not field.json_schema_extra.get("mirror_to_os.environ"):
+                continue
 
-                if hasattr(val, "get_secret_value"):
-                    val = val.get_secret_value()
+            val = getattr(self, name)
 
-                # Set the environment variable
-                os.environ[name.upper()] = str(val)
+            if hasattr(val, "get_secret_value"):
+                val = val.get_secret_value()
+
+            if os.getenv(env_key := name.upper()) != str(val):
+                os.environ[env_key] = str(val)
 
         return self
 
