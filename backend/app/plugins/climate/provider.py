@@ -345,12 +345,14 @@ class ClimateProvider(VibeProvider):
 
         wmo_code = WeatherCode(s["weather_code"][i])
         rankings = self.determine_element_scores(signals=signals, weather_code=wmo_code)
-        starters = {m: int(rankings[m.type] * 100) for m in moves.MOVES if m.level_requirement == 1}
+        elements = filter_element_types(rankings)
+        bonus_fx = ft.partial(lambda m: 2 if m.type in (*elements, types.VibemonTypeT.NORMAL) else 0.5)
+        starters = {m: rankings[m.type] * bonus_fx(m) for m in moves.MOVES if m.level_requirement == 1}
 
         affinity = schema.Affinity(
             identity=schema.Identity(
                 name="__",
-                elements=filter_element_types(rankings),
+                elements=elements,
                 base_hp=base_stat_asymmetric_scaling(signals["spread"].normal, stat="hp"),
                 base_attack=base_stat_asymmetric_scaling(signals["wind_gusts"].normal, stat="attack"),
                 base_defense=base_stat_asymmetric_scaling(signals["elevation"].normal, stat="defense"),
@@ -361,7 +363,7 @@ class ClimateProvider(VibeProvider):
             visual_notes=wmo_code.description,
             intensity=self.calculate_intensity(s, index=i),
             provider_id=self.name,
-            moves=random.sample(list(starters.keys()), k=10, counts=list(starters.values())),
+            moves=utils.weighted_sample(starters.keys(), starters.values(), k=10),
         )
 
         return affinity

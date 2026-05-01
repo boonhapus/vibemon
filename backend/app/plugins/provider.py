@@ -1,7 +1,8 @@
-from typing import ClassVar
+from typing import ClassVar, TYPE_CHECKING
 import abc
 
-from app import schema
+if TYPE_CHECKING:
+   from app import schema
 
 
 class VibeProvider(abc.ABC):

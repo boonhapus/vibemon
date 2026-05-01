@@ -1,5 +1,8 @@
 from app import schema, types
 
+# ── AI GENERATED v1.1.0 @ 2026/04/30 ──────────────────────────────────────────────────
+
+
 MOVES = (
     schema.Move(
         name="Barometer Jab",
