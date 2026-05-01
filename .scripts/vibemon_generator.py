@@ -22,13 +22,20 @@ from app.settings import settings
 from app import schema
 
 _LOGGER = structlog.get_logger(__name__)
+rich_console = console.Console()
 
 
 def get_random_city(population_ge: int = 1_000_000) -> geonamescache.City:
     """Fetch a random city."""
     cache = geonamescache.GeonamesCache()
-    major_cities = [c for c in cache.get_cities().values() if c["population"] >= population_ge]
-    return random.choice(major_cities)
+
+    major_city = random.choice([c for c in cache.get_cities().values() if c["population"] >= population_ge])
+    country    = next(c for iso, c in cache.get_countries().items() if iso == major_city["countrycode"])
+
+    # Add the Country.name
+    major_city["country"] = country["name"]
+
+    return major_city
 
 
 async def generate_vibemon_in_world() -> tuple[str, str, schema.BirthContext, schema.Vibemon]:
@@ -53,7 +60,7 @@ async def generate_vibemon_in_world() -> tuple[str, str, schema.BirthContext, sc
         for key, sprite in vibemon.aesthetic.sprites.items():
             sprite.save(directory.joinpath(f"{key}.png"))
 
-    return (major_city["name"], major_city["countrycode"], ctx, vibemon)
+    return (major_city["name"], major_city["country"], ctx, vibemon)
 
 
 def _build_summary_table(rows: list[tuple[str, str, schema.BirthContext, schema.Vibemon]]) -> table.Table:
@@ -112,7 +119,9 @@ async def main() -> None:
 
     rows = await asyncio.gather(*(generate_vibemon_in_world() for _ in range(10)))
 
-    console.Console().print(_build_summary_table(rows))
+    rich_console.print()
+    rich_console.print(_build_summary_table(rows))
+    rich_console.print()
 
 
 if __name__ == "__main__":
