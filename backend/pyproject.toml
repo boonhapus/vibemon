@@ -19,6 +19,8 @@ dependencies = [
     "numpy>=2.4.4",
     "elevenlabs>=1.15.0",
     "annotated-types>=0.7.0",
+    "altair>=6.1.0",
+    "pandas>=3.0.2",
 ]
 
 [dependency-groups]
