@@ -1,8 +1,9 @@
 import collections
 import functools as ft
 import math
-import random
 import statistics
+
+import structlog
 
 from app.balance.formulas import base_stat_asymmetric_scaling
 from app.plugins.provider import VibeProvider
@@ -11,6 +12,8 @@ from app import schema, types, utils
 
 from .const import WeatherCode
 from . import _weather, moves
+
+_LOGGER = structlog.get_logger(__name__)
 
 
 class ClimateProvider(VibeProvider):
@@ -264,6 +267,8 @@ class ClimateProvider(VibeProvider):
         """Translate raw API data to Affinity components."""
         # FETCH THE LAST 4 WEEKS OF DATA FOR A GEO.
         r = await self.client.current_weather(latitude=ctx.geo_coords[0], longitude=ctx.geo_coords[1])
+        r.raise_for_status()
+
         d = r.json()
         s = d["daily"]
         i = -1

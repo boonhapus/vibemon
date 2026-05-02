@@ -15,9 +15,18 @@ class OpenMeteoAPIClient(niquests.AsyncSession):
     """
 
     def __init__(self, **session_opts) -> None:
+        RETRY_POLICY = niquests.RetryConfiguration(
+            total=5,
+            backoff_factor=2,
+            status_forcelist=[429, 500, 503],
+            allowed_methods=["GET", "POST"],
+            raise_on_status=False,
+            respect_retry_after_header=True,
+        )
         super().__init__(
             base_url="https://api.open-meteo.com/",
             hooks=api_hooks.LoggingHook(provider="open-meteo.weather_forecast"),
+            retries=RETRY_POLICY,
             **session_opts,
         )
 

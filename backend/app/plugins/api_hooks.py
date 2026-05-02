@@ -35,7 +35,7 @@ class LoggingHook(niquests.AsyncLifeCycleHook):
         if response.request is None:
             return
 
-        await _LOGGER.ainfo(
+        await _LOGGER.adebug(
             f"{self.provider}.response",
             method=response.request.method,
             url=str(response.request.url),
