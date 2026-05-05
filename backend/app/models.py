@@ -108,12 +108,24 @@ class Affinity(Base):
     moves: Mapped[list["Move"]] = relationship(secondary=affinity_moves, back_populates="affinities")
 
 
+class BirthContext(Base):
+    __tablename__ = "birth_context"
+
+    id: Mapped[uuid.UUID] = mapped_column(primary_key=True, default=uuid.uuid7)
+    timestamp: Mapped[int]
+    geo_coords: Mapped[list[float]] = mapped_column(JSON)
+    provider_names: Mapped[list[str]] = mapped_column(JSON)
+
+    vibemon: Mapped["Vibemon"] = relationship(back_populates="birth_context", uselist=False)
+
+
 class Vibemon(Base):
     __tablename__ = "vibemon"
 
     id: Mapped[uuid.UUID] = mapped_column(primary_key=True, default=uuid.uuid7)
     nickname: Mapped[str | None]
     affinity_id: Mapped[uuid.UUID] = mapped_column(unique=True)
+    birth_context_id: Mapped[uuid.UUID | None]
     level: Mapped[int]
 
     __table_args__ = (
@@ -123,7 +135,14 @@ class Vibemon(Base):
             name="fk_vibemon_affinity",
             ondelete="CASCADE"
         ),
+        ForeignKeyConstraint(
+            ["birth_context_id"],
+            ["birth_context.id"],
+            name="fk_vibemon_birth_context",
+            ondelete="SET NULL"
+        ),
     )
 
     affinity: Mapped["Affinity"] = relationship(back_populates="vibemon")
+    birth_context: Mapped["BirthContext | None"] = relationship(back_populates="vibemon")
     birth_affinities: Mapped[list["Affinity"]] = relationship(secondary=vibemon_birth_affinities)
