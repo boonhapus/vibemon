@@ -1,13 +1,18 @@
+import asyncio
 import collections
 import functools as ft
+import itertools as it
 import math
 import statistics
 
+import niquests
 import structlog
 
 from app.balance.formulas import base_stat_asymmetric_scaling
+from app.balance.element_chart import get_move_assignment_bonus
 from app.plugins.provider import VibeProvider
 from app.plugins.helpers import Signal, filter_element_types
+from app.types import VibemonTypeT
 from app import schema, types, utils
 
 from .const import WeatherCode
@@ -20,38 +25,33 @@ class ClimateProvider(VibeProvider):
     """
     A Vibemon is born from the sky above its birthplace.
 
-    This provider treats live weather as genetic material: Open-Meteo's daily
-    forecast at the trainer's coordinates is folded into a `schema.Affinity`.
+    Open-Meteo's daily forecast at the trainer's coordinates becomes genetic
+    material, folding live weather signals into a `schema.Affinity`.
 
-    Each elemental type is seeded by the conditions that thematically suit it:
+    Elemental Types:
+    - NORMAL   — overcast skies without precipitation
+    - FIRE     — solar radiation or extreme heat
+    - WATER    — precipitation (rain, drizzle, freezing rain)
+    - GRASS    — evapotranspiration or humid dew points
+    - ICE      — sub-freezing temperatures or snowfall
+    - FLYING   — sustained winds (15+ km/h)
+    - FIGHTING — violent wind gusts (35+ km/h)
+    - STEEL    — high atmospheric pressure systems
+    - FAIRY    — UV radiation exposure
+    - POISON   — air pollution concentration
+    - DARK     — low visibility or heavy overcast
+    - BUG      — humid tropical heat
+    - ROCK     — elevation or hail events
+    - DRAGON   — convective instability (CAPE)
+    - ELECTRIC — thunderstorms
 
-    - ICE      — sub-freezing temperature, snowfall, freezing precip, hail
-    - FIRE     — heat above ~30 °C
-    - DRAGON   — extreme heat above ~38 °C
-    - WATER    — rain, drizzle
-    - GRASS    — high dew point, humid air
-    - POISON   — hot + humid stagnant air
-    - BUG      — warm + humid + calm winds, light drizzle
-    - FLYING   — wind and gusts, high elevation
-    - ELECTRIC — UV index, shortwave radiation, thunderstorms
-    - GROUND   — elevation, dry + windy abrasion
-    - ROCK     — higher elevation, hail
-    - GHOST    — reduced visibility, fog
-    - DARK     — severe obscurity
-    - STEEL    — arid + windy air with intense radiation
-    - FAIRY    — mild, gentle, bright, comfortably humid weather
-    - PSYCHIC  — clear, bright, calm air
-    - FIGHTING — gust/spread strain, thermal stress, thunderstorms
+    Six continuous signals route directly to base stats: temperature (HP),
+    wind gusts (Attack), elevation (Defense), radiation (Sp. Attack),
+    precipitation (Sp. Defense), and sustained wind (Speed).
 
-    Six signals are routed straight into the base stats, so the creature's
-    body literally reflects the sky: temperature spread becomes HP, gusts
-    become Attack, elevation becomes Defense, radiation becomes Sp. Attack,
-    humidity becomes Sp. Defense, and sustained wind becomes Speed.
-
-    The result is that a creature caught during a Death Valley heatwave will
-    have a genuinely different soul than one caught in an Andean snowstorm or
-    a London fog, with both stats and flavor traceable back to the actual
-    weather that produced it.
+    The result is that a creature born in a Death Valley heatwave has a
+    fundamentally different soul than one from an Andean snowstorm or London
+    fog—both stats and flavor emergent from the actual sky at birth.
     """
 
     name = "climate"
@@ -63,307 +63,385 @@ class ClimateProvider(VibeProvider):
         """
         Calculates a normalized weather intensity score (0.0 to 1.0) for a specific day.
 
-        Computes Z-scores to identify the most extreme outlier. The maximum absolute
-        deviation is passed through a sigmoid function, where 0.5 represents an average
-        day, values > 0.5 indicate high intensity, and values < 0.5 indicate unusually
-        low intensity.
+        Computes Z-scores across extreme weather signals to identify the most extreme
+        outlier. The maximum absolute deviation is passed through a sigmoid function,
+        where 0.5 represents an average day, values > 0.5 indicate high intensity,
+        and values < 0.5 indicate unusually low intensity.
+
+        Signals: temperature extremes (heat/cold), precipitation, wind gusts, convective
+        potential, and visibility degradation.
         """
-        keys = (
-            "apparent_temperature_mean",
-            "wind_gusts_10m_max",
-            "relative_humidity_2m_mean",
-            "shortwave_radiation_sum",
-        )
+        # Aggregate signals representing intense weather
+        temp_max = daily["temperature_2m_max"]
+        temp_min = daily["temperature_2m_min"]
+        precip = daily["precipitation_sum"]
+        wind_gusts = daily["wind_gusts_10m_max"]
+        cape = daily["cape_mean"]
+
+        # Visibility inverted: low visibility (fog/storms) = high intensity
+        visibility_inverted = [50.0 - v for v in daily["visibility_mean"]]
 
         def z_score(values: list[float]) -> float:
             if len(values) < 2 or not (stdev := statistics.stdev(values)):
                 return 0.0
             return (values[index] - statistics.mean(values)) / stdev
 
-        # Degenerate inputs collapse to z=0, which sigmoids cleanly to 0.5.
-        deviation = max((z_score(daily[k]) for k in keys), key=abs, default=0.0)
-        return round(1.0 / (1.0 + math.exp(-deviation)), 4)
+        # Find max absolute deviation across all intensity signals
+        deviations = [
+            z_score(temp_max),
+            z_score(temp_min),
+            z_score(precip),
+            z_score(wind_gusts),
+            z_score(cape),
+            z_score(visibility_inverted),
+        ]
+        deviation = max(deviations, key=abs)
+        result = 1.0 / (1.0 + math.exp(-deviation))
+
+        # Guarantee asymptotic behavior—never exactly 0
+        return round(number=max(result, 1e-10), ndigits=4)
 
     def determine_element_scores(
         self,
         signals: dict[str, Signal],
         weather_code: WeatherCode | None = None,
-    ) -> dict[types.VibemonTypeT, float]:
-        scores: collections.defaultdict[types.VibemonTypeT, float] = collections.defaultdict(float)
+    ) -> dict[VibemonTypeT, float]:
+        """
+        Two-stage element scoring system.
 
-        clamp = ft.partial(utils.clamp, minimum=0, maximum=1)
-        """Ensure the value stays within the unit interval."""
+        1. Map continuous data from the weather, clamp(min=0, max=1)
+        2. Give flat bonuses based on WeatherCode, unclamped raw bonus.
+        """
+        score: collections.defaultdict[VibemonTypeT, float] = collections.defaultdict(float)
 
-        def add(element: types.VibemonTypeT, value: float) -> None:
-            """Raise the contribution of the element by value."""
-            scores[element] += value
+        # Normal: cloud_cover > 60% AND no precipitation
+        # Cloud cover: thresh=0.6 (60%) — overcast sky threshold; meteorologically standard
+        # Precipitation (inverted): thresh=0.1 mm — no rain bonus; below 0.1mm = dry conditions
+        cloud_cover_score = signals["clouds"].ramp("N", thresh=0.6, reach=0.4)
+        dry_condition_bonus = signals["precip"].ramp("R", thresh=0.1, reach=0.1, invert=True)
+        score[VibemonTypeT.NORMAL] += cloud_cover_score * dry_condition_bonus
 
-        temp = signals["temperature"]
-        sprd = signals["spread"]
-        rain = signals["rain"]
-        snow = signals["snow"]
-        humi = signals["humidity"]
-        dewp = signals["dew_point"]
-        wind = signals["wind_speed"]
-        gust = signals["wind_gusts"]
-        uvid = signals["uv_index"]
-        rads = signals["radiation"]
-        elev = signals["elevation"]
-        visi = signals["visibility"]
+        # Fire: radiation OR temp_max > 30°C
+        # Radiation: thresh=0.65 (N) — strong sun at ~21 MJ/m² (normalized across 1–32 range);
+        # raised from 0.50 to keep moderate-sun temperate cities from defaulting to FIRE.
+        solar_radiation_score = signals["radiat"].ramp("N", thresh=0.65, reach=0.35)
+        heat_temperature_score = signals["tmp_hi"].ramp("R", thresh=32.0, reach=20.0)
+        score[VibemonTypeT.FIRE] += max(solar_radiation_score, heat_temperature_score)
 
-        # Composite conditions reused across multiple element mappings.
-        warm_humid = clamp((temp.raw - 18.0) / 12.0) * clamp((humi.normal - 0.55) / 0.45)
-        calm_winds = clamp(1.0 - wind.normal * 1.25)
-        arid_scour = clamp((0.40 - humi.normal) / 0.40) * max(wind.normal, gust.normal)
-        mild_temps = clamp(1.0 - abs(temp.raw - 18.0) / 14.0)
-        gentle_air = clamp(1.0 - max(wind.normal, gust.normal) * 1.15)
-        bright_air = clamp((visi.normal - 0.65) / 0.35)
-        clear_mind = clamp((visi.normal - 0.75) / 0.25)
-        solar_glow = clamp((max(uvid.normal, rads.normal) - 0.50) / 0.50)
-        calm_focus = clamp(1.0 - max(wind.normal, gust.normal))
-        harsh_load = max(gust.normal, sprd.normal)
-        temp_strss = max(clamp((temp.raw - 34.0) / 14.0), clamp((0.0 - temp.raw) / 18.0))
+        # Water: precipitation > 1 mm
+        # Precipitation: thresh=1.0 mm (R) — meaningful rain threshold; ramps across 0–50 mm range.
+        # Raised from 0.15 mm — light drizzle was auto-triggering WATER on most cloudy-coastal
+        # cities, inflating the type's prevalence. Sustained rain still wins.
+        score[VibemonTypeT.WATER] += signals["precip"].ramp("R", thresh=1.0, reach=49.0)
 
-        # Sub-freezing temperatures map directly to cryo affinity.
-        add(types.VibemonTypeT.ICE, clamp((0.0 - temp.raw) / 20.0) * 0.9)
+        # Grass: ET0 OR dew_point saturation
+        # ET0: thresh=0.30 (N) — active plant growth at ~3.6 mm/day (normalized across 0–12 range)
+        # Dew point: thresh=0.75 (N) — tropical humidity at ~17°C+ (normalized across -20–30 range)
+        # Slightly tightened from 0.25/0.70 — GRASS was edging out FIRE for primary slot in
+        # warm-temperate cities; the new thresholds keep tropics/jungles but trim fringe spawns.
+        plant_evapotrans_score = signals["transp"].ramp("N", thresh=0.30, reach=0.70)
+        humid_saturation_score = signals["dew_pt"].ramp("N", thresh=0.75, reach=0.25)
+        score[VibemonTypeT.GRASS] += max(plant_evapotrans_score, humid_saturation_score)
 
-        # Heat above ~30 C is where fire affinity begins ramping.
-        add(types.VibemonTypeT.FIRE, clamp((temp.raw - 30.0) / 20.0))
+        # Ice: sub-freezing temps OR active snowfall
+        # Temperature min (inverted): thresh=0.0°C (R) — freezing point; full credit below 0, fades at -30°C
+        # Snowfall: thresh=0.5 cm (R) — any meaningful accumulation; saturates at 10 cm/day
+        # max() so a snowstorm in a city with above-freezing daytime min still triggers ICE.
+        cold_temp_score = signals["tmp_lo"].ramp("R", thresh=0.0, reach=30.0, invert=True)
+        snowfall_score = signals["snowfl"].ramp("R", thresh=0.5, reach=9.5)
+        score[VibemonTypeT.ICE] += max(cold_temp_score, snowfall_score)
 
-        # Extreme heat gets a small "mythic intensity" dragon tail.
-        add(types.VibemonTypeT.DRAGON, clamp((temp.raw - 38.0) / 10.0) * 0.35)
+        # Flying: wind_speed > 10 km/h
+        # Wind speed: thresh=10 km/h (R) — light-breeze threshold; ramps to 50 km/h gale-force.
+        # Tuned between 12 km/h (under-represented) and 8 km/h (over-represented as secondary).
+        score[VibemonTypeT.FLYING] += signals["windsp"].ramp("R", thresh=10.0, reach=40.0)
 
-        # Rain is the most literal hydrologic signal.
-        add(types.VibemonTypeT.WATER, rain.normal * 1.1)
+        # Fighting: wind_gusts > 30 km/h
+        # Wind gusts: thresh=30 km/h (R) — strong gust threshold; ramps to 85 km/h structural damage
+        score[VibemonTypeT.FIGHTING] += signals["windgu"].ramp("R", thresh=30.0, reach=55.0)
 
-        # Snowfall reinforces ice independently of ambient temperature.
-        add(types.VibemonTypeT.ICE, snow.normal * 1.2)
+        # Steel: atmospheric pressure (high pressure systems)
+        # Pressure: thresh=0.64 (N) — high-pressure systems >1025 hPa (normalized across 980–1050 range)
+        score[VibemonTypeT.STEEL] += signals["pressr"].ramp("N", thresh=0.64, reach=0.36)
 
-        # Higher dew point indicates lush, moisture-rich air masses.
-        add(types.VibemonTypeT.GRASS, clamp((dewp.raw - 10.0) / 20.0) * 0.8)
+        # Fairy: UV radiation in clean, untouched air (pristine sun)
+        # UV index: thresh=0.30 (N) — strong UV at 4-5 range (normalized across 0–14 range)
+        # Pollution gate: PM2.5 attenuates the score so polluted hot cities trend FIRE, not FAIRY
+        uv_score = signals["uv_idx"].ramp("N", thresh=0.30, reach=0.65)
+        clean_air_factor = 1.0 - signals["pollut"].ramp("N", thresh=0.05, reach=0.20)
+        score[VibemonTypeT.FAIRY] += uv_score * clean_air_factor
 
-        # Humid air adds a softer vegetation bias.
-        add(types.VibemonTypeT.GRASS, clamp((humi.normal - 0.55) / 0.45) * 0.4)
+        # Poison: air pollution concentration
+        # PM2.5: thresh=0.12 (N) — elevated pollution at 8 µg/m³ (normalized across 0–100 range)
+        score[VibemonTypeT.POISON] += signals["pollut"].ramp("N", thresh=0.12, reach=0.95)
 
-        # Hot + humid conditions model stagnant/oppressive "toxic" atmosphere.
-        add(types.VibemonTypeT.POISON, clamp((humi.normal - 0.70) / 0.30) * clamp((temp.raw - 24.0) / 12.0) * 0.6)
+        # Dark: visibility < 10 km
+        # Visibility (inverted): thresh=10 km (R) — poor visibility threshold; full credit below 10 km
+        score[VibemonTypeT.DARK] += signals["visibl"].ramp("R", thresh=10.0, reach=10.0, invert=True)
 
-        # Warm, humid, and calmer air weakly supports bugs.
-        add(types.VibemonTypeT.BUG, warm_humid * calm_winds * 0.55)
+        # Ghost: low visibility in low-UV conditions (spectral, not urban smog)
+        # Visibility (inverted): thresh=10 km (R) — fog/mist threshold
+        # Low-light gate: partial — full UV halves the score (midday haze still slightly spectral)
+        # rather than zeroing it out (radiation fog burns off mid-morning, but the dawn fog still counts).
+        visibility_score = signals["visibl"].ramp("R", thresh=10.0, reach=6.0, invert=True)
+        low_light_factor = 1.0 - 0.5 * signals["uv_idx"].ramp("N", thresh=0.30, reach=0.65)
+        score[VibemonTypeT.GHOST] += visibility_score * low_light_factor
 
-        # Wind is the primary FLYING signal, with high-elevation secondary support.
-        # Wind/gust strength is the primary aerial driver.
-        add(types.VibemonTypeT.FLYING, max(wind.normal * 0.9, gust.normal * 0.75))
+        # Bug: humidity > 70% AND temp_max > 25°C — geometric mean preserves "must be both"
+        # without the harsh compounding of pure multiplication (which left dry-desert at 0
+        # but also crushed Singapore-tier tropics to ~0.1).
+        # Humidity: thresh=70% (R) — tropical humidity; ramps from 40% to 100%
+        # Temperature max: thresh=25°C (R) — tropical heat threshold; ramps from 0° to 50°C
+        humid_stress_factor = signals["humdty"].ramp("R", thresh=70.0, reach=30.0)
+        heat_stress_factor = signals["tmp_hi"].ramp("R", thresh=25.0, reach=25.0)
+        score[VibemonTypeT.BUG] += math.sqrt(humid_stress_factor * heat_stress_factor)
 
-        # High elevation contributes a smaller exposed/thin-air flying component.
-        add(types.VibemonTypeT.FLYING, clamp((elev.normal - 0.60) / 0.40) * 0.45)
+        # Rock: elevation (geographic altitude)
+        # Elevation: thresh=600 m (R) — highland threshold; ramps across full range to 4500 m
+        score[VibemonTypeT.ROCK] += signals["elevat"].ramp("R", thresh=600.0, reach=4500.0)
 
-        # UV acts as a direct energy proxy.
-        add(types.VibemonTypeT.ELECTRIC, clamp((uvid.normal - 0.35) / 0.65) * 0.7)
+        # Electric: atmospheric instability (storm potential)
+        # CAPE: thresh=0.35 (N) — strong thunderstorm threshold at 1750 J/kg (normalized across 0–5000 range)
+        # Selective signal for electrical affinity; higher threshold than DRAGON but full scale capability
+        score[VibemonTypeT.ELECTRIC] += signals["cape_m"].ramp("N", thresh=0.35, reach=0.65)
 
-        # Radiation reinforces electric as a secondary energy channel.
-        add(types.VibemonTypeT.ELECTRIC, clamp((rads.normal - 0.45) / 0.55) * 0.45)
+        # Dragon: convective instability OR mountain altitude (mythic mountain-storm dweller)
+        # CAPE: thresh=0.30 (N) — severe weather potential at 1500 J/kg (normalized across 0–5000 range)
+        # Elevation: thresh=2000 m (R) — kicks in above ROCK's mid-range; saturates at 5000 m
+        cape_score = signals["cape_m"].ramp("N", thresh=0.30, reach=0.70)
+        altitude_score = signals["elevat"].ramp("R", thresh=2000.0, reach=3000.0)
+        score[VibemonTypeT.DRAGON] += max(cape_score, altitude_score)
 
-        # Elevation establishes baseline terrain/earth identity.
-        add(types.VibemonTypeT.GROUND, elev.normal * 0.75)
-
-        # Rocky identity rises in higher elevation bands.
-        add(types.VibemonTypeT.ROCK, clamp((elev.normal - 0.35) / 0.65) * 0.9)
-
-        # Dry + windy conditions nudge toward dust/erosion-style ground affinity.
-        add(types.VibemonTypeT.GROUND, clamp((0.35 - humi.normal) / 0.35) * clamp((wind.normal - 0.40) / 0.60) * 0.5)
-
-        # Reduced visibility yields uncanny/spectral atmosphere.
-        add(types.VibemonTypeT.GHOST, clamp((0.60 - visi.normal) / 0.60))
-
-        # Severe obscurity escalates toward dark affinity.
-        add(types.VibemonTypeT.DARK, clamp((0.25 - visi.normal) / 0.25) * 0.9)
-
-        # Harsh dry abrasion plus high radiation creates metallic/hard-edged feel.
-        add(types.VibemonTypeT.STEEL, arid_scour * 0.55 + clamp((rads.normal - 0.75) / 0.25) * 0.2)
-
-        # Comfortable, gentle, clear weather yields a soft fairy profile.
-        add(types.VibemonTypeT.FAIRY, mild_temps * gentle_air * bright_air * clamp((humi.normal - 0.40) / 0.35) * 0.55)
-
-        # Calm + clear + bright conditions represent focused/psychic atmosphere.
-        add(types.VibemonTypeT.PSYCHIC, clear_mind * solar_glow * calm_focus * 0.65)
-
-        # Climatic strain and thermal stress combine into endurance/fighting flavor.
-        add(types.VibemonTypeT.FIGHTING, harsh_load * 0.45 + temp_strss * 0.25)
-
+        # General Tier structure:
+        # - 0.2: LIGHT
+        # - 0.3: MODERATE
+        # - 0.4: HEAVY
+        # - 0.5: RARE
         match weather_code:
-            # Amplify the types based on the severity of the WeatherCode.
-            # Generally the more severe a code, the more it contributes to the
-            # resulting unit interval.
-            case WeatherCode.THUNDERSTORM_WITHOUT_PRECIP:
-                add(types.VibemonTypeT.ELECTRIC, 0.55)
-                add(types.VibemonTypeT.FIGHTING, 0.15)
+            # Clear skies: solar heating (FIRE) + fair/stable weather (NORMAL)
+            # FIRE bonus halved (0.2 → 0.1) — CLEAR_SKY is the most common WMO code globally,
+            # so the prior bonus was a primary driver of FIRE over-representation.
+            case WeatherCode.CLEAR_SKY | WeatherCode.MAINLY_CLEAR:
+                score[VibemonTypeT.FIRE] += 0.1
+                score[VibemonTypeT.NORMAL] += 0.2
 
-            case WeatherCode.THUNDERSTORM:
-                add(types.VibemonTypeT.ELECTRIC, 0.7)
-                add(types.VibemonTypeT.FIGHTING, 0.2)
+            # Partial clouds confirm baseline overcast → NORMAL element
+            case WeatherCode.PARTLY_CLOUDY:
+                score[VibemonTypeT.NORMAL] += 0.2
 
-            case WeatherCode.THUNDERSTORM_WITHOUT_PRECIP_HEAVY:
-                add(types.VibemonTypeT.ELECTRIC, 0.8)
-                add(types.VibemonTypeT.FIGHTING, 0.3)
+            # Heavy overcast confirms dark, cloudy conditions
+            case WeatherCode.OVERCAST:
+                score[VibemonTypeT.NORMAL] += 0.3
+                score[VibemonTypeT.DARK] += 0.2
 
+            # All thunderstorm variants confirm electrical activity (rare event)
+            case WeatherCode.THUNDERSTORM | WeatherCode.THUNDERSTORM_WITHOUT_PRECIP | WeatherCode.THUNDERSTORM_WITHOUT_PRECIP_HEAVY:
+                score[VibemonTypeT.ELECTRIC] += 0.5
+                score[VibemonTypeT.DRAGON] += 0.30
+
+            # Light hail: thunderstorm + ice/rock impact
             case WeatherCode.THUNDERSTORM_WITH_SLIGHT_HAIL:
-                add(types.VibemonTypeT.ELECTRIC, 0.6)
-                add(types.VibemonTypeT.ICE, 0.4)
-                add(types.VibemonTypeT.ROCK, 0.3)
+                score[VibemonTypeT.ELECTRIC] += 0.5
+                score[VibemonTypeT.ROCK] += 0.3
+                score[VibemonTypeT.DRAGON] += 0.20
 
+            # Heavy hail: thunderstorm + strong ice/rock impact
             case WeatherCode.THUNDERSTORM_WITH_HEAVY_HAIL:
-                add(types.VibemonTypeT.ELECTRIC, 0.75)
-                add(types.VibemonTypeT.ICE, 0.55)
-                add(types.VibemonTypeT.ROCK, 0.45)
+                score[VibemonTypeT.ELECTRIC] += 0.5
+                score[VibemonTypeT.ROCK] += 0.4
+                score[VibemonTypeT.DRAGON] += 0.30
 
-            case WeatherCode.FREEZING_DRIZZLE_LIGHT | WeatherCode.FREEZING_RAIN_LIGHT:
-                add(types.VibemonTypeT.ICE, 0.45)
-                add(types.VibemonTypeT.WATER, 0.2)
-
-            case WeatherCode.FREEZING_DRIZZLE_DENSE | WeatherCode.FREEZING_RAIN_HEAVY:
-                add(types.VibemonTypeT.ICE, 0.7)
-                add(types.VibemonTypeT.WATER, 0.3)
-
-            case WeatherCode.SNOW_FALL_SLIGHT | WeatherCode.SNOW_SHOWERS_SLIGHT | WeatherCode.SNOW_GRAINS:
-                add(types.VibemonTypeT.ICE, 0.45)
-
-            case WeatherCode.SNOW_FALL_MODERATE:
-                add(types.VibemonTypeT.ICE, 0.65)
-
-            case WeatherCode.SNOW_FALL_HEAVY | WeatherCode.SNOW_SHOWERS_HEAVY:
-                add(types.VibemonTypeT.ICE, 0.8)
-
-            case WeatherCode.RAIN_SLIGHT | WeatherCode.RAIN_SHOWERS_SLIGHT:
-                add(types.VibemonTypeT.WATER, 0.4)
-
-            case WeatherCode.RAIN_MODERATE | WeatherCode.RAIN_SHOWERS_MODERATE:
-                add(types.VibemonTypeT.WATER, 0.6)
-
-            case WeatherCode.RAIN_HEAVY | WeatherCode.RAIN_SHOWERS_VIOLENT:
-                add(types.VibemonTypeT.WATER, 0.8)
-
+            # Fog/rime confirm spectral conditions (rare event)
             case WeatherCode.FOG | WeatherCode.DEPOSITING_RIME_FOG:
-                add(types.VibemonTypeT.GHOST, 0.5)
+                score[VibemonTypeT.GHOST] += 0.5
 
-            case WeatherCode.DRIZZLE_LIGHT:
-                add(types.VibemonTypeT.WATER, 0.25)
-                add(types.VibemonTypeT.BUG, 0.1)
+            # Light precipitation: drizzle + slight rain (common, weak signal)
+            case WeatherCode.DRIZZLE_LIGHT | WeatherCode.DRIZZLE_MODERATE | WeatherCode.RAIN_SLIGHT | WeatherCode.RAIN_SHOWERS_SLIGHT:
+                score[VibemonTypeT.WATER] += 0.3
 
-            case WeatherCode.DRIZZLE_MODERATE:
-                add(types.VibemonTypeT.WATER, 0.35)
-                add(types.VibemonTypeT.BUG, 0.15)
+            # Moderate precipitation (common, medium signal)
+            case WeatherCode.DRIZZLE_DENSE | WeatherCode.RAIN_MODERATE | WeatherCode.RAIN_SHOWERS_MODERATE:
+                score[VibemonTypeT.WATER] += 0.4
 
-            case WeatherCode.DRIZZLE_DENSE:
-                add(types.VibemonTypeT.WATER, 0.5)
-                add(types.VibemonTypeT.BUG, 0.2)
+            # Heavy precipitation (intense, strong signal)
+            case WeatherCode.RAIN_HEAVY | WeatherCode.RAIN_SHOWERS_VIOLENT:
+                score[VibemonTypeT.WATER] += 0.5
 
-            case _:
-                pass
+            # Freezing rain/drizzle split affinity between water (liquid) and ice (freezing)
+            case WeatherCode.FREEZING_RAIN_LIGHT | WeatherCode.FREEZING_DRIZZLE_LIGHT | WeatherCode.FREEZING_DRIZZLE_DENSE:
+                score[VibemonTypeT.WATER] += 0.1
+                score[VibemonTypeT.ICE] += 0.2
 
-        return scores
+            case WeatherCode.FREEZING_RAIN_HEAVY:
+                score[VibemonTypeT.WATER] += 0.2
+                score[VibemonTypeT.ICE] += 0.3
+
+            # Light snow (common, weak signal)
+            case WeatherCode.SNOW_FALL_SLIGHT | WeatherCode.SNOW_SHOWERS_SLIGHT | WeatherCode.SNOW_GRAINS:
+                score[VibemonTypeT.ICE] += 0.3
+
+            # Moderate snow (common, medium signal)
+            case WeatherCode.SNOW_FALL_MODERATE:
+                score[VibemonTypeT.ICE] += 0.4
+
+            # Heavy snow (intense, strong signal)
+            case WeatherCode.SNOW_SHOWERS_HEAVY | WeatherCode.SNOW_FALL_HEAVY:
+                score[VibemonTypeT.ICE] += 0.5
+        
+        # Give NORMAL a tiny bit of padding so we ensure that the move pool is available.
+        score[VibemonTypeT.NORMAL] = score[VibemonTypeT.NORMAL] or 0.05
+
+        return score
 
     async def synthesize(self, ctx: schema.BirthContext) -> schema.Affinity:
         """Translate raw API data to Affinity components."""
-        # FETCH THE LAST 4 WEEKS OF DATA FOR A GEO.
-        r = await self.client.current_weather(latitude=ctx.geo_coords[0], longitude=ctx.geo_coords[1])
-        r.raise_for_status()
+        # wr, ar = await asyncio.gather(
+        # )
+        wr = await self.client.current_weather(latitude=ctx.geo_coords[0], longitude=ctx.geo_coords[1])
+        ar = await self.client.air_quality(latitude=ctx.geo_coords[0], longitude=ctx.geo_coords[1])
 
-        d = r.json()
+        try:
+            wr.raise_for_status()
+            ar.raise_for_status()
+        except niquests.HTTPError as e:
+            self._log_http_error(e)
+
+        d = wr.json()
         s = d["daily"]
         i = -1
+        
+        # ── DATA MUNGING ──────────────────────────────────────────────────────────────
+        
+        h = ar.json()["hourly"]
+
+        # GROUP HOURLY AIR QUALITY BY DAY
+        pm25_by_day = {
+            day: [pm for pm in (p for _, p in group) if pm is not None]
+            for day, group in it.groupby(zip(h["time"], h["pm2_5"]), key=lambda tp: tp[0][:10])
+        }
+
+        # INJECT IT ON TO THE DAILY METRIC
+        d["pm2_5"] = [statistics.fmean(pm25_by_day[day]) if day in pm25_by_day else 0.0 for day in s["time"]]
+
+        # ── /DATA MUNGING ─────────────────────────────────────────────────────────────
 
         signals = {
-            # temperature   (-30, 50) °C
-            #     Mean daily air temperature. Lower bound captures sustained
-            #     cold-climate winters (Yakutsk, interior Canada); colder readings
-            #     exist but are rare for daily means. Upper bound captures the
-            #     hottest daily means on record (Death Valley, Lut Desert);
-            #     instantaneous extremes can exceed 55 °C but daily means do not.
-            "temperature": Signal(attr="temperature_2m_mean", raw=s["temperature_2m_mean"][i], min=-30.0, max=50.0),
+            # tmp_hi: Daily max temperature (-20 to 50°C)
+            # Min: coldest inhabited regions (Siberia winter). Max: hottest recorded (Death Valley ~54°C).
+            # Routes to base HP stat; directly embodies creature's core vitality from birth climate.
+            "tmp_hi": Signal(attr="temperature_2m_max", raw=s["temperature_2m_max"][i], min=-20.0, max=50.0),
 
-            # spread   (1, 20) °C
-            #     Range of apparent_temperature_mean across the forecast window.
-            #     Coastal/tropical climates: 1–3 °C. Continental deserts: 15–20 °C.
-            "spread": Signal(attr="spread", raw=max(s["apparent_temperature_mean"]) - min(s["apparent_temperature_mean"]), min=1.0, max=20.0),
+            # tmp_lo: Daily min temperature (-30 to 40°C)
+            # Min: extreme cold (polar regions). Max: tropical overnight lows.
+            # Routes to Sp. Defense; modulates climate resilience via nocturnal conditions.
+            "tmp_lo": Signal(attr="temperature_2m_min", raw=s["temperature_2m_min"][i], min=-30.0, max=40.0),
 
-            # rain          (0, 50) mm/day
-            #     Daily rainfall total. 50 mm/day represents a heavy-precipitation
-            #     day across most national meteorological services. Tropical tail
-            #     events can exceed this and intentionally saturate.
-            "rain": Signal(attr="rain_sum", raw=s["rain_sum"][i], min=0.0, max=50.0),
+            # precip: Daily precipitation (0–50 mm)
+            # Min: no rain. Max: heavy downpour; >50 mm/day approaches flood conditions.
+            # Baseline for WATER element; split between WATER affinity and Sp. Defense offset.
+            "precip": Signal(attr="precipitation_sum", raw=s["precipitation_sum"][i], min=0.0, max=50.0),
 
-            # snow          (0, 20) cm/day
-            #     Daily snowfall. 20 cm/day is a significant snowfall event;
-            #     U.S. NWS heavy-snow warnings typically trigger around 15 cm
-            #     in 12 hours.
-            "snow": Signal(attr="snowfall_sum", raw=s["snowfall_sum"][i], min=0.0, max=20.0),
+            # windsp: Sustained wind speed (3–50 km/h)
+            # Min: calm breeze threshold. Max: strong sustained wind for stat-scaling purposes
+            # (range compressed from 90 km/h — most populated cities cap well below 30 km/h, so
+            # the wider range left base_speed clustered near floor). Type-scoring ramps still
+            # use raw thresholds (12/30 km/h) so element selection is unaffected.
+            "windsp": Signal(attr="wind_speed_10m_max", raw=s["wind_speed_10m_max"][i], min=3.0, max=50.0),
 
-            # humidity      (5, 95) %RH
-            #     Relative humidity. Trims sub-5 % (extreme desert) and >95 %
-            #     (near-saturation) tails to preserve resolution across the
-            #     inhabited 20–80 % range.
-            "humidity": Signal(attr="relative_humidity_2m_mean", raw=s["relative_humidity_2m_mean"][i], min=5.0, max=95.0),
+            # windgu: Wind gust peaks (5–70 km/h)
+            # Min: light gust threshold. Max: strong gust for stat-scaling purposes (range
+            # compressed from 120 km/h for the same reason as windsp). Type-scoring uses
+            # raw thresholds (30 km/h FIGHTING) so element selection is unaffected.
+            "windgu": Signal(attr="wind_gusts_10m_max", raw=s["wind_gusts_10m_max"][i], min=5.0, max=70.0),
 
-            # dew_point     (-40, 35) °C
-            #     Dew point. Upper bound is the highest reliably recorded dew point
-            #     on Earth (Dhahran, Saudi Arabia, July 2003). Above 24 °C is
-            #     classified as "oppressive." Lower bound captures extreme
-            #     dry-cold winter conditions in continental interiors.
-            "dew_point": Signal(attr="dew_point_2m_mean", raw=s["dew_point_2m_mean"][i], min=-40.0, max=35.0),
+            # uv_idx: Maximum UV index (0–14 scale)
+            # Min: no UV (night/polar winter). Max: extreme tropical (WMO scale 11+, capped at 14).
+            # Unobservable signal; normalized threshold at 0.21 (UV 3+ = sun protection needed).
+            "uv_idx": Signal(attr="uv_index_max", raw=s["uv_index_max"][i], min=0.0, max=14.0),
 
-            # wind_speed    (3, 55) km/h
-            #     Sustained wind. Lower bound is Beaufort 1 — below this, conditions
-            #     are effectively calm. Upper bound is Beaufort 7–8 (near-gale to
-            #     gale); higher sustained winds are storm conditions.
-            "wind_speed": Signal(attr="wind_speed_10m_max", raw=s["wind_speed_10m_max"][i], min=3.0, max=55.0),
+            # radiat: Daily shortwave radiation sum (1–32 MJ/m²)
+            # Min: deep overcast/tropical winter (~1 MJ/m²). Max: clear desert summer (~25–32 MJ/m²).
+            # Routes to base Sp. Attack stat; creature's magical affinity from solar energy.
+            "radiat": Signal(attr="shortwave_radiation_sum", raw=s["shortwave_radiation_sum"][i], min=1.0, max=32.0),
 
-            # wind_gusts    (5, 90) km/h
-            #     Peak gust speed. Gusts routinely exceed sustained winds; 90 km/h
-            #     corresponds to Beaufort 10 (storm-force) and serves as a
-            #     reasonable upper bound for non-hurricane events.
-            "wind_gusts": Signal(attr="wind_gusts_10m_max", raw=s["wind_gusts_10m_max"][i], min=5.0, max=90.0),
+            # clouds: Mean cloud cover (0–100%)
+            # Min: clear sky (0%). Max: completely overcast (100%).
+            # Meteorologically standard 0–100 scale; feeds NORMAL element.
+            "clouds": Signal(attr="cloud_cover_mean", raw=s["cloud_cover_mean"][i], min=0.0, max=100.0),
 
-            # uv_index      (0, 14)
-            #     UV Index. WHO categorises 11+ as "extreme." Tropical high-altitude
-            #     readings can exceed 15 but are unusual.
-            "uv_index": Signal(attr="uv_index_max", raw=s["uv_index_max"][i], min=0.0, max=14.0),
+            # pressr: Mean sea-level pressure (980–1050 hPa)
+            # Min: extreme low-pressure storm system. Max: Siberian high (>1050 hPa, capped at 1050).
+            # Unobservable signal; normalized threshold at 0.64 (>1025 hPa = high pressure systems).
+            "pressr": Signal(attr="pressure_msl_mean", raw=s["pressure_msl_mean"][i], min=980.0, max=1050.0),
 
-            # radiation     (1, 32) MJ/m²
-            #     Daily shortwave radiation sum. ~32 MJ/m² is the practical clear-sky
-            #     summer maximum at low latitudes per measurement studies (BOM
-            #     Australia, eastern Mediterranean).
-            "radiation": Signal(attr="shortwave_radiation_sum", raw=s["shortwave_radiation_sum"][i], min=1.0, max=32.0),
+            # transp: Evapotranspiration/Reference ET0 (0–12 mm/day)
+            # Min: no plant activity (winter/dormant). Max: extreme irrigation demand (arid agriculture).
+            # Unobservable signal; normalized threshold at 0.25 (3 mm/day = active plant growth).
+            "transp": Signal(attr="et0_fao_evapotranspiration", raw=s["et0_fao_evapotranspiration"][i], min=0.0, max=12.0),
 
-            # elevation     (0, 3500) m
-            #     Surface elevation. Sea level to roughly La Paz altitude — the
-            #     highest major population center. Habitation above 3500 m exists
-            #     (Andean villages, Tibetan plateau) but is rare.
-            "elevation": Signal(attr="elevation", raw=d["elevation"], min=0.0, max=3500.0),
+            # pollut: PM2.5 air pollution (0–100 µg/m³)
+            # Min: clean air. Max: hazardous/emergency air quality (>100 µg/m³ = severe pollution).
+            # Unobservable signal; normalized threshold at 0.15 (10 µg/m³ = WHO health damage threshold).
+            "pollut": Signal(attr="pm2_5_mean", raw=d["pm2_5"][i], min=0.0, max=100.0),
 
-            # visibility    (0, 100000) m
-            #     Horizontal visibility. Dense fog: <50 m. Typical clear-sky air:
-            #     10–20 km. Upper bound reflects ideal high-altitude or polar
-            #     clear-air conditions.
-            "visibility": Signal(attr="visibility_mean", raw=s["visibility_mean"][i], min=0.0, max=100000.0),
+            # visibl: Horizontal visibility (0–50 km)
+            # Min: fog/mist visibility (0 km ~ dense fog). Max: exceptional clear-air visibility (~50 km).
+            # Meteorologically standard; inverted for DARK element (low visibility = high affinity).
+            "visibl": Signal(attr="visibility_mean", raw=s["visibility_mean"][i], min=0.0, max=50.0),
+
+            # dew_pt: Mean dew point (-20 to 30°C)
+            # Min: arid freezing (very dry, very cold). Max: tropical saturated air (~25–30°C).
+            # Unobservable signal; normalized threshold at 0.70 (≈15°C = tropical humidity).
+            "dew_pt": Signal(attr="dew_point_2m_mean", raw=s["dew_point_2m_mean"][i], min=-20.0, max=30.0),
+
+            # cape_m: Convective Available Potential Energy (0–5000 J/kg)
+            # Min: no convective potential (stable atmosphere). Max: extreme supercell CAPE (>4000 = destructive).
+            # Unobservable signal; normalized threshold at 0.30 (1500 J/kg = severe weather potential).
+            "cape_m": Signal(attr="cape_mean", raw=s["cape_mean"][i], min=0.0, max=5000.0),
+
+            # humdty: Mean relative humidity (0–100%)
+            # Min: bone-dry air (arid desert). Max: saturated air mass (tropical/monsoon regions).
+            # Meteorologically standard 0–100 scale; combines with temp for BUG tropicality.
+            "humdty": Signal(attr="relative_humidity_2m_mean", raw=s["relative_humidity_2m_mean"][i], min=0.0, max=100.0),
+
+            # elevat: Surface elevation above sea level (0–2000 m)
+            # Min: sea level (0 m). Max: highland threshold for stat-scaling purposes
+            # (range compressed from 4500 m — most populated cities sit below 200 m and the
+            # wider range crushed base_defense to floor). Type-scoring ramps for ROCK/DRAGON
+            # use raw thresholds (600/2000 m) so element selection is unaffected; high-altitude
+            # cities (La Paz, Lhasa, Mexico City) intentionally peg base_defense at max.
+            "elevat": Signal(attr="elevation", raw=d["elevation"], min=0.0, max=2000.0),
+
+            # snowfl: Daily snowfall accumulation (0–20 cm)
+            # Min: no snow. Max: heavy snow event (~20 cm/day = blizzard territory).
+            # Secondary path to ICE element so winter cities trigger even when daily min temp
+            # sits above freezing during a snowstorm warm-up.
+            "snowfl": Signal(attr="snowfall_sum", raw=s.get("snowfall_sum", [0.0])[i] or 0.0, min=0.0, max=20.0),
         }
 
         wmo_code = WeatherCode(s["weather_code"][i])
         rankings = self.determine_element_scores(signals=signals, weather_code=wmo_code)
         elements = filter_element_types(rankings)
-        bonus_fx = ft.partial(lambda m: 2 if m.type in (*elements, types.VibemonTypeT.NORMAL) else 0.5)
-        starters = {m: rankings[m.type] * bonus_fx(m) for m in moves.MOVES if m.level_requirement == 1}
+        bonus_fx = ft.partial(get_move_assignment_bonus, vibemon_elements=elements)
+        starters = {m: rankings[m.type] * bonus_fx(m.type) for m in moves.MOVES if m.level_requirement == 1}
 
         affinity = schema.Affinity(
             identity=schema.Identity(
                 name="__",
                 elements=elements,
-                base_hp=base_stat_asymmetric_scaling(signals["spread"].normal, stat="hp"),
-                base_attack=base_stat_asymmetric_scaling(signals["wind_gusts"].normal, stat="attack"),
-                base_defense=base_stat_asymmetric_scaling(signals["elevation"].normal, stat="defense"),
-                base_sp_attack=base_stat_asymmetric_scaling(signals["radiation"].normal, stat="sp_attack"),
-                base_sp_defense=base_stat_asymmetric_scaling(signals["humidity"].normal, stat="sp_defense"),
-                base_speed=base_stat_asymmetric_scaling(signals["wind_speed"].normal, stat="speed"),
+                base_hp=base_stat_asymmetric_scaling(signals["tmp_hi"].normal, stat="hp"),
+                base_attack=base_stat_asymmetric_scaling(signals["windgu"].normal, stat="attack"),
+                # Defense: elev**0.4 lifts the curve so most low-elevation cities land near the
+                # median rather than the floor; high-altitude cities still peg the max.
+                base_defense=base_stat_asymmetric_scaling(signals["elevat"].normal ** 0.4, stat="defense"),
+                # Sp.Atk: radiat**1.6 pulls the curve down — sun-saturated cities were clustering
+                # high on the asymmetric scale. The transform keeps the ranking, lowers the mean.
+                base_sp_attack=base_stat_asymmetric_scaling(signals["radiat"].normal ** 1.6, stat="sp_attack"),
+                base_sp_defense=base_stat_asymmetric_scaling(
+                    signals["precip"].normal * 0.3 + signals["tmp_lo"].normal * 0.7,
+                    stat="sp_defense"
+                ),
+                base_speed=base_stat_asymmetric_scaling(signals["windsp"].normal, stat="speed"),
             ),
             visual_notes=wmo_code.description,
             intensity=self.calculate_intensity(s, index=i),
