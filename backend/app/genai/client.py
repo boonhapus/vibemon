@@ -1,4 +1,4 @@
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Any
 import re
 
 from elevenlabs import AsyncElevenLabs
@@ -26,31 +26,51 @@ RX_WORDS_ONLY = re.compile(r"[^\w-]")
 
 
 # ── IDENTITY ──────────────────────────────────────────────────────────────────────────
+def _save_data(data: Any, vibemon: str, filename: str) -> None:
+    import pathlib
+
+    here = pathlib.Path(__file__).parent
+    root = here.parent.parent.parent
+    path = root.joinpath(f".scripts/generated/{vibemon}/input")
+    path.mkdir(parents=True, exist_ok=True)
+
+    if isinstance(data, bytes):
+        path.joinpath(filename).write_bytes(data)
+    else:
+        path.joinpath(filename).write_text(data, encoding="utf-8")
+
 
 async def generate_vibemon_name(identity: schema.Identity, moves: list[schema.Move], visual_notes: str | None) -> str:
     """Generate a Vibemon's name."""
-    p = utils.load_prompt("species-name.mdc", identity=identity, moves=moves, visual_notes=visual_notes)
+    n = "species-name"
+    p = utils.load_prompt(f"{n}.mdc", identity=identity, moves=moves, visual_notes=visual_notes)
     r = await FAST_TXT_AGENT.run(p)
     d = RX_WORDS_ONLY.sub(repl="", string=r.output)
     await _LOGGER.adebug("Generate :: Vibemon name", name=d, prompt=p)
+    _save_data(p, vibemon=d, filename=f"{n}_prompt.txt")
     return d
 
 
-async def generate_vibemon_sprite(vibemon: schema.Vibemon, bg_hex: str) -> bytes:
+async def generate_vibemon_sprite(vibemon: schema.Vibemon) -> bytes:
     """Generate a Vibemon's sprite sheet."""
-    p = utils.load_prompt("sprite-sheet.mdc", vibemon=vibemon, bg_hex=bg_hex)
+    n = "sprite-sheet"
+    p = utils.load_prompt(f"{n}.mdc", vibemon=vibemon)
     r = await FAST_IMG_AGENT.run(p)
     await _LOGGER.adebug("Generate :: Vibemon sprite", vibemon=vibemon.name, prompt=p)
     d = r.output.data
+    _save_data(p, vibemon=vibemon.name, filename=f"{n}_prompt.txt")
+    _save_data(d, vibemon=vibemon.name, filename=f"{n}_output.png")
     return d
 
 
 async def generate_battle_cry(vibemon: schema.Vibemon) -> bytes:
     """Generate a Vibemon battle cry."""
-    p = utils.load_prompt("battle-cry.mdc", vibemon=vibemon)
+    n = "battle-cry"
+    p = utils.load_prompt(f"{n}.mdc", vibemon=vibemon)
     r = await FAST_TXT_AGENT.run(p, output_type=structured_output.VibemonSound)
     await _LOGGER.adebug("Generate :: Vibemon battle cry", vibemon=vibemon.name, **r.output.model_dump())
 
     r = _eleven_labs.text_to_sound_effects.convert(text=r.output.description, duration_seconds=r.output.duration)
     d = b"".join([audio_chunk async for audio_chunk in r])
+    _save_data(p, vibemon=vibemon.name, filename=f"{n}_prompt.txt")
     return d

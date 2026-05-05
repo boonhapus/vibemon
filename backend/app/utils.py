@@ -4,8 +4,9 @@ import io
 import random
 
 from PIL import Image
+from scipy import ndimage
 import numpy as np
-import rembg
+# import rembg
 
 from app import types
 
@@ -32,7 +33,7 @@ class RembgSessionizer:
         return self._future.done()
 
 
-REMBG_SESSION = RembgSessionizer("birefnet-general")
+# REMBG_SESSION = RembgSessionizer("birefnet-general")
 
 
 def clamp(value: float, *, minimum: float, maximum: float) -> float:
@@ -68,103 +69,144 @@ def weighted_sample[T](
     return r
 
 
-def extract_sprites(sprite_sheet: bytes) -> types.SpriteLayout:
+def extract_sprites(image: bytes | Image.Image, rows: int = 3, cols: int = 3, padding: int = 8) -> types.SpriteLayout:
+    """Extract `rows*cols` sprites from `image` in reading order.
+
+    Parameters
+    ----------
+    image : path, PIL.Image, or H×W×3 ndarray (uint8 RGB)
+    rows, cols : grid shape, default 3×3
+    padding : pixels of empty space around each crop, default 8
+
+    Returns
+    -------
+    list of `rows*cols` PIL RGBA images in reading order
+    (top-to-bottom, left-to-right). Background is transparent.
     """
-    Split a horizontal sheet of three sprites into three same-sized images.
+    from scipy import ndimage
+    from skimage.color import rgb2hsv
+    from skimage.segmentation import watershed
+    from sklearn.cluster import KMeans
 
-    The three output images share dimensions; each sprite is anchored at the
-    bottom-center of its canvas so they stand on a common floor.
-    """
-    # Alpha values at or below this are treated as transparent. Background removers
-    # often leave a faint halo of nearly-invisible pixels; this threshold tells those
-    # apart from real sprite pixels.
-    ALPHA_NOISE_FLOOR = 16
+    if not isinstance(image, Image.Image):
+        image = Image.open(io.BytesIO(image))
 
-    # Two stretches of sprite pixels separated by less than this fraction of the sheet's
-    # width are merged into one. Catches the case where the remover briefly disconnects
-    # a held item (a leaf, a tool) from the sprite's body.
-    HELD_ITEM_GAP_FRACTION = 1 / 40
+    arr = np.array(image.convert("RGB"))
+    H, W = arr.shape[:2]
 
-    # 1. Strip the background so only sprite pixels remain opaque.
-    transparent_bytes = REMBG_SESSION.remove(sprite_sheet)
-    sheet = Image.open(io.BytesIO(transparent_bytes)).convert("RGBA")
+    # ---- 1. Background hue/sat envelope from a thin edge strip --------
+    border = 6
+    edge = np.concatenate([
+        arr[:border, :].reshape(-1, 3), arr[-border:, :].reshape(-1, 3),
+        arr[:, :border].reshape(-1, 3), arr[:, -border:].reshape(-1, 3),
+    ])
+    edge_hsv = rgb2hsv(edge.reshape(-1, 1, 3) / 255.0).reshape(-1, 3)
+    h_lo, h_hi = np.percentile(edge_hsv[:, 0], [0.5, 99.5])
+    s_lo, s_hi = np.percentile(edge_hsv[:, 1], [0.5, 99.5])
+    # Pad the envelope a bit so subtle gradient banding in the interior
+    # doesn't leak through as foreground specks.
+    h_pad = (h_hi - h_lo) * 0.5 + 0.01
+    s_pad = (s_hi - s_lo) * 0.5 + 0.02
+    h_lo -= h_pad; h_hi += h_pad
+    s_lo -= s_pad; s_hi += s_pad
 
-    if sheet.getbbox() is None:
-        raise ValueError("rembg stripped the whole image — nothing to split.")
+    hsv = rgb2hsv(arr / 255.0)
+    fg = ~((hsv[..., 0] >= h_lo) & (hsv[..., 0] <= h_hi) &
+           (hsv[..., 1] >= s_lo) & (hsv[..., 1] <= s_hi))
 
-    # 2. For each column, ask: does it contain any sprite pixel?
-    alpha = np.array(sheet)[:, :, 3]
-    column_has_sprite = (alpha > ALPHA_NOISE_FLOOR).any(axis=0)
+    # ---- 2. Fill internal holes and clean specks ----------------------
+    fg = ndimage.binary_fill_holes(fg)
+    fg = ndimage.binary_opening(fg, iterations=2)
+    fg = ndimage.binary_closing(fg, iterations=2)
+    fg = ndimage.binary_fill_holes(fg)
 
-    # 3. Walk left-to-right, recording each [start, end) stretch of sprite columns.
-    #    Each stretch is one sprite — or one piece of one.
-    stretches: list[list[int]] = []
-    start = None
+    if not fg.any():
+        raise RuntimeError(
+            "No foreground detected. The background sampler couldn't "
+            "distinguish sprites from background — does this image have "
+            "a uniform border that's clearly background?"
+        )
 
-    for x, has_sprite in enumerate(column_has_sprite):
-        if has_sprite and start is None:
-            start = x
+    # ---- 3. K-means cluster centers (one per cell) --------------------
+    ys, xs = np.where(fg)
+    points = np.column_stack([ys, xs]).astype(np.float32)
 
-        elif not has_sprite and start is not None:
-            stretches.append([start, x])
-            start = None
+    init = np.array(
+        [[H * (r + 0.5) / rows, W * (c + 0.5) / cols]
+         for r in range(rows) for c in range(cols)],
+        dtype=np.float32,
+    )
+    km = KMeans(n_clusters=rows * cols, init=init, n_init=1, random_state=0)
+    km.fit(points)
+    centers = km.cluster_centers_  # (rows*cols, 2): (y, x)
+    centers_int = centers.astype(int)
 
-    if start is not None:
-        stretches.append([start, sheet.width])
+    # ---- 4. Seed-and-flood: each center → one labeled pixel, then
+    #         watershed through fg with a flat elevation surface so
+    #         expansion is purely connectivity-driven (geodesic).
+    seed_img = np.zeros((H, W), dtype=np.int32)
+    for i, (cy, cx) in enumerate(centers_int, start=1):
+        if not fg[cy, cx]:
+            # Snap to nearest fg pixel — k-means centers can land in
+            # background pockets for awkwardly shaped sprites.
+            d = (ys - cy) ** 2 + (xs - cx) ** 2
+            j = int(d.argmin())
+            cy, cx = int(ys[j]), int(xs[j])
+        seed_img[cy, cx] = i
 
-    # 4. Bridge stretches separated by tiny gaps (held-item reattachment).
-    gap = int(sheet.width * HELD_ITEM_GAP_FRACTION)
-    merged: list[list[int]] = []
+    label_img = watershed(
+        np.zeros((H, W), dtype=np.int32),
+        markers=seed_img,
+        mask=fg,
+    )
 
-    for s in stretches:
-        if merged and s[0] - merged[-1][1] < gap:
-            merged[-1][1] = s[1]
+    # ---- 5. Reading order: sort centers by y, chunk into `rows` rows
+    #         of `cols` each, then sort each chunk by x. Robust against
+    #         centers that fall near grid-boundary y values.
+    by_y = sorted(range(len(centers)), key=lambda i: centers[i, 0])
+    order: list[int] = []
+    for r in range(rows):
+        chunk = by_y[r * cols:(r + 1) * cols]
+        chunk.sort(key=lambda i: centers[i, 1])
+        order.extend(chunk)
 
-        else:
-            merged.append(s)
-
-    # 5. Coerce to exactly three stretches.
-    match len(merged):
-        case 3:
-            pass
-        
-        # Keep the three widest, then re-sort left-to-right.
-        case n if n > 3:
-            merged = sorted(merged, key=lambda s: s[1] - s[0], reverse=True)[:3]
-            merged.sort(key=lambda s: s[0])
-        
-        # Couldn't tell them apart — slice the overall subject area into equal thirds
-        # as a last resort.
-        case _:
-            left, _, right, _ = sheet.getbbox()
-            slice_w = (right - left) // 3
-            merged = [[left + i * slice_w, left + (i + 1) * slice_w] for i in range(3)]
-
-    # 6. Tight-crop each sprite from its column band.
-    cropped: list[Image.Image] = []
-
-    for left, right in merged:
-        band = sheet.crop((left, 0, right, sheet.height))
-        inner = band.getbbox()
-        cropped.append(band.crop(inner) if inner else band)
-
-    # 7. Paste each sprite onto a common-size canvas, anchored bottom-center.
-    canvas_w = max(s.width for s in cropped)
-    canvas_h = max(s.height for s in cropped)
+    # ---- 6. Crop each label into a PIL RGBA image --------------------
     aligned: list[Image.Image] = []
 
-    for sprite in cropped:
-        canvas = Image.new("RGBA", (canvas_w, canvas_h), (0, 0, 0, 0))
-        x = (canvas_w - sprite.width) // 2
-        y = canvas_h - sprite.height
-        canvas.paste(sprite, (x, y))
-        aligned.append(canvas)
+    for cid in order:
+        mask = (label_img == cid + 1)
+        ys2, xs2 = np.where(mask)
+
+        if len(ys2) == 0:
+            # Empty cell — return a 1×1 fully-transparent placeholder so
+            # the caller can still rely on len(aligned) == rows*cols.
+            aligned.append(Image.new("RGBA", (1, 1), (0, 0, 0, 0)))
+            continue
+
+        y0 = max(0, ys2.min() - padding)
+        x0 = max(0, xs2.min() - padding)
+        y1 = min(H, ys2.max() + 1 + padding)
+        x1 = min(W, xs2.max() + 1 + padding)
+
+        crop_rgb = arr[y0:y1, x0:x1]
+        alpha = (mask[y0:y1, x0:x1].astype(np.uint8) * 255)
+        rgba = np.dstack([crop_rgb, alpha])
+        aligned.append(Image.fromarray(rgba, "RGBA"))
     
     sprite_layout: types.SpriteLayout = {
-        "sheet": sheet,
-        "perspective_player": aligned[0],
-        "perspective_opponent": aligned[2],
-        "showcase": aligned[1],
+        "sheet": image,
+        # Battle row (row 0)
+        "battle_back": aligned[0],
+        "battle_hero": aligned[1],
+        "battle_opponent": aligned[2],
+        # Idle row (row 1)
+        "emote_resting": aligned[3],
+        "emote_happy": aligned[4],
+        "emote_frustrated": aligned[5],
+        # Expressive row (row 2)
+        "emote_proud": aligned[6],
+        "emote_confused": aligned[7],
+        "emote_sad": aligned[8],
     }
 
     return sprite_layout

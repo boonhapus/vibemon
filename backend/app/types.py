@@ -3,7 +3,7 @@ from annotated_types import Len
 import enum
 import uuid
 
-from PIL import Image
+from PIL.Image import Image
 
 
 type TrainerIdT = Annotated[uuid.UUID, "backend trainer identifier"]
@@ -91,7 +91,20 @@ class ActionTypeT(enum.StrEnum):
 class SpriteLayout(TypedDict):
     """The types of sprites that a Vibemon can be generated in."""
 
-    sheet: NotRequired[Image.Image]
-    perspective_player: Image.Image
-    perspective_opponent: Image.Image
-    showcase: Image.Image
+    # ROW 1
+    sheet: NotRequired[Image]
+
+    # ROW 1
+    battle_back: Image
+    battle_hero: Image
+    battle_opponent: Image
+
+    # ROW 2
+    emote_resting: Image
+    emote_happy: Image
+    emote_frustrated: Image
+
+    # ROW 3
+    emote_proud: Image
+    emote_confused: Image
+    emote_sad: Image

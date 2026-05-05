@@ -1,11 +1,11 @@
 ---
 name: battle-cry
 description: Generates a battle cry description and duration for a Vibemon.
-version: 1.0.0
+version: 1.0.1
 ---
 {%- set notes = [vibemon.affinity.identity.visual_notes, vibemon.affinity.visual_notes] | reject("none") | list -%}
 
-Create a vivid, cinematic sound effect description for this creature.
+Create a vivid, cinematic sound effect description for this creature. Must be less than 425 characters.
 
 Name: {{ vibemon.name }}
 Type: {{ vibemon.affinity.identity.elements | join(", ") }}

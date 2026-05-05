@@ -1,5 +1,5 @@
-from typing import Annotated, Any, Literal, Self
 from collections.abc import Iterable
+from typing import Annotated, Any, Literal, Self
 import asyncio
 import datetime as dt
 import math
@@ -9,9 +9,10 @@ import structlog
 import pydantic
 
 from app.balance.formulas import base_stat_level_scaling
+from app.genai.client import generate_battle_cry, generate_vibemon_sprite
 from app.plugins.provider import VibeProvider
 from app.settings import settings
-from app import const, types, utils, validators
+from app import brand, const, types, utils, validators
 
 _LOGGER = structlog.get_logger(__name__)
 
@@ -35,6 +36,7 @@ class _Transient(pydantic.BaseModel):
         extra="forbid",
         frozen=False,
         arbitrary_types_allowed=True,
+        validate_assignment=True,
     )
 
 
@@ -98,7 +100,7 @@ class Identity(_Static):
     def _stat_info(cls, name: types.BaseStatNameT, type: Literal["min", "med", "max"] = "med") -> int | None:
         """Fetch the descriptive statistic of the base stat field."""
         if (field := cls.model_fields.get(f"base_{name}")) and field.json_schema_extra:
-            return field.json_schema_extra[type]  # type: ignore
+            return field.json_schema_extra[type]
         return None
 
     @property
@@ -198,7 +200,7 @@ class Identity(_Static):
                 return ("UTILITY", "A balanced utility role that supports the team.")
 
 
-class Affinity(_Static):
+class Affinity(_Static, validate_assignment=True):
     """Represents the nature of a Vibemon, steered by the source provider.."""
 
     identity: Identity
@@ -269,9 +271,13 @@ class Affinity(_Static):
             if affinity.visual_notes:
                 notes.append(f"{affinity.visual_notes} ({weight}%)")
 
-        stats_merged = {k: math.floor(stats[k] / total) for k in stat_keys}
-        elements = utils.weighted_sample(*zip(*pop_e), k=random.randint(1, min(2, len(pop_e))))
-        moves    = utils.weighted_sample(*zip(*pop_m), k=random.randint(2, min(3, len(pop_m))))
+        try:
+            stats_merged = {k: math.floor(stats[k] / total) for k in stat_keys}
+            elements = utils.weighted_sample(*zip(*pop_e), k=random.randint(1, min(2, len(pop_e))))
+            moves    = utils.weighted_sample(*zip(*pop_m), k=random.randint(2, min(3, len(pop_m))))
+        except ZeroDivisionError:
+            _LOGGER.exception("Total is zero.", affinities=affinities)
+            raise
 
         merged_affinity = Affinity(
             identity=Identity(
@@ -289,28 +295,65 @@ class Affinity(_Static):
         return merged_affinity
 
 
-class Aesthetic(_Static):
+class Aesthetic(_Transient):
     """The visual and aural DNA of a Vibemon based on its attributes."""
 
-    sprites: types.SpriteLayout
+    primary_color: brand.Color
+    secondary_color: brand.Color | None = None
+    background_color: brand.Color
+
+    # ── LOCKED BEHIND ASYNC GENERATION ────────────────────────────────────────────────
+
+    sprites: types.SpriteLayout | None = None
     """All sprites that represent the vibemon."""
 
-    battle_cry: bytes
+    battle_cry: bytes | None = None
+    """All sounds that the Vibemon makes."""
+
+    # ── LOCKED BEHIND ASYNC GENERATION ────────────────────────────────────────────────
+
+    _vibemon: Vibemon | None = None
+
+    @pydantic.field_validator("sprites", mode="before")
+    def _unwrap_sprite_sheet(cls, value: bytes | types.SpriteLayout | None) -> types.SpriteLayout | None:
+        if isinstance(value, bytes):
+            value = utils.extract_sprites(image=value)
+
+        return value
+
+    async def regenerate(self) -> Self:
+        """ """
+        if self._vibemon is None:
+            raise ValueError("No base Vibemon to regenerate from.")
+
+        tasks: list[asyncio.Task] = []
+
+        async with asyncio.TaskGroup() as g:
+            t = g.create_task(generate_vibemon_sprite(vibemon=self._vibemon))
+            t.set_name("sprites")
+            tasks.append(t)
+
+            t = asyncio.create_task(generate_battle_cry(vibemon=self._vibemon))
+            t.set_name("battle_cry")
+            tasks.append(t)
+
+        for task in tasks:
+            setattr(self, task.get_name(), task.result())
+
+        return self
 
     @classmethod
-    async def from_vibemon(cls, vibemon: Vibemon, bg_hex: str = "#C47A7A") -> Self:
+    def from_vibemon(cls, vibemon: Vibemon) -> Self:
         """Generalize from the Vibemon's attributes."""
-        from app.genai.client import generate_battle_cry, generate_vibemon_sprite
-
-        sprite_sheet = await generate_vibemon_sprite(vibemon=vibemon, bg_hex=bg_hex)
-        battle_cry = await generate_battle_cry(vibemon=vibemon)
-
         data = {
-            "sprites": utils.extract_sprites(sprite_sheet=sprite_sheet),
-            "battle_cry": battle_cry,
+            "primary_color": brand.TYPE_COLORS[vibemon.elements[0]],
+            "secondary_color": brand.TYPE_COLORS[vibemon.elements[1]] if len(vibemon.elements) == 2 else None,
+            "background_color": brand.solve_background_color(*(brand.TYPE_COLORS[e] for e in vibemon.elements)),
         }
 
-        return cls(**data)
+        ins = cls(**data)
+        ins._vibemon = vibemon
+        return ins
 
 
 # ── MOVES ─────────────────────────────────────────────────────────────────────────────
@@ -400,7 +443,8 @@ class Vibemon(_Transient):
         )
 
         if not settings.headless:
-            instance._aesthetic = await Aesthetic.from_vibemon(instance)
+            instance._aesthetic = Aesthetic.from_vibemon(instance)
+            await instance._aesthetic.regenerate()
 
         return instance
 
@@ -508,7 +552,7 @@ class Battle(_Transient):
         return self.model_dump(mode="json")
 
 
-class BattleMove(Move, frozen=False):
+class BattleMove(Move, frozen=False, validate_assignment=True):
     """
     Transient battle state layed on top of a Move.
     """
@@ -537,13 +581,13 @@ class StatStages(_Transient):
     evasion: int = 0
 
 
-class BattleTrainer(Trainer, frozen=False):
+class BattleTrainer(Trainer, frozen=False, validate_assignment=True):
     """
     Transient battle state layed on top of a Trainer.
     """
 
     active_index: int = 0
-    team: list[BattleVibemon] = pydantic.Field(default_factory=list)  # type: ignore
+    team: list[BattleVibemon] = pydantic.Field(default_factory=list)
 
     @property
     def active_vibemon(self) -> BattleVibemon:
@@ -556,7 +600,7 @@ class BattleTrainer(Trainer, frozen=False):
         return any(not p.is_fainted for p in self.team)
 
 
-class BattleVibemon(Vibemon, frozen=False):
+class BattleVibemon(Vibemon, frozen=False, validate_assignment=True):
     """
     Transient battle state layered on top of a Vibemon's innate properties.
     """
