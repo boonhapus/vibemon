@@ -1,3 +1,8 @@
+import asyncio
+import collections
+import datetime as dt
+import time
+
 import niquests
 import structlog
 
@@ -42,3 +47,41 @@ class LoggingHook(niquests.AsyncLifeCycleHook):
             status_code=response.status_code,
             elapsed_s=round(response.elapsed.total_seconds(), 2),
         )
+
+
+class RateLimiterHook(niquests.AsyncLifeCycleHook):
+    """Rate limiting for an API client."""
+
+    def __init__(self, *limits: tuple[int, dt.timedelta], provider: str) -> None:
+        self._limits = []
+
+        for requests, window in limits:
+            self._limits.append((requests, window.total_seconds(), collections.deque(), asyncio.Lock()))
+            rps = round(requests / window.total_seconds(), 2)
+            _LOGGER.debug(f"Registering rate limit on {provider}", requests=requests, window=window, rps=rps)
+
+        super().__init__()
+        self.provider = provider
+
+    async def pre_request(self, prepared_request: niquests.PreparedRequest, **kwargs) -> None:
+        """
+        The prepared request just got built. You may alter it prior to be sent through HTTP.
+
+        Further reading:
+          https://niquests.readthedocs.io/en/latest/user/advanced.html#niquests.hooks.AsyncLifeCycleHook.pre_request
+        """
+        for max_requests, window_seconds, timestamps, lock in self._limits:
+            while True:
+                async with lock:
+                    now = time.monotonic()
+
+                    while timestamps and now - timestamps[0] >= window_seconds:
+                        timestamps.popleft()
+
+                    if len(timestamps) < max_requests:
+                        timestamps.append(now)
+                        break
+
+                    wait_for = (timestamps[0] + window_seconds) - now
+
+                await asyncio.sleep(wait_for)

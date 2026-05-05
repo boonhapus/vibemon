@@ -1,8 +1,13 @@
 from typing import ClassVar, TYPE_CHECKING
 import abc
 
+import niquests
+import structlog
+
 if TYPE_CHECKING:
    from app import schema
+
+_LOGGER = structlog.get_logger(__name__)
 
 
 class VibeProvider(abc.ABC):
@@ -34,6 +39,22 @@ class VibeProvider(abc.ABC):
 
     name: ClassVar[str]
     """Stable provider identifier (persisted in `Affinity.provider_id`)."""
+
+    def _log_http_error(self, exception: niquests.HTTPError) -> None:
+        """If an HTTP error is encountered, log its context."""
+        log_data = {}
+        
+        if exception.response is not None:
+              log_data["status"] = exception.response.status_code
+              log_data["text"] = exception.response.text
+              log_data["response.headers"] = exception.response.headers
+  
+        if exception.request is not None:
+              log_data["url"] = exception.request.url
+              log_data["request.headers"] = exception.request.headers
+  
+        _LOGGER.exception(f"HTTP error from {self.name} provider", **log_data)
+        raise exception
 
     @abc.abstractmethod
     async def synthesize(self, ctx: schema.BirthContext) -> schema.Affinity:
