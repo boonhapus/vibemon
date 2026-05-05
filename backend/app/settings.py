@@ -16,17 +16,11 @@ class Settings(pydantic_settings.BaseSettings):
     google_api_key: pydantic.SecretStr = pydantic.Field(json_schema_extra={"mirror_to_os.environ": True})
     """https://aistudio.google.com/api-keys"""
 
-    nvidia_api_key: pydantic.SecretStr | None = pydantic.Field(None, json_schema_extra={"mirror_to_os.environ": True})
-    """https://build.nvidia.com/settings/api-keys"""
-
     openai_api_key: pydantic.SecretStr | None = pydantic.Field(None, json_schema_extra={"mirror_to_os.environ": True})
     """https://platform.openai.com/api-keys"""
 
     opencode_api_key: pydantic.SecretStr | None = pydantic.Field(None, json_schema_extra={"mirror_to_os.environ": True})
     """..."""
-
-    together_api_key: pydantic.SecretStr = pydantic.Field(json_schema_extra={"mirror_to_os.environ": True})
-    """https://api.together.ai/settings/profile"""
 
     # ── Specific models ───────────────────────────────────────────────────────────────
 

@@ -44,7 +44,7 @@ class _GeminiImageAgent:
         result = await self._agent.run(
             user_prompt,
             output_type=output_type,
-            builtin_tools=builtin_tools or [pydantic_ai.ImageGenerationTool()],
+            builtin_tools=builtin_tools or [pydantic_ai.ImageGenerationTool(size="2K")],
         )
 
         return ImageRunResult(output=result.output)
@@ -111,18 +111,6 @@ def build_image_agent(model_string: str) -> ImageAgent:
                 model=model,
             )
 
-        case "nvidia":
-            if settings.nvidia_api_key is None:
-                raise ValueError("nvidia_api_key required for nvidia: models")
-            
-            return _OpenAICompatibleImageAgent(
-                api_key=settings.nvidia_api_key.get_secret_value(),
-                # NVIDIA NIM hosted endpoint
-                base_url="https://ai.api.nvidia.com/v1", 
-                model=model,
-                response_format="b64_json",
-            )
-
         case "openai":
             if settings.openai_api_key is None:
                 raise ValueError("openai_api_key required for openai: models")
@@ -131,7 +119,7 @@ def build_image_agent(model_string: str) -> ImageAgent:
                 api_key=settings.openai_api_key.get_secret_value(),
                 base_url="https://api.openai.com/v1",
                 model=model,
-                quality="medium",
+                quality="high",
                 extra_body={"output_format": "png"},
             )
 
@@ -144,29 +132,6 @@ def build_image_agent(model_string: str) -> ImageAgent:
                 base_url="https://api.opencode.ai/v1",
                 model=model,
                 response_format="b64_json",
-            )
-
-        case "openrouter":
-            if settings.openrouter_api_key is None:
-                raise ValueError("openrouter_api_key required for openrouter: models")
-
-            return _OpenAICompatibleImageAgent(
-                api_key=settings.openrouter_api_key.get_secret_value(),
-                base_url="https://openrouter.ai/api/v1",
-                model=model,
-                response_format="b64_json",
-            )
-
-        case "together":
-            if settings.together_api_key is None:
-                raise ValueError("together_api_key required for together: models")
-
-            return _OpenAICompatibleImageAgent(
-                api_key=settings.together_api_key.get_secret_value(),
-                base_url="https://api.together.xyz/v1",
-                model=model,
-                response_format="b64_json",
-                extra_body={"steps": 35},
             )
 
         case _:
