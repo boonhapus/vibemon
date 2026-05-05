@@ -1,0 +1,26 @@
+---
+name: battle-cry
+description: Generates a battle cry description and duration for a Vibemon.
+version: 1.0.1
+---
+{%- set notes = [vibemon.affinity.identity.visual_notes, vibemon.affinity.visual_notes] | reject("none") | list -%}
+
+Create a vivid, cinematic sound effect description for this creature. Must be less than 425 characters.
+
+Name: {{ vibemon.name }}
+Type: {{ vibemon.affinity.identity.elements | join(", ") }}
+Concept: {{ notes | join("; ") if notes else "None" }}
+
+Moveset:
+{% for move in vibemon.affinity.moves -%}
+- [{{ move.category }} {{ move.type }}] {{ move.name }} | {{ move.power }} Pwr | "{{ move.flavor_text }}"
+{% endfor %}
+
+Sonic scale (bias only — do not name a tier or stat in the output):
+{% include "tiers/" ~ vibemon.affinity.identity.tier ~ "/sonic.j2" %}
+
+Output a JSON object with two fields:
+- `description`: 2-3 sentences. Use cinematic audio terminology (synthesis, reverb, tail, layer, timbre, transient, sub, formant). Let elemental type and moveset drive the timbre; let the sonic scale subtly inform weight, layering, and tail length. Describe a brief idle/ambient texture only if it fits the personality. Do not mention BST, tier, or the bias text.
+- `duration`: a float in [0.25, 4.0]. Pick within the tier's duration range above, leaning shorter for sharp/punchy creatures and longer for sustained/booming ones.
+
+Example description: "Sharp, metallic chitter with harmonic overtones, followed by a deep resonant boom that decays with a long reverb tail. Layered with organic growling undertones."
