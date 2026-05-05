@@ -3,7 +3,6 @@
 # dependencies = [
 #   "vibemon-backend",
 #   "geonamescache",
-#   "rich",
 #   "sqlalchemy[asyncio]",
 #   "aiosqlite",
 # ]
@@ -20,7 +19,7 @@ import pathlib
 import random
 import uuid
 
-from rich import console, live, table
+from PIL.Image import Image
 import geonamescache
 import structlog
 
@@ -32,21 +31,21 @@ from sqlalchemy.ext.asyncio import create_async_engine, AsyncSession
 from sqlalchemy.orm import sessionmaker
 import sqlalchemy as sa
 
-
 _LOGGER = structlog.get_logger(__name__)
-rich_console = console.Console()
 
 
 def schema_to_models(
     vibemon: schema.Vibemon,
     *,
+    birth_context: schema.BirthContext | None = None,
     moves_cache: dict[str, models.Move] | None = None,
 ) -> models.Vibemon:
     """Convert Pydantic schema objects to SQLAlchemy models.
 
     Builds a relationship graph rooted at the returned ``models.Vibemon``;
     a single ``session.add(...)`` cascades through ``affinity``, ``identity``,
-    ``moves``, and ``birth_affinities`` via the ``back_populates`` wiring.
+    ``moves``, ``birth_context``, and ``birth_affinities`` via the
+    ``back_populates`` wiring.
 
     Moves are de-duplicated by name (``models.Move.name`` is ``unique=True``).
     Three flavours of overlap can collide on that constraint:
@@ -108,16 +107,29 @@ def schema_to_models(
             moves=[_move(m) for m in affinity.moves],
         )
 
-    return models.Vibemon(
+    def _birth_context(ctx: schema.BirthContext) -> models.BirthContext:
+        return models.BirthContext(
+            timestamp=int(ctx.timestamp.timestamp()),
+            geo_coords=list(ctx.geo_coords),
+            provider_names=[p.name for p in ctx.providers],
+        )
+
+    model_vibemon = models.Vibemon(
         nickname=vibemon.nickname,
         affinity=_affinity(vibemon.affinity),
         level=vibemon.level,
         birth_affinities=[_affinity(a) for a in vibemon.birth_affinities],
     )
 
+    if birth_context is not None:
+        model_vibemon.birth_context = _birth_context(birth_context)
+
+    return model_vibemon
+
 
 @asynccontextmanager
-async def database_session(db_path: str = "../.scripts/vibemon.db") -> AsyncIterator[AsyncSession]:
+async def database_session(db_path: str | None = None) -> AsyncIterator[AsyncSession]:
+    db_path = db_path or str(pathlib.Path(__file__).parent / "vibemon.db")
     """Spin up an async SQLite db, create tables, yield a session.
 
     The engine is disposed on exit so the script doesn't leak the aiosqlite
@@ -138,98 +150,53 @@ async def database_session(db_path: str = "../.scripts/vibemon.db") -> AsyncIter
         await engine.dispose()
 
 
-def get_random_city(population_ge: int = 1_000_000) -> geonamescache.City:
+def get_random_city() -> geonamescache.City:
     """Fetch a random city."""
     cache = geonamescache.GeonamesCache()
 
-    major_city = random.choice([c for c in cache.get_cities().values() if c["population"] >= population_ge])
-    country    = next(c for iso, c in cache.get_countries().items() if iso == major_city["countrycode"])
+    city    = random.choice([c for c in cache.get_cities().values()])
+    country = next(c for iso, c in cache.get_countries().items() if iso == city["countrycode"])
 
     # Add the Country.name
-    major_city["country"] = country["name"]
+    city["country"] = country["name"]
 
-    return major_city
+    return city
 
 
-async def generate_vibemon_in_world() -> tuple[str, str, schema.BirthContext, schema.Vibemon]:
+async def generate_vibemon_in_world(**vibemon_options) -> tuple[str, str, schema.BirthContext, schema.Vibemon]:
     """Generate a Vibemon in some random city."""
-    major_city = get_random_city()
+    city = get_random_city()
 
     ctx = schema.BirthContext(
         timestamp=dt.datetime.now(tz=dt.timezone.utc),
-        geo_coords=(major_city["latitude"], major_city["longitude"]),
+        geo_coords=(city["latitude"], city["longitude"]),
         providers=[ClimateProvider()],
     )
 
     affinities = await ctx.regenerate()
-    vibemon = await schema.Vibemon.birth(*affinities, core_identity="Has a sunny disposition")
+    vibemon = await schema.Vibemon.birth(*affinities, **vibemon_options)
 
     if not settings.headless:
+        assert vibemon.aesthetic.battle_cry is not None, ""
+        assert vibemon.aesthetic.sprites is not None, ""
+
         directory = pathlib.Path(__file__).parent / "generated" / vibemon.name.lower()
         directory.mkdir(parents=True, exist_ok=True)
 
         directory.joinpath(f"battle_cry.mp3").write_bytes(vibemon.aesthetic.battle_cry)
 
         for key, sprite in vibemon.aesthetic.sprites.items():
+            assert isinstance(sprite, Image), ""
             sprite.save(directory.joinpath(f"{key}.png"))
 
-    return (major_city["name"], major_city["country"], ctx, vibemon)
-
-
-def _build_summary_table(rows: list[tuple[str, str, schema.BirthContext, schema.Vibemon]]) -> table.Table:
-    max_moves = max(len(v.affinity.moves) for _, _, _, v in rows) if rows else 0
-
-    t = table.Table(
-        title="Vibemon world sample",
-        show_lines=True,
-        expand=False,
-    )
-    t.add_column("City", style="cyan", no_wrap=True)
-    t.add_column("Country", style="cyan", no_wrap=True)
-    t.add_column("Name", style="magenta")
-    t.add_column("Elements", style="yellow")
-    t.add_column("HP", justify="right")
-    t.add_column("Atk", justify="right")
-    t.add_column("Def", justify="right")
-    t.add_column("SpA", justify="right")
-    t.add_column("SpD", justify="right")
-    t.add_column("Spe", justify="right")
-    t.add_column("BST", justify="right")
-
-    for i in range(max_moves):
-        t.add_column(f"Move {i + 1}", style="green")
-        t.add_column(f"Type {i + 1}", style="dim")
-
-    for city_name, country_name, _ctx, v in rows:
-        ident = v.affinity.identity
-        move_cells: list[str] = []
-        for m in v.affinity.moves:
-            move_cells.extend((m.name, m.type.value))
-        for _ in range(max_moves - len(v.affinity.moves)):
-            move_cells.extend(("", ""))
-
-        t.add_row(
-            city_name,
-            country_name,
-            v.name,
-            " / ".join(e.value for e in ident.elements),
-            str(ident.base_hp),
-            str(ident.base_attack),
-            str(ident.base_defense),
-            str(ident.base_sp_attack),
-            str(ident.base_sp_defense),
-            str(ident.base_speed),
-            str(ident.bst),
-            *move_cells,
-        )
-
-    return t
+    return (city["name"], city["country"], ctx, vibemon)
 
 
 async def stream_vibemon_in_world(
     count: int,
     *,
-    stagger: float = 2.0,
+    stagger: float = 2,
+    **vibemon_options,
 ) -> AsyncIterator[tuple[str, str, schema.BirthContext, schema.Vibemon]]:
     """Generate Vibemon concurrently, yielding each one as soon as it's ready.
 
@@ -239,15 +206,20 @@ async def stream_vibemon_in_world(
     still being born.
     """
 
-    async def _delayed(delay: float) -> tuple[str, str, schema.BirthContext, schema.Vibemon]:
+    async def _delayed(delay: float) -> tuple[str, str, schema.BirthContext, schema.Vibemon] | None:
         await asyncio.sleep(delay)
-        return await generate_vibemon_in_world()
+        try:
+            return await generate_vibemon_in_world(**vibemon_options)
+        except Exception as e:
+            await _LOGGER.awarning("Birth failed, skipping", error=repr(e))
+            return None
 
     tasks = [asyncio.create_task(_delayed(i * stagger)) for i in range(count)]
 
     try:
         async for coro in asyncio.as_completed(tasks):
-            yield await coro
+            if (result := await coro) is not None:
+                yield result
     finally:
         for t in tasks:
             if not t.done():
@@ -256,9 +228,15 @@ async def stream_vibemon_in_world(
 
 async def main() -> None:
     """Entrypoint."""
+    VIBEMON_TO_GENERATE = 150
+    CORE_IDENTITY = None
+    settings.headless = True
+
     structlog.configure(wrapper_class=structlog.make_filtering_bound_logger(logging.INFO))
 
-    settings.headless = True
+    await _LOGGER.ainfo("Starting", headless=settings.headless)
+
+    # directory = pathlib.Path(__file__).parent
 
     rows: list[tuple[str, str, schema.BirthContext, schema.Vibemon]] = []
 
@@ -266,16 +244,17 @@ async def main() -> None:
         existing_moves = (await sess.execute(sa.select(models.Move))).scalars().all()
         moves_cache: dict[str, models.Move] = {m.name: m for m in existing_moves}
 
-        with live.Live(_build_summary_table(rows), console=rich_console, refresh_per_second=4) as table_view:
-            async for item in stream_vibemon_in_world(count=489):
-                city, country, _ctx, vibemon = item
-                sess.add(schema_to_models(vibemon, moves_cache=moves_cache))
-                await sess.commit()
-                await _LOGGER.ainfo("Persisted Vibemon", name=vibemon.name, city=city, country=country)
-                rows.append(item)
-                table_view.update(_build_summary_table(rows))
-
-    rich_console.print()
+        async for item in stream_vibemon_in_world(count=VIBEMON_TO_GENERATE, core_identity=CORE_IDENTITY):
+            city, country, ctx, vibemon = item
+            sess.add(schema_to_models(vibemon, birth_context=ctx, moves_cache=moves_cache))
+            await sess.commit()
+            await _LOGGER.ainfo(
+                "Persisted Vibemon",
+                name=vibemon.name, type=tuple(map(str, vibemon.elements)), country=country,
+                tier=vibemon.affinity.identity.tier, role=vibemon.affinity.identity.battle_role[0],
+                moves=[f"{m.name} [{m.type}]" for m in vibemon.affinity.moves],
+            )
+            rows.append(item)
 
 
 if __name__ == "__main__":
