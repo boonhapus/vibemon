@@ -138,3 +138,24 @@ def get_element_effectiveness(attack_type: types.VibemonTypeT, defender_elements
         modifier *= ELEMENT_CHART.get((attack_type, defender_element), 1.0)
 
     return modifier
+
+
+def get_move_assignment_bonus(
+    move_type: types.VibemonTypeT,
+    vibemon_elements: list[types.VibemonTypeT],
+) -> float:
+    """
+    Bonus multiplier for assigning a move to a vibemon.
+
+    Same type:  2.0x (thematic fit)
+    Normal:     1.0x (utility, no bonus/penalty)
+    Other:      0.5x (antagonistic)
+
+    TODO: When implementing TYPE_AFFINITIES, this will consider coverage
+    bonuses (1.5x for moves that cover defensive gaps).
+    """
+    if move_type in vibemon_elements:
+        return 2.0
+    if move_type == types.VibemonTypeT.NORMAL:
+        return 1.0
+    return 0.5
