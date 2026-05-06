@@ -19,6 +19,7 @@ _LOGGER = structlog.get_logger(__name__)
 
 # ── INTERNALS ─────────────────────────────────────────────────────────────────────────
 
+
 class _Static(pydantic.BaseModel):
     """Base configuration for all models."""
 
@@ -80,12 +81,16 @@ class Identity(_Static):
     """Supplied by the Trainer themselves."""
 
     elements: types.IdentityElementsT
-    base_hp: int         = pydantic.Field(default=70, ge= 1, le=255, json_schema_extra={"min":  1, "med": 70, "max": 255})
-    base_attack: int     = pydantic.Field(default=75, ge= 5, le=190, json_schema_extra={"min":  5, "med": 75, "max": 190})
-    base_defense: int    = pydantic.Field(default=70, ge= 5, le=230, json_schema_extra={"min":  5, "med": 70, "max": 230})
-    base_sp_attack: int  = pydantic.Field(default=70, ge=10, le=194, json_schema_extra={"min": 10, "med": 70, "max": 194})
-    base_sp_defense: int = pydantic.Field(default=70, ge=20, le=230, json_schema_extra={"min": 20, "med": 70, "max": 230})
-    base_speed: int      = pydantic.Field(default=70, ge= 5, le=200, json_schema_extra={"min":  5, "med": 70, "max": 200})
+    base_hp: int = pydantic.Field(default=70, ge=1, le=255, json_schema_extra={"min": 1, "med": 70, "max": 255})
+    base_attack: int = pydantic.Field(default=75, ge=5, le=190, json_schema_extra={"min": 5, "med": 75, "max": 190})
+    base_defense: int = pydantic.Field(default=70, ge=5, le=230, json_schema_extra={"min": 5, "med": 70, "max": 230})
+    base_sp_attack: int = pydantic.Field(
+        default=70, ge=10, le=194, json_schema_extra={"min": 10, "med": 70, "max": 194}
+    )
+    base_sp_defense: int = pydantic.Field(
+        default=70, ge=20, le=230, json_schema_extra={"min": 20, "med": 70, "max": 230}
+    )
+    base_speed: int = pydantic.Field(default=70, ge=5, le=200, json_schema_extra={"min": 5, "med": 70, "max": 200})
 
     evo_seed: int = pydantic.Field(default_factory=lambda: random.randint(1, 3))
     """The number of evolutions for this Vibemon."""
@@ -119,7 +124,7 @@ class Identity(_Static):
             + self.base_sp_defense
             + self.base_speed
         )
-    
+
     @property
     def tier(self) -> types.TierT:
         """
@@ -274,7 +279,7 @@ class Affinity(_Static, validate_assignment=True):
         try:
             stats_merged = {k: math.floor(stats[k] / total) for k in stat_keys}
             elements = utils.weighted_sample(*zip(*pop_e), k=random.randint(1, min(2, len(pop_e))))
-            moves    = utils.weighted_sample(*zip(*pop_m), k=random.randint(2, min(3, len(pop_m))))
+            moves = utils.weighted_sample(*zip(*pop_m), k=random.randint(2, min(3, len(pop_m))))
         except ZeroDivisionError:
             _LOGGER.exception("Total is zero.", affinities=affinities)
             raise
@@ -368,6 +373,137 @@ class MoveEffect(_Static):
     chance: float = 1.0
 
 
+type EffectTarget = Literal["self", "target", "all_targets", "side", "opposing_side"]
+
+
+class StatusInflict(_Static):
+    """Inflict a major status condition."""
+
+    kind: Literal["status"] = "status"
+    target: EffectTarget = "target"
+    status: types.StatusConditionT
+
+
+class StatChange(_Static):
+    """Apply stat stage changes."""
+
+    kind: Literal["stat"] = "stat"
+    target: EffectTarget = "target"
+    changes: dict[types.StatStageNameT, int]
+
+
+class Drain(_Static):
+    """Heal the user for a ratio of damage dealt."""
+
+    kind: Literal["drain"] = "drain"
+    ratio: float
+
+
+class Recoil(_Static):
+    """Damage the user for a ratio of damage dealt."""
+
+    kind: Literal["recoil"] = "recoil"
+    ratio: float
+
+
+class WeatherSet(_Static):
+    """Set field weather."""
+
+    kind: Literal["weather"] = "weather"
+    weather: types.WeatherT
+    turns: int
+
+
+class Heal(_Static):
+    """Heal a target by a max HP ratio."""
+
+    kind: Literal["heal"] = "heal"
+    target: EffectTarget = "self"
+    ratio: float
+
+
+type Effect = Annotated[
+    StatusInflict | StatChange | Drain | Recoil | WeatherSet | Heal,
+    pydantic.Discriminator("kind"),
+]
+
+
+class EffectGroup(_Static):
+    """A shared-chance group of effects."""
+
+    chance: float = 1.0
+    trigger: Literal["on_hit", "on_use", "after_damage"] = "on_hit"
+    effects: tuple[Effect, ...] = ()
+
+
+class ConditionalOverride(_Static):
+    """Declarative override for conditional move behavior."""
+
+    valid: bool | None = None
+    priority_delta: int = 0
+    accuracy_override: float | None = None
+    power_multiplier: float | None = None
+    flavor_key: str | None = None
+
+
+class IfOpponentAttacking(_Static):
+    """Condition matching an opponent's attacking action."""
+
+    kind: Literal["opponent_attacking"] = "opponent_attacking"
+    on_match: ConditionalOverride
+    on_miss: ConditionalOverride | None = None
+
+
+class IfWeather(_Static):
+    """Condition matching current field weather."""
+
+    kind: Literal["weather"] = "weather"
+    weather: types.WeatherT
+    on_match: ConditionalOverride
+
+
+class IfHpBelow(_Static):
+    """Condition matching user HP ratio."""
+
+    kind: Literal["hp_below"] = "hp_below"
+    threshold: float
+    on_match: ConditionalOverride
+
+
+class RandomPower(_Static):
+    """Condition selecting a random power bucket."""
+
+    kind: Literal["random_power"] = "random_power"
+    buckets: tuple[tuple[float, int], ...]
+
+
+type Condition = Annotated[
+    IfOpponentAttacking | IfWeather | IfHpBelow | RandomPower,
+    pydantic.Discriminator("kind"),
+]
+
+
+class MoveBehavior(_Static):
+    """First-party move behavior references and declarative conditions."""
+
+    conditions: tuple[Condition, ...] = ()
+    script_id: str | None = None
+
+
+def _effect_group_from_legacy(effect: MoveEffect | dict[str, Any]) -> EffectGroup:
+    """Consume legacy MoveEffect.target_self into explicit effect targets."""
+    if isinstance(effect, dict):
+        effect = MoveEffect(**effect)
+
+    target: EffectTarget = "self" if effect.target_self else "target"
+    effects: list[Effect] = []
+    if effect.status_inflict is not None:
+        effects.append(StatusInflict(target=target, status=effect.status_inflict))
+    if effect.stat_changes:
+        effects.append(StatChange(target=target, changes=effect.stat_changes))
+    return EffectGroup(chance=effect.chance, effects=tuple(effects))
+
+
 class Move(_Static):
     """A move that a Vibemon can learn and use in battle."""
 
@@ -384,12 +520,25 @@ class Move(_Static):
     pp: int = 10
     priority: Annotated[int, validators.ensure_between_abs_7] = 0
     effect: MoveEffect | None = None
+    effects: tuple[EffectGroup, ...] = ()
+    behavior: MoveBehavior = pydantic.Field(default_factory=MoveBehavior)
+    target: types.MoveTargetT = types.MoveTargetT.SINGLE
     level_requirement: int = 1
+
+    @pydantic.model_validator(mode="before")
+    @classmethod
+    def _migrate_legacy_effect(cls, data: Any) -> Any:
+        if not isinstance(data, dict):
+            return data
+        if data.get("effect") is not None and not data.get("effects"):
+            data = data.copy()
+            data["effects"] = (_effect_group_from_legacy(data["effect"]),)
+        return data
 
     def __hash__(self) -> int:
         """There should be no two moves named the same."""
         return hash(self.name)
-    
+
     def __eq__(self, other: object) -> bool:
         """There should be no two moves named the same."""
         if not isinstance(other, Move):
@@ -501,142 +650,35 @@ class Vibemon(_Transient):
         return base_stat_level_scaling(self.affinity.identity.base_speed, level=self.level)
 
 
-# ── BATTLE ────────────────────────────────────────────────────────────────────────────
+# ── BATTLE COMPATIBILITY ─────────────────────────────────────────────────────────────
 
 
-class BattleAction(_Static):
-    """An action selected by a trainer to perform during their turn."""
-
-    trainer_name: types.TrainerIdT
-    action_type: types.ActionTypeT
-    value: str
-
-
-class TurnEvent(_Static):
-    """Represents the result of an action taken of a Vibemon battle."""
-
-    actor: Annotated[str | None, "Vibemon.name"]
-    description: str | None = None
-    hp_delta: int | None = None
-    status_change: types.StatusConditionT | None = None
-    stat_stage_changes: dict[str, int] = pydantic.Field(default_factory=dict)
-    move_used: str | None = None
-    missed: bool = False
-    fainted: bool = False
+_BATTLE_EXPORTS = {
+    "Battle",
+    "BattleTrainer",
+    "BattleVibemon",
+    "BattleMove",
+    "FieldState",
+    "FieldWeather",
+    "StatStages",
+    "TurnRecord",
+    "BattleAction",
+    "MoveAction",
+    "SwitchAction",
+    "ItemAction",
+    "RunAction",
+    "TargetRef",
+    "TurnEvent",
+}
 
 
-class TurnRecord(_Transient):
-    """Represents a specific turn of a Vibemon battle."""
+def __getattr__(name: str) -> Any:
+    """Lazy compatibility exports for transient battle models."""
+    if name in _BATTLE_EXPORTS:
+        from app.battle import actions, events
+        from app.battle import schema as battle_schema
 
-    turn_number: int
-    actions: list[BattleAction] = pydantic.Field(default_factory=list)
-    events: list[TurnEvent] = pydantic.Field(default_factory=list)
-
-
-class Battle(_Transient):
-    """Represents the state of a Vibemon battle."""
-
-    trainer_a: BattleTrainer
-    trainer_b: BattleTrainer
-    turn_number: int = 1
-    turn_history: list[TurnRecord] = pydantic.Field(default_factory=list)
-    winner: BattleTrainer | None = None
-
-    @property
-    def concluded(self) -> bool:
-        """Determines if the battle is over."""
-        return self.winner is not None
-
-    def to_json(self) -> dict[str, Any]:
-        """Serialize the battle."""
-        return self.model_dump(mode="json")
-
-
-class BattleMove(Move, frozen=False, validate_assignment=True):
-    """
-    Transient battle state layed on top of a Move.
-    """
-
-    pp_current: int = -1
-    priority: int = 0
-    crit_ratio: int = 0
-
-    @pydantic.model_validator(mode="after")
-    def _set_current_pp_if_not_default(self) -> Self:
-        if self.pp_current == -1:
-            self.pp_current = self.pp
-
-        return self
-
-
-class StatStages(_Transient):
-    """Stat stage modifiers accumulated during battle, ranging from -6 to +6."""
-
-    attack: int = 0
-    defense: int = 0
-    sp_attack: int = 0
-    sp_defense: int = 0
-    speed: int = 0
-    accuracy: int = 0
-    evasion: int = 0
-
-
-class BattleTrainer(Trainer, frozen=False, validate_assignment=True):
-    """
-    Transient battle state layed on top of a Trainer.
-    """
-
-    active_index: int = 0
-    team: list[BattleVibemon] = pydantic.Field(default_factory=list)
-
-    @property
-    def active_vibemon(self) -> BattleVibemon:
-        """Which Vibemon should be out on the field?"""
-        return self.team[self.active_index]
-
-    @property
-    def has_vibemon_remaining(self) -> bool:
-        """Which does this trainer have any Vibemon to fight?"""
-        return any(not p.is_fainted for p in self.team)
-
-
-class BattleVibemon(Vibemon, frozen=False, validate_assignment=True):
-    """
-    Transient battle state layered on top of a Vibemon's innate properties.
-    """
-
-    current_hp: int = 0
-    moves: list[BattleMove] = pydantic.Field(default_factory=list)
-    status: types.StatusConditionT = types.StatusConditionT.NONE
-    stat_stages: StatStages = pydantic.Field(default_factory=StatStages)
-    crit_stage: int = 0
-
-    is_flinched: bool = False
-    is_confused: bool = False
-    confusion_turns: int = 0
-    bad_poison_counter: int = 0
-    sleep_turns_remaining: int = 0
-    is_seeded: bool = False
-    taunt_turns: int = 0
-    bound_turns: int = 0
-
-    @pydantic.model_validator(mode="after")
-    def _apply_battle_defaults(self) -> Self:
-        """Initialize transient battle state from the underlying Vibemon."""
-        if self.current_hp == 0:
-            self.current_hp = self.hp
-
-        if not self.moves:
-            self.moves = [BattleMove(**move.model_dump()) for move in self.affinity.moves]
-
-        return self
-
-    @property
-    def max_hp(self) -> int:
-        """Delegates to the inherited HP formula so battle code has a stable reference."""
-        return self.hp
-
-    @property
-    def is_fainted(self) -> bool:
-        """Is the Vibemon fainted."""
-        return self.current_hp <= 0
+        for module in (battle_schema, actions, events):
+            if hasattr(module, name):
+                return getattr(module, name)
+    raise AttributeError(f"module {__name__!r} has no attribute {name!r}")

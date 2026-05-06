@@ -88,6 +88,31 @@ class ActionTypeT(enum.StrEnum):
     RUN = "run"
 
 
+class WeatherT(enum.StrEnum):
+    """Battle field weather."""
+
+    CLEAR = "clear"
+    SUN = "sun"
+    RAIN = "rain"
+    SANDSTORM = "sandstorm"
+    HAIL = "hail"
+    HEAVY_RAIN = "heavy_rain"
+    EXTREME_SUN = "extreme_sun"
+    STRONG_WINDS = "strong_winds"
+
+
+class MoveTargetT(enum.StrEnum):
+    """Move target topology."""
+
+    SELF = "self"
+    SINGLE = "single"
+    ALL_OPPONENTS = "all_opponents"
+    ALL_ADJACENT = "all_adjacent"
+    USER_SIDE = "user_side"
+    OPPONENT_SIDE = "opponent_side"
+    FIELD = "field"
+
+
 class SpriteLayout(TypedDict):
     """The types of sprites that a Vibemon can be generated in."""
 
