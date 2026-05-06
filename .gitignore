@@ -12,6 +12,9 @@ __pycache__/
 .venv/
 .data/
 .scripts/generated
+.scripts/battle_runs
+.scripts/*.db
+.scripts/*.md
 
 # Ignore coding agents
 CLAUDE.md
