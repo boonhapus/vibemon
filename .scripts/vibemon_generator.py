@@ -12,12 +12,12 @@
 # ///
 from collections.abc import AsyncIterator
 from contextlib import asynccontextmanager
+import argparse
 import asyncio
 import datetime as dt
 import logging
 import pathlib
 import random
-import uuid
 
 from PIL.Image import Image
 import geonamescache
@@ -32,6 +32,17 @@ from sqlalchemy.orm import sessionmaker
 import sqlalchemy as sa
 
 _LOGGER = structlog.get_logger(__name__)
+
+
+async def ensure_move_effects_column(conn) -> None:
+    """Add the modern effects JSON column to older local SQLite databases."""
+    columns = await conn.run_sync(
+        lambda sync_conn: {
+            row[1] for row in sync_conn.exec_driver_sql("PRAGMA table_info(move)")
+        }
+    )
+    if "effects" not in columns:
+        await conn.exec_driver_sql("ALTER TABLE move ADD COLUMN effects JSON")
 
 
 def schema_to_models(
@@ -65,6 +76,12 @@ def schema_to_models(
 
     def _move(move: schema.Move) -> models.Move:
         if (existing := moves_by_name.get(move.name)) is not None:
+            if existing.effect is None and move.effect is not None:
+                existing.effect = move.effect.model_dump(mode="json")
+            if not existing.effects and move.effects:
+                existing.effects = [
+                    group.model_dump(mode="json") for group in move.effects
+                ]
             return existing
 
         m = models.Move(
@@ -76,7 +93,10 @@ def schema_to_models(
             accuracy=move.accuracy,
             pp=move.pp,
             priority=move.priority,
-            effect=move.effect.model_dump(mode="json") if move.effect is not None else None,
+            effect=move.effect.model_dump(mode="json")
+            if move.effect is not None
+            else None,
+            effects=[group.model_dump(mode="json") for group in move.effects],
             level_requirement=move.level_requirement,
         )
         moves_by_name[move.name] = m
@@ -141,8 +161,11 @@ async def database_session(db_path: str | None = None) -> AsyncIterator[AsyncSes
     try:
         async with engine.begin() as conn:
             await conn.run_sync(models.Base.metadata.create_all)
+            await ensure_move_effects_column(conn)
 
-        async_session = sessionmaker(engine, class_=AsyncSession, expire_on_commit=False)
+        async_session = sessionmaker(
+            engine, class_=AsyncSession, expire_on_commit=False
+        )
 
         async with async_session() as sess:
             yield sess
@@ -154,8 +177,10 @@ def get_random_city() -> geonamescache.City:
     """Fetch a random city."""
     cache = geonamescache.GeonamesCache()
 
-    city    = random.choice([c for c in cache.get_cities().values()])
-    country = next(c for iso, c in cache.get_countries().items() if iso == city["countrycode"])
+    city = random.choice([c for c in cache.get_cities().values()])
+    country = next(
+        c for iso, c in cache.get_countries().items() if iso == city["countrycode"]
+    )
 
     # Add the Country.name
     city["country"] = country["name"]
@@ -163,7 +188,9 @@ def get_random_city() -> geonamescache.City:
     return city
 
 
-async def generate_vibemon_in_world(**vibemon_options) -> tuple[str, str, schema.BirthContext, schema.Vibemon]:
+async def generate_vibemon_in_world(
+    **vibemon_options,
+) -> tuple[str, str, schema.BirthContext, schema.Vibemon]:
     """Generate a Vibemon in some random city."""
     city = get_random_city()
 
@@ -183,7 +210,7 @@ async def generate_vibemon_in_world(**vibemon_options) -> tuple[str, str, schema
         directory = pathlib.Path(__file__).parent / "generated" / vibemon.name.lower()
         directory.mkdir(parents=True, exist_ok=True)
 
-        directory.joinpath(f"battle_cry.mp3").write_bytes(vibemon.aesthetic.battle_cry)
+        directory.joinpath("battle_cry.mp3").write_bytes(vibemon.aesthetic.battle_cry)
 
         for key, sprite in vibemon.aesthetic.sprites.items():
             assert isinstance(sprite, Image), ""
@@ -206,7 +233,9 @@ async def stream_vibemon_in_world(
     still being born.
     """
 
-    async def _delayed(delay: float) -> tuple[str, str, schema.BirthContext, schema.Vibemon] | None:
+    async def _delayed(
+        delay: float,
+    ) -> tuple[str, str, schema.BirthContext, schema.Vibemon] | None:
         await asyncio.sleep(delay)
         try:
             return await generate_vibemon_in_world(**vibemon_options)
@@ -226,13 +255,24 @@ async def stream_vibemon_in_world(
                 t.cancel()
 
 
+def parse_args() -> argparse.Namespace:
+    """Parse CLI options."""
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--count", type=int, default=150)
+    parser.add_argument("--db-path", type=str, default=None)
+    return parser.parse_args()
+
+
 async def main() -> None:
     """Entrypoint."""
-    VIBEMON_TO_GENERATE = 150
+    args = parse_args()
+    VIBEMON_TO_GENERATE = args.count
     CORE_IDENTITY = None
     settings.headless = True
 
-    structlog.configure(wrapper_class=structlog.make_filtering_bound_logger(logging.INFO))
+    structlog.configure(
+        wrapper_class=structlog.make_filtering_bound_logger(logging.INFO)
+    )
 
     await _LOGGER.ainfo("Starting", headless=settings.headless)
 
@@ -240,18 +280,25 @@ async def main() -> None:
 
     rows: list[tuple[str, str, schema.BirthContext, schema.Vibemon]] = []
 
-    async with database_session() as sess:
+    async with database_session(db_path=args.db_path) as sess:
         existing_moves = (await sess.execute(sa.select(models.Move))).scalars().all()
         moves_cache: dict[str, models.Move] = {m.name: m for m in existing_moves}
 
-        async for item in stream_vibemon_in_world(count=VIBEMON_TO_GENERATE, core_identity=CORE_IDENTITY):
+        async for item in stream_vibemon_in_world(
+            count=VIBEMON_TO_GENERATE, core_identity=CORE_IDENTITY
+        ):
             city, country, ctx, vibemon = item
-            sess.add(schema_to_models(vibemon, birth_context=ctx, moves_cache=moves_cache))
+            sess.add(
+                schema_to_models(vibemon, birth_context=ctx, moves_cache=moves_cache)
+            )
             await sess.commit()
             await _LOGGER.ainfo(
                 "Persisted Vibemon",
-                name=vibemon.name, type=tuple(map(str, vibemon.elements)), country=country,
-                tier=vibemon.affinity.identity.tier, role=vibemon.affinity.identity.battle_role[0],
+                name=vibemon.name,
+                type=tuple(map(str, vibemon.elements)),
+                country=country,
+                tier=vibemon.affinity.identity.tier,
+                role=vibemon.affinity.identity.battle_role[0],
                 moves=[f"{m.name} [{m.type}]" for m in vibemon.affinity.moves],
             )
             rows.append(item)

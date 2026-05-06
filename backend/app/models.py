@@ -1,4 +1,4 @@
-from sqlalchemy import String, JSON, Table, Column, ForeignKeyConstraint
+from sqlalchemy import JSON, Table, Column, ForeignKeyConstraint
 from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column, relationship
 import uuid
 
@@ -12,18 +12,8 @@ affinity_moves = Table(
     Base.metadata,
     Column("affinity_id", primary_key=True),
     Column("move_id", primary_key=True),
-    ForeignKeyConstraint(
-        ["affinity_id"],
-        ["affinity.id"],
-        name="fk_affinity_moves_affinity",
-        ondelete="CASCADE"
-    ),
-    ForeignKeyConstraint(
-        ["move_id"],
-        ["move.id"],
-        name="fk_affinity_moves_move",
-        ondelete="CASCADE"
-    ),
+    ForeignKeyConstraint(["affinity_id"], ["affinity.id"], name="fk_affinity_moves_affinity", ondelete="CASCADE"),
+    ForeignKeyConstraint(["move_id"], ["move.id"], name="fk_affinity_moves_move", ondelete="CASCADE"),
 )
 
 
@@ -32,18 +22,8 @@ vibemon_birth_affinities = Table(
     Base.metadata,
     Column("vibemon_id", primary_key=True),
     Column("affinity_id", primary_key=True),
-    ForeignKeyConstraint(
-        ["vibemon_id"],
-        ["vibemon.id"],
-        name="fk_vibemon_birth_vibemon",
-        ondelete="CASCADE"
-    ),
-    ForeignKeyConstraint(
-        ["affinity_id"],
-        ["affinity.id"],
-        name="fk_vibemon_birth_affinity",
-        ondelete="CASCADE"
-    ),
+    ForeignKeyConstraint(["vibemon_id"], ["vibemon.id"], name="fk_vibemon_birth_vibemon", ondelete="CASCADE"),
+    ForeignKeyConstraint(["affinity_id"], ["affinity.id"], name="fk_vibemon_birth_affinity", ondelete="CASCADE"),
 )
 
 
@@ -80,6 +60,7 @@ class Move(Base):
     pp: Mapped[int]
     priority: Mapped[int]
     effect: Mapped[dict | None] = mapped_column(JSON)
+    effects: Mapped[list[dict] | None] = mapped_column(JSON)
     level_requirement: Mapped[int]
 
     affinities: Mapped[list["Affinity"]] = relationship(secondary=affinity_moves, back_populates="moves")
@@ -95,12 +76,7 @@ class Affinity(Base):
     provider_id: Mapped[str]
 
     __table_args__ = (
-        ForeignKeyConstraint(
-            ["identity_id"],
-            ["identity.id"],
-            name="fk_affinity_identity",
-            ondelete="CASCADE"
-        ),
+        ForeignKeyConstraint(["identity_id"], ["identity.id"], name="fk_affinity_identity", ondelete="CASCADE"),
     )
 
     identity: Mapped["Identity"] = relationship(back_populates="affinity")
@@ -129,17 +105,9 @@ class Vibemon(Base):
     level: Mapped[int]
 
     __table_args__ = (
+        ForeignKeyConstraint(["affinity_id"], ["affinity.id"], name="fk_vibemon_affinity", ondelete="CASCADE"),
         ForeignKeyConstraint(
-            ["affinity_id"],
-            ["affinity.id"],
-            name="fk_vibemon_affinity",
-            ondelete="CASCADE"
-        ),
-        ForeignKeyConstraint(
-            ["birth_context_id"],
-            ["birth_context.id"],
-            name="fk_vibemon_birth_context",
-            ondelete="SET NULL"
+            ["birth_context_id"], ["birth_context.id"], name="fk_vibemon_birth_context", ondelete="SET NULL"
         ),
     )
 

@@ -1,4 +1,4 @@
-from typing import ClassVar, TYPE_CHECKING
+from typing import Annotated, ClassVar, TYPE_CHECKING
 import abc
 
 import niquests
@@ -16,29 +16,47 @@ class VibeProvider(abc.ABC):
 
     Subclasses only need to:
     - set `name` class attribute
+    - declare `exposed_elements` with Annotated metadata mapping types to real-world signals
     - implement `synthesize()` to translate raw API data to Affinity components
     - optionally override `teardown()` when managing resources
 
     ──── Docstring convention for subclasses ───────────────────────────────────────────
 
-    A provider's class docstring should follow this five-part shape so that
-    readers can quickly grasp both what it does and the aesthetic it imparts
-    to a Vibemon. See `ClimateProvider` for a worked example.
+    A provider's class docstring should follow this shape so that readers can
+    quickly grasp both what it does and the aesthetic it imparts to a Vibemon.
+    See `ClimateProvider` for a worked example.
 
     1. Opening line — one evocative sentence stating the provider's thematic
        premise (e.g. "A Vibemon is born from the sky above its birthplace.").
     2. Preamble — one sentence naming the data source and noting that its
        signals fold into a `schema.Affinity`.
-    3. Type list — a bullet list of `TYPE — conditions that drive it`,
-       covering every elemental type the provider can score.
-    4. Stats line — one sentence mapping the six signals chosen for HP,
+    3. Stats line — one sentence mapping the six signals chosen for HP,
        Attack, Defense, Sp. Attack, Sp. Defense, and Speed.
-    5. Closer — a short "the result is..." paragraph illustrating how
+    4. Closer — a short "the result is..." paragraph illustrating how
        different inputs produce visibly different creatures.
+
+    Note: The `exposed_elements` class variable replaces the need for a
+    type list in the docstring. Use `Annotated[VibemonTypeT, str]` to
+    map each element to its real-world signal (e.g., "solar radiation").
     """
 
     name: ClassVar[str]
     """Stable provider identifier (persisted in `Affinity.provider_id`)."""
+
+    exposed_elements: ClassVar[list[Annotated[VibemonTypeT, str]]]
+    """Elements this provider can assign, annotated with real-world signal descriptions."""
+
+    @classmethod
+    def get_exposed_elements(cls) -> dict[VibemonTypeT, str]:
+        """Return a mapping of elements to their real-world signal descriptions."""
+        from typing import get_args, get_origin
+        result = {}
+        for annotated_type in cls.exposed_elements:
+            if get_origin(annotated_type) is Annotated:
+                args = get_args(annotated_type)
+                if len(args) >= 2 and isinstance(args[1], str):
+                    result[args[0]] = args[1]
+        return result
 
     def _log_http_error(self, exception: niquests.HTTPError) -> None:
         """If an HTTP error is encountered, log its context."""

@@ -1,9 +1,9 @@
-import asyncio
 import collections
 import functools as ft
 import itertools as it
 import math
 import statistics
+from typing import Annotated
 
 import niquests
 import structlog
@@ -13,7 +13,7 @@ from app.balance.element_chart import get_move_assignment_bonus
 from app.plugins.provider import VibeProvider
 from app.plugins.helpers import Signal, filter_element_types
 from app.types import VibemonTypeT
-from app import schema, types, utils
+from app import schema, utils
 
 from .const import WeatherCode
 from . import _weather, moves
@@ -28,23 +28,6 @@ class ClimateProvider(VibeProvider):
     Open-Meteo's daily forecast at the trainer's coordinates becomes genetic
     material, folding live weather signals into a `schema.Affinity`.
 
-    Elemental Types:
-    - NORMAL   — overcast skies without precipitation
-    - FIRE     — solar radiation or extreme heat
-    - WATER    — precipitation (rain, drizzle, freezing rain)
-    - GRASS    — evapotranspiration or humid dew points
-    - ICE      — sub-freezing temperatures or snowfall
-    - FLYING   — sustained winds (15+ km/h)
-    - FIGHTING — violent wind gusts (35+ km/h)
-    - STEEL    — high atmospheric pressure systems
-    - FAIRY    — UV radiation exposure
-    - POISON   — air pollution concentration
-    - DARK     — low visibility or heavy overcast
-    - BUG      — humid tropical heat
-    - ROCK     — elevation or hail events
-    - DRAGON   — convective instability (CAPE)
-    - ELECTRIC — thunderstorms
-
     Six continuous signals route directly to base stats: temperature (HP),
     wind gusts (Attack), elevation (Defense), radiation (Sp. Attack),
     precipitation (Sp. Defense), and sustained wind (Speed).
@@ -55,6 +38,25 @@ class ClimateProvider(VibeProvider):
     """
 
     name = "climate"
+
+    exposed_elements: ClassVar[list[Annotated[VibemonTypeT, str]]] = [
+        Annotated[VibemonTypeT.NORMAL, "overcast skies without precipitation"],
+        Annotated[VibemonTypeT.FIRE, "solar radiation or extreme heat"],
+        Annotated[VibemonTypeT.WATER, "precipitation (rain, drizzle, freezing rain)"],
+        Annotated[VibemonTypeT.GRASS, "evapotranspiration or humid dew points"],
+        Annotated[VibemonTypeT.ICE, "sub-freezing temperatures or snowfall"],
+        Annotated[VibemonTypeT.FLYING, "sustained winds (15+ km/h)"],
+        Annotated[VibemonTypeT.FIGHTING, "violent wind gusts (35+ km/h)"],
+        Annotated[VibemonTypeT.STEEL, "high atmospheric pressure systems"],
+        Annotated[VibemonTypeT.FAIRY, "UV radiation exposure"],
+        Annotated[VibemonTypeT.POISON, "air pollution concentration"],
+        Annotated[VibemonTypeT.DARK, "low visibility or heavy overcast"],
+        Annotated[VibemonTypeT.GHOST, "fog or low visibility under low-UV conditions"],
+        Annotated[VibemonTypeT.BUG, "humid tropical heat"],
+        Annotated[VibemonTypeT.ROCK, "elevation or hail events"],
+        Annotated[VibemonTypeT.DRAGON, "convective instability (CAPE)"],
+        Annotated[VibemonTypeT.ELECTRIC, "thunderstorms"],
+    ]
 
     def __init__(self) -> None:
         self.client = _weather.OpenMeteoAPIClient()
@@ -235,7 +237,11 @@ class ClimateProvider(VibeProvider):
                 score[VibemonTypeT.DARK] += 0.2
 
             # All thunderstorm variants confirm electrical activity (rare event)
-            case WeatherCode.THUNDERSTORM | WeatherCode.THUNDERSTORM_WITHOUT_PRECIP | WeatherCode.THUNDERSTORM_WITHOUT_PRECIP_HEAVY:
+            case (
+                WeatherCode.THUNDERSTORM
+                | WeatherCode.THUNDERSTORM_WITHOUT_PRECIP
+                | WeatherCode.THUNDERSTORM_WITHOUT_PRECIP_HEAVY
+            ):
                 score[VibemonTypeT.ELECTRIC] += 0.5
                 score[VibemonTypeT.DRAGON] += 0.30
 
@@ -256,7 +262,12 @@ class ClimateProvider(VibeProvider):
                 score[VibemonTypeT.GHOST] += 0.5
 
             # Light precipitation: drizzle + slight rain (common, weak signal)
-            case WeatherCode.DRIZZLE_LIGHT | WeatherCode.DRIZZLE_MODERATE | WeatherCode.RAIN_SLIGHT | WeatherCode.RAIN_SHOWERS_SLIGHT:
+            case (
+                WeatherCode.DRIZZLE_LIGHT
+                | WeatherCode.DRIZZLE_MODERATE
+                | WeatherCode.RAIN_SLIGHT
+                | WeatherCode.RAIN_SHOWERS_SLIGHT
+            ):
                 score[VibemonTypeT.WATER] += 0.3
 
             # Moderate precipitation (common, medium signal)
@@ -268,7 +279,11 @@ class ClimateProvider(VibeProvider):
                 score[VibemonTypeT.WATER] += 0.5
 
             # Freezing rain/drizzle split affinity between water (liquid) and ice (freezing)
-            case WeatherCode.FREEZING_RAIN_LIGHT | WeatherCode.FREEZING_DRIZZLE_LIGHT | WeatherCode.FREEZING_DRIZZLE_DENSE:
+            case (
+                WeatherCode.FREEZING_RAIN_LIGHT
+                | WeatherCode.FREEZING_DRIZZLE_LIGHT
+                | WeatherCode.FREEZING_DRIZZLE_DENSE
+            ):
                 score[VibemonTypeT.WATER] += 0.1
                 score[VibemonTypeT.ICE] += 0.2
 
@@ -287,7 +302,7 @@ class ClimateProvider(VibeProvider):
             # Heavy snow (intense, strong signal)
             case WeatherCode.SNOW_SHOWERS_HEAVY | WeatherCode.SNOW_FALL_HEAVY:
                 score[VibemonTypeT.ICE] += 0.5
-        
+
         # Give NORMAL a tiny bit of padding so we ensure that the move pool is available.
         score[VibemonTypeT.NORMAL] = score[VibemonTypeT.NORMAL] or 0.05
 
@@ -309,9 +324,9 @@ class ClimateProvider(VibeProvider):
         d = wr.json()
         s = d["daily"]
         i = -1
-        
+
         # ── DATA MUNGING ──────────────────────────────────────────────────────────────
-        
+
         h = ar.json()["hourly"]
 
         # GROUP HOURLY AIR QUALITY BY DAY
@@ -330,80 +345,69 @@ class ClimateProvider(VibeProvider):
             # Min: coldest inhabited regions (Siberia winter). Max: hottest recorded (Death Valley ~54°C).
             # Routes to base HP stat; directly embodies creature's core vitality from birth climate.
             "tmp_hi": Signal(attr="temperature_2m_max", raw=s["temperature_2m_max"][i], min=-20.0, max=50.0),
-
             # tmp_lo: Daily min temperature (-30 to 40°C)
             # Min: extreme cold (polar regions). Max: tropical overnight lows.
             # Routes to Sp. Defense; modulates climate resilience via nocturnal conditions.
             "tmp_lo": Signal(attr="temperature_2m_min", raw=s["temperature_2m_min"][i], min=-30.0, max=40.0),
-
             # precip: Daily precipitation (0–50 mm)
             # Min: no rain. Max: heavy downpour; >50 mm/day approaches flood conditions.
             # Baseline for WATER element; split between WATER affinity and Sp. Defense offset.
             "precip": Signal(attr="precipitation_sum", raw=s["precipitation_sum"][i], min=0.0, max=50.0),
-
             # windsp: Sustained wind speed (3–50 km/h)
             # Min: calm breeze threshold. Max: strong sustained wind for stat-scaling purposes
             # (range compressed from 90 km/h — most populated cities cap well below 30 km/h, so
             # the wider range left base_speed clustered near floor). Type-scoring ramps still
             # use raw thresholds (12/30 km/h) so element selection is unaffected.
             "windsp": Signal(attr="wind_speed_10m_max", raw=s["wind_speed_10m_max"][i], min=3.0, max=50.0),
-
             # windgu: Wind gust peaks (5–70 km/h)
             # Min: light gust threshold. Max: strong gust for stat-scaling purposes (range
             # compressed from 120 km/h for the same reason as windsp). Type-scoring uses
             # raw thresholds (30 km/h FIGHTING) so element selection is unaffected.
             "windgu": Signal(attr="wind_gusts_10m_max", raw=s["wind_gusts_10m_max"][i], min=5.0, max=70.0),
-
             # uv_idx: Maximum UV index (0–14 scale)
             # Min: no UV (night/polar winter). Max: extreme tropical (WMO scale 11+, capped at 14).
             # Unobservable signal; normalized threshold at 0.21 (UV 3+ = sun protection needed).
             "uv_idx": Signal(attr="uv_index_max", raw=s["uv_index_max"][i], min=0.0, max=14.0),
-
             # radiat: Daily shortwave radiation sum (1–32 MJ/m²)
             # Min: deep overcast/tropical winter (~1 MJ/m²). Max: clear desert summer (~25–32 MJ/m²).
             # Routes to base Sp. Attack stat; creature's magical affinity from solar energy.
             "radiat": Signal(attr="shortwave_radiation_sum", raw=s["shortwave_radiation_sum"][i], min=1.0, max=32.0),
-
             # clouds: Mean cloud cover (0–100%)
             # Min: clear sky (0%). Max: completely overcast (100%).
             # Meteorologically standard 0–100 scale; feeds NORMAL element.
             "clouds": Signal(attr="cloud_cover_mean", raw=s["cloud_cover_mean"][i], min=0.0, max=100.0),
-
             # pressr: Mean sea-level pressure (980–1050 hPa)
             # Min: extreme low-pressure storm system. Max: Siberian high (>1050 hPa, capped at 1050).
             # Unobservable signal; normalized threshold at 0.64 (>1025 hPa = high pressure systems).
             "pressr": Signal(attr="pressure_msl_mean", raw=s["pressure_msl_mean"][i], min=980.0, max=1050.0),
-
             # transp: Evapotranspiration/Reference ET0 (0–12 mm/day)
             # Min: no plant activity (winter/dormant). Max: extreme irrigation demand (arid agriculture).
             # Unobservable signal; normalized threshold at 0.25 (3 mm/day = active plant growth).
-            "transp": Signal(attr="et0_fao_evapotranspiration", raw=s["et0_fao_evapotranspiration"][i], min=0.0, max=12.0),
-
+            "transp": Signal(
+                attr="et0_fao_evapotranspiration", raw=s["et0_fao_evapotranspiration"][i], min=0.0, max=12.0
+            ),
             # pollut: PM2.5 air pollution (0–100 µg/m³)
             # Min: clean air. Max: hazardous/emergency air quality (>100 µg/m³ = severe pollution).
             # Unobservable signal; normalized threshold at 0.15 (10 µg/m³ = WHO health damage threshold).
             "pollut": Signal(attr="pm2_5_mean", raw=d["pm2_5"][i], min=0.0, max=100.0),
-
             # visibl: Horizontal visibility (0–50 km)
             # Min: fog/mist visibility (0 km ~ dense fog). Max: exceptional clear-air visibility (~50 km).
             # Meteorologically standard; inverted for DARK element (low visibility = high affinity).
             "visibl": Signal(attr="visibility_mean", raw=s["visibility_mean"][i], min=0.0, max=50.0),
-
             # dew_pt: Mean dew point (-20 to 30°C)
             # Min: arid freezing (very dry, very cold). Max: tropical saturated air (~25–30°C).
             # Unobservable signal; normalized threshold at 0.70 (≈15°C = tropical humidity).
             "dew_pt": Signal(attr="dew_point_2m_mean", raw=s["dew_point_2m_mean"][i], min=-20.0, max=30.0),
-
             # cape_m: Convective Available Potential Energy (0–5000 J/kg)
             # Min: no convective potential (stable atmosphere). Max: extreme supercell CAPE (>4000 = destructive).
             # Unobservable signal; normalized threshold at 0.30 (1500 J/kg = severe weather potential).
             "cape_m": Signal(attr="cape_mean", raw=s["cape_mean"][i], min=0.0, max=5000.0),
-
             # humdty: Mean relative humidity (0–100%)
             # Min: bone-dry air (arid desert). Max: saturated air mass (tropical/monsoon regions).
             # Meteorologically standard 0–100 scale; combines with temp for BUG tropicality.
-            "humdty": Signal(attr="relative_humidity_2m_mean", raw=s["relative_humidity_2m_mean"][i], min=0.0, max=100.0),
-
+            "humdty": Signal(
+                attr="relative_humidity_2m_mean", raw=s["relative_humidity_2m_mean"][i], min=0.0, max=100.0
+            ),
             # elevat: Surface elevation above sea level (0–2000 m)
             # Min: sea level (0 m). Max: highland threshold for stat-scaling purposes
             # (range compressed from 4500 m — most populated cities sit below 200 m and the
@@ -411,7 +415,6 @@ class ClimateProvider(VibeProvider):
             # use raw thresholds (600/2000 m) so element selection is unaffected; high-altitude
             # cities (La Paz, Lhasa, Mexico City) intentionally peg base_defense at max.
             "elevat": Signal(attr="elevation", raw=d["elevation"], min=0.0, max=2000.0),
-
             # snowfl: Daily snowfall accumulation (0–20 cm)
             # Min: no snow. Max: heavy snow event (~20 cm/day = blizzard territory).
             # Secondary path to ICE element so winter cities trigger even when daily min temp
@@ -438,8 +441,7 @@ class ClimateProvider(VibeProvider):
                 # high on the asymmetric scale. The transform keeps the ranking, lowers the mean.
                 base_sp_attack=base_stat_asymmetric_scaling(signals["radiat"].normal ** 1.6, stat="sp_attack"),
                 base_sp_defense=base_stat_asymmetric_scaling(
-                    signals["precip"].normal * 0.3 + signals["tmp_lo"].normal * 0.7,
-                    stat="sp_defense"
+                    signals["precip"].normal * 0.3 + signals["tmp_lo"].normal * 0.7, stat="sp_defense"
                 ),
                 base_speed=base_stat_asymmetric_scaling(signals["windsp"].normal, stat="speed"),
             ),
