@@ -4,7 +4,7 @@ version = "0.1.0"
 description = "Vibemon Litestar API"
 requires-python = ">=3.12"
 dependencies = [
-    "rembg[cpu]>=2.0.50",
+
     "niquests>=3.18.5",
     "structlog>=25.5.0",
     "google-genai>=1.0.0",
