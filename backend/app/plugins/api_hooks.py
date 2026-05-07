@@ -1,5 +1,6 @@
 import asyncio
 import collections
+import dataclasses
 import datetime as dt
 import time
 
@@ -49,39 +50,77 @@ class LoggingHook(niquests.AsyncLifeCycleHook):
         )
 
 
+@dataclasses.dataclass
+class RateLimitState:
+    """Track the state of a given limit."""
+    max_requests: int
+    window_seconds: float
+    timestamps: collections.deque = dataclasses.field(default_factory=collections.deque)
+    lock: asyncio.Lock = dataclasses.field(default_factory=asyncio.Lock)
+
+
 class RateLimiterHook(niquests.AsyncLifeCycleHook):
-    """Rate limiting for an API client."""
+    """
+    A sliding window rate limiter hook for an API client.
+    
+    This hook ensures that outgoing requests comply with one or more rate limits
+    (e.g., 10 requests per second and 1000 requests per hour). It uses
+    `time.monotonic()` for precision and `asyncio.Lock` for thread-safe 
+    asynchronous execution.
+    """
 
     def __init__(self, *limits: tuple[int, dt.timedelta], provider: str) -> None:
-        self._limits = []
-
-        for requests, window in limits:
-            self._limits.append((requests, window.total_seconds(), collections.deque(), asyncio.Lock()))
-            rps = round(requests / window.total_seconds(), 2)
-            _LOGGER.debug(f"Registering rate limit on {provider}", requests=requests, window=window, rps=rps)
-
         super().__init__()
         self.provider = provider
+        self._states = [RateLimitState(req, win.total_seconds()) for req, win in limits]
+        
+        for state in self._states:
+            rps = round(state.max_requests / state.window_seconds, 2)
+            _LOGGER.debug(f"Rate limit for {provider}: {state.max_requests} reqs / {state.window_seconds}s ({rps} RPS)")
 
     async def pre_request(self, prepared_request: niquests.PreparedRequest, **kwargs) -> None:
         """
         The prepared request just got built. You may alter it prior to be sent through HTTP.
 
+        This method iterates through all registered limits sequentially. If a limit is
+        reached, it pauses execution (yielding to the event loop) until a  slot becomes
+        available.
+
         Further reading:
           https://niquests.readthedocs.io/en/latest/user/advanced.html#niquests.hooks.AsyncLifeCycleHook.pre_request
         """
-        for max_requests, window_seconds, timestamps, lock in self._limits:
-            while True:
-                async with lock:
-                    now = time.monotonic()
+        # Check all limits before proceeding
+        for state in self._states:
+            await self._apply_limit(state)
 
-                    while timestamps and now - timestamps[0] >= window_seconds:
-                        timestamps.popleft()
+    async def _apply_limit(self, state: RateLimitState) -> None:
+        """
+        Enforces a single rate limit state.
 
-                    if len(timestamps) < max_requests:
-                        timestamps.append(now)
-                        break
+        Uses a sliding window algorithm:
+        1. Cleans up timestamps older than the window duration.
+        2. If capacity exists, records the current time and returns.
+        3. If at capacity, calculates the wait time until the oldest request expires 
+           and sleeps before retrying.
+        """
+        while True:
+            wait_for = 0
+            
+            async with state.lock:
+                now = time.monotonic()
+                
+                # Clear expired timestamps
+                while state.timestamps and now - state.timestamps[0] >= state.window_seconds:
+                    state.timestamps.popleft()
 
-                    wait_for = (timestamps[0] + window_seconds) - now
+                # Capacity available
+                if len(state.timestamps) < state.max_requests:
+                    state.timestamps.append(now)
+                    return
 
+                # Capacity full: calculate sleep time based on the oldest request
+                wait_for = (state.timestamps[0] + state.window_seconds) - now
+
+            # Sleep outside the lock to allow other tasks to check/cleanup their own state
+            if wait_for > 0:
                 await asyncio.sleep(wait_for)
