@@ -29,15 +29,14 @@ def weighted_sample[T](
         raise ValueError("population and weights must have the same length")
 
     if not (0 < k <= len(population)):
-        raise ValueError(f"k must be between 0 and {len(population) + 1}")
+        raise ValueError(f"k must be between 1 and {len(population)}")
 
     r: list[T] = []
 
-    for s in range(k):
+    for _ in range(k):
         i = random.choices(range(len(population)), weights=weights, k=1)[0]
-        _ = weights.pop(i)
-        e = population.pop(i)
-        r.append(e)
+        del weights[i]
+        r.append(population.pop(i))
 
     return r
 
@@ -48,16 +47,17 @@ def _hue_distance(hue: np.ndarray, center: float) -> np.ndarray:
 
 
 def _edge_pixels(arr: np.ndarray, *, border: int = 6) -> np.ndarray:
+    """Return pixels within `border` of the image edge, flattened to (-1, C)."""
     h, w = arr.shape[:2]
     border = max(1, min(border, max(1, h // 2), max(1, w // 2)))
-    edge = np.concatenate([
-        arr[:border, :].reshape(-1, 3),
-        arr[-border:, :].reshape(-1, 3),
-        arr[:, :border].reshape(-1, 3),
-        arr[:, -border:].reshape(-1, 3),
-    ])
+    c = arr.shape[2]
 
-    return edge
+    return np.concatenate([
+        arr[:border, :].reshape(-1, c),
+        arr[-border:, :].reshape(-1, c),
+        arr[:, :border].reshape(-1, c),
+        arr[:, -border:].reshape(-1, c),
+    ])
 
 
 def _dominant_background_sample_mask(
@@ -82,16 +82,34 @@ def _dominant_background_sample_mask(
 def _background_lab_distances(arr: np.ndarray, *, border: int = 6) -> tuple[np.ndarray, float, float]:
     from skimage.color import rgb2lab
 
+    # Tolerance shape: clip(percentile(dist) * scale + offset, lo, hi).
+    # The strict band labels confident matte; the candidate band tolerates
+    # shadows and gradient drift around it.
+    STRICT_PCT, STRICT_SCALE, STRICT_OFFSET = 99.5, 1.3, 2.0
+    STRICT_LO, STRICT_HI = 6.0, 16.0
+    CAND_PCT, CAND_SCALE, CAND_OFFSET = 99.7, 1.8, 5.0
+    CAND_LO_FLOOR, CAND_HI = 18.0, 42.0
+    # Candidate band must sit at least this far above strict to leave room
+    # for shadow halos.
+    CAND_STRICT_MARGIN = 8.0
+    # If the candidate band swallows more than this fraction of the image
+    # the sample is contaminated by foreground; fall back to edge-only.
+    RUNAWAY_FRACTION = 0.84
+
     lab = rgb2lab(arr / 255.0)
-    edge = _edge_pixels(arr, border=border)
-    edge_lab = rgb2lab(edge.reshape(-1, 1, 3) / 255.0).reshape(-1, 3)
+    edge_lab = _edge_pixels(lab, border=border)
     edge_center = np.median(edge_lab, axis=0)
     edge_dist = np.linalg.norm(edge_lab - edge_center, axis=1)
-    strict_tolerance = min(max(float(np.percentile(edge_dist, 99.5)) * 1.3 + 2, 6.0), 16.0)
-    edge_candidate_tolerance = min(
-        max(float(np.percentile(edge_dist, 99.7)) * 1.8 + 5, strict_tolerance + 8, 18.0),
-        42.0,
-    )
+
+    strict_tolerance = float(np.clip(
+        np.percentile(edge_dist, STRICT_PCT) * STRICT_SCALE + STRICT_OFFSET,
+        STRICT_LO, STRICT_HI,
+    ))
+    cand_lo = max(CAND_LO_FLOOR, strict_tolerance + CAND_STRICT_MARGIN)
+    edge_candidate_tolerance = float(np.clip(
+        np.percentile(edge_dist, CAND_PCT) * CAND_SCALE + CAND_OFFSET,
+        cand_lo, CAND_HI,
+    ))
 
     dominant_bg = _dominant_background_sample_mask(arr, lab, edge_center, edge_dist)
     sample_lab = np.concatenate([edge_lab, lab[dominant_bg]]) if dominant_bg.any() else edge_lab
@@ -99,12 +117,12 @@ def _background_lab_distances(arr: np.ndarray, *, border: int = 6) -> tuple[np.n
 
     dist = np.linalg.norm(lab - center, axis=2)
     sample_dist = np.linalg.norm(sample_lab - center, axis=1)
-    candidate_tolerance = min(
-        max(float(np.percentile(sample_dist, 99.7)) * 1.8 + 5, strict_tolerance + 8, 18.0),
-        42.0,
-    )
+    candidate_tolerance = float(np.clip(
+        np.percentile(sample_dist, CAND_PCT) * CAND_SCALE + CAND_OFFSET,
+        cand_lo, CAND_HI,
+    ))
 
-    if float((dist <= candidate_tolerance).mean()) > 0.84:
+    if (dist <= candidate_tolerance).mean() > RUNAWAY_FRACTION:
         dist = np.linalg.norm(lab - edge_center, axis=2)
         candidate_tolerance = edge_candidate_tolerance
 
@@ -114,9 +132,8 @@ def _background_lab_distances(arr: np.ndarray, *, border: int = 6) -> tuple[np.n
 def _same_hue_shadow_mask(arr: np.ndarray, *, border: int = 6) -> np.ndarray:
     from skimage.color import rgb2hsv
 
-    edge = _edge_pixels(arr, border=border)
     hsv = rgb2hsv(arr / 255.0)
-    edge_hsv = rgb2hsv(edge.reshape(-1, 1, 3) / 255.0).reshape(-1, 3)
+    edge_hsv = _edge_pixels(hsv, border=border)
 
     if float(np.median(edge_hsv[:, 1])) < 0.05:
         return np.zeros(arr.shape[:2], dtype=bool)
@@ -144,13 +161,6 @@ def _background_masks_from_edges(arr: np.ndarray, *, border: int = 6) -> tuple[n
     candidate_bg = lab_candidate_bg | _same_hue_shadow_mask(arr, border=border)
 
     return strict_bg, candidate_bg, lab_candidate_bg
-
-
-def _background_mask_from_edges(arr: np.ndarray, *, border: int = 6) -> np.ndarray:
-    """Detect generated matte-like pixels without deciding enclosed foreground details."""
-    _, candidate_bg, _ = _background_masks_from_edges(arr, border=border)
-
-    return candidate_bg
 
 
 def _border_seed(mask: np.ndarray) -> np.ndarray:
@@ -182,9 +192,8 @@ def _connected_to_edges(mask: np.ndarray) -> np.ndarray:
     return _connected_from_seeds(mask, _border_seed(mask))
 
 
-def _cell_edge_connected_background(bg_candidate: np.ndarray, *, rows: int, cols: int) -> np.ndarray:
-    h, w = bg_candidate.shape
-    local_bg = np.zeros_like(bg_candidate, dtype=bool)
+def _cell_slices(shape: tuple[int, int], *, rows: int, cols: int) -> Iterable[tuple[int, int, slice, slice]]:
+    h, w = shape[:2]
 
     for row in range(rows):
         y0 = int(row * h / rows)
@@ -192,8 +201,14 @@ def _cell_edge_connected_background(bg_candidate: np.ndarray, *, rows: int, cols
         for col in range(cols):
             x0 = int(col * w / cols)
             x1 = w if col == cols - 1 else int((col + 1) * w / cols)
-            crop_bg = bg_candidate[y0:y1, x0:x1]
-            local_bg[y0:y1, x0:x1] |= _connected_to_edges(crop_bg)
+            yield row, col, slice(y0, y1), slice(x0, x1)
+
+
+def _cell_edge_connected_background(bg_candidate: np.ndarray, *, rows: int, cols: int) -> np.ndarray:
+    local_bg = np.zeros_like(bg_candidate, dtype=bool)
+
+    for _, _, ys, xs in _cell_slices(bg_candidate.shape, rows=rows, cols=cols):
+        local_bg[ys, xs] |= _connected_to_edges(bg_candidate[ys, xs])
 
     return local_bg
 
@@ -239,6 +254,20 @@ def _remove_large_background_holes(
     return fg & ~np.isin(labels, remove_ids)
 
 
+def _largest_component(mask: np.ndarray) -> tuple[np.ndarray, int]:
+    """Return (largest connected component as a mask, its pixel count)."""
+    labels, count = ndimage.label(mask)
+
+    if count == 0:
+        return np.zeros_like(mask, dtype=bool), 0
+
+    sizes = np.bincount(labels.ravel())
+    sizes[0] = 0
+    keep = int(sizes.argmax())
+
+    return labels == keep, int(sizes[keep])
+
+
 def _remove_small_components(mask: np.ndarray, *, min_area: int) -> np.ndarray:
     labels, count = ndimage.label(mask)
 
@@ -268,21 +297,6 @@ def _bounds_mask_without_soft_highlights(arr: np.ndarray, fg: np.ndarray) -> np.
     bounds_mask = fg & (~soft_highlight | supported_highlight)
 
     return bounds_mask if bounds_mask.any() else fg
-
-
-def _fill_small_holes(mask: np.ndarray, *, max_area: int = 256) -> np.ndarray:
-    """Fill tiny enclosed matte pockets while preserving large negative space."""
-    holes = ndimage.binary_fill_holes(mask) & ~mask
-    labels, count = ndimage.label(holes)
-
-    if count == 0:
-        return mask
-
-    sizes = np.bincount(labels.ravel())
-    small_holes = sizes <= max_area
-    small_holes[0] = False
-
-    return mask | small_holes[labels]
 
 
 def _fill_transparent_rgb(rgb: np.ndarray, alpha_mask: np.ndarray) -> np.ndarray:
@@ -317,18 +331,6 @@ def _foreground_mask_from_generated_matte(
     return fg, bg_candidate
 
 
-def _cell_slices(shape: tuple[int, int], *, rows: int, cols: int) -> Iterable[tuple[int, int, slice, slice]]:
-    h, w = shape
-
-    for row in range(rows):
-        y0 = int(row * h / rows)
-        y1 = h if row == rows - 1 else int((row + 1) * h / rows)
-        for col in range(cols):
-            x0 = int(col * w / cols)
-            x1 = w if col == cols - 1 else int((col + 1) * w / cols)
-            yield row, col, slice(y0, y1), slice(x0, x1)
-
-
 def _hex_rgb(color: object) -> tuple[int, int, int]:
     value = str(color).strip()
     if not value.startswith("#") or len(value) != 7:
@@ -337,27 +339,27 @@ def _hex_rgb(color: object) -> tuple[int, int, int]:
     return int(value[1:3], 16), int(value[3:5], 16), int(value[5:7], 16)
 
 
+def _to_pil(image: bytes | Image.Image) -> Image.Image:
+    return image if isinstance(image, Image.Image) else Image.open(io.BytesIO(image))
+
+
 def _image_to_rgb_array(image: bytes | Image.Image) -> np.ndarray:
-    if not isinstance(image, Image.Image):
-        image = Image.open(io.BytesIO(image))
-
-    return np.array(image.convert("RGB"))
+    return np.array(_to_pil(image).convert("RGB"))
 
 
-def normalize_sprite_matte(
-    image: bytes | Image.Image,
-    *,
-    background_color: object,
-    rows: int = 3,
-    cols: int = 3,
-) -> bytes:
-    """Replace generated matte drift with an exact key color and drop detached marks.
+def _simple_foreground(arr: np.ndarray, *, threshold: float = 30.0) -> np.ndarray:
+    """Foreground mask for a sheet with a uniform-color matte.
 
-    Image models usually approximate the requested chroma-key color and may draw
-    small floating symbols for emotion poses. Keep the largest foreground body in
-    each expected cell and force all remaining pixels to the exact matte color.
+    Samples the matte color from the image edges and marks every pixel
+    further than `threshold` away in RGB-Euclidean as foreground. Fast
+    and assumption-light; suitable when the matte is genuinely uniform.
     """
-    arr = _image_to_rgb_array(image)
+    bg = np.median(_edge_pixels(arr, border=6), axis=0)
+
+    return np.linalg.norm(arr.astype(np.float32) - bg, axis=2) > threshold
+
+
+def _normalize_fg_strict(arr: np.ndarray, *, rows: int, cols: int) -> np.ndarray:
     fg, _ = _foreground_mask_from_generated_matte(arr, rows=rows, cols=cols)
 
     h, w = fg.shape
@@ -366,18 +368,37 @@ def normalize_sprite_matte(
     clean_fg = np.zeros_like(fg, dtype=bool)
 
     for _, _, ys, xs in _cell_slices(fg.shape, rows=rows, cols=cols):
-        labels, count = ndimage.label(fg[ys, xs])
-        if count == 0:
-            continue
+        largest, size = _largest_component(fg[ys, xs])
+        if size >= min_keep_area:
+            clean_fg[ys, xs] |= largest
 
-        sizes = np.bincount(labels.ravel())
-        sizes[0] = 0
-        keep_label = int(sizes.argmax())
+    return ndimage.binary_fill_holes(clean_fg)
 
-        if sizes[keep_label] >= min_keep_area:
-            clean_fg[ys, xs] |= labels == keep_label
 
-    clean_fg = ndimage.binary_fill_holes(clean_fg)
+def normalize_sprite_matte(
+    image: bytes | Image.Image,
+    *,
+    background_color: object,
+    rows: int = 3,
+    cols: int = 3,
+    strict_matte: bool = False,
+) -> bytes:
+    """Replace matte pixels with an exact key color, leaving sprite pixels intact.
+
+    By default uses an edge-sampled threshold to identify matte pixels — fast,
+    and preserves detached sprite decorations (flames, particles, etc.).
+
+    With `strict_matte=True`, runs the layered matte detector that tolerates
+    gradient backgrounds and shadow halos, and per-cell keeps only the largest
+    foreground body (drops detached marks). Use this when the input is an
+    AI-generated sheet with chroma drift or stray symbols.
+    """
+    arr = _image_to_rgb_array(image)
+
+    if strict_matte:
+        clean_fg = _normalize_fg_strict(arr, rows=rows, cols=cols)
+    else:
+        clean_fg = _simple_foreground(arr)
 
     normalized = arr.copy()
     normalized[~clean_fg] = _hex_rgb(background_color)
@@ -387,13 +408,7 @@ def normalize_sprite_matte(
     return out.getvalue()
 
 
-def validate_sprite_sheet(image: bytes | Image.Image, *, rows: int = 3, cols: int = 3) -> list[str]:
-    """Return validation issues for a generated sprite sheet.
-
-    The check is intentionally structural: the sheet must contain one main
-    foreground body per expected cell. It does not judge art quality.
-    """
-    arr = _image_to_rgb_array(image)
+def _validate_strict(arr: np.ndarray, *, rows: int, cols: int) -> list[str]:
     h, w = arr.shape[:2]
     cell_area = (h / rows) * (w / cols)
     min_main_area = max(600, int(cell_area * 0.02))
@@ -418,48 +433,92 @@ def validate_sprite_sheet(image: bytes | Image.Image, *, rows: int = 3, cols: in
         col = min(cols - 1, int(cx * cols / w))
         cell_counts[row, col] += 1
 
-    for row, col, _, _ in _cell_slices(fg.shape, rows=rows, cols=cols):
-        count_in_cell = int(cell_counts[row, col])
-        cell_name = f"R{row + 1}C{col + 1}"
+    for row in range(rows):
+        for col in range(cols):
+            count_in_cell = int(cell_counts[row, col])
+            cell_name = f"R{row + 1}C{col + 1}"
 
-        if count_in_cell == 0:
-            issues.append(f"{cell_name} has no main sprite body")
-        elif count_in_cell > 1:
-            issues.append(f"{cell_name} contains {count_in_cell} main sprite bodies")
+            if count_in_cell == 0:
+                issues.append(f"{cell_name} has no main sprite body")
+            elif count_in_cell > 1:
+                issues.append(f"{cell_name} contains {count_in_cell} main sprite bodies")
 
     return issues
 
 
-def extract_sprites(image: bytes | Image.Image, rows: int = 3, cols: int = 3, padding: int = 8) -> types.SpriteLayout:
-    """Extract `rows*cols` sprites from `image` in reading order.
+def _validate_simple(arr: np.ndarray, *, rows: int, cols: int) -> list[str]:
+    fg = _simple_foreground(arr)
+    h, w = fg.shape
+    cell_area = (h / rows) * (w / cols)
+    min_fg_per_cell = max(600, int(cell_area * 0.02))
 
-    Parameters
-    ----------
-    image : path, PIL.Image, or H×W×3 ndarray (uint8 RGB)
-    rows, cols : grid shape, default 3×3
-    padding : pixels of empty space around each crop, default 8
+    issues: list[str] = []
+    for row, col, ys, xs in _cell_slices(fg.shape, rows=rows, cols=cols):
+        cell_fg_count = int(fg[ys, xs].sum())
+        if cell_fg_count < min_fg_per_cell:
+            issues.append(f"R{row + 1}C{col + 1} has insufficient sprite content ({cell_fg_count} px)")
 
-    Returns
-    -------
-    list of `rows*cols` PIL RGBA images in reading order
-    (top-to-bottom, left-to-right). Background is transparent.
+    return issues
+
+
+def validate_sprite_sheet(
+    image: bytes | Image.Image,
+    *,
+    rows: int = 3,
+    cols: int = 3,
+    strict_matte: bool = False,
+) -> list[str]:
+    """Return validation issues for a generated sprite sheet.
+
+    By default (simple matte) checks that each cell has a non-trivial number of
+    foreground pixels — robust to detached decorations, doesn't enforce one
+    connected body per cell.
+
+    With `strict_matte=True`, requires exactly one large connected component per
+    cell, like the original behavior. Use when sprites are designed without
+    detached parts and you want to flag stray AI-generated symbols.
     """
-    from skimage.segmentation import watershed
-    from sklearn.cluster import KMeans
+    arr = _image_to_rgb_array(image)
 
-    if not isinstance(image, Image.Image):
-        image = Image.open(io.BytesIO(image))
+    if strict_matte:
+        return _validate_strict(arr, rows=rows, cols=cols)
 
-    arr = np.array(image.convert("RGB"))
-    H, W = arr.shape[:2]
+    return _validate_simple(arr, rows=rows, cols=cols)
 
-    # ---- 1. Background connectivity decides transparent background ----
+
+def _extract_simple(arr: np.ndarray, *, rows: int, cols: int, padding: int) -> list[Image.Image]:
+    fg = _simple_foreground(arr)
+
+    if not fg.any():
+        raise RuntimeError(
+            "No foreground detected. Is the matte color clearly distinct "
+            "from the sprites? You may want strict_matte=True for noisy inputs."
+        )
+
+    aligned: list[Image.Image] = []
+    for _, _, ys_cell, xs_cell in _cell_slices(fg.shape, rows=rows, cols=cols):
+        cell_fg = fg[ys_cell, xs_cell]
+        if not cell_fg.any():
+            aligned.append(Image.new("RGBA", (1, 1), (0, 0, 0, 0)))
+            continue
+
+        ys2, xs2 = np.where(cell_fg)
+        cell_h, cell_w = cell_fg.shape
+        y0 = max(0, int(ys2.min()) - padding)
+        x0 = max(0, int(xs2.min()) - padding)
+        y1 = min(cell_h, int(ys2.max()) + 1 + padding)
+        x1 = min(cell_w, int(xs2.max()) + 1 + padding)
+
+        crop_rgb = arr[ys_cell, xs_cell][y0:y1, x0:x1]
+        crop_alpha = cell_fg[y0:y1, x0:x1].astype(np.uint8) * 255
+        aligned.append(Image.fromarray(np.dstack([crop_rgb, crop_alpha]), "RGBA"))
+
+    return aligned
+
+
+def _extract_strict(arr: np.ndarray, *, rows: int, cols: int, padding: int) -> list[Image.Image]:
+    h, w = arr.shape[:2]
     fg, bg_candidate = _foreground_mask_from_generated_matte(arr, rows=rows, cols=cols)
-
-    # ---- 2. Solid foreground drives seeds and crop bounds -------------
-    bounds_fg = _bounds_mask_without_soft_highlights(arr, fg)
-    min_component_area = max(8, int((H * W / (rows * cols)) * 0.0002))
-    bounds_fg = _remove_small_components(bounds_fg, min_area=min_component_area)
 
     if not fg.any():
         raise RuntimeError(
@@ -468,94 +527,100 @@ def extract_sprites(image: bytes | Image.Image, rows: int = 3, cols: int = 3, pa
             "a uniform border that's clearly background?"
         )
 
-    # ---- 3. K-means cluster centers (one per cell) --------------------
-    seed_fg = bounds_fg if bounds_fg.any() else fg
-    ys, xs = np.where(seed_fg)
-    points = np.column_stack([ys, xs]).astype(np.float32)
+    bounds_fg = _bounds_mask_without_soft_highlights(arr, fg)
+    min_component_area = max(8, int((h * w / (rows * cols)) * 0.0002))
+    bounds_fg = _remove_small_components(bounds_fg, min_area=min_component_area)
 
-    init = np.array(
-        [[H * (r + 0.5) / rows, W * (c + 0.5) / cols]
-         for r in range(rows) for c in range(cols)],
-        dtype=np.float32,
-    )
-    km = KMeans(n_clusters=rows * cols, init=init, n_init=1, random_state=0)
-    km.fit(points)
-    centers = km.cluster_centers_  # (rows*cols, 2): (y, x)
-    centers_int = centers.astype(int)
-
-    # ---- 4. Seed-and-flood: each center → one labeled pixel, then
-    #         watershed through fg with a flat elevation surface so
-    #         expansion is purely connectivity-driven (geodesic).
-    seed_img = np.zeros((H, W), dtype=np.int32)
-    for i, (cy, cx) in enumerate(centers_int, start=1):
-        if not seed_fg[cy, cx]:
-            # Snap to nearest fg pixel — k-means centers can land in
-            # background pockets for awkwardly shaped sprites.
-            d = (ys - cy) ** 2 + (xs - cx) ** 2
-            j = int(d.argmin())
-            cy, cx = int(ys[j]), int(xs[j])
-        seed_img[cy, cx] = i
-
-    label_img = watershed(
-        np.zeros((H, W), dtype=np.int32),
-        markers=seed_img,
-        mask=fg,
-    )
-
-    # ---- 5. Reading order: sort centers by y, chunk into `rows` rows
-    #         of `cols` each, then sort each chunk by x. Robust against
-    #         centers that fall near grid-boundary y values.
-    by_y = sorted(range(len(centers)), key=lambda i: centers[i, 0])
-    order: list[int] = []
-    for r in range(rows):
-        chunk = by_y[r * cols:(r + 1) * cols]
-        chunk.sort(key=lambda i: centers[i, 1])
-        order.extend(chunk)
-
-    # ---- 6. Crop each label into a PIL RGBA image --------------------
     aligned: list[Image.Image] = []
+    for _, _, ys_cell, xs_cell in _cell_slices(fg.shape, rows=rows, cols=cols):
+        sprite_mask, size = _largest_component(fg[ys_cell, xs_cell])
 
-    for cid in order:
-        mask = (label_img == cid + 1)
-        bounds_mask = mask & bounds_fg
-        if not bounds_mask.any():
-            bounds_mask = mask
-        ys2, xs2 = np.where(bounds_mask)
-
-        if len(ys2) == 0:
-            # Empty cell — return a 1×1 fully-transparent placeholder so
-            # the caller can still rely on len(aligned) == rows*cols.
+        if size == 0:
             aligned.append(Image.new("RGBA", (1, 1), (0, 0, 0, 0)))
             continue
 
-        y0 = max(0, ys2.min() - padding)
-        x0 = max(0, xs2.min() - padding)
-        y1 = min(H, ys2.max() + 1 + padding)
-        x1 = min(W, xs2.max() + 1 + padding)
+        cell_arr = arr[ys_cell, xs_cell]
+        cell_bg_cand = bg_candidate[ys_cell, xs_cell]
+        cell_bounds = sprite_mask & bounds_fg[ys_cell, xs_cell]
+        if not cell_bounds.any():
+            cell_bounds = sprite_mask
 
-        crop_mask = mask[y0:y1, x0:x1] & ~_connected_to_edges(bg_candidate[y0:y1, x0:x1])
+        ys2, xs2 = np.where(cell_bounds)
+        cell_h, cell_w = sprite_mask.shape
+        y0 = max(0, int(ys2.min()) - padding)
+        x0 = max(0, int(xs2.min()) - padding)
+        y1 = min(cell_h, int(ys2.max()) + 1 + padding)
+        x1 = min(cell_w, int(xs2.max()) + 1 + padding)
+
+        crop_mask = sprite_mask[y0:y1, x0:x1] & ~_connected_to_edges(cell_bg_cand[y0:y1, x0:x1])
         if not crop_mask.any():
-            crop_mask = mask[y0:y1, x0:x1]
+            crop_mask = sprite_mask[y0:y1, x0:x1]
 
-        crop_rgb = _fill_transparent_rgb(arr[y0:y1, x0:x1], crop_mask)
-        alpha = (crop_mask.astype(np.uint8) * 255)
-        rgba = np.dstack([crop_rgb, alpha])
-        aligned.append(Image.fromarray(rgba, "RGBA"))
-    
+        crop_rgb = _fill_transparent_rgb(cell_arr[y0:y1, x0:x1], crop_mask)
+        alpha = crop_mask.astype(np.uint8) * 255
+        aligned.append(Image.fromarray(np.dstack([crop_rgb, alpha]), "RGBA"))
+
+    return aligned
+
+
+def extract_sprites(
+    image: bytes | Image.Image,
+    rows: int = 3,
+    cols: int = 3,
+    padding: int = 8,
+    *,
+    strict_matte: bool = False,
+) -> types.SpriteLayout:
+    """Extract `rows*cols` sprites from `image` in reading order.
+
+    Each cell is assumed to contain exactly one sprite that does not cross
+    cell boundaries.
+
+    By default uses an edge-sampled threshold to find foreground — fast,
+    preserves detached sprite decorations (flames, particles, halos).
+
+    With `strict_matte=True`, runs the layered matte detector and keeps only
+    the largest connected component per cell. Slower and drops detached parts,
+    but tolerates gradient backgrounds, shadow halos, and stray AI-generated
+    marks.
+
+    Parameters
+    ----------
+    image : bytes (encoded image) or PIL.Image
+    rows, cols : grid shape, default 3×3
+    padding : pixels of empty space around each crop, default 8
+    strict_matte : opt into the layered matte detector for noisy inputs
+
+    Returns
+    -------
+    SpriteLayout with named PIL RGBA images, one per cell, in reading order
+    (top-to-bottom, left-to-right). Background is transparent.
+    """
+    image = _to_pil(image)
+    arr = np.array(image.convert("RGB"))
+
+    if strict_matte:
+        aligned = _extract_strict(arr, rows=rows, cols=cols, padding=padding)
+    else:
+        aligned = _extract_simple(arr, rows=rows, cols=cols, padding=padding)
+
+    # Unpack rather than indexing — any drift in length fails loudly here.
+    bb, bh, bo, er, eh, ef, ep, ec, es = aligned
+
     sprite_layout: types.SpriteLayout = {
         "sheet": image,
         # Battle row (row 0)
-        "battle_back": aligned[0],
-        "battle_hero": aligned[1],
-        "battle_opponent": aligned[2],
+        "battle_back": bb,
+        "battle_hero": bh,
+        "battle_opponent": bo,
         # Idle row (row 1)
-        "emote_resting": aligned[3],
-        "emote_happy": aligned[4],
-        "emote_frustrated": aligned[5],
+        "emote_resting": er,
+        "emote_happy": eh,
+        "emote_frustrated": ef,
         # Expressive row (row 2)
-        "emote_proud": aligned[6],
-        "emote_confused": aligned[7],
-        "emote_sad": aligned[8],
+        "emote_proud": ep,
+        "emote_confused": ec,
+        "emote_sad": es,
     }
 
     return sprite_layout
