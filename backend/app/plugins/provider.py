@@ -1,11 +1,14 @@
-from typing import Annotated, ClassVar, TYPE_CHECKING
+from typing import Any, Annotated, ClassVar, TYPE_CHECKING, get_args, get_origin
+import annotationlib
 import abc
 
 import niquests
 import structlog
 
+from app import types
+
 if TYPE_CHECKING:
-   from app import schema
+    from app import schema
 
 _LOGGER = structlog.get_logger(__name__)
 
@@ -43,34 +46,56 @@ class VibeProvider(abc.ABC):
     name: ClassVar[str]
     """Stable provider identifier (persisted in `Affinity.provider_id`)."""
 
-    exposed_elements: ClassVar[list[Annotated[VibemonTypeT, str]]]
+    exposed_elements: ClassVar[list[Annotated[types.VibemonTypeT, str]]]
     """Elements this provider can assign, annotated with real-world signal descriptions."""
 
     @classmethod
-    def get_exposed_elements(cls) -> dict[VibemonTypeT, str]:
+    def get_exposed_elements(cls) -> dict[types.VibemonTypeT, str]:
         """Return a mapping of elements to their real-world signal descriptions."""
-        from typing import get_args, get_origin
         result = {}
+
         for annotated_type in cls.exposed_elements:
-            if get_origin(annotated_type) is Annotated:
-                args = get_args(annotated_type)
-                if len(args) >= 2 and isinstance(args[1], str):
-                    result[args[0]] = args[1]
+            # Filter for Annotated
+            if get_origin(annotated_type) is not Annotated:
+                continue
+
+            # Get arguments: [Type, Metadata1, ...]
+            args = get_args(annotated_type)
+            if len(args) < 2 or not isinstance(args[1], str):
+                continue
+
+            raw_element, description = args[0], args[1]
+
+            # NEW IN 3.14: Use annotationlib to resolve forward refs or strings
+            if isinstance(raw_element, (str, annotationlib.ForwardRef)):
+                # Evaluate the reference into a real object
+                # Format.VALUE ensures it tries to find the actual class/type
+                element = annotationlib.Format.VALUE.evaluate(
+                    raw_element, 
+                    owner=cls
+                )
+            else:
+                element = raw_element
+
+            # Final check: Ensure it matches your expected Enum/Type
+            if isinstance(element, types.VibemonTypeT):
+                result[element] = description
+                
         return result
 
     def _log_http_error(self, exception: niquests.HTTPError) -> None:
         """If an HTTP error is encountered, log its context."""
-        log_data = {}
-        
+        log_data: dict[str, Any] = {}
+
         if exception.response is not None:
-              log_data["status"] = exception.response.status_code
-              log_data["text"] = exception.response.text
-              log_data["response.headers"] = exception.response.headers
-  
+            log_data["status"] = exception.response.status_code
+            log_data["text"] = exception.response.text
+            log_data["response.headers"] = exception.response.headers
+
         if exception.request is not None:
-              log_data["url"] = exception.request.url
-              log_data["request.headers"] = exception.request.headers
-  
+            log_data["url"] = exception.request.url
+            log_data["request.headers"] = exception.request.headers
+
         _LOGGER.exception(f"HTTP error from {self.name} provider", **log_data)
         raise exception
 
