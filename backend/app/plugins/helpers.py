@@ -9,7 +9,10 @@ _LOGGER = structlog.get_logger(__name__)
 
 
 class Signal(pydantic.BaseModel):
-    """Apply binding to raw data."""
+    """
+    Apply binding to raw data.
+    """
+
     attr: str
     raw: float
     min: float
@@ -18,9 +21,56 @@ class Signal(pydantic.BaseModel):
     @pydantic.computed_field
     @property
     def normal(self) -> types.UnitIntervalT:
-        """Map raw value to 0-1 range, clamped to [0.0, 1.0]."""
+        """
+        The signal's value as a percentage (0.0 to 1.0) of its defined range.
+        
+        Values below 'min' become 0.0; values above 'max' become 1.0.
+        """
         clamped = utils.clamp(self.raw, minimum=self.min, maximum=self.max)
         return (clamped - self.min) / (self.max - self.min)
+
+    @classmethod
+    def mix(cls, *pairs: tuple["Signal", float]) -> types.UnitIntervalT:
+        """
+        Combines multiple signals into a single score based on their weights.
+
+        Each signal is multiplied by its weight, and the final sum is clamped
+        between 0 and 1.
+        
+        Example:
+            Signal.mix(sunlight * 0.7, humidity * 0.3)
+        """
+        return utils.clamp(sum(s.normal * w for s, w in pairs), minimum=0, maximum=1)
+
+    def __mul__(self, weight: float) -> tuple["Signal", float]:
+        """Syntactic sugar for signal.scale(weight). Enables: signal * 0.5"""
+        return self.scale(weight)
+
+    def __rmul__(self, weight: float) -> tuple["Signal", float]:
+        """Syntactic sugar for weight * signal. Enables: 0.5 * signal"""
+        return self.scale(weight)
+
+    def __pow__(self, power: float) -> types.UnitIntervalT:
+        """Syntactic sugar for signal.reshape(power). Enables: signal ** 2"""
+        return self.reshape(power)
+
+    def reshape(self, power: float) -> types.UnitIntervalT:
+        """
+        Adjusts the sensitivity of the signal using a power curve.
+
+        - power < 1.0: "Aggressive" — Makes low values rise faster.
+        - power > 1.0: "Conservative" — Requires higher values before the score rises.
+        - power = 1.0: "Linear" — No change.
+        """
+        return self.normal ** power
+
+    def scale(self, factor: float) -> tuple["Signal", float]:
+        """
+        Pairs this signal with a weight for use in Signal.mix().
+        
+        Note: You can use the `*` operator instead for better readability.
+        """
+        return (self, factor)
 
     def ramp(
         self,
@@ -28,7 +78,7 @@ class Signal(pydantic.BaseModel):
         *,
         thresh: float,
         reach: float,
-        invert: bool = False
+        invert: bool = False,
     ) -> types.UnitIntervalT:
         """
         Score how strongly this signal activates, as a value in [0, 1].
@@ -65,6 +115,35 @@ class Signal(pydantic.BaseModel):
         Proportional Ramp — score equals the signal itself (pass-through).
             signal: any , thresh: 0.00 , reach: 1.00
             e.g. "score directly proportional to humidity"
+
+        Composition & Inversion Scenarios
+        --------------------------------
+        Single ramp — one signal cleanly owns the type.
+            score = signal.ramp(...)
+
+        max(a, b) — either signal independently sufficient; do not stack
+        correlated alternate causes into an outsized score.
+            score = max(a.ramp(...), b.ramp(...))
+
+        1.0 - ramp(...) — high raw values suppress the type, but low values
+        are not evidence by themselves (inversion rule).
+            score = 1.0 - signal.ramp(...)
+
+        1.0 - k * ramp(...) — high raw values partially suppress the type
+        without fully vetoing otherwise valid evidence.
+            score = 1.0 - 0.5 * signal.ramp(...)
+
+        a * b — `a` is the core signal and `b` is a gate, veto, or
+        attenuator that should suppress mismatched conditions.
+            score = core.ramp(...) * gate.ramp(...)
+
+        sqrt(a * b) — both signals required, but direct multiplication
+        would over-penalize legitimate paired conditions.
+            score = (a.ramp(...) * b.ramp(...)) ** 0.5
+
+        ramp(..., invert=True) — low raw values are positive evidence for
+        the type (inversion rule).
+            score = signal.ramp(..., invert=True)
         """
         x = self.normal if source == "N" else self.raw
         v = (thresh - x) if invert else (x - thresh)
