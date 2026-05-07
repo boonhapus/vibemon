@@ -259,24 +259,21 @@ def parse_args() -> argparse.Namespace:
     """Parse CLI options."""
     parser = argparse.ArgumentParser()
     parser.add_argument("--count", type=int, default=150)
-    parser.add_argument("--db-path", type=str, default=None)
+    parser.add_argument("--core-identity", type=str, default=None)
+    parser.add_argument("--headless", action="store_true", default=False)
+    parser.add_argument("--db-path", type=str, default=pathlib.Path(__file__).parent.joinpath("vibemon.db").as_posix())
     return parser.parse_args()
 
 
 async def main() -> None:
     """Entrypoint."""
     args = parse_args()
-    VIBEMON_TO_GENERATE = args.count
-    CORE_IDENTITY = None
-    settings.headless = True
 
-    structlog.configure(
-        wrapper_class=structlog.make_filtering_bound_logger(logging.INFO)
-    )
+    settings.headless = args.headless
+
+    structlog.configure(wrapper_class=structlog.make_filtering_bound_logger(logging.INFO))
 
     await _LOGGER.ainfo("Starting", headless=settings.headless)
-
-    # directory = pathlib.Path(__file__).parent
 
     rows: list[tuple[str, str, schema.BirthContext, schema.Vibemon]] = []
 
@@ -284,13 +281,9 @@ async def main() -> None:
         existing_moves = (await sess.execute(sa.select(models.Move))).scalars().all()
         moves_cache: dict[str, models.Move] = {m.name: m for m in existing_moves}
 
-        async for item in stream_vibemon_in_world(
-            count=VIBEMON_TO_GENERATE, core_identity=CORE_IDENTITY
-        ):
-            city, country, ctx, vibemon = item
-            sess.add(
-                schema_to_models(vibemon, birth_context=ctx, moves_cache=moves_cache)
-            )
+        async for item in stream_vibemon_in_world(count=args.count, core_identity=args.core_identity):
+            _, country, ctx, vibemon = item
+            sess.add(schema_to_models(vibemon, birth_context=ctx, moves_cache=moves_cache))
             await sess.commit()
             await _LOGGER.ainfo(
                 "Persisted Vibemon",
