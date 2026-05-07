@@ -1,11 +1,11 @@
 ---
 name: battle-cry
-description: Generates a battle cry description and duration for a Vibemon.
-version: 1.0.1
+description: Generates a Pokémon-style creature cry description and duration.
+version: 1.1.0
 ---
 {%- set notes = [vibemon.affinity.identity.visual_notes, vibemon.affinity.visual_notes] | reject("none") | list -%}
 
-Create a vivid, cinematic sound effect description for this creature. Must be less than 425 characters.
+Create a vivid, creature-focused sound effect description for this monster. It should sound like a mix of an organic animal vocalization and a synthesized Pokémon-style digital effect.
 
 Name: {{ vibemon.name }}
 Type: {{ vibemon.affinity.identity.elements | join(", ") }}
@@ -20,7 +20,11 @@ Sonic scale (bias only — do not name a tier or stat in the output):
 {% include "tiers/" ~ vibemon.affinity.identity.tier ~ "/sonic.j2" %}
 
 Output a JSON object with two fields:
-- `description`: 2-3 sentences. Use cinematic audio terminology (synthesis, reverb, tail, layer, timbre, transient, sub, formant). Let elemental type and moveset drive the timbre; let the sonic scale subtly inform weight, layering, and tail length. Describe a brief idle/ambient texture only if it fits the personality. Do not mention BST, tier, or the bias text.
-- `duration`: a float in [0.25, 4.0]. Pick within the tier's duration range above, leaning shorter for sharp/punchy creatures and longer for sustained/booming ones.
+- `description`: 2-3 sentences. 
+    1. Start with a bracketed phonetic onomatopoeia (e.g., [SKREEE-CHIRP!], [GWA-ROH!], [BZTT-KSHH!]) that anchors the cadence.
+    2. Describe the vocal archetype (avian screech, bestial roar, insectoid click, reptilian hiss, metallic trill) and its "digital" texture (bit-crushed, aliased, synthesized resonance, filtered modulation). 
+    3. Detail how the elemental type and moveset influence the timbre (e.g., "layered with sizzling fire crackles" or "echoing with a hollow, ghostly reverb").
+    Do not mention BST, tier, or the bias text.
+- `duration`: a float in [0.5, 4.0]. Pick within the tier's duration range above, leaning shorter for sharp/punchy creatures and longer for sustained/booming ones.
 
-Example description: "Sharp, metallic chitter with harmonic overtones, followed by a deep resonant boom that decays with a long reverb tail. Layered with organic growling undertones."
+Example description: "[K-ZRRRT!] A sharp, bit-crushed electric trill that transitions into a resonant, metallic hum with a stuttering digital tail. Layered with high-frequency static and a quick, punchy transient."
