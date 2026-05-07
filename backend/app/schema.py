@@ -353,7 +353,7 @@ class Aesthetic(_Transient):
         data = {
             "primary_color": brand.TYPE_COLORS[vibemon.elements[0]],
             "secondary_color": brand.TYPE_COLORS[vibemon.elements[1]] if len(vibemon.elements) == 2 else None,
-            "background_color": brand.solve_background_color(*(brand.TYPE_COLORS[e] for e in vibemon.elements)),
+            "background_color": brand.solve_background_color(*brand.sprite_foreground_colors(vibemon.elements)),
         }
 
         ins = cls(**data)

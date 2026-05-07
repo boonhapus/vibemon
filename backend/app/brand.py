@@ -51,6 +51,18 @@ CORE_PALETTE: Final[tuple[Color, ...]] = (
 # Lineart floor — never render lineart darker than this (DESIGN.md §6 / sprite prompt).
 LINEART_FLOOR: Final = Color("#2A1E16", "Tobacco Black", "Hard floor for lineart darkness")
 
+# Colors that the sprite prompt can produce regardless of elemental typing.
+# Include these when choosing a chroma-key background; otherwise the solver can
+# pick a key color that is far from the body fills but close to eyes, claws,
+# highlights, or lineart.
+SPRITE_CHROMA_PROTECTED_COLORS: Final[tuple[Color, ...]] = (
+    TOBACCO_BROWN,
+    LINEART_FLOOR,
+    CREAM,
+    MUSTARD_YELLOW,
+    Color("#A03020", "Warm Red Detail Guard", "Common iris/accent color family"),
+)
+
 
 # ============================================================================
 # §2.2 Vibemon Type Colors — elemental classifications
@@ -254,6 +266,13 @@ def solve_background_color(*foreground_colors: Color, candidates: Iterable[Color
         )
 
     return best
+
+
+def sprite_foreground_colors(elements: Iterable[VibemonTypeT]) -> tuple[Color, ...]:
+    """Return all expected sprite foreground colors for chroma-key solving."""
+    colors = [TYPE_COLORS[element] for element in elements]
+    colors.extend(SPRITE_CHROMA_PROTECTED_COLORS)
+    return tuple(colors)
 
 
 # ============================================================================
