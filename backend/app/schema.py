@@ -98,7 +98,7 @@ class Identity(_Static):
     evo_stage: types.EvolutionStageT = types.EvolutionStageT.BASE
     """The current evolution of this Vibemon."""
 
-    is_mythic: bool = pydantic.Field(default_factory=lambda: random.randint(1, const.MYTHIC_ODDS) == const.MYTHIC_ODDS)
+    is_radiant: bool = pydantic.Field(default_factory=lambda: random.randint(1, const.RADIANT_ODDS) == const.RADIANT_ODDS)
     """A rare, alternative style that differs from its peer identities' appearance."""
 
     @classmethod

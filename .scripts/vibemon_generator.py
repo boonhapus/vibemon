@@ -115,7 +115,7 @@ def schema_to_models(
             base_speed=identity.base_speed,
             evo_seed=identity.evo_seed,
             evo_stage=identity.evo_stage.name,
-            is_mythic=identity.is_mythic,
+            is_radiant=identity.is_radiant,
         )
 
     def _affinity(affinity: schema.Affinity) -> models.Affinity:

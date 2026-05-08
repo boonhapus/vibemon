@@ -93,5 +93,5 @@ STARTING_MOVE_COUNT = 2
 
 # ── Miscellaneous ─────────────────────────────────────────────────────────────────────
 
-MYTHIC_ODDS = 4096
+RADIANT_ODDS = 4096
 """A rare, alternative style that differs from its peer identities' appearance."""
