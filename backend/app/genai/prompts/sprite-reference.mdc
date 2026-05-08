@@ -38,7 +38,7 @@ TIER
 {% include "tiers/" ~ vibemon.affinity.identity.tier ~ "/visual.j2" +%}
 
 ROLE
-{% include "roles/" ~ role ~ ".j2" +%}
+{% include "roles/" ~ vibemon.affinity.identity.battle_role.name | lower ~ ".j2" +%}
 Role body-language cues describe attitude only. They must never add humanoid arms, hands, legs, shoulders, fists, palms, or upright posture if the chosen body archetype does not naturally have them.
 
 INFLUENCES (translate into one simple anatomical feature, marking, material, or silhouette cue; do not add extra detached effects):

@@ -149,60 +149,65 @@ class Identity(_Static):
                 return types.TierT.MYTHIC
 
     @property
-    def battle_role(self) -> tuple[str, str]:
-        """
-        Determines the battle role based on stat distribution.
-
-        Returns a tuple of (role_name, description) classifying the Vibemon as:
-        - OFFENSIVE (Sweeper, Wallbreaker, Glass Cannon, Revenge Killer)
-        - DEFENSIVE (Wall, Tank, Staller)
-        - UTILITY (Pivot, Entry Hazard Lead, Cleric, Screen Setter, Suicide Lead)
-
-        Uses percentages to determine relative stat distribution.
-        """
-        offense_weight = self.base_attack + self.base_sp_attack + self.base_speed
-        defense_weight = self.base_hp + self.base_defense + self.base_sp_defense
-        speed_weight = self.base_speed
-
-        off_pct = offense_weight / self.bst
-        def_pct = defense_weight / self.bst
-        spd_pct = speed_weight / self.bst
-        ehp_pct = self.base_hp / self.bst
-
+    def battle_role(self) -> types.BattleRole:
+        """Classify using competitive-tier stat thresholds."""
+        hp = self.base_hp
         atk = self.base_attack
         sp_atk = self.base_sp_attack
         defense = self.base_defense
         sp_def = self.base_sp_defense
         speed = self.base_speed
 
-        is_fast = speed >= 80
-        is_slow = speed < 50
-        is_squishy = defense < 50 and sp_def < 50
-        is_tanky = defense >= 70 or sp_def >= 70
-        is_fast_breaker = is_fast and (atk >= 70 or sp_atk >= 70)
-        is_slow_breaker = is_slow and (atk >= 70 or sp_atk >= 70)
+        # Effective HP — durability that accounts for HP, not just defenses
+        phys_ehp = hp * defense
+        spec_ehp = hp * sp_def
+        avg_ehp = (phys_ehp + spec_ehp) / 2
+
+        best_offense = max(atk, sp_atk)
+
+        # Speed tiers calibrated to OU-ish play
+        is_very_fast = speed >= 110
+        is_fast      = speed >= 95
+        is_slow      = speed < 65
+
+        # Offense tiers
+        is_elite_off  = best_offense >= 120
+        is_strong_off = best_offense >= 100
+        is_decent_off = best_offense >= 95
+
+        # Bulk profiles
+        is_phys_wall  = phys_ehp >= 8000
+        is_spec_wall  = spec_ehp >= 8000
+        is_any_wall   = is_phys_wall or is_spec_wall
+        is_mixed_bulk = phys_ehp >= 6000 and spec_ehp >= 6000
+        is_frail      = avg_ehp < 5000
 
         match True:
-            case _ if def_pct > 0.5 and is_tanky and ehp_pct > 0.2:
-                return ("DEFENSIVE_WALL", "A resilient wall with high HP and defenses designed to absorb hits.")
-            case _ if def_pct > 0.4 and (atk >= 50 or sp_atk >= 50):
-                return ("DEFENSIVE_TANK", "A defensive tank that can absorb hits and fight back.")
-            case _ if def_pct > 0.45 and is_slow:
-                return ("DEFENSIVE_STALLER", "A slow but durable staller that outlasts opponents.")
-            case _ if off_pct > 0.55 and is_fast and is_squishy:
-                return ("OFFENSIVE_GLASS_CANNON", "Extreme speed and power but fragile — must OHKO or faint.")
-            case _ if off_pct > 0.55 and is_fast_breaker:
-                return ("OFFENSIVE_SWEEPER", "Fast and powerful — designed to sweep weakened teams.")
-            case _ if off_pct > 0.55 and is_slow_breaker:
-                return ("OFFENSIVE_WALLBREAKER", "Slow but devastating — breaks through defensive Pokemon.")
-            case _ if off_pct > 0.5 and spd_pct > 0.25:
-                return ("OFFENSIVE_REVENGE_KILLER", "Fast pivot designed to pick off weakened opponents.")
-            case _ if spd_pct > 0.3 and def_pct > 0.35:
-                return ("UTILITY_PIVOT", "A balanced pivot that switches out to maintain momentum.")
-            case _ if off_pct < 0.45 and def_pct < 0.45:
-                return ("UTILITY_CLERIC", "A support-focused role that heals and clears status.")
+            # Offensive (most specific first)
+            case _ if is_fast and is_strong_off and is_frail:
+                return types.BattleRole.OFFENSIVE_GLASS_CANNON
+            case _ if is_slow and is_elite_off:
+                return types.BattleRole.OFFENSIVE_WALLBREAKER
+            case _ if is_fast and is_strong_off:
+                return types.BattleRole.OFFENSIVE_SWEEPER
+            case _ if is_very_fast and is_decent_off:
+                return types.BattleRole.OFFENSIVE_REVENGE_KILLER
+
+            # Defensive
+            case _ if is_mixed_bulk and is_decent_off:
+                return types.BattleRole.DEFENSIVE_TANK
+            case _ if is_any_wall and not is_decent_off:
+                return types.BattleRole.DEFENSIVE_WALL
+            case _ if is_mixed_bulk and is_slow:
+                return types.BattleRole.DEFENSIVE_STALLER
+
+            # Utility
+            case _ if is_fast and avg_ehp >= 5000:
+                return types.BattleRole.UTILITY_PIVOT
+            case _ if best_offense < 80 and avg_ehp >= 5000:
+                return types.BattleRole.UTILITY_CLERIC
             case _:
-                return ("UTILITY", "A balanced utility role that supports the team.")
+                return types.BattleRole.UTILITY
 
 
 class Affinity(_Static, validate_assignment=True):

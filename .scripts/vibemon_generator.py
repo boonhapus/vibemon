@@ -291,7 +291,7 @@ async def main() -> None:
                 type=tuple(map(str, vibemon.elements)),
                 country=country,
                 tier=vibemon.affinity.identity.tier,
-                role=vibemon.affinity.identity.battle_role[0],
+                role=vibemon.affinity.identity.battle_role.name,
                 moves=[f"{m.name} [{m.type}]" for m in vibemon.affinity.moves],
             )
             rows.append(item)

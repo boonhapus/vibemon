@@ -49,6 +49,31 @@ class TierT(enum.StrEnum):
     MYTHIC = "mythic"
 
 
+class BattleRole(enum.Enum):
+    """Battle role classifications based on stat distribution."""
+
+    OFFENSIVE_GLASS_CANNON = "Extreme speed and power but fragile — must OHKO or faint."
+    OFFENSIVE_SWEEPER = "Fast and powerful — designed to sweep weakened teams."
+    OFFENSIVE_WALLBREAKER = "Slow but devastating — breaks through defensive Pokemon."
+    OFFENSIVE_REVENGE_KILLER = "Fast cleaner designed to pick off weakened opponents."
+    DEFENSIVE_WALL = "A resilient wall designed to soak hits on one or both sides."
+    DEFENSIVE_TANK = "A defensive tank that can absorb hits and fight back."
+    DEFENSIVE_STALLER = "A slow but durable staller that outlasts opponents."
+    UTILITY_PIVOT = "A balanced pivot that switches out to maintain momentum."
+    UTILITY_CLERIC = "A support-focused role that heals and clears status."
+    UTILITY = "A balanced utility role that supports the team."
+
+    @property
+    def description(self) -> str:
+        return self.value
+
+    @property
+    def category(self) -> str:
+        """OFFENSIVE / DEFENSIVE / UTILITY — derived from the role name."""
+        category, _, _ = self.name.partition("_")
+        return category
+
+
 class EvolutionStageT(enum.IntEnum):
     """The evolution stages."""
 
