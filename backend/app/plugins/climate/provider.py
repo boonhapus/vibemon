@@ -488,7 +488,9 @@ class ClimateProvider(VibeProvider):
                     utils.clamp(
                         signals["elevat"].normal * 0.40
                         + signals["clouds"].normal * 0.40
-                        + signals["dust"].normal * 0.20
+                        + signals["dust"].normal * 0.20,
+                        minimum=0.0,
+                        maximum=1.0,
                     ),
                     stat="hp",
                 ),
@@ -498,7 +500,9 @@ class ClimateProvider(VibeProvider):
                         signals["windgu"].normal * 0.34
                         + signals["dust"].normal * 0.17
                         + inv_vis * 0.17
-                        + signals["elevat"].normal * 0.33
+                        + signals["elevat"].normal * 0.33,
+                        minimum=0.0,
+                        maximum=1.0,
                     ),
                     stat="attack",
                 ),
@@ -508,7 +512,9 @@ class ClimateProvider(VibeProvider):
                     utils.clamp(
                         signals["pressr"].normal * 0.33
                         + signals["elevat"].normal * 0.50
-                        + signals["dust"].normal * 0.17
+                        + signals["dust"].normal * 0.17,
+                        minimum=0.0,
+                        maximum=1.0,
                     ) ** 0.4,
                     stat="defense",
                 ),
@@ -518,7 +524,9 @@ class ClimateProvider(VibeProvider):
                         signals["pressrng"].normal * 0.33
                         + signals["radiat"].normal * 0.33
                         + signals["cape_m"].normal * 0.17
-                        + inv_vis * 0.17
+                        + inv_vis * 0.17,
+                        minimum=0.0,
+                        maximum=1.0,
                     ),
                     stat="sp_attack",
                 ),
@@ -529,7 +537,9 @@ class ClimateProvider(VibeProvider):
                         + signals["pressr"].normal * 0.17
                         + signals["transp"].normal * 0.17
                         + signals["tmp_lo"].normal * 0.17
-                        + signals["precip"].normal * 0.17
+                        + signals["precip"].normal * 0.17,
+                        minimum=0.0,
+                        maximum=1.0,
                     ),
                     stat="sp_defense",
                 ),
@@ -539,7 +549,9 @@ class ClimateProvider(VibeProvider):
                         signals["elevat"].normal * 0.40
                         + signals["cape_m"].normal * 0.20
                         + inv_vis * 0.20
-                        + signals["windsp"].normal * 0.20
+                        + signals["windsp"].normal * 0.20,
+                        minimum=0.0,
+                        maximum=1.0,
                     ),
                     stat="speed",
                 ),
