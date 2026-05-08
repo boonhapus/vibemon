@@ -6,7 +6,7 @@ from PIL import Image
 from scipy import ndimage
 import numpy as np
 
-from app import types
+from app import brand, types
 
 
 def clamp(value: float, *, minimum: float, maximum: float) -> float:
@@ -378,7 +378,7 @@ def _normalize_fg_strict(arr: np.ndarray, *, rows: int, cols: int) -> np.ndarray
 def normalize_sprite_matte(
     image: bytes | Image.Image,
     *,
-    background_color: object,
+    bg_color: brand.Color,
     rows: int = 3,
     cols: int = 3,
     strict_matte: bool = False,
@@ -401,7 +401,7 @@ def normalize_sprite_matte(
         clean_fg = _simple_foreground(arr)
 
     normalized = arr.copy()
-    normalized[~clean_fg] = _hex_rgb(background_color)
+    normalized[~clean_fg] = _hex_rgb(bg_color)
 
     out = io.BytesIO()
     Image.fromarray(normalized, "RGB").save(out, format="PNG")

@@ -40,19 +40,6 @@ def _save_data(data: Any, vibemon: str, filename: str) -> None:
         path.joinpath(filename).write_text(data, encoding="utf-8")
 
 
-def _sprite_sheet_retry_prompt(prompt: str, issues: list[str]) -> str:
-    issue_text = "; ".join(issues)
-
-    return (
-        f"{prompt}\n\n"
-        "RETRY CORRECTION\n"
-        f"The previous sheet failed automated validation: {issue_text}.\n"
-        "Regenerate the entire sprite contact sheet from scratch. Keep the same attached reference creature. "
-        "The new output must contain exactly one complete main creature body centered in each of the nine cells, "
-        "with no blank cells, no merged poses, and no floating symbols or extra marks."
-    )
-
-
 async def generate_vibemon_name(identity: schema.Identity, moves: list[schema.Move], visual_notes: str | None) -> str:
     """Generate a Vibemon's name."""
     n = "species-name"
@@ -77,7 +64,7 @@ async def generate_vibemon_sprite(vibemon: schema.Vibemon) -> bytes:
     #       primarily to support UI function anyway.
     d = app_utils.normalize_sprite_matte(
         r.output.data,
-        background_color=vibemon.aesthetic.background_color,
+        bg_color=vibemon.aesthetic.background_color,
         rows=1,
         cols=1,
     )
@@ -85,36 +72,11 @@ async def generate_vibemon_sprite(vibemon: schema.Vibemon) -> bytes:
     _save_data(d, vibemon=vibemon.name, filename=f"{n}_output.png")
 
     n = "sprite-sheet"
-    base_prompt = utils.load_prompt(f"{n}.mdc", vibemon=vibemon)
-    p = base_prompt
-    issues: list[str] = []
-
-    for attempt in range(1, SPRITE_SHEET_MAX_ATTEMPTS + 1):
-        r = await FAST_IMG_AGENT.run([pydantic_ai.BinaryImage(data=d, media_type="image/png"), p])
-        normalized = app_utils.normalize_sprite_matte(
-            r.output.data,
-            background_color=vibemon.aesthetic.background_color,
-        )
-        issues = app_utils.validate_sprite_sheet(normalized)
-
-        if not issues:
-            d = normalized
-            await _LOGGER.adebug(
-                "Generate :: Vibemon sprite",
-                vibemon=vibemon.name,
-                prompt=p,
-                attempt=attempt,
-            )
-            break
-
-        await _LOGGER.awarning(
-            "Generate :: Vibemon sprite sheet failed validation",
-            vibemon=vibemon.name,
-            attempt=attempt,
-            issues=issues,
-        )
-        p = _sprite_sheet_retry_prompt(base_prompt, issues)
-    else:
+    p = utils.load_prompt(f"{n}.mdc", vibemon=vibemon)
+    r = await FAST_IMG_AGENT.run([pydantic_ai.BinaryImage(data=d, media_type="image/png"), p])
+    d = app_utils.normalize_sprite_matte(r.output.data, bg_color=vibemon.aesthetic.background_color)
+    
+    if issues := app_utils.validate_sprite_sheet(d):
         raise RuntimeError(f"Generated sprite sheet failed validation: {'; '.join(issues)}")
 
     _save_data(p, vibemon=vibemon.name, filename=f"{n}_prompt.txt")
