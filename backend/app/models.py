@@ -42,7 +42,7 @@ class Identity(Base):
     base_speed: Mapped[int]
     evo_seed: Mapped[int]
     evo_stage: Mapped[str]
-    is_mythic: Mapped[bool]
+    is_radiant: Mapped[bool]
 
     affinity: Mapped["Affinity"] = relationship(back_populates="identity", uselist=False)
 

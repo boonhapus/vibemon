@@ -3,9 +3,6 @@ name: vibemon-sprite-reference
 description: Generates a single canonical reference image for a Vibemon before posing.
 version: 1.0.0
 ---
-{%- set elements = vibemon.affinity.identity.elements -%}
-{%- set role = vibemon.affinity.identity.battle_role[0] | lower -%}
-
 Render ONE clean canonical reference image for a Pokémon-style creature named "{{ vibemon.affinity.identity.name }}".
 
 PURPOSE
@@ -21,17 +18,17 @@ CANVAS RULES
 
 IDENTITY
 - Name: {{ vibemon.affinity.identity.name }}
-- Element(s): {{ elements | join(" / ") }}
+- Element(s): {{ vibemon.elements | join(" / ") }}
 {% if vibemon.affinity.identity.visual_notes %}
 - Personality notes (do not infer anatomy from these): {{ vibemon.affinity.identity.visual_notes }}
 {% endif %}
 
-PRIMARY ELEMENT — {{ elements[0] | upper }} (canonical anatomy, palette, and motifs — the source of truth for what this creature looks like). The BODY ARCHETYPE below dictates the silhouette type. Role and tier modify posture, scale, and complexity but NEVER override the body archetype.
-{% include "elements/" ~ elements[0] ~ ".j2" +%}
+PRIMARY ELEMENT — {{ vibemon.elements[0] | upper }} (canonical anatomy, palette, and motifs — the source of truth for what this creature looks like). The BODY ARCHETYPE below dictates the silhouette type. Role and tier modify posture, scale, and complexity but NEVER override the body archetype.
+{% include "elements/" ~ vibemon.elements[0] ~ ".j2" +%}
 
-{% if elements | length > 1 %}
-SECONDARY ELEMENT — {{ elements[1] | upper }} (accent layer only: extremities, markings, secondary materials — must never override the primary element's silhouette or palette)
-{% include "elements/" ~ elements[1] ~ ".j2" +%}
+{% if vibemon.elements | length > 1 %}
+SECONDARY ELEMENT — {{ vibemon.elements[1] | upper }} (accent layer only: extremities, markings, secondary materials — must never override the primary element's silhouette or palette)
+{% include "elements/" ~ vibemon.elements[1] ~ ".j2" +%}
 
 {% endif %}
 TIER
@@ -57,7 +54,7 @@ LOCKED DESIGN DECISIONS
 
 PALETTE & STYLE
 - Primary fill: {{ vibemon.aesthetic.primary_color }} — overrides the PRIMARY ELEMENT's color hex if they differ.
-{% if elements | length > 1 %}
+{% if vibemon.elements | length > 1 %}
 - Secondary fill (accent zones — extremities, markings, underbelly): {{ vibemon.aesthetic.secondary_color }}
 {% endif %}
 - Lineart: #3D2B1F Tobacco Brown. Never pure black or darker than #2A1E16.

@@ -81,16 +81,15 @@ class Identity(_Static):
     """Supplied by the Trainer themselves."""
 
     elements: types.IdentityElementsT
-    base_hp: int = pydantic.Field(default=70, ge=1, le=255, json_schema_extra={"min": 1, "med": 70, "max": 255})
-    base_attack: int = pydantic.Field(default=75, ge=5, le=190, json_schema_extra={"min": 5, "med": 75, "max": 190})
-    base_defense: int = pydantic.Field(default=70, ge=5, le=230, json_schema_extra={"min": 5, "med": 70, "max": 230})
-    base_sp_attack: int = pydantic.Field(
-        default=70, ge=10, le=194, json_schema_extra={"min": 10, "med": 70, "max": 194}
-    )
-    base_sp_defense: int = pydantic.Field(
-        default=70, ge=20, le=230, json_schema_extra={"min": 20, "med": 70, "max": 230}
-    )
-    base_speed: int = pydantic.Field(default=70, ge=5, le=200, json_schema_extra={"min": 5, "med": 70, "max": 200})
+
+    # fmt: off
+    base_hp: int         = pydantic.Field(default=70, ge= 1, le=255, json_schema_extra={"min":  1, "med": 70, "max": 255})
+    base_attack: int     = pydantic.Field(default=75, ge= 5, le=190, json_schema_extra={"min":  5, "med": 75, "max": 190})
+    base_defense: int    = pydantic.Field(default=70, ge= 5, le=230, json_schema_extra={"min":  5, "med": 70, "max": 230})
+    base_sp_attack: int  = pydantic.Field(default=70, ge=10, le=194, json_schema_extra={"min": 10, "med": 70, "max": 194})
+    base_sp_defense: int = pydantic.Field(default=70, ge=20, le=230, json_schema_extra={"min": 20, "med": 70, "max": 230})
+    base_speed: int      = pydantic.Field(default=70, ge= 5, le=200, json_schema_extra={"min":  5, "med": 70, "max": 200})
+    # fmt: on
 
     evo_seed: int = pydantic.Field(default_factory=lambda: random.randint(1, 3))
     """The number of evolutions for this Vibemon."""
@@ -332,7 +331,7 @@ class Aesthetic(_Transient):
         return value
 
     async def regenerate(self) -> Self:
-        """ """
+        """Rereate the Aesthestic."""
         if self._vibemon is None:
             raise ValueError("No base Vibemon to regenerate from.")
 
@@ -498,20 +497,6 @@ class MoveBehavior(_Static):
     script_id: str | None = None
 
 
-def _effect_group_from_legacy(effect: MoveEffect | dict[str, Any]) -> EffectGroup:
-    """Consume legacy MoveEffect.target_self into explicit effect targets."""
-    if isinstance(effect, dict):
-        effect = MoveEffect(**effect)
-
-    target: EffectTarget = "self" if effect.target_self else "target"
-    effects: list[Effect] = []
-    if effect.status_inflict is not None:
-        effects.append(StatusInflict(target=target, status=effect.status_inflict))
-    if effect.stat_changes:
-        effects.append(StatChange(target=target, changes=effect.stat_changes))
-    return EffectGroup(chance=effect.chance, effects=tuple(effects))
-
-
 class Move(_Static):
     """A move that a Vibemon can learn and use in battle."""
 
@@ -527,21 +512,10 @@ class Move(_Static):
     accuracy: float | None = 1.0  # NULL = Gauranteed hit.
     pp: int = 10
     priority: Annotated[int, validators.ensure_between_abs_7] = 0
-    effect: MoveEffect | None = None
     effects: tuple[EffectGroup, ...] = ()
     behavior: MoveBehavior = pydantic.Field(default_factory=MoveBehavior)
     target: types.MoveTargetT = types.MoveTargetT.SINGLE
     level_requirement: int = 1
-
-    @pydantic.model_validator(mode="before")
-    @classmethod
-    def _migrate_legacy_effect(cls, data: Any) -> Any:
-        if not isinstance(data, dict):
-            return data
-        if data.get("effect") is not None and not data.get("effects"):
-            data = data.copy()
-            data["effects"] = (_effect_group_from_legacy(data["effect"]),)
-        return data
 
     def __hash__(self) -> int:
         """There should be no two moves named the same."""
@@ -630,7 +604,7 @@ class Vibemon(_Transient):
 
         HP adds level scaling for extra survivability at higher levels.
         """
-        return base_stat_level_scaling(self.affinity.identity.base_hp, level=self.level, true_floor=10)
+        return base_stat_level_scaling(self.affinity.identity.base_hp, level=self.level, true_floor=10) + self.level  # fmt: skip
 
     @property
     def attack(self) -> int:
@@ -656,37 +630,3 @@ class Vibemon(_Transient):
     def speed(self) -> int:
         """Calculates the actual Speed stat."""
         return base_stat_level_scaling(self.affinity.identity.base_speed, level=self.level)
-
-
-# ── BATTLE COMPATIBILITY ─────────────────────────────────────────────────────────────
-
-
-_BATTLE_EXPORTS = {
-    "Battle",
-    "BattleTrainer",
-    "BattleVibemon",
-    "BattleMove",
-    "FieldState",
-    "FieldWeather",
-    "StatStages",
-    "TurnRecord",
-    "BattleAction",
-    "MoveAction",
-    "SwitchAction",
-    "ItemAction",
-    "RunAction",
-    "TargetRef",
-    "TurnEvent",
-}
-
-
-def __getattr__(name: str) -> Any:
-    """Lazy compatibility exports for transient battle models."""
-    if name in _BATTLE_EXPORTS:
-        from app.battle import actions, events
-        from app.battle import schema as battle_schema
-
-        for module in (battle_schema, actions, events):
-            if hasattr(module, name):
-                return getattr(module, name)
-    raise AttributeError(f"module {__name__!r} has no attribute {name!r}")
