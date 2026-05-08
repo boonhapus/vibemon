@@ -357,22 +357,26 @@ class ClimateProvider(VibeProvider):
         signals = {
             # tmp_hi: Daily max temperature (-20 to 50°C)
             # Min: coldest inhabited regions (Siberia winter). Max: hottest recorded (Death Valley ~54°C).
-            # Routes to base HP stat; directly embodies creature's core vitality from birth climate.
+            # Used for element scoring (FIRE threshold); no longer routes directly to any base stat
+            # (HP now uses Dragon→elevat, Normal→clouds, Ground→dust blend).
             "tmp_hi": Signal(attr="temperature_2m_max", raw=s["temperature_2m_max"][i], min=-20.0, max=50.0),
             # tmp_lo: Daily min temperature (-30 to 40°C)
             # Min: extreme cold (polar regions). Max: tropical overnight lows.
-            # Routes to Sp. Defense; modulates climate resilience via nocturnal conditions.
+            # Feeds Sp. Defense via Ice (A) element at 17% weight; primary for ICE type scoring.
             "tmp_lo": Signal(attr="temperature_2m_min", raw=s["temperature_2m_min"][i], min=-30.0, max=40.0),
             # precip: Daily precipitation (0–50 mm)
             # Min: no rain. Max: heavy downpour; >50 mm/day approaches flood conditions.
             # Baseline for WATER element; split between WATER affinity and Sp. Defense offset.
             "precip": Signal(attr="precipitation_sum", raw=s["precipitation_sum"][i], min=0.0, max=50.0),
-            # windsp: Sustained wind speed (3–50 km/h)
+            # windsp: Sustained wind speed (3–25 km/h)
             # Min: calm breeze threshold. Max: strong sustained wind for stat-scaling purposes
-            # (range compressed from 90 km/h — most populated cities cap well below 30 km/h, so
-            # the wider range left base_speed clustered near floor). Type-scoring ramps still
-            # use raw thresholds (12/30 km/h) so element selection is unaffected.
-            "windsp": Signal(attr="wind_speed_10m_max", raw=s["wind_speed_10m_max"][i], min=3.0, max=50.0),
+            # (range compressed from 50 km/h — even with the earlier 90→50 compression,
+            # most populated cities (~8-18 km/h) still clustered base_speed near floor at
+            # 19-52. Tighter 3-25 range lifts typical 15 km/h breeze to normal≈0.55→speed≈94,
+            # putting the median city into is_fast (≥80) territory). Type-scoring ramps
+            # still use raw thresholds (10 km/h FLYING / 30 km/h FIGHTING) so element
+            # selection is unaffected.
+            "windsp": Signal(attr="wind_speed_10m_max", raw=s["wind_speed_10m_max"][i], min=3.0, max=25.0),
             # windgu: Wind gust peaks (5–70 km/h)
             # Min: light gust threshold. Max: strong gust for stat-scaling purposes (range
             # compressed from 120 km/h for the same reason as windsp). Type-scoring uses
@@ -384,7 +388,8 @@ class ClimateProvider(VibeProvider):
             "uv_idx": Signal(attr="uv_index_max", raw=s["uv_index_max"][i], min=0.0, max=14.0),
             # radiat: Daily shortwave radiation sum (1–32 MJ/m²)
             # Min: deep overcast/tropical winter (~1 MJ/m²). Max: clear desert summer (~25–32 MJ/m²).
-            # Routes to base Sp. Attack stat; creature's magical affinity from solar energy.
+            # Feeds Sp. Attack via Fire (S) element at 33% weight; no longer uses ^1.6 reshape
+            # (the multi-signal mix spreads naturally without the concave-down amplifier).
             "radiat": Signal(attr="shortwave_radiation_sum", raw=s["shortwave_radiation_sum"][i], min=1.0, max=32.0),
             # clouds: Mean cloud cover (0–100%)
             # Min: clear sky (0%). Max: completely overcast (100%).
@@ -430,10 +435,12 @@ class ClimateProvider(VibeProvider):
             "soilmt": Signal(attr="soil_moisture_0_to_1cm_mean", raw=s["soil_moisture_0_to_1cm_mean"][i], min=0.0, max=0.5),
             # elevat: Surface elevation above sea level (0–2000 m)
             # Min: sea level (0 m). Max: highland threshold for stat-scaling purposes
-            # (range compressed from 4500 m — most populated cities sit below 200 m and the
-            # wider range crushed base_defense to floor). Type-scoring ramps for ROCK/DRAGON
-            # use raw thresholds (600/2000 m) so element selection is unaffected; high-altitude
-            # cities (La Paz, Lhasa, Mexico City) intentionally peg base_defense at max.
+            # (range compressed from 4500 m). Routes through Dragon+Rock into HP (40%),
+            # Attack (33%), Defense (50%), and Speed (40%), so altitude heavily shapes
+            # overall BST — intentional flavor for mountain-born mons. Type-scoring ramps
+            # for ROCK/DRAGON use raw thresholds (600/2000 m) so element selection is
+            # unaffected; high-altitude cities (La Paz, Lhasa, Mexico City) still peg
+            # Defense near max but now through the weighted mix instead of solo.
             "elevat": Signal(attr="elevation", raw=d["elevation"], min=0.0, max=2000.0),
             # snowfl: Daily snowfall accumulation (0–20 cm)
             # Min: no snow. Max: heavy snow event (~20 cm/day = blizzard territory).
@@ -449,22 +456,93 @@ class ClimateProvider(VibeProvider):
         bonus_fx = ft.partial(get_move_assignment_bonus, vibemon_elements=elements)
         starters = {m: rankings[m.type] * bonus_fx(m.type) for m in moves.MOVES if m.level_requirement == 1}
 
+        # ── STAT FORMULAS ──────────────────────────────────────────────────────────────
+        #
+        # Each stat is a weighted blend of weather signals mapped from the element
+        # affinity table. Weights derive from S/A ranks:
+        #
+        #   S-rank = 2 shares   A-rank = 1 share
+        #
+        # Elements sharing a signal are merged before normalization so each
+        # weather observation gets one vote regardless of how many elements
+        # track through it.
+        #
+        # Reference table (element → primary weather signal):
+        #   Dragon → elevat    Normal  → clouds    Ghost  → ~visibl
+        #   Rock   → elevat    Ground  → dust      Dark   → ~visibl
+        #   Steel  → pressr    Fire    → radiat    Flying → windsp
+        #   Psychic→ pressrng  Ice     → tmp_lo    Fairy  → uv_idx
+        #   Electric→ cape_m   Water   → precip    Grass  → transp
+        #   Fighting→ windgu
+        # ───────────────────────────────────────────────────────────────────────────────
+
+        # Low-visibility inversion shared by Dark and Ghost.
+        inv_vis = 1.0 - signals["visibl"].normal
+
         affinity = schema.Affinity(
             identity=schema.Identity(
                 name="__",
                 elements=elements,
-                base_hp=base_stat_asymmetric_scaling(signals["tmp_hi"].normal, stat="hp"),
-                base_attack=base_stat_asymmetric_scaling(signals["windgu"].normal, stat="attack"),
-                # reshape(0.4): most cities near sea level, linear scaling crushed them
-                # to floor. Concave-up lifts low values so median city lands ~0.5.
-                base_defense=base_stat_asymmetric_scaling(signals["elevat"] ** 0.4, stat="defense"),
-                # reshape(1.6): tropical cities with max solar radiation clustered
-                # at ceiling of asymmetric scale. Concave-down spreads high values.
-                base_sp_attack=base_stat_asymmetric_scaling(signals["radiat"] ** 1.6, stat="sp_attack"),
-                # mix(): sp_defense needs both precip (30%) and nocturnal temp (70%),
-                # not one-or-the-other. Blend clamped to avoid overshoot.
-                base_sp_defense=base_stat_asymmetric_scaling(Signal.mix(signals["precip"] * 0.3, signals["tmp_lo"] * 0.7), stat="sp_defense"),  # fmt: skip # noqa: E501
-                base_speed=base_stat_asymmetric_scaling(signals["windsp"].normal, stat="speed"),
+                # HP: Dragon(S, elevat) 40% + Normal(S, clouds) 40% + Ground(A, dust) 20%
+                base_hp=base_stat_asymmetric_scaling(
+                    utils.clamp(
+                        signals["elevat"].normal * 0.40
+                        + signals["clouds"].normal * 0.40
+                        + signals["dust"].normal * 0.20
+                    ),
+                    stat="hp",
+                ),
+                # Attack: Fighting(S, windgu) 34% + Ground(A, dust) 17% + Dark(A, ~visibl) 17% + Dragon(A, elevat) + Rock(A, elevat) 33%
+                base_attack=base_stat_asymmetric_scaling(
+                    utils.clamp(
+                        signals["windgu"].normal * 0.34
+                        + signals["dust"].normal * 0.17
+                        + inv_vis * 0.17
+                        + signals["elevat"].normal * 0.33
+                    ),
+                    stat="attack",
+                ),
+                # Defense: Steel(S, pressr) 33% + Rock(S, elevat) + Dragon(A, elevat) 50% + Ground(A, dust) 17%
+                # ^0.4 lifts low-elevation + low-pressure cities from floor
+                base_defense=base_stat_asymmetric_scaling(
+                    utils.clamp(
+                        signals["pressr"].normal * 0.33
+                        + signals["elevat"].normal * 0.50
+                        + signals["dust"].normal * 0.17
+                    ) ** 0.4,
+                    stat="defense",
+                ),
+                # Sp. Atk: Psychic(S, pressrng) 33% + Fire(S, radiat) 33% + Electric(A, cape_m) 17% + Ghost(A, ~visibl) 17%
+                base_sp_attack=base_stat_asymmetric_scaling(
+                    utils.clamp(
+                        signals["pressrng"].normal * 0.33
+                        + signals["radiat"].normal * 0.33
+                        + signals["cape_m"].normal * 0.17
+                        + inv_vis * 0.17
+                    ),
+                    stat="sp_attack",
+                ),
+                # Sp. Def: Fairy(S, uv_idx) 33% + Psychic(A, pressr) 17% + Grass(A, transp) 17% + Ice(A, tmp_lo) 17% + Water(A, precip) 17%
+                base_sp_defense=base_stat_asymmetric_scaling(
+                    utils.clamp(
+                        signals["uv_idx"].normal * 0.33
+                        + signals["pressr"].normal * 0.17
+                        + signals["transp"].normal * 0.17
+                        + signals["tmp_lo"].normal * 0.17
+                        + signals["precip"].normal * 0.17
+                    ),
+                    stat="sp_defense",
+                ),
+                # Speed: Dragon(S, elevat) 40% + Electric(A, cape_m) 20% + Dark(A, ~visibl) 20% + Flying(A, windsp) 20%
+                base_speed=base_stat_asymmetric_scaling(
+                    utils.clamp(
+                        signals["elevat"].normal * 0.40
+                        + signals["cape_m"].normal * 0.20
+                        + inv_vis * 0.20
+                        + signals["windsp"].normal * 0.20
+                    ),
+                    stat="speed",
+                ),
             ),
             visual_notes=wmo_code.description,
             intensity=self.calculate_intensity(s, index=i),
