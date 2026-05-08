@@ -130,21 +130,42 @@ Grades each element's affinity with every stat (S/A/B/C/D). Used to guide stat d
 
 ## 6. Battle Role
 
-`Identity.battle_role` derived from stat distribution:
+Enum defined in `types.py:BattleRole` (10 roles). Classified at runtime by `Identity.battle_role` in `schema.py:151` using competitive-tier stat thresholds — not persisted, computed from base stats.
 
-| Role | Pattern |
-|---|---|
-| `DEFENSIVE_WALL` | def_pct > 0.5, tanky, high HP |
-| `DEFENSIVE_TANK` | def_pct > 0.4, attack ≥ 50 |
-| `DEFENSIVE_STALLER` | def_pct > 0.45, slow |
-| `OFFENSIVE_GLASS_CANNON` | off_pct > 0.55, fast, squishy |
-| `OFFENSIVE_SWEEPER` | off_pct > 0.55, fast, breaker |
-| `OFFENSIVE_WALLBREAKER` | off_pct > 0.55, slow, breaker |
-| `OFFENSIVE_REVENGE_KILLER` | off_pct > 0.5, speed_pct > 0.25 |
-| `UTILITY_PIVOT` | balanced, speed_pct > 0.3, def_pct > 0.35 |
-| `UTILITY_LEAD` | speed_pct > 0.35, balanced off/def |
-| `UTILITY_CLERIC` | def_pct > 0.45, sp_def > defense |
-| `UTILITY_SCREENER` | defensive focus with speed |
+### Intermediate calculations
+
+| Measure | Formula | Threshold(s) |
+|---|---|---|
+| `phys_ehp` | `hp * defense` | >= 8000 for wall |
+| `spec_ehp` | `hp * sp_def` | >= 8000 for wall |
+| `avg_ehp` | `(phys_ehp + spec_ehp) / 2` | < 5000 = frail, >= 5000 = bulky |
+| `best_offense` | `max(atk, sp_atk)` | 120/100/95 tiers |
+| `is_very_fast` | `speed >= 110` | — |
+| `is_fast` | `speed >= 95` | — |
+| `is_slow` | `speed < 65` | — |
+| `is_elite_off` | `best_offense >= 120` | — |
+| `is_strong_off` | `best_offense >= 100` | — |
+| `is_decent_off` | `best_offense >= 95` | — |
+| `is_phys_wall` | `phys_ehp >= 8000` | — |
+| `is_spec_wall` | `spec_ehp >= 8000` | — |
+| `is_any_wall` | `is_phys_wall or is_spec_wall` | — |
+| `is_mixed_bulk` | `phys_ehp >= 6000 and spec_ehp >= 6000` | — |
+| `is_frail` | `avg_ehp < 5000` | — |
+
+### Decision tree (priority order via `match/case`)
+
+| Priority | Condition | Role |
+|---|---|---|
+| 1 | `is_fast and is_strong_off and is_frail` | `OFFENSIVE_GLASS_CANNON` |
+| 2 | `is_slow and is_elite_off` | `OFFENSIVE_WALLBREAKER` |
+| 3 | `is_fast and is_strong_off` | `OFFENSIVE_SWEEPER` |
+| 4 | `is_very_fast and is_decent_off` | `OFFENSIVE_REVENGE_KILLER` |
+| 5 | `is_mixed_bulk and is_decent_off` | `DEFENSIVE_TANK` |
+| 6 | `is_any_wall and not is_decent_off` | `DEFENSIVE_WALL` |
+| 7 | `is_mixed_bulk and is_slow` | `DEFENSIVE_STALLER` |
+| 8 | `is_fast and avg_ehp >= 5000` | `UTILITY_PIVOT` |
+| 9 | `best_offense < 80 and avg_ehp >= 5000` | `UTILITY_CLERIC` |
+| 10 | fallback | `UTILITY` |
 
 ---
 
@@ -328,6 +349,8 @@ See `move_balance_reference.md` §8–§10 for status, stat change, and theme co
 | Accuracy | `backend/app/battle/rules/accuracy.py` |
 | Move schema | `backend/app/schema.py:Move` |
 | Identity (base stats) | `backend/app/schema.py:Identity` |
+| Battle role enum | `backend/app/types.py:BattleRole` |
+| Role classification | `backend/app/schema.py:Identity.battle_role` |
 | Status mechanics | `backend/app/battle/rules/status.py` |
 | Weather mechanics | `backend/app/battle/mechanics/weather.py` |
 | Move balance detail | `.agents/SKILLS/vibemon/move-generator/references/move_balance_reference.md` |
