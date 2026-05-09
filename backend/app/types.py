@@ -88,10 +88,11 @@ class EvolutionStageT(enum.IntEnum):
     ULTRA_LEGENDARY = 99
 
     @classmethod
-    def random_seed(cls) -> EvolutionStageT:
+    def random_seed(cls, *, rng: random.Random | None = None) -> EvolutionStageT:
         stages = [cls.BASE, cls.STAGE_2, cls.STAGE_3, cls.PSUEDO_LEGENDARY]
         rarity = [24, 41, 34, 1]
-        return random.choices(stages, rarity, k=1)[0]
+        chooser = rng if rng is not None else random
+        return chooser.choices(stages, rarity, k=1)[0]
 
 
 class StatusConditionT(enum.StrEnum):

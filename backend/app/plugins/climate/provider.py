@@ -3,7 +3,6 @@ import datetime as dt
 import functools as ft
 import itertools as it
 import math
-import random
 import statistics
 from typing import Any, Annotated, ClassVar
 
@@ -388,7 +387,7 @@ class ClimateProvider(VibeProvider):
 
     async def synthesize(self, seed: schema.BirthSeed, payload: dict[str, Any]) -> schema.Affinity:
         """Translate captured climate payload to Affinity components."""
-        random.seed(seed.random_seed)
+        rng = seed.rng(f"provider.{self.name}.moves")
 
         d = payload["weather_augmented"]
         s = d["daily"]
@@ -453,7 +452,7 @@ class ClimateProvider(VibeProvider):
             visual_notes=wmo_code.description,
             intensity=self.calculate_intensity(s, index=i),
             provider_id=self.name,
-            moves=utils.weighted_sample(starters.keys(), starters.values(), k=10),
+            moves=utils.weighted_sample(starters.keys(), starters.values(), k=10, rng=rng),
         )
 
         return affinity

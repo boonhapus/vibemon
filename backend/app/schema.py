@@ -2,6 +2,8 @@ from collections.abc import Iterable
 from typing import Annotated, Any, Literal, Self
 import asyncio
 import datetime as dt
+import hashlib
+import json
 import math
 import random
 import structlog
@@ -11,8 +13,7 @@ import pydantic
 from app.balance.formulas import apply_evo_seed_bst_bias, base_stat_level_scaling
 from app.genai.client import generate_battle_cry, generate_vibemon_sprite
 from app.plugins.provider import VibeProvider
-from app.settings import settings
-from app import brand, const, types, utils, validators
+from app import brand, const, sprite_store, types, utils, validators
 
 _LOGGER = structlog.get_logger(__name__)
 
@@ -65,8 +66,8 @@ class BirthSnapshot(_Static):
 
         affinities = await asyncio.gather(
             *(
-                providers_by_name[provider_id].synthesize(seed, payload)
-                for provider_id, payload in self.provider_payloads.items()
+                providers_by_name[provider_id].synthesize(seed, self.provider_payloads[provider_id])
+                for provider_id in sorted(self.provider_payloads)
             )
         )
         return affinities
@@ -79,15 +80,46 @@ class BirthSeed(_Static, arbitrary_types_allowed=True):
     geo_coords: tuple[float, float]
     providers: list[VibeProvider]
 
+    @pydantic.field_validator("timestamp")
+    @classmethod
+    def _normalize_to_utc(cls, v: dt.datetime) -> dt.datetime:
+        """Ensure timestamp is aware UTC. SQLite strips tz, so naive values must round-trip stably."""
+        if v.tzinfo is None:
+            return v.replace(tzinfo=dt.timezone.utc)
+        return v.astimezone(dt.timezone.utc)
+
     @property
     def datestamp(self) -> dt.date:
         """Get the date of the birth seed."""
-        return self.timestamp.astimezone(dt.timezone.utc).date()
+        return self.timestamp.date()
+
+    @staticmethod
+    def _hash_seed_material(seed_material: dict[str, Any]) -> int:
+        encoded = json.dumps(seed_material, sort_keys=True, separators=(",", ":")).encode("utf-8")
+        return int.from_bytes(hashlib.sha256(encoded).digest(), "big")
 
     @property
-    def random_seed(self) -> int:
-        """Stable integer seed for deterministic synthesize()."""
-        return hash((self.timestamp, self.geo_coords))
+    def _rng_seed_material(self) -> dict[str, Any]:
+        return {
+            "geo_coords": list(self.geo_coords),
+            "timestamp": self.timestamp.isoformat(timespec="microseconds"),
+        }
+
+    @property
+    def rng_seed(self) -> int:
+        """Stable integer seed derived from birth inputs."""
+        return self._hash_seed_material(self._rng_seed_material)
+
+    def rng_seed_for(self, namespace: str) -> int:
+        """Stable integer seed for one deterministic birth subsystem."""
+        return self._hash_seed_material({
+            "birth_seed": self._rng_seed_material,
+            "namespace": namespace,
+        })
+
+    def rng(self, namespace: str) -> random.Random:
+        """Create a fresh deterministic RNG for one birth subsystem."""
+        return random.Random(self.rng_seed_for(namespace))
 
     async def fetch_snapshot(self) -> BirthSnapshot:
         """Fetch provider payloads for this seed."""
@@ -139,13 +171,13 @@ class Identity(_Static):
     base_speed: int      = pydantic.Field(default=70, ge= 5, le=200, json_schema_extra={"min":  5, "med": 70, "max": 200})
     # fmt: on
 
-    evo_seed: types.EvolutionStageT = pydantic.Field(default_factory=types.EvolutionStageT.random_seed)
+    evo_seed: types.EvolutionStageT = types.EvolutionStageT.BASE
     """The max evolution stage for this Vibemon."""
 
     evo_stage: types.EvolutionStageT = types.EvolutionStageT.BASE
     """The current evolution of this Vibemon."""
 
-    is_radiant: bool = pydantic.Field(default_factory=lambda: random.randint(1, const.RADIANT_ODDS) == const.RADIANT_ODDS)
+    is_radiant: bool = False
     """A rare, alternative style that differs from its peer identities' appearance."""
 
     @classmethod
@@ -285,7 +317,14 @@ class Affinity(_Static, validate_assignment=True):
         return self
 
     @classmethod
-    def merge(cls, *affinities: Affinity, core_identity_description: str | None = None) -> Affinity:
+    def merge(
+        cls,
+        *affinities: Affinity,
+        core_identity_description: str | None = None,
+        rng: random.Random | None = None,
+        evo_rng: random.Random | None = None,
+        radiant_rng: random.Random | None = None,
+    ) -> Affinity:
         """Create an Affinity by merging a number of affinities."""
         stat_keys = (
             "base_hp",
@@ -296,6 +335,13 @@ class Affinity(_Static, validate_assignment=True):
             "base_speed",
         )
 
+        if rng is None:
+            rng = random.Random()
+        if evo_rng is None:
+            evo_rng = rng
+        if radiant_rng is None:
+            radiant_rng = rng
+
         name = ""
         total = 0
         stats = {k: 0 for k in stat_keys}
@@ -303,7 +349,7 @@ class Affinity(_Static, validate_assignment=True):
         pop_e: list[tuple[types.VibemonTypeT, int]] = []
         pop_m: list[tuple[Move, int]] = []
 
-        for idx, affinity in enumerate(sorted(affinities, key=lambda a: a.intensity, reverse=True)):
+        for idx, affinity in enumerate(sorted(affinities, key=lambda a: (-a.intensity, a.provider_id))):
             weight = int(affinity.intensity * 100)
             total += weight
 
@@ -321,13 +367,13 @@ class Affinity(_Static, validate_assignment=True):
 
         try:
             stats_merged = {k: math.floor(stats[k] / total) for k in stat_keys}
-            elements = utils.weighted_sample(*zip(*pop_e), k=random.randint(1, min(2, len(pop_e))))
-            moves = utils.weighted_sample(*zip(*pop_m), k=random.randint(2, min(3, len(pop_m))))
+            elements = utils.weighted_sample(*zip(*pop_e), k=rng.randint(1, min(2, len(pop_e))), rng=rng)
+            moves = utils.weighted_sample(*zip(*pop_m), k=rng.randint(2, min(3, len(pop_m))), rng=rng)
         except ZeroDivisionError:
             _LOGGER.exception("Total is zero.", affinities=affinities)
             raise
 
-        evo_seed = types.EvolutionStageT.random_seed()
+        evo_seed = types.EvolutionStageT.random_seed(rng=evo_rng)
         evo_stage = types.EvolutionStageT.BASE
         stats_scaled = apply_evo_seed_bst_bias(stats_merged, evo_seed=evo_seed, evo_stage=evo_stage)
 
@@ -335,9 +381,10 @@ class Affinity(_Static, validate_assignment=True):
             identity=Identity(
                 name=name,
                 visual_notes=core_identity_description,
-                elements=tuple(set(elements)),
+                elements=tuple(dict.fromkeys(elements)),
                 evo_seed=evo_seed,
                 evo_stage=evo_stage,
+                is_radiant=radiant_rng.randint(1, const.RADIANT_ODDS) == const.RADIANT_ODDS,
                 **stats_scaled,
             ),
             visual_notes=" ".join(notes),
@@ -358,8 +405,11 @@ class Aesthetic(_Transient):
 
     # ── LOCKED BEHIND ASYNC GENERATION ────────────────────────────────────────────────
 
-    sprites: types.SpriteLayout | None = None
-    """All sprites that represent the vibemon."""
+    sprite_sheet_key: str | None = None
+    """Object-store key for the canonical sprite sheet PNG (see ``app.sprite_store``)."""
+
+    sprites: types.SpriteLayout | None = pydantic.Field(default=None, exclude=True, repr=False)
+    """In-memory layout sliced from the sheet. Not serialized — derive from the sheet."""
 
     battle_cry: bytes | None = None
     """All sounds that the Vibemon makes."""
@@ -376,23 +426,18 @@ class Aesthetic(_Transient):
         return value
 
     async def regenerate(self) -> Self:
-        """Rereate the Aesthestic."""
+        """Recreate the Aesthetic. Sprite sheet is persisted via the configured store."""
         if self._vibemon is None:
             raise ValueError("No base Vibemon to regenerate from.")
 
-        tasks: list[asyncio.Task] = []
-
         async with asyncio.TaskGroup() as g:
-            t = g.create_task(generate_vibemon_sprite(vibemon=self._vibemon))
-            t.set_name("sprites")
-            tasks.append(t)
+            sprite_task = g.create_task(generate_vibemon_sprite(vibemon=self._vibemon))
+            cry_task = g.create_task(generate_battle_cry(vibemon=self._vibemon))
 
-            t = asyncio.create_task(generate_battle_cry(vibemon=self._vibemon))
-            t.set_name("battle_cry")
-            tasks.append(t)
-
-        for task in tasks:
-            setattr(self, task.get_name(), task.result())
+        sheet_bytes = sprite_task.result()
+        self.sprite_sheet_key = await sprite_store.put_sheet(self._vibemon.name, sheet_bytes)
+        self.sprites = utils.extract_sprites(image=sheet_bytes)
+        self.battle_cry = cry_task.result()
 
         return self
 
@@ -585,35 +630,74 @@ class Vibemon(_Transient):
     _aesthetic: Aesthetic = pydantic.PrivateAttr()
 
     @classmethod
-    async def birth(cls, *affinities: Affinity, nickname: str | None = None, core_identity: str | None = None) -> Self:
-        """Create a Vibemon from a given context."""
-        from app.genai.client import generate_vibemon_name
-
+    def birth(
+        cls,
+        *affinities: Affinity,
+        birth_seed: BirthSeed,
+        nickname: str | None = None,
+        core_identity: str | None = None,
+    ) -> Self:
+        """Pure factory: merge raw affinities. No network. Name + aesthetic deferred."""
         if not affinities:
             raise ValueError("Vibemon must be born from at least one Affinity!")
 
-        affinity = Affinity.merge(*affinities, core_identity_description=core_identity)
-
-        name = await generate_vibemon_name(
-            identity=affinity.identity,
-            moves=affinity.moves,
-            visual_notes=affinity.visual_notes,
+        affinity = Affinity.merge(
+            *affinities,
+            core_identity_description=core_identity,
+            rng=birth_seed.rng("affinity.merge"),
+            evo_rng=birth_seed.rng("identity.evo_seed"),
+            radiant_rng=birth_seed.rng("identity.radiant"),
         )
 
-        affinity = affinity.model_copy(update={"identity": affinity.identity.model_copy(update={"name": name})})
-
-        instance = cls(
+        return cls(
             nickname=nickname,
             affinity=affinity,
             level=1,
             birth_affinities=affinities,
         )
 
-        if not settings.headless:
-            instance._aesthetic = Aesthetic.from_vibemon(instance)
-            await instance._aesthetic.regenerate()
-
+    @classmethod
+    def rebirth(
+        cls,
+        *affinities: Affinity,
+        name: str,
+        birth_seed: BirthSeed,
+        core_identity: str | None = None,
+        nickname: str | None = None,
+        level: int = 1,
+    ) -> Self:
+        """Re-run merge/balance with stored identity preserved. No network."""
+        instance = cls.birth(
+            *affinities,
+            birth_seed=birth_seed,
+            nickname=nickname,
+            core_identity=core_identity,
+        )
+        instance.affinity = instance.affinity.model_copy(update={
+            "identity": instance.affinity.identity.model_copy(update={"name": name})
+        })
+        instance.level = level
         return instance
+
+    async def christen(self) -> Self:
+        """Network: LLM-name the identity."""
+        from app.genai.client import generate_vibemon_name
+
+        name = await generate_vibemon_name(
+            identity=self.affinity.identity,
+            moves=self.affinity.moves,
+            visual_notes=self.affinity.visual_notes,
+        )
+        self.affinity = self.affinity.model_copy(update={
+            "identity": self.affinity.identity.model_copy(update={"name": name})
+        })
+        return self
+
+    async def render_aesthetic(self) -> Self:
+        """Network: synthesize sprites + battle cry."""
+        self._aesthetic = Aesthetic.from_vibemon(self)
+        await self._aesthetic.regenerate()
+        return self
 
     @property
     def name(self) -> str:

@@ -19,6 +19,7 @@ def weighted_sample[T](
     weights: Iterable[float],
     *,
     k: int = 1,
+    rng: random.Random | None = None,
 ) -> list[T]:
     """Like random.choices, but without replacement."""
     # Convert these to lists so we can be sure that indexing and .pop() works.
@@ -31,10 +32,11 @@ def weighted_sample[T](
     if not (0 < k <= len(population)):
         raise ValueError(f"k must be between 1 and {len(population)}")
 
+    chooser = rng if rng is not None else random
     r: list[T] = []
 
     for _ in range(k):
-        i = random.choices(range(len(population)), weights=weights, k=1)[0]
+        i = chooser.choices(range(len(population)), weights=weights, k=1)[0]
         del weights[i]
         r.append(population.pop(i))
 
