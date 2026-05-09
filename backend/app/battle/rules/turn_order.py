@@ -5,7 +5,7 @@ import random
 from app.battle import actions
 from app.battle import schema as battle_schema
 from app.battle import turn
-from app.battle.rules import stats
+from app.battle.rules import conditions, stats
 
 
 def resolve_speed_tie(a_speed: float, b_speed: float, rng: random.Random) -> tuple[int, int]:
@@ -18,15 +18,23 @@ def resolve_speed_tie(a_speed: float, b_speed: float, rng: random.Random) -> tup
 
 def find_move(vibemon: battle_schema.BattleVibemon, move_name: str) -> battle_schema.BattleMove:
     """Look up a move by name on a vibemon."""
-    for move in vibemon.moves:
+    for move in vibemon.battle_moves:
         if move.name == move_name:
             return move
     raise ValueError(f"{vibemon.name} has no move named {move_name!r}")
 
 
-def _priority(actor: battle_schema.BattleVibemon, action: actions.BattleAction) -> int:
+def _priority(ctx: turn.Turn, actor: battle_schema.BattleVibemon, action: actions.BattleAction) -> int:
     if isinstance(action, actions.MoveAction):
-        return find_move(actor, action.move_name).priority
+        move = find_move(actor, action.move_name)
+        use = turn.MoveUse(
+            user_trainer=action.trainer,
+            user_slot=action.slot,
+            user=actor,
+            move=move,
+            action=action,
+        )
+        return move.priority + conditions.priority_delta(ctx, use)
     return 0
 
 
@@ -38,8 +46,8 @@ def resolve_turn_order(ctx: turn.Turn) -> list[turn.StackEntry]:
     action_a = ctx.actions_by_actor[(battle.trainer_a.id, 0)]
     action_b = ctx.actions_by_actor[(battle.trainer_b.id, 0)]
 
-    prio_a = _priority(actor_a, action_a)
-    prio_b = _priority(actor_b, action_b)
+    prio_a = _priority(ctx, actor_a, action_a)
+    prio_b = _priority(ctx, actor_b, action_b)
 
     entries = [
         turn.StackEntry(
