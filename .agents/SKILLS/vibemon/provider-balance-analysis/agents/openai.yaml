@@ -1,0 +1,4 @@
+interface:
+  display_name: "Provider Balance Analysis"
+  short_description: "Rerun Vibemon provider balance analysis"
+  default_prompt: "Use provider-balance-analysis to rerun the provider balance report after balance or battle changes."

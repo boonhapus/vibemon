@@ -154,8 +154,8 @@ In merge mode, resolve collisions per move with user input.
 - Enforce `1 <= level_requirement <= 100`.
 - Enforce unique `Move.name` in batch and merged pool.
 - STATUS moves must use `power=None` and at least one `EffectGroup`.
-- Render current effect schema, not legacy `MoveEffect`: use `effects=(schema.EffectGroup(...),)` containing typed effects such as `schema.StatusInflict`, `schema.StatChange`, `schema.Heal`, `schema.WeatherSet`, `schema.Drain`, or `schema.Recoil`.
-- Do not render or rely on `MoveEffect.target_self`; explicit `EffectTarget` (`"self"` / `"target"` / etc.) is required.
+- Render effects as `Effects`: use `effects=(schema.EffectGroup(...),)` containing typed effects such as `schema.StatusInflict`, `schema.StatChange`, `schema.Heal`, `schema.WeatherSet`, `schema.Drain`, or `schema.Recoil`.
+- Use explicit `EffectTarget` (`"self"` / `"target"` / etc.).
 - Provider move files are content plugins only. Do not add executable callbacks, third-party battle scripts, or raw Python function refs. `MoveBehavior.script_id` is only for existing first-party engine scripts and requires explicit user approval.
 - Expose module-level `MOVES = (...,)`.
 - Final output must be fully inlined `schema.Move(...)` entries.
@@ -230,7 +230,7 @@ After all checks pass, print the same batch summary block from Step A7 with real
 - [ ] Phase B edits happened only after explicit trigger and write-mode confirmation
 - [ ] `moves.py` opens with the AI GENERATED banner (semver + `YYYY/MM/DD`) after imports, before `MOVES`
 - [ ] Final `moves.py` uses only inlined `schema.Move(...)` entries (no helper maps/builders/generators/comprehensions)
-- [ ] Effects use `schema.EffectGroup` + typed effects; no legacy `MoveEffect.target_self`, callbacks, or provider battle scripts
+- [ ] Effects use `schema.EffectGroup` + typed effects; no legacy callbacks or provider battle scripts
 - [ ] Flavor text is unique and move-specific (not templated boilerplate)
 - [ ] `power`/`accuracy`/`pp`/`level_requirement` were selected by consulting `references/move_balance_reference.md`
 - [ ] Generation did not sacrifice quality for speed or simplicity
