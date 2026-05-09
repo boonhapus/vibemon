@@ -1,5 +1,6 @@
 from sqlalchemy import JSON, Table, Column, ForeignKeyConstraint
 from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column, relationship
+import datetime as dt
 import uuid
 
 
@@ -91,11 +92,10 @@ class BirthSeed(Base):
     __tablename__ = "birth_seed"
 
     id: Mapped[uuid.UUID] = mapped_column(primary_key=True, default=uuid.uuid7)
-    timestamp: Mapped[int]
+    timestamp: Mapped[dt.datetime]
     geo_coords: Mapped[list[float]] = mapped_column(JSON)
     provider_names: Mapped[list[str]] = mapped_column(JSON)
 
-    vibemon: Mapped["Vibemon"] = relationship(back_populates="birth_seed", uselist=False)
     birth_snapshots: Mapped[list["BirthSnapshot"]] = relationship(
         back_populates="birth_seed", cascade="all, delete-orphan", single_parent=True,
     )
@@ -115,6 +115,7 @@ class BirthSnapshot(Base):
     )
 
     birth_seed: Mapped["BirthSeed"] = relationship(back_populates="birth_snapshots")
+    vibemons: Mapped[list["Vibemon"]] = relationship(back_populates="birth_snapshot")
 
 
 class Vibemon(Base):
@@ -123,21 +124,21 @@ class Vibemon(Base):
     id: Mapped[uuid.UUID] = mapped_column(primary_key=True, default=uuid.uuid7)
     nickname: Mapped[str | None]
     affinity_id: Mapped[uuid.UUID] = mapped_column(unique=True)
-    birth_seed_id: Mapped[uuid.UUID | None]
+    birth_snapshot_id: Mapped[uuid.UUID | None]
     level: Mapped[int]
 
     __table_args__ = (
         ForeignKeyConstraint(["affinity_id"], ["affinity.id"], name="fk_vibemon_affinity", ondelete="CASCADE"),
         ForeignKeyConstraint(
-            ["birth_seed_id"], ["birth_seed.id"], name="fk_vibemon_birth_seed", ondelete="SET NULL"
+            ["birth_snapshot_id"], ["birth_snapshot.id"], name="fk_vibemon_birth_snapshot", ondelete="SET NULL"
         ),
     )
 
     affinity: Mapped["Affinity"] = relationship(
         back_populates="vibemon", cascade="all, delete-orphan", single_parent=True,
     )
-    birth_seed: Mapped["BirthSeed | None"] = relationship(
-        back_populates="vibemon", cascade="all, delete-orphan", single_parent=True,
+    birth_snapshot: Mapped["BirthSnapshot | None"] = relationship(
+        back_populates="vibemons",
     )
     birth_affinities: Mapped[list["Affinity"]] = relationship(
         secondary=vibemon_birth_affinities, cascade="all, delete-orphan", single_parent=True,
