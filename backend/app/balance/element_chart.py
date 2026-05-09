@@ -1,4 +1,37 @@
+from typing import Literal
+
 from app import types
+
+type StatGradeT = Literal["S", "A", "B", "C", "D"]
+
+# S/A/B/C/D mapped to integer weights. Each grade owns a 0.3-wide band centered
+# on midpoint = (weight * 2 - 1) / 10 → D=0.1, C=0.3, B=0.5, A=0.7, S=0.9.
+GRADE_WEIGHT: dict[StatGradeT, int] = {"S": 5, "A": 4, "B": 3, "C": 2, "D": 1}
+
+# Per-element stat affinity. An element's S/A stats trend high; D stats trend low.
+# Used to bias base-stat distribution during Identity generation. Dual-type Vibemon
+# average the two elements' grade weights per stat.
+ELEMENT_STAT_GRADE: dict[types.VibemonTypeT, dict[types.BaseStatNameT, StatGradeT]] = {
+    types.VibemonTypeT.DRAGON:   {"hp": "S", "attack": "S", "defense": "A", "sp_attack": "S", "sp_defense": "S", "speed": "A"},  # noqa: E501
+    types.VibemonTypeT.STEEL:    {"hp": "B", "attack": "A", "defense": "S", "sp_attack": "B", "sp_defense": "A", "speed": "D"},  # noqa: E501
+    types.VibemonTypeT.FIGHTING: {"hp": "A", "attack": "S", "defense": "B", "sp_attack": "D", "sp_defense": "C", "speed": "B"},  # noqa: E501
+    types.VibemonTypeT.PSYCHIC:  {"hp": "C", "attack": "D", "defense": "C", "sp_attack": "S", "sp_defense": "S", "speed": "B"},  # noqa: E501
+    types.VibemonTypeT.ELECTRIC: {"hp": "D", "attack": "C", "defense": "D", "sp_attack": "A", "sp_defense": "B", "speed": "S"},  # noqa: E501
+    types.VibemonTypeT.FLYING:   {"hp": "B", "attack": "B", "defense": "D", "sp_attack": "B", "sp_defense": "C", "speed": "S"},  # noqa: E501
+    types.VibemonTypeT.ROCK:     {"hp": "B", "attack": "A", "defense": "S", "sp_attack": "D", "sp_defense": "B", "speed": "D"},  # noqa: E501
+    types.VibemonTypeT.ICE:      {"hp": "A", "attack": "B", "defense": "B", "sp_attack": "B", "sp_defense": "B", "speed": "C"},  # noqa: E501
+    types.VibemonTypeT.NORMAL:   {"hp": "S", "attack": "C", "defense": "D", "sp_attack": "D", "sp_defense": "D", "speed": "B"},  # noqa: E501
+    types.VibemonTypeT.GHOST:    {"hp": "D", "attack": "B", "defense": "B", "sp_attack": "B", "sp_defense": "B", "speed": "C"},  # noqa: E501
+    types.VibemonTypeT.GROUND:   {"hp": "A", "attack": "A", "defense": "A", "sp_attack": "D", "sp_defense": "D", "speed": "D"},  # noqa: E501
+    types.VibemonTypeT.FIRE:     {"hp": "C", "attack": "B", "defense": "C", "sp_attack": "A", "sp_defense": "B", "speed": "B"},  # noqa: E501
+    types.VibemonTypeT.FAIRY:    {"hp": "C", "attack": "D", "defense": "C", "sp_attack": "B", "sp_defense": "A", "speed": "C"},  # noqa: E501
+    types.VibemonTypeT.WATER:    {"hp": "B", "attack": "C", "defense": "B", "sp_attack": "C", "sp_defense": "B", "speed": "C"},  # noqa: E501
+    types.VibemonTypeT.DARK:     {"hp": "B", "attack": "A", "defense": "C", "sp_attack": "B", "sp_defense": "D", "speed": "A"},  # noqa: E501
+    types.VibemonTypeT.POISON:   {"hp": "C", "attack": "C", "defense": "C", "sp_attack": "C", "sp_defense": "C", "speed": "C"},  # noqa: E501
+    types.VibemonTypeT.GRASS:    {"hp": "C", "attack": "B", "defense": "B", "sp_attack": "B", "sp_defense": "B", "speed": "D"},  # noqa: E501
+    types.VibemonTypeT.BUG:      {"hp": "D", "attack": "D", "defense": "C", "sp_attack": "D", "sp_defense": "C", "speed": "C"},  # noqa: E501
+}
+
 
 ELEMENT_CHART: dict[tuple[types.VibemonTypeT, types.VibemonTypeT], float] = {
     (types.VibemonTypeT.NORMAL, types.VibemonTypeT.ROCK): 0.5,
