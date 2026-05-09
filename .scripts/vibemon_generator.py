@@ -12,6 +12,7 @@
 # ///
 from collections.abc import AsyncIterator
 from contextlib import asynccontextmanager
+from typing import Any
 import argparse
 import asyncio
 import datetime as dt
@@ -19,54 +20,31 @@ import logging
 import pathlib
 import random
 
-from PIL.Image import Image
 import geonamescache
 import structlog
 
 from app.plugins.climate.provider import ClimateProvider
-from app.settings import settings
+from app.plugins.provider import VibeProvider
 from app import models, schema
 
 from sqlalchemy.ext.asyncio import create_async_engine, AsyncSession
-from sqlalchemy.orm import sessionmaker
+from sqlalchemy.orm import selectinload, sessionmaker
 import sqlalchemy as sa
 
 _LOGGER = structlog.get_logger(__name__)
 
+PROVIDERS: list[VibeProvider] = [ClimateProvider()]
+PROVIDERS_BY_NAME: dict[str, VibeProvider] = {p.name: p for p in PROVIDERS}
 
-def schema_to_models(
-    vibemon: schema.Vibemon,
-    *,
-    birth_seed: schema.BirthSeed | None = None,
-    birth_snapshot: schema.BirthSnapshot | None = None,
-    moves_cache: dict[str, models.Move] | None = None,
-) -> models.Vibemon:
-    """Convert Pydantic schema objects to SQLAlchemy models.
 
-    Builds a relationship graph rooted at the returned ``models.Vibemon``;
-    a single ``session.add(...)`` cascades through ``affinity``, ``identity``,
-    ``moves``, ``birth_seed`` (with nested ``birth_snapshots``), and
-    ``birth_affinities`` via the
-    ``back_populates`` wiring.
-
-    Moves are de-duplicated by name (``models.Move.name`` is ``unique=True``).
-    Three flavours of overlap can collide on that constraint:
-
-    1. *Within a Vibemon* — the merged ``affinity`` re-uses ``Move`` instances
-       sampled out of ``birth_affinities``.
-    2. *Across a batch* — two Vibemons may independently draw a move with the
-       same name (e.g. both ghost-typed climate Vibemon receiving "Neon Squall").
-    3. *Across runs* — the SQLite file persists, so a name created last run
-       is still in ``move``.
-
-    Pass a shared ``moves_cache`` across calls to handle (2); pre-populate it
-    from the DB to handle (3). When omitted, a fresh per-call cache covers (1)
-    only.
-    """
-    moves_by_name = moves_cache if moves_cache is not None else {}
+def affinity_schema_to_model(
+    affinity: schema.Affinity,
+    moves_cache: dict[str, models.Move],
+) -> models.Affinity:
+    """Convert a schema.Affinity to models.Affinity, deduping moves by name via cache."""
 
     def _move(move: schema.Move) -> models.Move:
-        if (existing := moves_by_name.get(move.name)) is not None:
+        if (existing := moves_cache.get(move.name)) is not None:
             return existing
 
         m = models.Move(
@@ -81,170 +59,122 @@ def schema_to_models(
             effects=[group.model_dump(mode="json") for group in move.effects],
             level_requirement=move.level_requirement,
         )
-        moves_by_name[move.name] = m
+        moves_cache[move.name] = m
         return m
 
-    def _identity(identity: schema.Identity) -> models.Identity:
-        return models.Identity(
-            name=identity.name,
-            visual_notes=identity.visual_notes,
-            elements=[e.value for e in identity.elements],
-            base_hp=identity.base_hp,
-            base_attack=identity.base_attack,
-            base_defense=identity.base_defense,
-            base_sp_attack=identity.base_sp_attack,
-            base_sp_defense=identity.base_sp_defense,
-            base_speed=identity.base_speed,
-            evo_seed=identity.evo_seed,
-            evo_stage=identity.evo_stage.name,
-            is_radiant=identity.is_radiant,
-        )
-
-    def _affinity(affinity: schema.Affinity) -> models.Affinity:
-        return models.Affinity(
-            identity=_identity(affinity.identity),
-            visual_notes=affinity.visual_notes,
-            intensity=affinity.intensity,
-            provider_id=affinity.provider_id,
-            moves=[_move(m) for m in affinity.moves],
-        )
-
-    def _birth_seed(seed: schema.BirthSeed) -> models.BirthSeed:
-        return models.BirthSeed(
-            timestamp=int(seed.timestamp.timestamp()),
-            geo_coords=list(seed.geo_coords),
-            provider_names=[provider.name for provider in seed.providers],
-        )
-
-    def _birth_snapshot(snapshot: schema.BirthSnapshot) -> models.BirthSnapshot:
-        return models.BirthSnapshot(
-            provider_payloads={
-                provider_id: payload
-                for provider_id, payload in snapshot.provider_payloads.items()
-            }
-        )
-
-    model_vibemon = models.Vibemon(
-        nickname=vibemon.nickname,
-        affinity=_affinity(vibemon.affinity),
-        level=vibemon.level,
-        birth_affinities=[_affinity(a) for a in vibemon.birth_affinities],
+    return models.Affinity(
+        identity=models.Identity(
+            name=affinity.identity.name,
+            visual_notes=affinity.identity.visual_notes,
+            elements=[e.value for e in affinity.identity.elements],
+            base_hp=affinity.identity.base_hp,
+            base_attack=affinity.identity.base_attack,
+            base_defense=affinity.identity.base_defense,
+            base_sp_attack=affinity.identity.base_sp_attack,
+            base_sp_defense=affinity.identity.base_sp_defense,
+            base_speed=affinity.identity.base_speed,
+            evo_seed=affinity.identity.evo_seed,
+            evo_stage=affinity.identity.evo_stage.name,
+            is_radiant=affinity.identity.is_radiant,
+        ),
+        visual_notes=affinity.visual_notes,
+        intensity=affinity.intensity,
+        provider_id=affinity.provider_id,
+        moves=[_move(m) for m in affinity.moves],
     )
 
-    model_birth_seed: models.BirthSeed | None = None
 
-    if birth_seed is not None:
-        model_birth_seed = _birth_seed(birth_seed)
-
-    if birth_snapshot is not None:
-        if model_birth_seed is None:
-            raise ValueError("birth_snapshot requires a birth_seed.")
-        model_birth_seed.birth_snapshots.append(_birth_snapshot(birth_snapshot))
-
-    if model_birth_seed is not None:
-        model_vibemon.birth_seed = model_birth_seed
-
-    return model_vibemon
+async def log_vibemon(event: str, vibemon: schema.Vibemon, **extra: Any) -> None:
+    await _LOGGER.ainfo(
+        event,
+        name=vibemon.name,
+        type=tuple(map(str, vibemon.elements)),
+        tier=vibemon.affinity.identity.tier,
+        role=vibemon.affinity.identity.battle_role.name,
+        moves=[f"{m.name} [{m.type}]" for m in vibemon.affinity.moves],
+        **extra,
+    )
 
 
 @asynccontextmanager
-async def database_session(db_path: str | None = None) -> AsyncIterator[AsyncSession]:
-    db_path = db_path or str(pathlib.Path(__file__).parent / "vibemon.db")
-    """Spin up an async SQLite db, create tables, yield a session.
-
-    The engine is disposed on exit so the script doesn't leak the aiosqlite
-    pool — important when this is invoked from longer-lived hosts (e.g. a
-    notebook or a future service) rather than a one-shot CLI run.
-    """
+async def database_session(db_path: str) -> AsyncIterator[AsyncSession]:
+    """Spin up an async SQLite db, create tables, yield a session."""
     engine = create_async_engine(f"sqlite+aiosqlite:///{db_path}")
-
     try:
         async with engine.begin() as conn:
             await conn.run_sync(models.Base.metadata.create_all)
 
-        async_session = sessionmaker(
-            engine, class_=AsyncSession, expire_on_commit=False
-        )
-
+        async_session = sessionmaker(engine, class_=AsyncSession, expire_on_commit=False)
         async with async_session() as sess:
             yield sess
     finally:
         await engine.dispose()
 
 
-def get_random_city() -> geonamescache.City:
-    """Fetch a random city."""
+def get_random_city() -> tuple[str, str, float, float]:
+    """Pick a random city. Returns (name, country, lat, lng)."""
     cache = geonamescache.GeonamesCache()
+    city = random.choice(list(cache.get_cities().values()))
+    country = cache.get_countries()[city["countrycode"]]["name"]
+    return city["name"], country, city["latitude"], city["longitude"]
 
-    city = random.choice([c for c in cache.get_cities().values()])
-    country = next(
-        c for iso, c in cache.get_countries().items() if iso == city["countrycode"]
-    )
 
-    # Add the Country.name
-    city["country"] = country["name"]
+def write_aesthetic_to_disk(vibemon: schema.Vibemon) -> None:
+    aesthetic = vibemon.aesthetic
+    assert aesthetic.battle_cry is not None and aesthetic.sprites is not None
 
-    return city
+    directory = pathlib.Path(__file__).parent / "generated" / vibemon.name.lower()
+    directory.mkdir(parents=True, exist_ok=True)
+    directory.joinpath("battle_cry.mp3").write_bytes(aesthetic.battle_cry)
+    for key, sprite in aesthetic.sprites.items():
+        sprite.save(directory.joinpath(f"{key}.png"))
 
 
 async def generate_vibemon_in_world(
-    **vibemon_options,
-) -> tuple[str, str, schema.BirthSeed, schema.BirthSnapshot, schema.Vibemon]:
-    """Generate a Vibemon in some random city."""
-    city = get_random_city()
+    *,
+    headless: bool = False,
+    **vibemon_options: Any,
+) -> tuple[str, schema.BirthSeed, schema.BirthSnapshot, schema.Vibemon]:
+    """Generate a Vibemon in a random city. Returns (country, seed, snapshot, vibemon)."""
+    _, country, lat, lng = get_random_city()
 
     seed = schema.BirthSeed(
         timestamp=dt.datetime.now(tz=dt.timezone.utc),
-        geo_coords=(city["latitude"], city["longitude"]),
-        providers=[ClimateProvider()],
+        geo_coords=(lat, lng),
+        providers=PROVIDERS,
     )
 
     snapshot = await seed.fetch_snapshot()
     affinities = await snapshot.regenerate(seed.providers, seed)
-    vibemon = await schema.Vibemon.birth(*affinities, **vibemon_options)
+    vibemon = schema.Vibemon.birth(*affinities, birth_seed=seed, **vibemon_options)
+    await vibemon.christen()
 
-    if not settings.headless:
-        assert vibemon.aesthetic.battle_cry is not None, ""
-        assert vibemon.aesthetic.sprites is not None, ""
+    if not headless:
+        await vibemon.render_aesthetic()
+        write_aesthetic_to_disk(vibemon)
 
-        directory = pathlib.Path(__file__).parent / "generated" / vibemon.name.lower()
-        directory.mkdir(parents=True, exist_ok=True)
-
-        directory.joinpath("battle_cry.mp3").write_bytes(vibemon.aesthetic.battle_cry)
-
-        for key, sprite in vibemon.aesthetic.sprites.items():
-            assert isinstance(sprite, Image), ""
-            sprite.save(directory.joinpath(f"{key}.png"))
-
-    return (city["name"], city["country"], seed, snapshot, vibemon)
+    return country, seed, snapshot, vibemon
 
 
 async def stream_vibemon_in_world(
     count: int,
     *,
-    stagger: float = 2,
-    **vibemon_options,
-) -> AsyncIterator[tuple[str, str, schema.BirthSeed, schema.BirthSnapshot, schema.Vibemon]]:
-    """Generate Vibemon concurrently, yielding each one as soon as it's ready.
+    stagger: float,
+    headless: bool,
+    **vibemon_options: Any,
+) -> AsyncIterator[tuple[str, schema.BirthSeed, schema.BirthSnapshot, schema.Vibemon]]:
+    """Yield concurrently-born vibemon in completion order. Per-task stagger avoids
+    a thundering herd on upstream providers."""
 
-    Tasks are launched with a per-task stagger so we don't hit upstream providers
-    in a thundering herd; results are yielded in completion order (not start
-    order) so the consumer can begin persisting immediately while the rest are
-    still being born.
-    """
-
-    async def _delayed(
-        delay: float,
-    ) -> tuple[str, str, schema.BirthSeed, schema.BirthSnapshot, schema.Vibemon] | None:
+    async def _delayed(delay: float):
         await asyncio.sleep(delay)
         try:
-            return await generate_vibemon_in_world(**vibemon_options)
+            return await generate_vibemon_in_world(headless=headless, **vibemon_options)
         except Exception as e:
             await _LOGGER.awarning("Birth failed, skipping", error=repr(e))
             return None
 
     tasks = [asyncio.create_task(_delayed(i * stagger)) for i in range(count)]
-
     try:
         async for coro in asyncio.as_completed(tasks):
             if (result := await coro) is not None:
@@ -255,54 +185,135 @@ async def stream_vibemon_in_world(
                 t.cancel()
 
 
+async def _load_moves_cache(sess: AsyncSession) -> dict[str, models.Move]:
+    return {m.name: m for m in (await sess.execute(sa.select(models.Move))).scalars()}
+
+
+async def birth_many_vibemon(
+    sess: AsyncSession,
+    *,
+    count: int,
+    stagger: float,
+    headless: bool,
+    core_identity: str | None,
+) -> None:
+    """Birth `count` fresh vibemon, persisting each as it arrives."""
+    moves_cache = await _load_moves_cache(sess)
+
+    async for country, seed, snapshot, vibemon in stream_vibemon_in_world(
+        count=count, stagger=stagger, headless=headless, core_identity=core_identity
+    ):
+        sess.add(models.Vibemon(
+            nickname=vibemon.nickname,
+            level=vibemon.level,
+            affinity=affinity_schema_to_model(vibemon.affinity, moves_cache),
+            birth_affinities=[
+                affinity_schema_to_model(a, moves_cache) for a in vibemon.birth_affinities
+            ],
+            birth_seed=models.BirthSeed(
+                timestamp=seed.timestamp,
+                geo_coords=list(seed.geo_coords),
+                provider_names=[p.name for p in seed.providers],
+                birth_snapshots=[
+                    models.BirthSnapshot(provider_payloads=dict(snapshot.provider_payloads))
+                ],
+            ),
+        ))
+        await sess.commit()
+        await log_vibemon("Persisted Vibemon", vibemon, country=country)
+
+
+async def rebirth_all_vibemon(sess: AsyncSession) -> int:
+    """Re-run merge/balance on every persisted Vibemon, in place. No network."""
+    moves_cache = await _load_moves_cache(sess)
+
+    result = await sess.execute(
+        sa.select(models.Vibemon).options(
+            selectinload(models.Vibemon.affinity).selectinload(models.Affinity.identity),
+            selectinload(models.Vibemon.affinity).selectinload(models.Affinity.moves),
+            selectinload(models.Vibemon.birth_seed).selectinload(models.BirthSeed.birth_snapshots),
+            selectinload(models.Vibemon.birth_affinities).selectinload(models.Affinity.identity),
+            selectinload(models.Vibemon.birth_affinities).selectinload(models.Affinity.moves),
+        )
+    )
+
+    reborn_count = 0
+    for vibemon_model in result.scalars():
+        seed_model = vibemon_model.birth_seed
+        if seed_model is None or not seed_model.birth_snapshots:
+            await _LOGGER.awarning("Skipping vibemon — no birth_seed/snapshot", id=str(vibemon_model.id))
+            continue
+
+        try:
+            providers = [PROVIDERS_BY_NAME[name] for name in seed_model.provider_names]
+        except KeyError as e:
+            await _LOGGER.awarning("Skipping vibemon — unknown provider", missing=str(e))
+            continue
+
+        seed = schema.BirthSeed(
+            timestamp=seed_model.timestamp,
+            geo_coords=tuple(seed_model.geo_coords),
+            providers=providers,
+        )
+        snapshot = schema.BirthSnapshot(
+            provider_payloads=seed_model.birth_snapshots[0].provider_payloads
+        )
+
+        affinities = await snapshot.regenerate(providers, seed)
+        if not affinities:
+            continue
+
+        reborn = schema.Vibemon.rebirth(
+            *affinities,
+            name=vibemon_model.affinity.identity.name,
+            birth_seed=seed,
+            core_identity=vibemon_model.affinity.identity.visual_notes,
+            nickname=vibemon_model.nickname,
+            level=vibemon_model.level,
+        )
+
+        # Cascade-deletes the old affinity + identity (single_parent delete-orphan).
+        vibemon_model.affinity = affinity_schema_to_model(reborn.affinity, moves_cache)
+        vibemon_model.birth_affinities = [
+            affinity_schema_to_model(a, moves_cache) for a in reborn.birth_affinities
+        ]
+
+        await sess.commit()
+        reborn_count += 1
+        await log_vibemon("Reborn Vibemon", reborn)
+
+    return reborn_count
+
+
 def parse_args() -> argparse.Namespace:
-    """Parse CLI options."""
     parser = argparse.ArgumentParser()
-    parser.add_argument("--count", type=int, default=150)
+    parser.add_argument("--count", type=int, default=150, help="Ignored when --rebirth is set.")
     parser.add_argument("--core-identity", type=str, default=None)
-    parser.add_argument("--headless", action="store_true", default=False)
+    parser.add_argument("--headless", action="store_true")
     parser.add_argument("--stagger", type=float, default=2.0)
     parser.add_argument("--db-path", type=str, default=pathlib.Path(__file__).parent.joinpath("vibemon.db").as_posix())
+    parser.add_argument("--rebirth", action="store_true",
+        help="Re-run merge/balance on all persisted vibemon in place. No network.")
     return parser.parse_args()
 
 
 async def main() -> None:
-    """Entrypoint."""
     args = parse_args()
-
-    settings.headless = args.headless
-
     structlog.configure(wrapper_class=structlog.make_filtering_bound_logger(logging.INFO))
-
-    await _LOGGER.ainfo("Starting", headless=settings.headless)
-
-    rows: list[tuple[str, str, schema.BirthSeed, schema.BirthSnapshot, schema.Vibemon]] = []
+    await _LOGGER.ainfo("Starting", headless=args.headless, rebirth=args.rebirth)
 
     async with database_session(db_path=args.db_path) as sess:
-        existing_moves = (await sess.execute(sa.select(models.Move))).scalars().all()
-        moves_cache: dict[str, models.Move] = {m.name: m for m in existing_moves}
-
-        async for item in stream_vibemon_in_world(count=args.count, stagger=args.stagger, core_identity=args.core_identity):
-            _, country, seed, snapshot, vibemon = item
-            sess.add(
-                schema_to_models(
-                    vibemon,
-                    birth_seed=seed,
-                    birth_snapshot=snapshot,
-                    moves_cache=moves_cache,
-                )
+        if args.rebirth:
+            count = await rebirth_all_vibemon(sess)
+            await _LOGGER.ainfo("Rebirth complete", reborn=count)
+        else:
+            await birth_many_vibemon(
+                sess,
+                count=args.count,
+                stagger=args.stagger,
+                headless=args.headless,
+                core_identity=args.core_identity,
             )
-            await sess.commit()
-            await _LOGGER.ainfo(
-                "Persisted Vibemon",
-                name=vibemon.name,
-                type=tuple(map(str, vibemon.elements)),
-                country=country,
-                tier=vibemon.affinity.identity.tier,
-                role=vibemon.affinity.identity.battle_role.name,
-                moves=[f"{m.name} [{m.type}]" for m in vibemon.affinity.moves],
-            )
-            rows.append(item)
 
 
 if __name__ == "__main__":
