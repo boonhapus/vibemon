@@ -1,6 +1,6 @@
 from app import schema, types
 
-# ── AI GENERATED v1.2.0 @ 2026/05/06 ──────────────────────────────────────────────────
+# ── AI GENERATED v1.3.0 @ 2026/05/08 ──────────────────────────────────────────────────
 
 
 MOVES = (
@@ -1566,16 +1566,6 @@ MOVES = (
         level_requirement=1,
     ),
     schema.Move(
-        name="Dustmill Spin",
-        flavor_text="A hand-mill cyclone of dry grit spins out.",
-        type=types.VibemonTypeT.GROUND,
-        category=types.MoveCategoryT.PHYSICAL,
-        power=30,
-        accuracy=1.0,
-        pp=30,
-        level_requirement=1,
-    ),
-    schema.Move(
         name="Gravel Oath",
         flavor_text="An oathbound pebble volley from canyon stone.",
         type=types.VibemonTypeT.GROUND,
@@ -1584,22 +1574,6 @@ MOVES = (
         accuracy=1.0,
         pp=20,
         level_requirement=36,
-    ),
-    schema.Move(
-        name="Sinkstep",
-        flavor_text="A sinking step drags the foe into soft soil.",
-        type=types.VibemonTypeT.GROUND,
-        category=types.MoveCategoryT.PHYSICAL,
-        power=70,
-        accuracy=1.0,
-        pp=15,
-        level_requirement=36,
-        effects=(
-            schema.EffectGroup(
-                chance=0.3,
-                effects=(schema.StatChange(target="target", changes={"speed": -1}),),
-            ),
-        ),
     ),
     schema.Move(
         name="Ridgebreaker Palm",
@@ -1634,22 +1608,6 @@ MOVES = (
             schema.EffectGroup(
                 chance=1.0,
                 effects=(schema.StatChange(target="self", changes={"sp_defense": 1}),),
-            ),
-        ),
-    ),
-    schema.Move(
-        name="Quicksilt Drive",
-        flavor_text="A swallowing silt swell hurls upward and crashes into the foe, bogging their footing.",
-        type=types.VibemonTypeT.GROUND,
-        category=types.MoveCategoryT.PHYSICAL,
-        power=45,
-        accuracy=1.0,
-        pp=25,
-        level_requirement=1,
-        effects=(
-            schema.EffectGroup(
-                chance=0.3,
-                effects=(schema.StatChange(target="target", changes={"speed": -1}),),
             ),
         ),
     ),
@@ -1694,64 +1652,6 @@ MOVES = (
         accuracy=0.95,
         pp=10,
         level_requirement=44,
-    ),
-    schema.Move(
-        name="Seismic Undertone",
-        flavor_text="Subsonic quake rattles stance and timing.",
-        type=types.VibemonTypeT.GROUND,
-        category=types.MoveCategoryT.SPECIAL,
-        power=105,
-        accuracy=0.9,
-        pp=10,
-        level_requirement=56,
-        effects=(
-            schema.EffectGroup(
-                chance=0.2,
-                effects=(schema.StatChange(target="target", changes={"attack": -1}),),
-            ),
-        ),
-    ),
-    schema.Move(
-        name="Mesa Guillotine",
-        flavor_text="A falling mesa-edge cleaves in a straight plane.",
-        type=types.VibemonTypeT.GROUND,
-        category=types.MoveCategoryT.PHYSICAL,
-        power=45,
-        accuracy=1.0,
-        pp=25,
-        level_requirement=1,
-    ),
-    schema.Move(
-        name="Monsoon Breakwall",
-        flavor_text="Packed-earth bulwarks resist storm surges.",
-        type=types.VibemonTypeT.GROUND,
-        category=types.MoveCategoryT.STATUS,
-        power=None,
-        accuracy=1.0,
-        pp=10,
-        level_requirement=1,
-        effects=(
-            schema.EffectGroup(
-                chance=1.0,
-                effects=(schema.StatChange(target="self", changes={"defense": 1, "sp_defense": 1}),),
-            ),
-        ),
-    ),
-    schema.Move(
-        name="Worldroot Crash",
-        flavor_text="Ancient root and bedrock erupt together.",
-        type=types.VibemonTypeT.GROUND,
-        category=types.MoveCategoryT.PHYSICAL,
-        power=115,
-        accuracy=0.8,
-        pp=5,
-        level_requirement=77,
-        effects=(
-            schema.EffectGroup(
-                chance=0.1,
-                effects=(schema.StatChange(target="target", changes={"speed": -1}),),
-            ),
-        ),
     ),
     schema.Move(
         name="Crosswind Peck",
@@ -1957,32 +1857,6 @@ MOVES = (
         level_requirement=1,
     ),
     schema.Move(
-        name="Barometer Pulse",
-        flavor_text="Mindwaves read pressure shifts and slam the target with psychic force.",
-        type=types.VibemonTypeT.PSYCHIC,
-        category=types.MoveCategoryT.SPECIAL,
-        power=30,
-        accuracy=1.0,
-        pp=30,
-        level_requirement=1,
-    ),
-    schema.Move(
-        name="Jetstream Jolt",
-        flavor_text="A sudden thought-burst rides high winds and scrambles movement.",
-        type=types.VibemonTypeT.PSYCHIC,
-        category=types.MoveCategoryT.SPECIAL,
-        power=75,
-        accuracy=0.95,
-        pp=15,
-        level_requirement=36,
-        effects=(
-            schema.EffectGroup(
-                chance=0.3,
-                effects=(schema.StatusInflict(target="target", status=types.StatusConditionT.PARALYSIS),),
-            ),
-        ),
-    ),
-    schema.Move(
         name="Solstice Lance",
         flavor_text="A clean spear of noonlight mind-energy pierces through calm air.",
         type=types.VibemonTypeT.PSYCHIC,
@@ -2001,22 +1875,6 @@ MOVES = (
         accuracy=1.0,
         pp=25,
         level_requirement=1,
-    ),
-    schema.Move(
-        name="Monsoon Prism",
-        flavor_text="Rainlight refracts into a heavy psychic beam that rattles concentration.",
-        type=types.VibemonTypeT.PSYCHIC,
-        category=types.MoveCategoryT.SPECIAL,
-        power=105,
-        accuracy=0.9,
-        pp=10,
-        level_requirement=56,
-        effects=(
-            schema.EffectGroup(
-                chance=0.2,
-                effects=(schema.StatChange(target="target", changes={"sp_defense": -1}),),
-            ),
-        ),
     ),
     schema.Move(
         name="Cyclone Omen",
@@ -2055,16 +1913,6 @@ MOVES = (
         level_requirement=1,
     ),
     schema.Move(
-        name="Skyglass Beam",
-        flavor_text="The sky hardens like glass in the mind before shattering into force.",
-        type=types.VibemonTypeT.PSYCHIC,
-        category=types.MoveCategoryT.SPECIAL,
-        power=100,
-        accuracy=0.9,
-        pp=10,
-        level_requirement=58,
-    ),
-    schema.Move(
         name="Forecast Focus",
         flavor_text="By syncing with tomorrow's weather, the user sharpens psychic output.",
         type=types.VibemonTypeT.PSYCHIC,
@@ -2079,16 +1927,6 @@ MOVES = (
                 effects=(schema.StatChange(target="self", changes={"sp_attack": 1}),),
             ),
         ),
-    ),
-    schema.Move(
-        name="Calm Pulse",
-        flavor_text="A tranquil high-pressure pulse rolls over the foe and crushes momentum.",
-        type=types.VibemonTypeT.PSYCHIC,
-        category=types.MoveCategoryT.SPECIAL,
-        power=30,
-        accuracy=1.0,
-        pp=30,
-        level_requirement=1,
     ),
     schema.Move(
         name="Mind Shelter",
@@ -3452,36 +3290,6 @@ MOVES = (
         ),
     ),
     schema.Move(
-        name="Barefield Bite",
-        flavor_text="Exposed acre-dust snaps upward in a clean, grounded bite.",
-        type=types.VibemonTypeT.GROUND,
-        category=types.MoveCategoryT.PHYSICAL,
-        power=40,
-        accuracy=1.0,
-        pp=30,
-        level_requirement=1,
-    ),
-    schema.Move(
-        name="Aggregate Snap",
-        flavor_text="Dry soil clumps crack apart and strike in a tight burst.",
-        type=types.VibemonTypeT.GROUND,
-        category=types.MoveCategoryT.PHYSICAL,
-        power=40,
-        accuracy=1.0,
-        pp=30,
-        level_requirement=1,
-    ),
-    schema.Move(
-        name="Ochre Scuff",
-        flavor_text="A red topsoil scrape kicks grit into the target's stance.",
-        type=types.VibemonTypeT.GROUND,
-        category=types.MoveCategoryT.PHYSICAL,
-        power=30,
-        accuracy=1.0,
-        pp=30,
-        level_requirement=1,
-    ),
-    schema.Move(
         name="Loess Veer",
         flavor_text="A sideways sheet of wind-laid silt cuts across the target's feet.",
         type=types.VibemonTypeT.GROUND,
@@ -3509,54 +3317,6 @@ MOVES = (
         level_requirement=1,
     ),
     schema.Move(
-        name="Mineral Veil",
-        flavor_text="A coat of inert dust settles into a firm defensive shell.",
-        type=types.VibemonTypeT.GROUND,
-        category=types.MoveCategoryT.STATUS,
-        power=None,
-        accuracy=1.0,
-        pp=20,
-        level_requirement=1,
-        effects=(
-            schema.EffectGroup(
-                chance=1.0,
-                effects=(schema.StatChange(target="self", changes={"defense": 1}),),
-            ),
-        ),
-    ),
-    schema.Move(
-        name="Loess Hush",
-        flavor_text="Yellow earth pads the air until hostile force loses its edge.",
-        type=types.VibemonTypeT.GROUND,
-        category=types.MoveCategoryT.STATUS,
-        power=None,
-        accuracy=1.0,
-        pp=15,
-        level_requirement=1,
-        effects=(
-            schema.EffectGroup(
-                chance=1.0,
-                effects=(schema.StatChange(target="self", changes={"sp_defense": 1}),),
-            ),
-        ),
-    ),
-    schema.Move(
-        name="Exposed Acre",
-        flavor_text="Bare field lines draw the target into a weaker striking angle.",
-        type=types.VibemonTypeT.GROUND,
-        category=types.MoveCategoryT.STATUS,
-        power=None,
-        accuracy=1.0,
-        pp=20,
-        level_requirement=1,
-        effects=(
-            schema.EffectGroup(
-                chance=1.0,
-                effects=(schema.StatChange(target="target", changes={"attack": -1}),),
-            ),
-        ),
-    ),
-    schema.Move(
         name="Feldspar Flick",
         flavor_text="A bright mineral click clips the target as the user darts ahead.",
         type=types.VibemonTypeT.GROUND,
@@ -3569,25 +3329,6 @@ MOVES = (
             schema.EffectGroup(
                 chance=0.3,
                 effects=(schema.StatChange(target="self", changes={"speed": 1}),),
-            ),
-        ),
-    ),
-    schema.Move(
-        name="Caliche Veil",
-        flavor_text="Pale crust flakes away, mending stance beneath a dusty guard.",
-        type=types.VibemonTypeT.GROUND,
-        category=types.MoveCategoryT.STATUS,
-        power=None,
-        accuracy=1.0,
-        pp=10,
-        level_requirement=1,
-        effects=(
-            schema.EffectGroup(
-                chance=1.0,
-                effects=(
-                    schema.Heal(target="self", ratio=0.25),
-                    schema.StatChange(target="self", changes={"defense": 1}),
-                ),
             ),
         ),
     ),
@@ -3616,16 +3357,6 @@ MOVES = (
         accuracy=1.0,
         pp=10,
         level_requirement=38,
-    ),
-    schema.Move(
-        name="Aeolian Gouge",
-        flavor_text="Windborne minerals carve a harsh channel through the target's guard.",
-        type=types.VibemonTypeT.GROUND,
-        category=types.MoveCategoryT.PHYSICAL,
-        power=105,
-        accuracy=0.9,
-        pp=10,
-        level_requirement=58,
     ),
     schema.Move(
         name="Laterite Hammer",
@@ -3662,52 +3393,6 @@ MOVES = (
         ),
     ),
     schema.Move(
-        name="hPa Flicker",
-        flavor_text="A tiny pressure jump flashes through the target's focus.",
-        type=types.VibemonTypeT.PSYCHIC,
-        category=types.MoveCategoryT.SPECIAL,
-        power=40,
-        accuracy=1.0,
-        pp=30,
-        level_requirement=1,
-    ),
-    schema.Move(
-        name="Isobar Whisper",
-        flavor_text="A quiet contour line in the air guides a precise psychic ping.",
-        type=types.VibemonTypeT.PSYCHIC,
-        category=types.MoveCategoryT.SPECIAL,
-        power=40,
-        accuracy=1.0,
-        pp=30,
-        level_requirement=1,
-    ),
-    schema.Move(
-        name="Isobar Wink",
-        flavor_text="The user reads a bending pressure line and snaps a small thought forward.",
-        type=types.VibemonTypeT.PSYCHIC,
-        category=types.MoveCategoryT.SPECIAL,
-        power=25,
-        accuracy=1.0,
-        pp=35,
-        level_requirement=1,
-    ),
-    schema.Move(
-        name="Pressure Fall Tell",
-        flavor_text="A private pressure drop tips the user to the target's next lapse.",
-        type=types.VibemonTypeT.PSYCHIC,
-        category=types.MoveCategoryT.SPECIAL,
-        power=40,
-        accuracy=1.0,
-        pp=25,
-        level_requirement=1,
-        effects=(
-            schema.EffectGroup(
-                chance=0.3,
-                effects=(schema.StatChange(target="target", changes={"sp_attack": -1}),),
-            ),
-        ),
-    ),
-    schema.Move(
         name="Frontline Twitch",
         flavor_text="The user catches a boundary shift and lands a thought before the target moves.",
         type=types.VibemonTypeT.PSYCHIC,
@@ -3717,54 +3402,6 @@ MOVES = (
         pp=20,
         priority=1,
         level_requirement=1,
-    ),
-    schema.Move(
-        name="Tendency Read",
-        flavor_text="Pressure tendency sharpens the user's next psychic projection.",
-        type=types.VibemonTypeT.PSYCHIC,
-        category=types.MoveCategoryT.STATUS,
-        power=None,
-        accuracy=1.0,
-        pp=20,
-        level_requirement=1,
-        effects=(
-            schema.EffectGroup(
-                chance=1.0,
-                effects=(schema.StatChange(target="self", changes={"sp_attack": 1}),),
-            ),
-        ),
-    ),
-    schema.Move(
-        name="Synoptic Brace",
-        flavor_text="The user braces against a broad pressure shift before it arrives.",
-        type=types.VibemonTypeT.PSYCHIC,
-        category=types.MoveCategoryT.STATUS,
-        power=None,
-        accuracy=1.0,
-        pp=15,
-        level_requirement=1,
-        effects=(
-            schema.EffectGroup(
-                chance=1.0,
-                effects=(schema.StatChange(target="self", changes={"sp_defense": 1}),),
-            ),
-        ),
-    ),
-    schema.Move(
-        name="Nowcast Nerve",
-        flavor_text="The current pressure picture steadies the user's timing instantly.",
-        type=types.VibemonTypeT.PSYCHIC,
-        category=types.MoveCategoryT.STATUS,
-        power=None,
-        accuracy=1.0,
-        pp=15,
-        level_requirement=1,
-        effects=(
-            schema.EffectGroup(
-                chance=1.0,
-                effects=(schema.StatChange(target="self", changes={"speed": 1}),),
-            ),
-        ),
     ),
     schema.Move(
         name="Ceiling Drop",
@@ -3809,16 +3446,6 @@ MOVES = (
         level_requirement=38,
     ),
     schema.Move(
-        name="Aneroid Needle",
-        flavor_text="A trembling gauge-needle impulse drives the user into physical contact.",
-        type=types.VibemonTypeT.PSYCHIC,
-        category=types.MoveCategoryT.PHYSICAL,
-        power=75,
-        accuracy=1.0,
-        pp=15,
-        level_requirement=26,
-    ),
-    schema.Move(
         name="Mercury Twitch",
         flavor_text="A quick instrument-like jump rattles the target's sense of timing.",
         type=types.VibemonTypeT.PSYCHIC,
@@ -3831,32 +3458,6 @@ MOVES = (
             schema.EffectGroup(
                 chance=0.1,
                 effects=(schema.StatChange(target="target", changes={"speed": -1}),),
-            ),
-        ),
-    ),
-    schema.Move(
-        name="Rapid Trough",
-        flavor_text="A fast pressure trough folds inward as crushing mental force.",
-        type=types.VibemonTypeT.PSYCHIC,
-        category=types.MoveCategoryT.SPECIAL,
-        power=110,
-        accuracy=0.85,
-        pp=5,
-        level_requirement=62,
-    ),
-    schema.Move(
-        name="Pressure Psalm",
-        flavor_text="The user chants with the invisible rise and fall of the atmosphere.",
-        type=types.VibemonTypeT.PSYCHIC,
-        category=types.MoveCategoryT.STATUS,
-        power=None,
-        accuracy=1.0,
-        pp=10,
-        level_requirement=1,
-        effects=(
-            schema.EffectGroup(
-                chance=1.0,
-                effects=(schema.StatChange(target="self", changes={"sp_attack": 1, "sp_defense": 1}),),
             ),
         ),
     ),
