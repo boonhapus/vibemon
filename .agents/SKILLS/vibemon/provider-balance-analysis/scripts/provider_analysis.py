@@ -794,6 +794,14 @@ def analyze_generated_affinities(
 
 
 def _vibemon_from_affinity(affinity: schema.Affinity, *, level: int) -> schema.Vibemon:
+    if len(affinity.moves) > 4:
+        affinity = schema.Affinity(
+            identity=affinity.identity,
+            visual_notes=affinity.visual_notes,
+            intensity=affinity.intensity,
+            provider_id=affinity.provider_id,
+            moves=tuple(affinity.moves[:4]),
+        )
     return schema.Vibemon(
         nickname=affinity.identity.name,
         affinity=affinity,
