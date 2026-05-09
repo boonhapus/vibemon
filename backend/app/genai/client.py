@@ -1,4 +1,4 @@
-from typing import TYPE_CHECKING, Any
+from typing import TYPE_CHECKING
 import re
 
 from elevenlabs import AsyncElevenLabs
@@ -18,7 +18,6 @@ _eleven_labs = AsyncElevenLabs(api_key=settings.eleven_labs_api_key.get_secret_v
 
 FAST_TXT_AGENT = pydantic_ai.Agent(settings.txt_ai_model)
 FAST_IMG_AGENT = _image.build_image_agent(settings.img_ai_model)
-SPRITE_SHEET_MAX_ATTEMPTS = 3
 
 # ── CLEANERS ──────────────────────────────────────────────────────────────────────────
 
@@ -26,35 +25,20 @@ RX_WORDS_ONLY = re.compile(r"[^\w-]")
 
 
 # ── IDENTITY ──────────────────────────────────────────────────────────────────────────
-def _save_data(data: Any, vibemon: str, filename: str) -> None:
-    import pathlib
-
-    here = pathlib.Path(__file__).parent
-    root = here.parent.parent.parent
-    path = root.joinpath(f".scripts/generated/{vibemon}/input")
-    path.mkdir(parents=True, exist_ok=True)
-
-    if isinstance(data, bytes):
-        path.joinpath(filename).write_bytes(data)
-    else:
-        path.joinpath(filename).write_text(data, encoding="utf-8")
 
 
 async def generate_vibemon_name(identity: schema.Identity, moves: list[schema.Move], visual_notes: str | None) -> str:
     """Generate a Vibemon's name."""
-    n = "species-name"
-    p = utils.load_prompt(f"{n}.mdc", identity=identity, moves=moves, visual_notes=visual_notes)
+    p = utils.load_prompt("species-name.mdc", identity=identity, moves=moves, visual_notes=visual_notes)
     r = await FAST_TXT_AGENT.run(p)
     d = RX_WORDS_ONLY.sub(repl="", string=r.output)
     await _LOGGER.adebug("Generate :: Vibemon name", name=d, prompt=p)
-    _save_data(p, vibemon=d, filename=f"{n}_prompt.txt")
     return d
 
 
 async def generate_vibemon_sprite(vibemon: schema.Vibemon) -> bytes:
     """Generate a Vibemon's sprite sheet."""
-    n = "sprite-reference"
-    p = utils.load_prompt(f"{n}.mdc", vibemon=vibemon)
+    p = utils.load_prompt("sprite-reference.mdc", vibemon=vibemon)
     r = await FAST_IMG_AGENT.run(p)
     await _LOGGER.adebug("Generate :: Vibemon sprite reference", vibemon=vibemon.name, prompt=p)
 
@@ -68,30 +52,23 @@ async def generate_vibemon_sprite(vibemon: schema.Vibemon) -> bytes:
         rows=1,
         cols=1,
     )
-    _save_data(p, vibemon=vibemon.name, filename=f"{n}_prompt.txt")
-    _save_data(d, vibemon=vibemon.name, filename=f"{n}_output.png")
 
-    n = "sprite-sheet"
-    p = utils.load_prompt(f"{n}.mdc", vibemon=vibemon)
+    p = utils.load_prompt("sprite-sheet.mdc", vibemon=vibemon)
     r = await FAST_IMG_AGENT.run([pydantic_ai.BinaryImage(data=d, media_type="image/png"), p])
     d = app_utils.normalize_sprite_matte(r.output.data, bg_color=vibemon.aesthetic.background_color)
-    
+
     if issues := app_utils.validate_sprite_sheet(d):
         raise RuntimeError(f"Generated sprite sheet failed validation: {'; '.join(issues)}")
 
-    _save_data(p, vibemon=vibemon.name, filename=f"{n}_prompt.txt")
-    _save_data(d, vibemon=vibemon.name, filename=f"{n}_output.png")
     return d
 
 
 async def generate_battle_cry(vibemon: schema.Vibemon) -> bytes:
     """Generate a Vibemon battle cry."""
-    n = "battle-cry"
-    p = utils.load_prompt(f"{n}.mdc", vibemon=vibemon)
+    p = utils.load_prompt("battle-cry.mdc", vibemon=vibemon)
     r = await FAST_TXT_AGENT.run(p, output_type=structured_output.VibemonSound)
     await _LOGGER.adebug("Generate :: Vibemon battle cry", vibemon=vibemon.name, **r.output.model_dump())
 
     r = _eleven_labs.text_to_sound_effects.convert(text=r.output.description, duration_seconds=r.output.duration)
     d = b"".join([audio_chunk async for audio_chunk in r])
-    _save_data(p, vibemon=vibemon.name, filename=f"{n}_prompt.txt")
     return d
