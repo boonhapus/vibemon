@@ -1,6 +1,7 @@
 from typing import Annotated, Literal, TypedDict, NotRequired
 from annotated_types import Len
 import enum
+import random
 import uuid
 
 from PIL.Image import Image
@@ -9,7 +10,7 @@ from PIL.Image import Image
 type TrainerIdT = Annotated[uuid.UUID, "backend trainer identifier"]
 type BaseStatT = Annotated[int, "a clamped value between [5, 255]"]
 type UnitIntervalT = Annotated[float, "a clamped value between [0, 1]"]
-type BaseStatNameT = Literal["hp", "attack", "defense", "sp_attack", "sp_defense", "speed", "accuracy", "evasion"]
+type BaseStatNameT = Literal["hp", "attack", "defense", "sp_attack", "sp_defense", "speed"]
 type StatStageNameT = Literal["attack", "defense", "sp_attack", "sp_defense", "speed", "accuracy", "evasion"]
 type IdentityElementsT = Annotated[tuple[VibemonTypeT, ...], Len(min_length=1, max_length=2)]
 
@@ -78,9 +79,19 @@ class EvolutionStageT(enum.IntEnum):
     """The evolution stages."""
 
     BASE = 1
-    STAGE_1 = 2
-    STAGE_2 = 3
-    LEGENDARY = 10
+    STAGE_2 = 2
+    STAGE_3 = 3
+    PSUEDO_LEGENDARY = 10
+
+    # DEV NOTE: RESERVED FOR SPECIAL EVENTS
+    LEGENDARY = 20
+    ULTRA_LEGENDARY = 99
+
+    @classmethod
+    def random_seed(cls) -> EvolutionStageT:
+        stages = [cls.BASE, cls.STAGE_2, cls.STAGE_3, cls.PSUEDO_LEGENDARY]
+        rarity = [24, 41, 34, 1]
+        return random.choices(stages, rarity, k=1)[0]
 
 
 class StatusConditionT(enum.StrEnum):
