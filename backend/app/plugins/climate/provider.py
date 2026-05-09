@@ -1,14 +1,16 @@
 import collections
+import datetime as dt
 import functools as ft
 import itertools as it
 import math
+import random
 import statistics
-from typing import Annotated, ClassVar
+from typing import Any, Annotated, ClassVar
 
 import niquests
 import structlog
 
-from app.balance.formulas import base_stat_asymmetric_scaling
+from app.balance.formulas import base_stat_asymmetric_scaling, stat_ratio_from_grade
 from app.balance.element_chart import get_move_assignment_bonus
 from app.plugins.provider import VibeProvider
 from app.plugins.helpers import Signal, filter_element_types
@@ -118,120 +120,138 @@ class ClimateProvider(VibeProvider):
         """
         score: collections.defaultdict[VibemonTypeT, float] = collections.defaultdict(float)
 
-        # Normal: cloud_cover > 60% AND no precipitation
-        # Cloud cover: thresh=0.6 (60%) — overcast sky threshold; meteorologically standard
-        # Precipitation (inverted): thresh=0.1 mm — no rain bonus; below 0.1mm = dry conditions
-        cloud_cover_score = signals["clouds"].ramp("N", thresh=0.6, reach=0.4)
-        dry_condition_bonus = signals["precip"].ramp("R", thresh=0.1, reach=0.1, invert=True)
-        score[VibemonTypeT.NORMAL] += cloud_cover_score * dry_condition_bonus
-
-        # Fire: radiation OR temp_max > 30°C
-        # Radiation: thresh=0.65 (N) — strong sun at ~21 MJ/m² (normalized across 1–32 range);
-        # raised from 0.50 to keep moderate-sun temperate cities from defaulting to FIRE.
+        # FIRE — volcanic, dry deserts, hot springs.
+        # Heat spine; radiation and heat-on-arid (desert) are alternate triggers.
         solar_radiation_score = signals["radiat"].ramp("N", thresh=0.65, reach=0.35)
         heat_temperature_score = signals["tmp_hi"].ramp("R", thresh=32.0, reach=20.0)
-        score[VibemonTypeT.FIRE] += max(solar_radiation_score, heat_temperature_score)
+        fire_arid_factor = signals["humdty"].ramp("R", thresh=40.0, reach=30.0, invert=True)
+        score[VibemonTypeT.FIRE] += max(solar_radiation_score, heat_temperature_score, heat_temperature_score * fire_arid_factor)  # noqa: E501
 
-        # Water: precipitation > 1 mm
-        # Precipitation: thresh=1.0 mm (R) — meaningful rain threshold; ramps across 0–50 mm range.
-        # Raised from 0.15 mm — light drizzle was auto-triggering WATER on most cloudy-coastal
-        # cities, inflating the type's prevalence. Sustained rain still wins.
+        # WATER — oceans, lakes, rivers, beaches, harbors.
+        # Open-Meteo has no proximity-to-water field, so coastal/lakeside cannot be detected.
+        # Falls back to direct precipitation only — known semantic gap.
         score[VibemonTypeT.WATER] += signals["precip"].ramp("R", thresh=1.0, reach=49.0)
 
-        # Grass: ET0 OR dew_point saturation
-        # ET0: thresh=0.30 (N) — active plant growth at ~3.6 mm/day (normalized across 0–12 range)
-        # Dew point: thresh=0.75 (N) — tropical humidity at ~17°C+ (normalized across -20–30 range)
-        # Slightly tightened from 0.25/0.70 — GRASS was edging out FIRE for primary slot in
-        # warm-temperate cities; the new thresholds keep tropics/jungles but trim fringe spawns.
+        # GRASS — forests, meadows, parks, gardens.
+        # Active transpiration, humid air, OR moist topsoil — any one indicates a
+        # hydrated growing environment.
         plant_evapotrans_score = signals["transp"].ramp("N", thresh=0.30, reach=0.70)
         humid_saturation_score = signals["dew_pt"].ramp("N", thresh=0.75, reach=0.25)
-        score[VibemonTypeT.GRASS] += max(plant_evapotrans_score, humid_saturation_score)
+        moist_soil_score = signals["soilmt"].ramp("R", thresh=0.25, reach=0.25)
+        score[VibemonTypeT.GRASS] += max(plant_evapotrans_score, humid_saturation_score, moist_soil_score)
 
-        # Ice: sub-freezing temps OR active snowfall
-        # Temperature min (inverted): thresh=0.0°C (R) — freezing point; full credit below 0, fades at -30°C
-        # Snowfall: thresh=0.5 cm (R) — any meaningful accumulation; saturates at 10 cm/day
-        # max() so a snowstorm in a city with above-freezing daytime min still triggers ICE.
+        # ICE — glaciers, snowy mountains, frozen caves.
+        # Cold OR snow alone qualifies; elevation amplifies the mountain-ice profile.
         cold_temp_score = signals["tmp_lo"].ramp("R", thresh=0.0, reach=30.0, invert=True)
         snowfall_score = signals["snowfl"].ramp("R", thresh=0.5, reach=9.5)
-        score[VibemonTypeT.ICE] += max(cold_temp_score, snowfall_score)
+        high_alt_factor = 1.0 + 0.5 * signals["elevat"].ramp("R", thresh=2000.0, reach=3000.0)
+        score[VibemonTypeT.ICE] += min(1.0, max(cold_temp_score, snowfall_score) * high_alt_factor)
 
-        # Flying: wind_speed > 10 km/h
-        # Wind speed: thresh=10 km/h (R) — light-breeze threshold; ramps to 50 km/h gale-force.
-        # Tuned between 12 km/h (under-represented) and 8 km/h (over-represented as secondary).
-        score[VibemonTypeT.FLYING] += signals["windsp"].ramp("R", thresh=10.0, reach=40.0)
+        # FLYING — high-altitude peaks, trees, open skies.
+        # Wind is core; elevation and clear sky compound the sky-domain feel.
+        wind_score = signals["windsp"].ramp("R", thresh=10.0, reach=40.0)
+        altitude_factor = 1.0 + 0.5 * signals["elevat"].ramp("R", thresh=800.0, reach=2000.0)
+        clear_sky_factor = 1.0 - 0.3 * signals["clouds"].ramp("N", thresh=0.70, reach=0.30)
+        score[VibemonTypeT.FLYING] += min(1.0, wind_score * altitude_factor * clear_sky_factor)
 
-        # Fighting: wind_gusts > 30 km/h
-        # Wind gusts: thresh=30 km/h (R) — strong gust threshold; ramps to 85 km/h structural damage
-        score[VibemonTypeT.FIGHTING] += signals["windgu"].ramp("R", thresh=30.0, reach=55.0)
+        # FIGHTING — rocky quarries (the only weather-resolvable habitat in the set).
+        # Quarry profile = strong gusts AND airborne dust. Dojos/gyms/stadiums are
+        # man-made, weatherless — no signal for those. sqrt() requires both.
+        gust_score = signals["windgu"].ramp("R", thresh=30.0, reach=55.0)
+        quarry_dust_score = signals["dust_m"].ramp("R", thresh=20.0, reach=130.0)
+        score[VibemonTypeT.FIGHTING] += math.sqrt(gust_score * quarry_dust_score)
 
-        # Steel: atmospheric pressure (high pressure systems)
-        # Pressure: thresh=0.64 (N) — high-pressure systems >1025 hPa (normalized across 980–1050 range)
-        score[VibemonTypeT.STEEL] += signals["pressr"].ramp("N", thresh=0.64, reach=0.36)
+        # POISON — swamps, marshes, industrial zones, sewers.
+        # Sole owner of pollution signal. Alt path: stagnant warm wetland (swamp).
+        pollution_score = signals["pollut"].ramp("N", thresh=0.12, reach=0.95)
+        swamp_humidity = signals["humdty"].ramp("R", thresh=75.0, reach=25.0)
+        swamp_warmth = signals["tmp_hi"].ramp("R", thresh=22.0, reach=15.0)
+        still_air_factor = signals["windsp"].ramp("R", thresh=8.0, reach=10.0, invert=True)
+        swamp_score = swamp_humidity * swamp_warmth * still_air_factor
+        score[VibemonTypeT.POISON] += max(pollution_score, swamp_score)
 
-        # Fairy: UV radiation in clean, untouched air (pristine sun)
-        # UV index: thresh=0.30 (N) — strong UV at 4-5 range (normalized across 0–14 range)
-        # Pollution gate: PM2.5 attenuates the score so polluted hot cities trend FIRE, not FAIRY
-        uv_score = signals["uv_idx"].ramp("N", thresh=0.30, reach=0.65)
-        clean_air_factor = 1.0 - signals["pollut"].ramp("N", thresh=0.05, reach=0.20)
-        score[VibemonTypeT.FAIRY] += uv_score * clean_air_factor
-
-        # Poison: air pollution concentration
-        # PM2.5: thresh=0.12 (N) — elevated pollution at 8 µg/m³ (normalized across 0–100 range)
-        score[VibemonTypeT.POISON] += signals["pollut"].ramp("N", thresh=0.12, reach=0.95)
-
-        # Dark: visibility < 10 km
-        # Visibility (inverted): thresh=10 km (R) — poor visibility threshold; full credit below 10 km
-        score[VibemonTypeT.DARK] += signals["visibl"].ramp("R", thresh=10.0, reach=10.0, invert=True)
-
-        # Ghost: low visibility in low-UV conditions (spectral, not urban smog)
-        # Visibility (inverted): thresh=10 km (R) — fog/mist threshold
-        # Low-light gate: partial — full UV halves the score (midday haze still slightly spectral)
-        # rather than zeroing it out (radiation fog burns off mid-morning, but the dawn fog still counts).
-        visibility_score = signals["visibl"].ramp("R", thresh=10.0, reach=6.0, invert=True)
-        low_light_factor = 1.0 - 0.5 * signals["uv_idx"].ramp("N", thresh=0.30, reach=0.65)
-        score[VibemonTypeT.GHOST] += visibility_score * low_light_factor
-
-        # Bug: humidity > 70% AND temp_max > 25°C — geometric mean preserves "must be both"
-        # without the harsh compounding of pure multiplication (which left dry-desert at 0
-        # but also crushed Singapore-tier tropics to ~0.1).
-        # Humidity: thresh=70% (R) — tropical humidity; ramps from 40% to 100%
-        # Temperature max: thresh=25°C (R) — tropical heat threshold; ramps from 0° to 50°C
-        humid_stress_factor = signals["humdty"].ramp("R", thresh=70.0, reach=30.0)
-        heat_stress_factor = signals["tmp_hi"].ramp("R", thresh=25.0, reach=25.0)
-        score[VibemonTypeT.BUG] += math.sqrt(humid_stress_factor * heat_stress_factor)
-
-        # Rock: elevation (geographic altitude)
-        # Elevation: thresh=600 m (R) — highland threshold; ramps across full range to 4500 m
-        score[VibemonTypeT.ROCK] += signals["elevat"].ramp("R", thresh=600.0, reach=4500.0)
-
-        # Ground: mineral dust OR dry exposed topsoil
-        # Dust: thresh=20 µg/m³ (R) — meaningful mineral-dust loading; saturates near severe events.
-        # Soil moisture (inverted): thresh=0.18 m³/m³ (R) — dry topsoil signal; neutral default if missing.
-        # Precipitation gate: rain suppresses exposed-dry-ground affinity without creating it.
-        # Heat attenuator: extreme heat partially redirects dry desert conditions toward FIRE.
-        dust_score = signals["dust"].ramp("R", thresh=20.0, reach=130.0)
+        # GROUND — deserts, canyons, muddy terrain.
+        # Three faces of bare earth: airborne dust, dry exposed topsoil, OR saturated mud.
+        dust_score = signals["dust_m"].ramp("R", thresh=20.0, reach=130.0)
         dry_topsoil_score = signals["soilmt"].ramp("R", thresh=0.18, reach=0.18, invert=True)
         dry_weather_gate = 1.0 - signals["precip"].ramp("R", thresh=1.0, reach=9.0)
         scorching_heat_attenuator = 1.0 - 0.5 * signals["tmp_hi"].ramp("R", thresh=32.0, reach=20.0)
         exposed_ground_score = dry_topsoil_score * dry_weather_gate * scorching_heat_attenuator
-        score[VibemonTypeT.GROUND] += max(dust_score, exposed_ground_score)
+        wet_soil = signals["soilmt"].ramp("R", thresh=0.40, reach=0.15)
+        mud_score = wet_soil * dry_weather_gate
+        score[VibemonTypeT.GROUND] += max(dust_score, exposed_ground_score, mud_score)
 
-        # Psychic: daily barometric pressure volatility
-        # Pressure range: thresh=8 hPa (R) — notable synoptic pressure movement; saturates at 30 hPa/day.
-        # Uses range rather than high pressure so STEEL keeps stable anticyclones.
-        score[VibemonTypeT.PSYCHIC] += signals["pressrng"].ramp("R", thresh=8.0, reach=22.0)
+        # PSYCHIC — libraries, hospitals, mystical ruins at night.
+        # All three habitats are man-made interiors — no real weather signal exists.
+        # Pressure volatility is the most associative proxy (atmospheric flux ~ mental flux).
+        # Known semantic gap; rarely fires from continuous signal alone.
+        score[VibemonTypeT.PSYCHIC] += signals["prange"].ramp("R", thresh=8.0, reach=22.0)
 
-        # Electric: atmospheric instability (storm potential)
-        # CAPE: thresh=0.35 (N) — strong thunderstorm threshold at 1750 J/kg (normalized across 0–5000 range)
-        # Selective signal for electrical affinity; higher threshold than DRAGON but full scale capability
-        score[VibemonTypeT.ELECTRIC] += signals["cape_m"].ramp("N", thresh=0.35, reach=0.65)
+        # BUG — woods, tall grass, farm land.
+        # Verdant warm humidity AND moist soil — all three required. Cube root preserves
+        # multiplicative gating without crushing legitimate forest/farm conditions.
+        humid_stress_factor = signals["humdty"].ramp("R", thresh=70.0, reach=30.0)
+        heat_stress_factor = signals["tmp_hi"].ramp("R", thresh=25.0, reach=25.0)
+        farm_soil_factor = signals["soilmt"].ramp("R", thresh=0.20, reach=0.30)
+        score[VibemonTypeT.BUG] += (humid_stress_factor * heat_stress_factor * farm_soil_factor) ** (1 / 3)
 
-        # Dragon: convective instability OR mountain altitude (mythic mountain-storm dweller)
-        # CAPE: thresh=0.30 (N) — severe weather potential at 1500 J/kg (normalized across 0–5000 range)
-        # Elevation: thresh=2000 m (R) — kicks in above ROCK's mid-range; saturates at 5000 m
+        # ROCK — caves, mountains, cliffsides, mines.
+        # Elevation primary; arid air sharpens exposed-stone profile (vs. lush mountain).
+        elevation_score = signals["elevat"].ramp("R", thresh=600.0, reach=4500.0)
+        arid_rock_factor = 1.0 + 0.3 * signals["humdty"].ramp("R", thresh=50.0, reach=40.0, invert=True)
+        score[VibemonTypeT.ROCK] += min(1.0, elevation_score * arid_rock_factor)
+
+        # GHOST — graveyards, abandoned buildings, dark alleys.
+        # Fog/low visibility under low UV (dawn/dusk/overcast); cold still air seals it.
+        visibility_score = signals["visibl"].ramp("R", thresh=10.0, reach=6.0, invert=True)
+        low_light_factor = 1.0 - 0.5 * signals["uv_idx"].ramp("N", thresh=0.30, reach=0.65)
+        chill_factor = 1.0 + 0.3 * signals["tmp_lo"].ramp("R", thresh=10.0, reach=15.0, invert=True)
+        score[VibemonTypeT.GHOST] += min(1.0, visibility_score * low_light_factor * chill_factor)
+
+        # DRAGON — legendary shrines, deep craters, high summits.
+        # Mythic combo: severe atmospheric instability AND extreme altitude. Multiplicative
+        # so neither a calm peak nor a lowland storm alone qualifies — must be both.
         cape_score = signals["cape_m"].ramp("N", thresh=0.30, reach=0.70)
         altitude_score = signals["elevat"].ramp("R", thresh=2000.0, reach=3000.0)
-        score[VibemonTypeT.DRAGON] += max(cape_score, altitude_score)
+        score[VibemonTypeT.DRAGON] += math.sqrt(cape_score * altitude_score)
+
+        # STEEL — construction sites, factories, metal-rich caves.
+        # Factory-under-stable-air signature: anticyclone AND dry AND arid air. All three
+        # multiplicative so STEEL is selective — pollution belongs to POISON now.
+        pressure_score = signals["pressr"].ramp("N", thresh=0.64, reach=0.36)
+        steel_dry_factor = signals["precip"].ramp("R", thresh=0.5, reach=2.0, invert=True)
+        steel_arid_factor = signals["humdty"].ramp("R", thresh=50.0, reach=30.0, invert=True)
+        score[VibemonTypeT.STEEL] += pressure_score * steel_dry_factor * steel_arid_factor
+
+        # ELECTRIC — power plants, urban centers, stormy plains.
+        # Storms (CAPE) only — urban-grid path dropped to keep pollution exclusive to POISON.
+        score[VibemonTypeT.ELECTRIC] += signals["cape_m"].ramp("N", thresh=0.35, reach=0.65)
+
+        # DARK — shadows, cemeteries, urban areas at night.
+        # At least two of three: low UV (shadow/night), heavy overcast, urban smog.
+        # Pairwise sqrt — single-signal cities (just cloudy, just smoggy) no longer qualify.
+        low_uv_score = signals["uv_idx"].ramp("N", thresh=0.30, reach=0.30, invert=True)
+        overcast_score = signals["clouds"].ramp("N", thresh=0.75, reach=0.25)
+        smog_score = signals["pollut"].ramp("N", thresh=0.15, reach=0.30)
+        score[VibemonTypeT.DARK] += max(
+            math.sqrt(low_uv_score * overcast_score),
+            math.sqrt(low_uv_score * smog_score),
+            math.sqrt(overcast_score * smog_score),
+        )
+
+        # FAIRY — flower beds, enchanted forests, lakesides.
+        # Pristine sun on damp clean air: UV * clean_air * humidity. Multiplicative —
+        # smog or dryness vetoes the enchanted feel.
+        uv_score = signals["uv_idx"].ramp("N", thresh=0.30, reach=0.65)
+        clean_air_factor = 1.0 - signals["pollut"].ramp("N", thresh=0.05, reach=0.20)
+        moisture_factor = 0.5 + 0.5 * signals["humdty"].ramp("R", thresh=50.0, reach=30.0)
+        score[VibemonTypeT.FAIRY] += uv_score * clean_air_factor * moisture_factor
+
+        # NORMAL — fields, suburbs, residential baseline.
+        # The "average day" is the absence of extremes, not a positive signal. Attentuated
+        # at 0.3× so a moderate continuous signal (~0.25) competes evenly instead of being
+        # buried by NORMAL at ~0.75. Still acts as safety net when nothing fires.
+        score[VibemonTypeT.NORMAL] += 0.3 * (1.0 - max(score.values(), default=0.0))  # maybe 0.4
 
         # General Tier structure:
         # - 0.2: LIGHT
@@ -239,38 +259,42 @@ class ClimateProvider(VibeProvider):
         # - 0.4: HEAVY
         # - 0.5: RARE
         match weather_code:
-            # Clear skies: solar heating (FIRE) + fair/stable weather (NORMAL)
-            # FIRE bonus halved (0.2 → 0.1) — CLEAR_SKY is the most common WMO code globally,
-            # so the prior bonus was a primary driver of FIRE over-representation.
+            # Clear skies: unobstructed sun confirms high UV for FAIRY's continuous
+            # block. FAIRY's clean_air gate prevents false positives in smoggy areas.
             case WeatherCode.CLEAR_SKY | WeatherCode.MAINLY_CLEAR:
-                score[VibemonTypeT.FIRE] += 0.1
-                score[VibemonTypeT.NORMAL] += 0.2
+                score[VibemonTypeT.FAIRY] += 0.2
 
-            # Partial clouds confirm baseline overcast → NORMAL element
+            # Partly cloudy: shifting cloud cover and breezy air confirm FLYING's
+            # wind-based continuous signal. Offsets the cloud-cover penalty that
+            # FLYING's clear_sky_factor applies to its own score.
             case WeatherCode.PARTLY_CLOUDY:
-                score[VibemonTypeT.NORMAL] += 0.2
+                score[VibemonTypeT.FLYING] += 0.2
 
-            # Heavy overcast confirms dark, cloudy conditions
+            # Heavy overcast confirms dark, cloudy conditions.
+            # DARK bonus raised 0.2 → 0.3 to compensate for stricter 2-of-3 continuous gate
+            # (pure overcast no longer fires DARK from continuous signals alone).
             case WeatherCode.OVERCAST:
                 score[VibemonTypeT.NORMAL] += 0.3
-                score[VibemonTypeT.DARK] += 0.2
+                score[VibemonTypeT.DARK] += 0.3
 
-            # All thunderstorm variants confirm electrical activity (rare event)
+            # All thunderstorm variants confirm electrical activity (rare event).
+            # DRAGON bonus dropped — DRAGON now requires sqrt(cape * altitude); a lowland
+            # thunderstorm bypassing the altitude gate via WMO bonus violates that semantic.
+            # Mountain thunderstorms still trigger DRAGON via continuous block.
             case WeatherCode.THUNDERSTORM | WeatherCode.THUNDERSTORM_WITHOUT_PRECIP | WeatherCode.THUNDERSTORM_WITHOUT_PRECIP_HEAVY:  # fmt: skip # noqa: E501
                 score[VibemonTypeT.ELECTRIC] += 0.5
-                score[VibemonTypeT.DRAGON] += 0.30
 
-            # Light hail: thunderstorm + ice/rock impact
+            # Light hail: thunderstorm + frozen-pellet impact (split between ICE and ROCK).
             case WeatherCode.THUNDERSTORM_WITH_SLIGHT_HAIL:
                 score[VibemonTypeT.ELECTRIC] += 0.5
-                score[VibemonTypeT.ROCK] += 0.3
-                score[VibemonTypeT.DRAGON] += 0.20
+                score[VibemonTypeT.ICE] += 0.2
+                score[VibemonTypeT.ROCK] += 0.2
 
-            # Heavy hail: thunderstorm + strong ice/rock impact
+            # Heavy hail: thunderstorm + heavy frozen-pellet impact.
             case WeatherCode.THUNDERSTORM_WITH_HEAVY_HAIL:
                 score[VibemonTypeT.ELECTRIC] += 0.5
-                score[VibemonTypeT.ROCK] += 0.4
-                score[VibemonTypeT.DRAGON] += 0.30
+                score[VibemonTypeT.ICE] += 0.3
+                score[VibemonTypeT.ROCK] += 0.3
 
             # Fog/rime confirm spectral conditions (rare event)
             case WeatherCode.FOG | WeatherCode.DEPOSITING_RIME_FOG:
@@ -309,28 +333,36 @@ class ClimateProvider(VibeProvider):
             case WeatherCode.SNOW_SHOWERS_HEAVY | WeatherCode.SNOW_FALL_HEAVY:
                 score[VibemonTypeT.ICE] += 0.5
 
-        # Give NORMAL a tiny bit of padding so we ensure that the move pool is available.
-        score[VibemonTypeT.NORMAL] = score[VibemonTypeT.NORMAL] or 0.05
-
         return score
 
-    async def synthesize(self, ctx: schema.BirthContext) -> schema.Affinity:
-        """Translate raw API data to Affinity components."""
-        # TODO: use asyncio.gather when upgraded to paid OpenMeteo.
-        wr = await self.client.current_weather(latitude=ctx.geo_coords[0], longitude=ctx.geo_coords[1])
-        ar = await self.client.air_quality(latitude=ctx.geo_coords[0], longitude=ctx.geo_coords[1])
+    async def fetch(self, seed: schema.BirthSeed) -> dict[str, Any]:
+        """Fetch and enrich climate payloads for a birth seed."""
+        end_date = seed.datestamp
+        start_date = seed.datestamp - dt.timedelta(days=1) - dt.timedelta(weeks=6)
 
         try:
+            # TODO: use asyncio.gather when upgraded to paid OpenMeteo.
+            wr = await self.client.current_weather(
+                latitude=seed.geo_coords[0],
+                longitude=seed.geo_coords[1],
+                start_date=start_date,
+                end_date=end_date,
+            )
+            ar = await self.client.air_quality(
+                latitude=seed.geo_coords[0],
+                longitude=seed.geo_coords[1],
+                start_date=start_date,
+                end_date=end_date,
+            )
+
             wr.raise_for_status()
             ar.raise_for_status()
         except niquests.HTTPError as e:
             self._log_http_error(e)
 
         d = wr.json()
+        a = ar.json()
         s = d["daily"]
-        i = -1
-
-        # ── DATA MUNGING ──────────────────────────────────────────────────────────────
 
         def daily_means(times: list[str], values: list[float | None]) -> dict[str, float]:
             return {
@@ -339,114 +371,56 @@ class ClimateProvider(VibeProvider):
                 if (day_values := [value for _, value in group if value is not None])
             }
 
-        air_quality_hourly = ar.json()["hourly"]
-        weather_hourly = d["hourly"]
-        pm25_by_day = daily_means(air_quality_hourly["time"], air_quality_hourly["pm2_5"])
-        dust_by_day = daily_means(air_quality_hourly["time"], air_quality_hourly["dust"])
-        soil_moisture_by_day = daily_means(weather_hourly["time"], weather_hourly["soil_moisture_0_to_1cm"])
+        pm25_by_day = daily_means(a["hourly"]["time"], a["hourly"]["pm2_5"])
+        dust_by_day = daily_means(a["hourly"]["time"], a["hourly"]["dust"])
+        soil_moisture_by_day = daily_means(d["hourly"]["time"], d["hourly"]["soil_moisture_0_to_1cm"])
 
-        # INJECT HOURLY-DERIVED SIGNALS ONTO THE DAILY METRIC
+        # Inject hourly-derived aggregates onto the daily weather frame so replay is deterministic.
         s["pm2_5_mean"] = [pm25_by_day.get(day, 0.0) for day in s["time"]]
         s["dust_mean"] = [dust_by_day.get(day, 0.0) for day in s["time"]]
         s["soil_moisture_0_to_1cm_mean"] = [soil_moisture_by_day.get(day, 0.18) for day in s["time"]]
 
-        # ── /DATA MUNGING ─────────────────────────────────────────────────────────────
+        return {
+            "start_date": start_date.isoformat(),
+            "end_date": end_date.isoformat(),
+            "weather_augmented": d,
+        }
+
+    async def synthesize(self, seed: schema.BirthSeed, payload: dict[str, Any]) -> schema.Affinity:
+        """Translate captured climate payload to Affinity components."""
+        random.seed(seed.random_seed)
+
+        d = payload["weather_augmented"]
+        s = d["daily"]
+        i = -1
 
         # fmt: off
         # ruff: noqa: E501
         signals = {
-            # tmp_hi: Daily max temperature (-20 to 50°C)
-            # Min: coldest inhabited regions (Siberia winter). Max: hottest recorded (Death Valley ~54°C).
-            # Used for element scoring (FIRE threshold); no longer routes directly to any base stat
-            # (HP now uses Dragon→elevat, Normal→clouds, Ground→dust blend).
-            "tmp_hi": Signal(attr="temperature_2m_max", raw=s["temperature_2m_max"][i], min=-20.0, max=50.0),
-            # tmp_lo: Daily min temperature (-30 to 40°C)
-            # Min: extreme cold (polar regions). Max: tropical overnight lows.
-            # Feeds Sp. Defense via Ice (A) element at 17% weight; primary for ICE type scoring.
-            "tmp_lo": Signal(attr="temperature_2m_min", raw=s["temperature_2m_min"][i], min=-30.0, max=40.0),
-            # precip: Daily precipitation (0–50 mm)
-            # Min: no rain. Max: heavy downpour; >50 mm/day approaches flood conditions.
-            # Baseline for WATER element; split between WATER affinity and Sp. Defense offset.
-            "precip": Signal(attr="precipitation_sum", raw=s["precipitation_sum"][i], min=0.0, max=50.0),
-            # windsp: Sustained wind speed (3–25 km/h)
-            # Min: calm breeze threshold. Max: strong sustained wind for stat-scaling purposes
-            # (range compressed from 50 km/h — even with the earlier 90→50 compression,
-            # most populated cities (~8-18 km/h) still clustered base_speed near floor at
-            # 19-52. Tighter 3-25 range lifts typical 15 km/h breeze to normal≈0.55→speed≈94,
-            # putting the median city into is_fast (≥80) territory). Type-scoring ramps
-            # still use raw thresholds (10 km/h FLYING / 30 km/h FIGHTING) so element
-            # selection is unaffected.
-            "windsp": Signal(attr="wind_speed_10m_max", raw=s["wind_speed_10m_max"][i], min=3.0, max=25.0),
-            # windgu: Wind gust peaks (5–70 km/h)
-            # Min: light gust threshold. Max: strong gust for stat-scaling purposes (range
-            # compressed from 120 km/h for the same reason as windsp). Type-scoring uses
-            # raw thresholds (30 km/h FIGHTING) so element selection is unaffected.
-            "windgu": Signal(attr="wind_gusts_10m_max", raw=s["wind_gusts_10m_max"][i], min=5.0, max=70.0),
-            # uv_idx: Maximum UV index (0–14 scale)
-            # Min: no UV (night/polar winter). Max: extreme tropical (WMO scale 11+, capped at 14).
-            # Unobservable signal; normalized threshold at 0.21 (UV 3+ = sun protection needed).
-            "uv_idx": Signal(attr="uv_index_max", raw=s["uv_index_max"][i], min=0.0, max=14.0),
-            # radiat: Daily shortwave radiation sum (1–32 MJ/m²)
-            # Min: deep overcast/tropical winter (~1 MJ/m²). Max: clear desert summer (~25–32 MJ/m²).
-            # Feeds Sp. Attack via Fire (S) element at 33% weight; no longer uses ^1.6 reshape
-            # (the multi-signal mix spreads naturally without the concave-down amplifier).
-            "radiat": Signal(attr="shortwave_radiation_sum", raw=s["shortwave_radiation_sum"][i], min=1.0, max=32.0),
-            # clouds: Mean cloud cover (0–100%)
-            # Min: clear sky (0%). Max: completely overcast (100%).
-            # Meteorologically standard 0–100 scale; feeds NORMAL element.
-            "clouds": Signal(attr="cloud_cover_mean", raw=s["cloud_cover_mean"][i], min=0.0, max=100.0),
-            # pressr: Mean sea-level pressure (980–1050 hPa)
-            # Min: extreme low-pressure storm system. Max: Siberian high (>1050 hPa, capped at 1050).
-            # Unobservable signal; normalized threshold at 0.64 (>1025 hPa = high pressure systems).
-            "pressr": Signal(attr="pressure_msl_mean", raw=s["pressure_msl_mean"][i], min=980.0, max=1050.0),
-            # pressrng: Daily sea-level pressure range (0–30 hPa)
-            # Min: stable air mass. Max: strong synoptic transition/cyclone passage.
-            # Feeds PSYCHIC affinity as barometric pattern-reading without overlapping STEEL's high-pressure signal.
-            "pressrng": Signal(attr="pressure_msl_range", raw=s["pressure_msl_max"][i] - s["pressure_msl_min"][i], min=0.0, max=30.0),
-            # transp: Evapotranspiration/Reference ET0 (0–12 mm/day)
-            # Min: no plant activity (winter/dormant). Max: extreme irrigation demand (arid agriculture).
-            # Unobservable signal; normalized threshold at 0.25 (3 mm/day = active plant growth).
-            "transp": Signal(attr="et0_fao_evapotranspiration", raw=s["et0_fao_evapotranspiration"][i], min=0.0, max=12.0),
-            # pollut: PM2.5 air pollution (0–100 µg/m³)
-            # Min: clean air. Max: hazardous/emergency air quality (>100 µg/m³ = severe pollution).
-            # Unobservable signal; normalized threshold at 0.15 (10 µg/m³ = WHO health damage threshold).
-            "pollut": Signal(attr="pm2_5_mean", raw=s["pm2_5_mean"][i], min=0.0, max=100.0),
-            # dust: Mineral dust aerosol concentration (0–300 µg/m³)
-            # Min: no dust. Max: severe dust event. Direct path to GROUND affinity.
-            "dust": Signal(attr="dust_mean", raw=s["dust_mean"][i], min=0.0, max=300.0),
-            # visibl: Horizontal visibility (0–50 km)
-            # Min: fog/mist visibility (0 km ~ dense fog). Max: exceptional clear-air visibility (~50 km).
-            # Meteorologically standard; inverted for DARK element (low visibility = high affinity).
-            "visibl": Signal(attr="visibility_mean", raw=s["visibility_mean"][i], min=0.0, max=50.0),
-            # dew_pt: Mean dew point (-20 to 30°C)
-            # Min: arid freezing (very dry, very cold). Max: tropical saturated air (~25–30°C).
-            # Unobservable signal; normalized threshold at 0.70 (≈15°C = tropical humidity).
-            "dew_pt": Signal(attr="dew_point_2m_mean", raw=s["dew_point_2m_mean"][i], min=-20.0, max=30.0),
-            # cape_m: Convective Available Potential Energy (0–5000 J/kg)
-            # Min: no convective potential (stable atmosphere). Max: extreme supercell CAPE (>4000 = destructive).
-            # Unobservable signal; normalized threshold at 0.30 (1500 J/kg = severe weather potential).
-            "cape_m": Signal(attr="cape_mean", raw=s["cape_mean"][i], min=0.0, max=5000.0),
-            # humdty: Mean relative humidity (0–100%)
-            # Min: bone-dry air (arid desert). Max: saturated air mass (tropical/monsoon regions).
-            # Meteorologically standard 0–100 scale; combines with temp for BUG tropicality.
-            "humdty": Signal(attr="relative_humidity_2m_mean", raw=s["relative_humidity_2m_mean"][i], min=0.0, max=100.0),
-            # soilmt: Topsoil moisture (0–0.5 m³/m³)
-            # Min: parched surface layer. Max: saturated/wet topsoil. Inverted for exposed-dry-ground affinity.
-            "soilmt": Signal(attr="soil_moisture_0_to_1cm_mean", raw=s["soil_moisture_0_to_1cm_mean"][i], min=0.0, max=0.5),
-            # elevat: Surface elevation above sea level (0–2000 m)
-            # Min: sea level (0 m). Max: highland threshold for stat-scaling purposes
-            # (range compressed from 4500 m). Routes through Dragon+Rock into HP (40%),
-            # Attack (33%), Defense (50%), and Speed (40%), so altitude heavily shapes
-            # overall BST — intentional flavor for mountain-born mons. Type-scoring ramps
-            # for ROCK/DRAGON use raw thresholds (600/2000 m) so element selection is
-            # unaffected; high-altitude cities (La Paz, Lhasa, Mexico City) still peg
-            # Defense near max but now through the weighted mix instead of solo.
-            "elevat": Signal(attr="elevation", raw=d["elevation"], min=0.0, max=2000.0),
-            # snowfl: Daily snowfall accumulation (0–20 cm)
-            # Min: no snow. Max: heavy snow event (~20 cm/day = blizzard territory).
-            # Secondary path to ICE element so winter cities trigger even when daily min temp
-            # sits above freezing during a snowstorm warm-up.
-            "snowfl": Signal(attr="snowfall_sum", raw=s["snowfall_sum"][i], min=0.0, max=20.0),
+            sig.name: sig
+            for sig in (
+                # THESE ARE GLOBAL, INHABITED (MIN, MED, MAX) RANGES FOR EACH ATTRIBUTE.
+                Signal(name="cape_m", attr="cape_mean",                  raw=s["cape_mean"][i],                   min=   0.00, med=   100.00, max=  5000.00),
+                Signal(name="clouds", attr="cloud_cover_mean",           raw=s["cloud_cover_mean"][i],            min=   0.00, med=    60.00, max=   100.00),
+                Signal(name="dew_pt", attr="dew_point_2m_mean",          raw=s["dew_point_2m_mean"][i],           min= -60.00, med=    10.00, max=    32.00),
+                Signal(name="dust_m", attr="dust_mean",                  raw=s["dust_mean"][i],                   min=   0.00, med=    15.00, max=  1000.00),
+                Signal(name="elevat", attr="elevation",                  raw=d["elevation"],                      min=-430.00, med=   350.00, max=  5100.00),
+                Signal(name="transp", attr="et0_fao_evapotranspiration", raw=s["et0_fao_evapotranspiration"][i],  min=   0.00, med=     3.50, max=    15.00),
+                Signal(name="pollut", attr="pm2_5_mean",                 raw=s["pm2_5_mean"][i],                  min=   0.00, med=    25.00, max=   500.00),
+                Signal(name="precip", attr="precipitation_sum",          raw=s["precipitation_sum"][i],           min=   0.00, med=     1.50, max=   500.00),
+                Signal(name="pressr", attr="pressure_msl_mean",          raw=s["pressure_msl_mean"][i],           min= 970.00, med=  1013.20, max=  1050.00),
+                Signal(name="prange", attr="pressure_msl_range",         raw=s["pressure_msl_max"][i] - s["pressure_msl_min"][i], min= 0.00, med= 8.00, max= 60.00),
+                Signal(name="humdty", attr="relative_humidity_2m_mean",  raw=s["relative_humidity_2m_mean"][i],   min=   5.00, med=    65.00, max=   100.00),
+                Signal(name="radiat", attr="shortwave_radiation_sum",    raw=s["shortwave_radiation_sum"][i],     min=   0.00, med=    15.00, max=    35.00),
+                Signal(name="snowfl", attr="snowfall_sum",               raw=s["snowfall_sum"][i],                min=   0.00, med=     0.10, max=   100.00),
+                Signal(name="soilmt", attr="soil_moisture_0_to_1cm_mean",raw=s["soil_moisture_0_to_1cm_mean"][i], min=   0.00, med=     0.25, max=     0.55),
+                Signal(name="tmp_hi", attr="temperature_2m_max",         raw=s["temperature_2m_max"][i],          min= -40.00, med=    20.00, max=    55.00),
+                Signal(name="tmp_lo", attr="temperature_2m_min",         raw=s["temperature_2m_min"][i],          min= -60.00, med=     8.00, max=    35.00),
+                Signal(name="uv_idx", attr="uv_index_max",               raw=s["uv_index_max"][i],                min=   0.00, med=     6.00, max=    18.00),
+                Signal(name="visibl", attr="visibility_mean",            raw=s["visibility_mean"][i],             min=   0.00, med= 15000.00, max= 40000.00),
+                Signal(name="windgu", attr="wind_gusts_10m_max",         raw=s["wind_gusts_10m_max"][i],          min=   0.00, med=    30.00, max=   250.00),
+                Signal(name="windsp", attr="wind_speed_10m_max",         raw=s["wind_speed_10m_max"][i],          min=   0.00, med=    15.00, max=   150.00),
+            )
         }
         # fmt: on
 
@@ -456,105 +430,25 @@ class ClimateProvider(VibeProvider):
         bonus_fx = ft.partial(get_move_assignment_bonus, vibemon_elements=elements)
         starters = {m: rankings[m.type] * bonus_fx(m.type) for m in moves.MOVES if m.level_requirement == 1}
 
-        # ── STAT FORMULAS ──────────────────────────────────────────────────────────────
-        #
-        # Each stat is a weighted blend of weather signals mapped from the element
-        # affinity table. Weights derive from S/A ranks:
-        #
-        #   S-rank = 2 shares   A-rank = 1 share
-        #
-        # Elements sharing a signal are merged before normalization so each
-        # weather observation gets one vote regardless of how many elements
-        # track through it.
-        #
-        # Reference table (element → primary weather signal):
-        #   Dragon → elevat    Normal  → clouds    Ghost  → ~visibl
-        #   Rock   → elevat    Ground  → dust      Dark   → ~visibl
-        #   Steel  → pressr    Fire    → radiat    Flying → windsp
-        #   Psychic→ pressrng  Ice     → tmp_lo    Fairy  → uv_idx
-        #   Electric→ cape_m   Water   → precip    Grass  → transp
-        #   Fighting→ windgu
-        # ───────────────────────────────────────────────────────────────────────────────
+        hp_signal  = Signal.mix(signals["tmp_hi"] * 0.5, signals["elevat"] * 0.5, mode="center")  # mass + altitude endurance
+        atk_signal = signals["windgu"].center                                                       # gust impact
+        def_signal = Signal.mix(signals["elevat"] * 0.6, signals["pressr"] * 0.4, mode="center")  # solidity + compression
+        spa_signal = Signal.mix(signals["radiat"] * 0.5, signals["cape_m"] * 0.5, mode="center")  # solar + electric flux
+        spd_signal = Signal.mix(signals["humdty"] * 0.5, signals["precip"] * 0.5, mode="center")  # cushion + dampening
+        spe_signal = signals["windsp"].center                                                       # kinetic
 
-        # Low-visibility inversion shared by Dark and Ghost.
-        inv_vis = 1.0 - signals["visibl"].normal
+        ratio = ft.partial(stat_ratio_from_grade, elements=elements)
 
         affinity = schema.Affinity(
             identity=schema.Identity(
                 name="__",
                 elements=elements,
-                # HP: Dragon(S, elevat) 40% + Normal(S, clouds) 40% + Ground(A, dust) 20%
-                base_hp=base_stat_asymmetric_scaling(
-                    utils.clamp(
-                        signals["elevat"].normal * 0.40
-                        + signals["clouds"].normal * 0.40
-                        + signals["dust"].normal * 0.20,
-                        minimum=0.0,
-                        maximum=1.0,
-                    ),
-                    stat="hp",
-                ),
-                # Attack: Fighting(S, windgu) 34% + Ground(A, dust) 17% + Dark(A, ~visibl) 17% + Dragon(A, elevat) + Rock(A, elevat) 33%
-                base_attack=base_stat_asymmetric_scaling(
-                    utils.clamp(
-                        signals["windgu"].normal * 0.34
-                        + signals["dust"].normal * 0.17
-                        + inv_vis * 0.17
-                        + signals["elevat"].normal * 0.33,
-                        minimum=0.0,
-                        maximum=1.0,
-                    ),
-                    stat="attack",
-                ),
-                # Defense: Steel(S, pressr) 33% + Rock(S, elevat) + Dragon(A, elevat) 50% + Ground(A, dust) 17%
-                # ^0.4 lifts low-elevation + low-pressure cities from floor
-                base_defense=base_stat_asymmetric_scaling(
-                    utils.clamp(
-                        signals["pressr"].normal * 0.33
-                        + signals["elevat"].normal * 0.50
-                        + signals["dust"].normal * 0.17,
-                        minimum=0.0,
-                        maximum=1.0,
-                    ) ** 0.4,
-                    stat="defense",
-                ),
-                # Sp. Atk: Psychic(S, pressrng) 33% + Fire(S, radiat) 33% + Electric(A, cape_m) 17% + Ghost(A, ~visibl) 17%
-                base_sp_attack=base_stat_asymmetric_scaling(
-                    utils.clamp(
-                        signals["pressrng"].normal * 0.33
-                        + signals["radiat"].normal * 0.33
-                        + signals["cape_m"].normal * 0.17
-                        + inv_vis * 0.17,
-                        minimum=0.0,
-                        maximum=1.0,
-                    ),
-                    stat="sp_attack",
-                ),
-                # Sp. Def: Fairy(S, uv_idx) 33% + Psychic(A, pressr) 17% + Grass(A, transp) 17% + Ice(A, tmp_lo) 17% + Water(A, precip) 17%
-                base_sp_defense=base_stat_asymmetric_scaling(
-                    utils.clamp(
-                        signals["uv_idx"].normal * 0.33
-                        + signals["pressr"].normal * 0.17
-                        + signals["transp"].normal * 0.17
-                        + signals["tmp_lo"].normal * 0.17
-                        + signals["precip"].normal * 0.17,
-                        minimum=0.0,
-                        maximum=1.0,
-                    ),
-                    stat="sp_defense",
-                ),
-                # Speed: Dragon(S, elevat) 40% + Electric(A, cape_m) 20% + Dark(A, ~visibl) 20% + Flying(A, windsp) 20%
-                base_speed=base_stat_asymmetric_scaling(
-                    utils.clamp(
-                        signals["elevat"].normal * 0.40
-                        + signals["cape_m"].normal * 0.20
-                        + inv_vis * 0.20
-                        + signals["windsp"].normal * 0.20,
-                        minimum=0.0,
-                        maximum=1.0,
-                    ),
-                    stat="speed",
-                ),
+                base_hp=base_stat_asymmetric_scaling(ratio(hp_signal, stat="hp"), stat="hp"),
+                base_attack=base_stat_asymmetric_scaling(ratio(atk_signal, stat="attack"), stat="attack"),
+                base_defense=base_stat_asymmetric_scaling(ratio(def_signal, stat="defense"), stat="defense"),
+                base_sp_attack=base_stat_asymmetric_scaling(ratio(spa_signal, stat="sp_attack"), stat="sp_attack"),
+                base_sp_defense=base_stat_asymmetric_scaling(ratio(spd_signal, stat="sp_defense"), stat="sp_defense"),
+                base_speed=base_stat_asymmetric_scaling(ratio(spe_signal, stat="speed"), stat="speed"),
             ),
             visual_notes=wmo_code.description,
             intensity=self.calculate_intensity(s, index=i),
