@@ -100,7 +100,7 @@ def apply_evo_seed_bst_bias(
         types.EvolutionStageT.ULTRA_LEGENDARY:  [675],
     }
 
-    scale_factor = BST_SCALING_MATRIX[evo_seed][evo_stage] / sum(stats.values())
+    scale_factor = BST_SCALING_MATRIX[evo_seed][evo_stage - 1] / sum(stats.values())
     scaled: dict[str, int] = {}
 
     for key, value in stats.items():
