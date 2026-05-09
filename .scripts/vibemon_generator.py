@@ -34,28 +34,19 @@ import sqlalchemy as sa
 _LOGGER = structlog.get_logger(__name__)
 
 
-async def ensure_move_effects_column(conn) -> None:
-    """Add the modern effects JSON column to older local SQLite databases."""
-    columns = await conn.run_sync(
-        lambda sync_conn: {
-            row[1] for row in sync_conn.exec_driver_sql("PRAGMA table_info(move)")
-        }
-    )
-    if "effects" not in columns:
-        await conn.exec_driver_sql("ALTER TABLE move ADD COLUMN effects JSON")
-
-
 def schema_to_models(
     vibemon: schema.Vibemon,
     *,
-    birth_context: schema.BirthContext | None = None,
+    birth_seed: schema.BirthSeed | None = None,
+    birth_snapshot: schema.BirthSnapshot | None = None,
     moves_cache: dict[str, models.Move] | None = None,
 ) -> models.Vibemon:
     """Convert Pydantic schema objects to SQLAlchemy models.
 
     Builds a relationship graph rooted at the returned ``models.Vibemon``;
     a single ``session.add(...)`` cascades through ``affinity``, ``identity``,
-    ``moves``, ``birth_context``, and ``birth_affinities`` via the
+    ``moves``, ``birth_seed`` (with nested ``birth_snapshots``), and
+    ``birth_affinities`` via the
     ``back_populates`` wiring.
 
     Moves are de-duplicated by name (``models.Move.name`` is ``unique=True``).
@@ -76,12 +67,6 @@ def schema_to_models(
 
     def _move(move: schema.Move) -> models.Move:
         if (existing := moves_by_name.get(move.name)) is not None:
-            if existing.effect is None and move.effect is not None:
-                existing.effect = move.effect.model_dump(mode="json")
-            if not existing.effects and move.effects:
-                existing.effects = [
-                    group.model_dump(mode="json") for group in move.effects
-                ]
             return existing
 
         m = models.Move(
@@ -93,9 +78,6 @@ def schema_to_models(
             accuracy=move.accuracy,
             pp=move.pp,
             priority=move.priority,
-            effect=move.effect.model_dump(mode="json")
-            if move.effect is not None
-            else None,
             effects=[group.model_dump(mode="json") for group in move.effects],
             level_requirement=move.level_requirement,
         )
@@ -127,11 +109,19 @@ def schema_to_models(
             moves=[_move(m) for m in affinity.moves],
         )
 
-    def _birth_context(ctx: schema.BirthContext) -> models.BirthContext:
-        return models.BirthContext(
-            timestamp=int(ctx.timestamp.timestamp()),
-            geo_coords=list(ctx.geo_coords),
-            provider_names=[p.name for p in ctx.providers],
+    def _birth_seed(seed: schema.BirthSeed) -> models.BirthSeed:
+        return models.BirthSeed(
+            timestamp=int(seed.timestamp.timestamp()),
+            geo_coords=list(seed.geo_coords),
+            provider_names=[provider.name for provider in seed.providers],
+        )
+
+    def _birth_snapshot(snapshot: schema.BirthSnapshot) -> models.BirthSnapshot:
+        return models.BirthSnapshot(
+            provider_payloads={
+                provider_id: payload
+                for provider_id, payload in snapshot.provider_payloads.items()
+            }
         )
 
     model_vibemon = models.Vibemon(
@@ -141,8 +131,18 @@ def schema_to_models(
         birth_affinities=[_affinity(a) for a in vibemon.birth_affinities],
     )
 
-    if birth_context is not None:
-        model_vibemon.birth_context = _birth_context(birth_context)
+    model_birth_seed: models.BirthSeed | None = None
+
+    if birth_seed is not None:
+        model_birth_seed = _birth_seed(birth_seed)
+
+    if birth_snapshot is not None:
+        if model_birth_seed is None:
+            raise ValueError("birth_snapshot requires a birth_seed.")
+        model_birth_seed.birth_snapshots.append(_birth_snapshot(birth_snapshot))
+
+    if model_birth_seed is not None:
+        model_vibemon.birth_seed = model_birth_seed
 
     return model_vibemon
 
@@ -161,7 +161,6 @@ async def database_session(db_path: str | None = None) -> AsyncIterator[AsyncSes
     try:
         async with engine.begin() as conn:
             await conn.run_sync(models.Base.metadata.create_all)
-            await ensure_move_effects_column(conn)
 
         async_session = sessionmaker(
             engine, class_=AsyncSession, expire_on_commit=False
@@ -190,17 +189,18 @@ def get_random_city() -> geonamescache.City:
 
 async def generate_vibemon_in_world(
     **vibemon_options,
-) -> tuple[str, str, schema.BirthContext, schema.Vibemon]:
+) -> tuple[str, str, schema.BirthSeed, schema.BirthSnapshot, schema.Vibemon]:
     """Generate a Vibemon in some random city."""
     city = get_random_city()
 
-    ctx = schema.BirthContext(
+    seed = schema.BirthSeed(
         timestamp=dt.datetime.now(tz=dt.timezone.utc),
         geo_coords=(city["latitude"], city["longitude"]),
         providers=[ClimateProvider()],
     )
 
-    affinities = await ctx.regenerate()
+    snapshot = await seed.fetch_snapshot()
+    affinities = await snapshot.regenerate(seed.providers, seed)
     vibemon = await schema.Vibemon.birth(*affinities, **vibemon_options)
 
     if not settings.headless:
@@ -216,7 +216,7 @@ async def generate_vibemon_in_world(
             assert isinstance(sprite, Image), ""
             sprite.save(directory.joinpath(f"{key}.png"))
 
-    return (city["name"], city["country"], ctx, vibemon)
+    return (city["name"], city["country"], seed, snapshot, vibemon)
 
 
 async def stream_vibemon_in_world(
@@ -224,7 +224,7 @@ async def stream_vibemon_in_world(
     *,
     stagger: float = 2,
     **vibemon_options,
-) -> AsyncIterator[tuple[str, str, schema.BirthContext, schema.Vibemon]]:
+) -> AsyncIterator[tuple[str, str, schema.BirthSeed, schema.BirthSnapshot, schema.Vibemon]]:
     """Generate Vibemon concurrently, yielding each one as soon as it's ready.
 
     Tasks are launched with a per-task stagger so we don't hit upstream providers
@@ -235,7 +235,7 @@ async def stream_vibemon_in_world(
 
     async def _delayed(
         delay: float,
-    ) -> tuple[str, str, schema.BirthContext, schema.Vibemon] | None:
+    ) -> tuple[str, str, schema.BirthSeed, schema.BirthSnapshot, schema.Vibemon] | None:
         await asyncio.sleep(delay)
         try:
             return await generate_vibemon_in_world(**vibemon_options)
@@ -261,6 +261,7 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--count", type=int, default=150)
     parser.add_argument("--core-identity", type=str, default=None)
     parser.add_argument("--headless", action="store_true", default=False)
+    parser.add_argument("--stagger", type=float, default=2.0)
     parser.add_argument("--db-path", type=str, default=pathlib.Path(__file__).parent.joinpath("vibemon.db").as_posix())
     return parser.parse_args()
 
@@ -275,15 +276,22 @@ async def main() -> None:
 
     await _LOGGER.ainfo("Starting", headless=settings.headless)
 
-    rows: list[tuple[str, str, schema.BirthContext, schema.Vibemon]] = []
+    rows: list[tuple[str, str, schema.BirthSeed, schema.BirthSnapshot, schema.Vibemon]] = []
 
     async with database_session(db_path=args.db_path) as sess:
         existing_moves = (await sess.execute(sa.select(models.Move))).scalars().all()
         moves_cache: dict[str, models.Move] = {m.name: m for m in existing_moves}
 
-        async for item in stream_vibemon_in_world(count=args.count, core_identity=args.core_identity):
-            _, country, ctx, vibemon = item
-            sess.add(schema_to_models(vibemon, birth_context=ctx, moves_cache=moves_cache))
+        async for item in stream_vibemon_in_world(count=args.count, stagger=args.stagger, core_identity=args.core_identity):
+            _, country, seed, snapshot, vibemon = item
+            sess.add(
+                schema_to_models(
+                    vibemon,
+                    birth_seed=seed,
+                    birth_snapshot=snapshot,
+                    moves_cache=moves_cache,
+                )
+            )
             await sess.commit()
             await _LOGGER.ainfo(
                 "Persisted Vibemon",

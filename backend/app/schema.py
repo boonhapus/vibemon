@@ -8,7 +8,7 @@ import structlog
 
 import pydantic
 
-from app.balance.formulas import base_stat_level_scaling
+from app.balance.formulas import apply_evo_seed_bst_bias, base_stat_level_scaling
 from app.genai.client import generate_battle_cry, generate_vibemon_sprite
 from app.plugins.provider import VibeProvider
 from app.settings import settings
@@ -44,17 +44,65 @@ class _Transient(pydantic.BaseModel):
 # ── SEED ──────────────────────────────────────────────────────────────────────────────
 
 
-class BirthContext(_Static, arbitrary_types_allowed=True):
-    """Represents the context in which a Vibemon is being created under."""
+class BirthSnapshot(_Static):
+    """Captured provider payloads used to synthesize affinities."""
+
+    provider_payloads: dict[str, dict[str, Any]]
+
+    async def regenerate(self, providers: Iterable[VibeProvider], seed: BirthSeed) -> Iterable[Affinity]:
+        """Given a seed + captured payloads, create affinities without new API calls."""
+        providers_by_name = {provider.name: provider for provider in providers}
+
+        missing_provider_ids = [
+            provider_id
+            for provider_id in self.provider_payloads
+            if provider_id not in providers_by_name
+        ]
+
+        if missing_provider_ids:
+            missing = ", ".join(sorted(set(missing_provider_ids)))
+            raise ValueError(f"Missing provider implementations for captured snapshot: {missing}")
+
+        affinities = await asyncio.gather(
+            *(
+                providers_by_name[provider_id].synthesize(seed, payload)
+                for provider_id, payload in self.provider_payloads.items()
+            )
+        )
+        return affinities
+
+
+class BirthSeed(_Static, arbitrary_types_allowed=True):
+    """Reproducible input used to fetch provider payloads."""
 
     timestamp: dt.datetime
     geo_coords: tuple[float, float]
     providers: list[VibeProvider]
 
+    @property
+    def datestamp(self) -> dt.date:
+        """Get the date of the birth seed."""
+        return self.timestamp.astimezone(dt.timezone.utc).date()
+
+    @property
+    def random_seed(self) -> int:
+        """Stable integer seed for deterministic synthesize()."""
+        return hash((self.timestamp, self.geo_coords))
+
+    async def fetch_snapshot(self) -> BirthSnapshot:
+        """Fetch provider payloads for this seed."""
+        payloads = await asyncio.gather(*(provider.fetch(self) for provider in self.providers))
+        return BirthSnapshot(
+            provider_payloads={
+                provider.name: payload
+                for provider, payload in zip(self.providers, payloads, strict=True)
+            }
+        )
+
     async def regenerate(self) -> Iterable[Affinity]:
-        """Given the context, create the nature of a vibemon."""
-        affinities = await asyncio.gather(*(p.synthesize(self) for p in self.providers))
-        return affinities
+        """Fetch provider payloads, then synthesize affinities from that snapshot."""
+        snapshot = await self.fetch_snapshot()
+        return await snapshot.regenerate(self.providers, self)
 
 
 # ── IDENTITY ──────────────────────────────────────────────────────────────────────────
@@ -91,8 +139,8 @@ class Identity(_Static):
     base_speed: int      = pydantic.Field(default=70, ge= 5, le=200, json_schema_extra={"min":  5, "med": 70, "max": 200})
     # fmt: on
 
-    evo_seed: int = pydantic.Field(default_factory=lambda: random.randint(1, 3))
-    """The number of evolutions for this Vibemon."""
+    evo_seed: types.EvolutionStageT = pydantic.Field(default_factory=types.EvolutionStageT.random_seed)
+    """The max evolution stage for this Vibemon."""
 
     evo_stage: types.EvolutionStageT = types.EvolutionStageT.BASE
     """The current evolution of this Vibemon."""
@@ -109,8 +157,7 @@ class Identity(_Static):
 
     @property
     def bst(self) -> int:
-        """
-        The Base Stat Total (BST).
+        """The Base Stat Total (BST).
 
         Calculates the sum of all six base stats to provide a single value
         representing the species' overall power tier.
@@ -126,15 +173,7 @@ class Identity(_Static):
 
     @property
     def tier(self) -> types.TierT:
-        """
-        Determines the tier classification based on BST ranges.
-
-        RUNT .... BST   < 400
-        MID ..... BST 400-499
-        SOLID ... BST 500-569
-        APEX .... BST 570-669
-        MYTHIC .. BST  >= 670
-        """
+        """Determines the tier classification based on BST ranges."""
         match self.bst:
             case b if b < 400:
                 return types.TierT.RUNT
@@ -288,12 +327,18 @@ class Affinity(_Static, validate_assignment=True):
             _LOGGER.exception("Total is zero.", affinities=affinities)
             raise
 
+        evo_seed = types.EvolutionStageT.random_seed()
+        evo_stage = types.EvolutionStageT.BASE
+        stats_scaled = apply_evo_seed_bst_bias(stats_merged, evo_seed=evo_seed, evo_stage=evo_stage)
+
         merged_affinity = Affinity(
             identity=Identity(
                 name=name,
                 visual_notes=core_identity_description,
                 elements=tuple(set(elements)),
-                **stats_merged,
+                evo_seed=evo_seed,
+                evo_stage=evo_stage,
+                **stats_scaled,
             ),
             visual_notes=" ".join(notes),
             provider_id="merged",
@@ -369,15 +414,6 @@ class Aesthetic(_Transient):
 
 
 # ── MOVES ─────────────────────────────────────────────────────────────────────────────
-
-
-class MoveEffect(_Static):
-    """Secondary effects that may occur when a move is used."""
-
-    status_inflict: types.StatusConditionT | None = None
-    stat_changes: dict[types.StatStageNameT, int] = pydantic.Field(default_factory=dict)
-    target_self: bool = False
-    chance: float = 1.0
 
 
 type EffectTarget = Literal["self", "target", "all_targets", "side", "opposing_side"]
@@ -630,3 +666,9 @@ class Vibemon(_Transient):
     def speed(self) -> int:
         """Calculates the actual Speed stat."""
         return base_stat_level_scaling(self.affinity.identity.base_speed, level=self.level)
+
+    @property
+    def moves(self) -> list[Move]:
+        """The nickname or identity name of a Vibemon."""
+        assert len(self.affinity.moves) == 4, "Vibemon cannot have more than 4 total moves."
+        return self.affinity.moves

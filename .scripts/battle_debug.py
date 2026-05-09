@@ -79,17 +79,6 @@ STAGE_FIELDS = (
 DB_PATH = pathlib.Path(__file__).parent / "vibemon.db"
 
 
-async def ensure_move_effects_column(conn) -> None:
-    """Add the modern effects JSON column to older local SQLite databases."""
-    columns = await conn.run_sync(
-        lambda sync_conn: {
-            row[1] for row in sync_conn.exec_driver_sql("PRAGMA table_info(move)")
-        }
-    )
-    if "effects" not in columns:
-        await conn.exec_driver_sql("ALTER TABLE move ADD COLUMN effects JSON")
-
-
 def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser()
     parser.add_argument("--render", choices=("rich", "chat"), default="rich")
@@ -278,7 +267,7 @@ def _build_vibemon_panel(
         lines.append(stage_line)
 
     lines.append(text.Text("Moves:", style="dim"))
-    for move in v.moves:
+    for move in v.battle_moves:
         lines.append(_build_move_line(move))
 
     volatile = _volatile_effects(v)
@@ -433,7 +422,7 @@ def _vibemon_plain(label: str, vibemon: battle_schema.BattleVibemon) -> str:
     types_text = "/".join(t.value for t in vibemon.elements)
     moves = ", ".join(
         f"{move.name} [{move.type.value}, {move.category.value}, {move.power or '-'}]"
-        for move in vibemon.moves
+        for move in vibemon.battle_moves
     )
     fainted = " fainted" if vibemon.is_fainted else ""
     bst = vibemon.affinity.identity.bst
@@ -471,7 +460,7 @@ def print_chat_turn(
 def choose_random_usable_move(
     vibemon: battle_schema.BattleVibemon,
 ) -> battle_schema.BattleMove:
-    usable_moves = [move for move in vibemon.moves if move.pp_current > 0]
+    usable_moves = [move for move in vibemon.battle_moves if move.pp_current > 0]
     if not usable_moves:
         raise RuntimeError(f"{vibemon.name} has no moves with remaining PP")
     return random.choice(usable_moves)
@@ -487,7 +476,6 @@ def _model_move_to_schema(move: models.Move) -> schema.Move:
         accuracy=move.accuracy,
         pp=move.pp,
         priority=move.priority,
-        effect=schema.MoveEffect(**move.effect) if move.effect is not None else None,
         effects=tuple(
             schema.EffectGroup.model_validate(group) for group in (move.effects or ())
         ),
@@ -537,9 +525,6 @@ async def load_random_battle_vibemon(
 ) -> list[battle_schema.BattleVibemon]:
     engine = create_async_engine(f"sqlite+aiosqlite:///{DB_PATH}")
     try:
-        async with engine.begin() as conn:
-            await ensure_move_effects_column(conn)
-
         async_session = sessionmaker(
             engine, class_=AsyncSession, expire_on_commit=False
         )

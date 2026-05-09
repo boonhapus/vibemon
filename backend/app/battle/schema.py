@@ -52,7 +52,7 @@ class BattleVibemon(schema.Vibemon, frozen=False, validate_assignment=True):
     """Transient battle state layered on top of a Vibemon."""
 
     current_hp: int = 0
-    moves: list[BattleMove] = pydantic.Field(default_factory=list)
+    battle_moves: list[BattleMove] = pydantic.Field(default_factory=list)
     status: types.StatusConditionT = types.StatusConditionT.NONE
     stat_stages: StatStages = pydantic.Field(default_factory=StatStages)
     crit_stage: int = 0
@@ -70,8 +70,8 @@ class BattleVibemon(schema.Vibemon, frozen=False, validate_assignment=True):
     def _apply_battle_defaults(self) -> Self:
         if "current_hp" not in self.model_fields_set:
             self.current_hp = self.hp
-        if not self.moves:
-            self.moves = [BattleMove(**move.model_dump()) for move in self.affinity.moves]
+        if not self.battle_moves:
+            self.battle_moves = [BattleMove(**move.model_dump()) for move in self.moves]
         return self
 
     @property

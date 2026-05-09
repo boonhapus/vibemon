@@ -20,7 +20,8 @@ class VibeProvider(abc.ABC):
     Subclasses only need to:
     - set `name` class attribute
     - declare `exposed_elements` with Annotated metadata mapping types to real-world signals
-    - implement `synthesize()` to translate raw API data to Affinity components
+    - implement `fetch()` to capture provider payloads from external APIs
+    - implement `synthesize()` to translate captured payloads to Affinity components
     - optionally override `teardown()` when managing resources
 
     ──── Docstring convention for subclasses ───────────────────────────────────────────
@@ -61,19 +62,16 @@ class VibeProvider(abc.ABC):
 
             # Get arguments: [Type, Metadata1, ...]
             args = get_args(annotated_type)
+
             if len(args) < 2 or not isinstance(args[1], str):
                 continue
 
             raw_element, description = args[0], args[1]
 
-            # NEW IN 3.14: Use annotationlib to resolve forward refs or strings
             if isinstance(raw_element, (str, annotationlib.ForwardRef)):
                 # Evaluate the reference into a real object
                 # Format.VALUE ensures it tries to find the actual class/type
-                element = annotationlib.Format.VALUE.evaluate(
-                    raw_element, 
-                    owner=cls
-                )
+                element = annotationlib.Format.VALUE.evaluate(raw_element, owner=cls)
             else:
                 element = raw_element
 
@@ -100,11 +98,21 @@ class VibeProvider(abc.ABC):
         raise exception
 
     @abc.abstractmethod
-    async def synthesize(self, ctx: schema.BirthContext) -> schema.Affinity:
+    async def fetch(self, seed: schema.BirthSeed) -> dict[str, Any]:
         """
-        Translate raw API data to Affinity components.
+        Fetch and return a provider payload from upstream sources.
 
-        Use ctx.geo_coords, ctx.timestamp, ctx.providers as needed.
+        Use seed.geo_coords and seed.timestamp as needed.
+        Return provider-owned data (raw and/or deterministic enrichment)
+        that can be persisted and replayed.
+        """
+
+    @abc.abstractmethod
+    async def synthesize(self, seed: schema.BirthSeed, payload: dict[str, Any]) -> schema.Affinity:
+        """
+        Translate captured provider payload to Affinity components.
+
+        Must be pure with respect to external providers: do not make new API calls here.
         Return a complete Affinity with identity, moves, intensity, and visual_notes.
         """
 

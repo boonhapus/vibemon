@@ -79,20 +79,42 @@ class Affinity(Base):
         ForeignKeyConstraint(["identity_id"], ["identity.id"], name="fk_affinity_identity", ondelete="CASCADE"),
     )
 
-    identity: Mapped["Identity"] = relationship(back_populates="affinity")
+    identity: Mapped["Identity"] = relationship(
+        back_populates="affinity", uselist=False, single_parent=True,
+        cascade="all, delete-orphan",
+    )
     vibemon: Mapped["Vibemon"] = relationship(back_populates="affinity", uselist=False)
     moves: Mapped[list["Move"]] = relationship(secondary=affinity_moves, back_populates="affinities")
 
 
-class BirthContext(Base):
-    __tablename__ = "birth_context"
+class BirthSeed(Base):
+    __tablename__ = "birth_seed"
 
     id: Mapped[uuid.UUID] = mapped_column(primary_key=True, default=uuid.uuid7)
     timestamp: Mapped[int]
     geo_coords: Mapped[list[float]] = mapped_column(JSON)
     provider_names: Mapped[list[str]] = mapped_column(JSON)
 
-    vibemon: Mapped["Vibemon"] = relationship(back_populates="birth_context", uselist=False)
+    vibemon: Mapped["Vibemon"] = relationship(back_populates="birth_seed", uselist=False)
+    birth_snapshots: Mapped[list["BirthSnapshot"]] = relationship(
+        back_populates="birth_seed", cascade="all, delete-orphan", single_parent=True,
+    )
+
+
+class BirthSnapshot(Base):
+    __tablename__ = "birth_snapshot"
+
+    id: Mapped[uuid.UUID] = mapped_column(primary_key=True, default=uuid.uuid7)
+    birth_seed_id: Mapped[uuid.UUID]
+    provider_payloads: Mapped[dict[str, dict]] = mapped_column(JSON)
+
+    __table_args__ = (
+        ForeignKeyConstraint(
+            ["birth_seed_id"], ["birth_seed.id"], name="fk_birth_snapshot_birth_seed", ondelete="CASCADE"
+        ),
+    )
+
+    birth_seed: Mapped["BirthSeed"] = relationship(back_populates="birth_snapshots")
 
 
 class Vibemon(Base):
@@ -101,16 +123,22 @@ class Vibemon(Base):
     id: Mapped[uuid.UUID] = mapped_column(primary_key=True, default=uuid.uuid7)
     nickname: Mapped[str | None]
     affinity_id: Mapped[uuid.UUID] = mapped_column(unique=True)
-    birth_context_id: Mapped[uuid.UUID | None]
+    birth_seed_id: Mapped[uuid.UUID | None]
     level: Mapped[int]
 
     __table_args__ = (
         ForeignKeyConstraint(["affinity_id"], ["affinity.id"], name="fk_vibemon_affinity", ondelete="CASCADE"),
         ForeignKeyConstraint(
-            ["birth_context_id"], ["birth_context.id"], name="fk_vibemon_birth_context", ondelete="SET NULL"
+            ["birth_seed_id"], ["birth_seed.id"], name="fk_vibemon_birth_seed", ondelete="SET NULL"
         ),
     )
 
-    affinity: Mapped["Affinity"] = relationship(back_populates="vibemon")
-    birth_context: Mapped["BirthContext | None"] = relationship(back_populates="vibemon")
-    birth_affinities: Mapped[list["Affinity"]] = relationship(secondary=vibemon_birth_affinities)
+    affinity: Mapped["Affinity"] = relationship(
+        back_populates="vibemon", cascade="all, delete-orphan", single_parent=True,
+    )
+    birth_seed: Mapped["BirthSeed | None"] = relationship(
+        back_populates="vibemon", cascade="all, delete-orphan", single_parent=True,
+    )
+    birth_affinities: Mapped[list["Affinity"]] = relationship(
+        secondary=vibemon_birth_affinities, cascade="all, delete-orphan", single_parent=True,
+    )
