@@ -1,43 +1,44 @@
-# Monstore: Asset Storage + Sprite Lifecycle Refactor
+# Monstore: Asset Storage + Vibemon Lifecycle Refactor
 
-> Pickup doc. Self-contained. Read top-to-bottom and you have everything.
+> Pickup doc. Self-contained. This supersedes the older sprite-store-only plan.
 
 ---
 
 ## Why this work exists
 
 `backend/app/sprite_store.py` was built for one thing: persist a single
-sprite-sheet PNG per Vibemon. That assumption now blocks three things:
+sprite-sheet PNG per Vibemon. That assumption now blocks the intended product
+flow:
 
-1. **Cost**: `generate_vibemon_sprite` makes two image-model calls
-   (reference → sheet) in one shot. Users who reject the preview pay for
-   the sheet anyway. We want reference-only at preview, sheet only at
-   adoption.
-2. **Asset diversity**: We're adding many MP3 assets — battle cry, faint,
-   six emote sounds matching the six emote sprites. The current store
-   API and `Aesthetic` shape have no room for them.
-3. **Aesthetic shape**: `Aesthetic.battle_cry: bytes` lives inline on the
-   model alongside `sprite_sheet_key: str` (a key) and `sprites:
-   SpriteLayout` (in-memory derived). Three ways to address one thing.
+1. **Cost control**: preview should generate only the assets needed for a
+   trainer to evaluate a Vibemon. The sprite sheet and pose split should happen
+   only when the trainer adopts the Vibemon.
+2. **Asset diversity**: Vibemon now needs multiple image and audio assets:
+   reference art, sprite sheet, per-pose PNGs, battle cry, and reserved future
+   faint/emote sounds.
+3. **Production storage shape**: asset bytes belong in object storage, while
+   the database should store stable object keys and metadata. Do not store
+   inline bytes or presigned URLs in relational rows.
+4. **Lifecycle clarity**: naming, preview asset generation, adoption, full
+   manifestation, future evolution, trainer ownership, and wilderness state
+   should live in explicit lifecycle orchestration rather than hidden Pydantic
+   methods.
 
-**Goal**: one asset store keyed by `<vibemon_uuid>/v1/<asset>`, a sprite
-pipeline split across `christen()` (reference) + `render_aesthetic()`
-(sheet → pose split → cry), and an `Aesthetic` that holds *only*
-references.
+**Goal**: one asset store keyed by `<vibemon_uuid>/v1/<asset>`, a persisted
+`vibemon_asset` metadata table, lifecycle functions for `christen()` and
+`adopt()`, and an `Aesthetic` that holds only asset references.
 
 ---
 
-## Current state — what exists today
+## Current state
 
 ### `backend/app/sprite_store.py`
 
+The current store is sheet-only, slug-keyed, and configured by
+`settings.sprite_store_url`.
+
 ```python
 SHEET_FILENAME = "sprite-sheet.png"
-_UNSIGNABLE_SCHEMES = frozenset({"file", "memory"})
-
-@lru_cache(maxsize=1)
-def _store() -> ObjectStore:
-    return from_url(settings.sprite_store_url)
 
 def sheet_key(vibemon_slug: str) -> str:
     return f"{vibemon_slug}/{SHEET_FILENAME}"
@@ -47,250 +48,529 @@ async def get_sheet(key: str) -> bytes: ...
 async def sheet_url(key, *, expires_in=dt.timedelta(hours=1)) -> str: ...
 ```
 
-Hardcoded "sheet". Slug-keyed, not UUID-keyed.
+### `backend/app/genai/client.py`
 
-### `backend/app/genai/client.py:39-63`
+`generate_vibemon_sprite()` currently performs the reference generation and
+sheet generation in one call, so callers cannot stop after preview.
 
-```python
-async def generate_vibemon_sprite(vibemon: schema.Vibemon) -> bytes:
-    p = utils.load_prompt("sprite-reference.mdc", vibemon=vibemon)
-    r = await FAST_IMG_AGENT.run(p)
-    d = app_utils.normalize_sprite_matte(r.output.data, bg_color=..., rows=1, cols=1)
+### `backend/app/schema.py`
 
-    p = utils.load_prompt("sprite-sheet.mdc", vibemon=vibemon)
-    r = await FAST_IMG_AGENT.run([pydantic_ai.BinaryImage(data=d, ...), p])
-    d = app_utils.normalize_sprite_matte(r.output.data, bg_color=...)
+`Aesthetic` currently mixes three storage shapes:
 
-    if issues := app_utils.validate_sprite_sheet(d):
-        raise RuntimeError(...)
-    return d
-```
+- `sprite_sheet_key: str | None`
+- `sprites: SpriteLayout | None`
+- `battle_cry: bytes | None`
 
-Two model calls glued together. Caller can't intercept after reference.
+`Vibemon` currently has no schema-level id, even though `models.Vibemon` has a
+UUID primary key. That means generated asset keys cannot reliably align with DB
+rows unless schema owns the canonical id first.
 
-### `backend/app/schema.py:399-458` — `Aesthetic`
+### `.scripts/vibemon_generator.py`
 
-```python
-class Aesthetic(_Transient):
-    primary_color: brand.Color
-    secondary_color: brand.Color | None = None
-    background_color: brand.Color
-
-    sprite_sheet_key: str | None = None     # ← obstore key
-    sprites: SpriteLayout | None = ...      # ← in-memory dict, derived
-    battle_cry: bytes | None = None         # ← inline bytes!
-
-    _vibemon: Vibemon | None = None
-
-    async def regenerate(self) -> Self:
-        async with asyncio.TaskGroup() as g:
-            sprite_task = g.create_task(generate_vibemon_sprite(...))
-            cry_task = g.create_task(generate_battle_cry(...))
-        sheet_bytes = sprite_task.result()
-        self.sprite_sheet_key = await sprite_store.put_sheet(self._vibemon.name, sheet_bytes)
-        self.sprites = utils.extract_sprites(image=sheet_bytes)
-        self.battle_cry = cry_task.result()
-        return self
-```
-
-### `backend/app/types.py:153-172` — `SpriteLayout`
-
-TypedDict with literal `sheet` plus 9 named poses. Returned by
-`utils.extract_sprites`. Going away.
-
-### `backend/app/schema.py:682-700` — Vibemon lifecycle
-
-```python
-async def christen(self) -> Self:           # LLM-name only
-    name = await generate_vibemon_name(...)
-    self.affinity = ...model_copy(update={"identity": ...})
-    return self
-
-async def render_aesthetic(self) -> Self:   # sprites + cry concurrent
-    self._aesthetic = Aesthetic.from_vibemon(self)
-    await self._aesthetic.regenerate()
-    return self
-```
-
-`Vibemon` has **no `id` field today** (the SQLAlchemy `models.Vibemon` does
-— `models.py:124`). We need to add one to `schema.Vibemon` so
-in-memory and persisted ids match for path keying.
-
-### `.scripts/vibemon_generator.py:122-130`
-
-```python
-def write_aesthetic_to_disk(vibemon):
-    aesthetic = vibemon.aesthetic
-    assert aesthetic.battle_cry is not None and aesthetic.sprites is not None
-    directory = pathlib.Path(__file__).parent / "generated" / vibemon.name.lower()
-    directory.mkdir(parents=True, exist_ok=True)
-    directory.joinpath("battle_cry.mp3").write_bytes(aesthetic.battle_cry)
-    for key, sprite in aesthetic.sprites.items():
-        sprite.save(directory.joinpath(f"{key}.png"))
-```
-
-Reads inline `battle_cry` bytes + iterates `sprites` dict. Both gone after
-refactor → must `await aesthetic.bytes_for(kind)`.
+The generator currently uses `--headless` to skip full aesthetic rendering and
+writes debug assets under `.scripts/generated/<name>/`, which can collide across
+duplicate names or renamed Vibemon.
 
 ---
 
-## Decisions (already locked in with user)
+## Locked decisions
 
-| # | Question | Answer |
-|---|---|---|
-| 1 | Reference image — store or ephemeral? | **Store it.** Reused by sheet stage. |
-| 2 | When does reference get generated? | **In `christen()`** — uses identity name. |
-| 3 | Keep `SpriteLayout` TypedDict? | **Drop.** Per-pose PNGs persisted individually. |
-| 4 | Asset path scheme? | `<vibemon_uuid>/v1/<asset>.<ext>` — UUID, not slug. |
-| 5 | `Aesthetic.battle_cry: bytes` stays? | **No.** Only keys persisted. |
-| 6 | Module name? | **`monstore`** (Vibemon + obstore). |
-| 7 | Audio scope now? | Enum reserves all kinds; only `CRY_BATTLE` wired. |
+| Topic | Decision |
+|---|---|
+| Blob storage | Store bytes in object storage, not the DB. |
+| DB metadata | Add a `vibemon_asset` child table with key, content metadata, checksum, and timestamps. |
+| Object key | `<vibemon_uuid>/v1/<asset-path>` using `str(uuid.UUID)`. |
+| Asset URLs | Store object keys, not signed URLs. Generate URLs on demand. |
+| Package boundary | Add `backend/app/data_store/` for object-store APIs and asset persistence helpers. |
+| `types/schema/const/models` convention | Follow `.agents/AGENTS.md`: types are vocabularies, schema is Pydantic data, const is fixed values/lookups, models is SQLAlchemy shape. |
+| `AssetKind` | Lives in `app.data_store.types`; values are relative paths with extensions. |
+| Static lookup tables | Live in `app.data_store.const`. |
+| `AssetRef` | Lives in `app.data_store.schema`; rich metadata object returned by `monstore.put()`. |
+| Aesthetic assets | `dict[AssetKind, AssetRef]`, not inline bytes or bare strings. |
+| `Aesthetic` ownership | Normal optional/field data object, no private `_vibemon` back-reference. |
+| Schema base | Replace `_Static` / `_Transient` with public `Schema` and `FrozenSchema`. |
+| Frozen value objects | Keep frozen only where value semantics matter: moves/effects/conditions, birth seed/snapshot, battle actions/events/results. |
+| Move identity | `Move` remains effectively frozen and name-identified; `BattleMove` is the mutable runtime version. |
+| Lifecycle package | Add `backend/app/lifecycle/`; no async I/O lifecycle methods on `schema.Vibemon`. |
+| Lifecycle states | `born`, `christened`, `manifested`. |
+| Preview contract | `christen()` finalizes name, then generates/stores `REFERENCE` and `CRY_BATTLE`. |
+| Adoption contract | `adopt(trainer_id)` assigns trainer ownership and manifests full assets. |
+| Manifested contract | Requires `REFERENCE`, `CRY_BATTLE`, `SHEET`, and all 9 pose assets. |
+| Trainer ownership | Add nullable `trainer_id`; wild/owned is derived from `trainer_id is None`. |
+| Trainer persistence | Add minimal `models.Trainer`; `models.Vibemon.trainer_id` is nullable FK with `SET NULL`. |
+| Script stages | Replace `--headless` with `--stage preview|adopt`. |
+| Cleanup | Add a conservative local cleanup script; dry-run by default, delete only with `--apply`. |
 
 ---
 
-## Target architecture
+## Target package layout
 
-### `backend/app/monstore.py` (new — replaces `sprite_store.py`)
+```text
+backend/app/
+  data_store/
+    __init__.py
+    types.py      # AssetKind
+    const.py      # ASSET_VERSION, POSE_TO_ASSET, required asset sets, MIME map
+    schema.py     # AssetRef
+    monstore.py   # object-store put/get/url helpers
+    assets.py     # DB helper mapping AssetRef <-> models.VibemonAsset
+  lifecycle/
+    __init__.py
+    vibemon.py    # christen, manifest, adopt; future evolution hooks
+  models.py       # SQLAlchemy table declarations
+  schema.py       # Pydantic domain data objects
+  types.py        # domain enums/type aliases
+  const.py        # domain fixed values/lookups
+```
+
+Do not move existing `app.models` into `data_store` during this refactor. Keep
+SQLAlchemy declarations centralized to avoid broad import churn.
+
+---
+
+## Data-store contract
+
+### `backend/app/data_store/types.py`
 
 ```python
-from enum import StrEnum
-from functools import lru_cache
-from urllib.parse import urlsplit
-import datetime as dt
-import uuid
-
-import obstore
-from obstore.store import ObjectStore, from_url
-
-from app.settings import settings
+import enum
 
 
-class AssetKind(StrEnum):
+class AssetKind(enum.StrEnum):
     REFERENCE = "sprite/reference.png"
-    SHEET     = "sprite/sheet.png"
+    SHEET = "sprite/sheet.png"
 
-    POSE_BATTLE_BACK      = "pose/battle-back.png"
-    POSE_BATTLE_HERO      = "pose/battle-hero.png"
-    POSE_BATTLE_OPPONENT  = "pose/battle-opponent.png"
-    POSE_EMOTE_RESTING    = "pose/emote-resting.png"
-    POSE_EMOTE_HAPPY      = "pose/emote-happy.png"
+    POSE_BATTLE_BACK = "pose/battle-back.png"
+    POSE_BATTLE_HERO = "pose/battle-hero.png"
+    POSE_BATTLE_OPPONENT = "pose/battle-opponent.png"
+    POSE_EMOTE_RESTING = "pose/emote-resting.png"
+    POSE_EMOTE_HAPPY = "pose/emote-happy.png"
     POSE_EMOTE_FRUSTRATED = "pose/emote-frustrated.png"
-    POSE_EMOTE_PROUD      = "pose/emote-proud.png"
-    POSE_EMOTE_CONFUSED   = "pose/emote-confused.png"
-    POSE_EMOTE_SAD        = "pose/emote-sad.png"
+    POSE_EMOTE_PROUD = "pose/emote-proud.png"
+    POSE_EMOTE_CONFUSED = "pose/emote-confused.png"
+    POSE_EMOTE_SAD = "pose/emote-sad.png"
 
     CRY_BATTLE = "audio/cry-battle.mp3"
-    CRY_FAINT  = "audio/cry-faint.mp3"
+    CRY_FAINT = "audio/cry-faint.mp3"
 
-    SOUND_EMOTE_RESTING    = "audio/emote-resting.mp3"
-    SOUND_EMOTE_HAPPY      = "audio/emote-happy.mp3"
+    SOUND_EMOTE_RESTING = "audio/emote-resting.mp3"
+    SOUND_EMOTE_HAPPY = "audio/emote-happy.mp3"
     SOUND_EMOTE_FRUSTRATED = "audio/emote-frustrated.mp3"
-    SOUND_EMOTE_PROUD      = "audio/emote-proud.mp3"
-    SOUND_EMOTE_CONFUSED   = "audio/emote-confused.mp3"
-    SOUND_EMOTE_SAD        = "audio/emote-sad.mp3"
+    SOUND_EMOTE_PROUD = "audio/emote-proud.mp3"
+    SOUND_EMOTE_CONFUSED = "audio/emote-confused.mp3"
+    SOUND_EMOTE_SAD = "audio/emote-sad.mp3"
+```
 
+Reserved faint/emote sound kinds are included now, but they are not required for
+`manifested` until generators exist.
 
-SCHEMA_PREFIX = "v1"
-_UNSIGNABLE_SCHEMES = frozenset({"file", "memory"})
+### `backend/app/data_store/const.py`
 
+```python
+ASSET_VERSION = "v1"
+UNSIGNABLE_SCHEMES = frozenset({"file", "memory"})
 
+POSE_TO_ASSET = {
+    app_types.PoseT.BATTLE_BACK: AssetKind.POSE_BATTLE_BACK,
+    app_types.PoseT.BATTLE_HERO: AssetKind.POSE_BATTLE_HERO,
+    app_types.PoseT.BATTLE_OPPONENT: AssetKind.POSE_BATTLE_OPPONENT,
+    app_types.PoseT.EMOTE_RESTING: AssetKind.POSE_EMOTE_RESTING,
+    app_types.PoseT.EMOTE_HAPPY: AssetKind.POSE_EMOTE_HAPPY,
+    app_types.PoseT.EMOTE_FRUSTRATED: AssetKind.POSE_EMOTE_FRUSTRATED,
+    app_types.PoseT.EMOTE_PROUD: AssetKind.POSE_EMOTE_PROUD,
+    app_types.PoseT.EMOTE_CONFUSED: AssetKind.POSE_EMOTE_CONFUSED,
+    app_types.PoseT.EMOTE_SAD: AssetKind.POSE_EMOTE_SAD,
+}
+
+ASSET_CONTENT_TYPES = {
+    AssetKind.REFERENCE: "image/png",
+    AssetKind.SHEET: "image/png",
+    # all pose kinds: "image/png"
+    AssetKind.CRY_BATTLE: "audio/mpeg",
+    # all MP3 kinds: "audio/mpeg"
+}
+
+REQUIRED_CHRISTEN_ASSETS = frozenset({
+    AssetKind.REFERENCE,
+    AssetKind.CRY_BATTLE,
+})
+
+REQUIRED_MANIFEST_ASSETS = frozenset({
+    AssetKind.REFERENCE,
+    AssetKind.CRY_BATTLE,
+    AssetKind.SHEET,
+    AssetKind.POSE_BATTLE_BACK,
+    AssetKind.POSE_BATTLE_HERO,
+    AssetKind.POSE_BATTLE_OPPONENT,
+    AssetKind.POSE_EMOTE_RESTING,
+    AssetKind.POSE_EMOTE_HAPPY,
+    AssetKind.POSE_EMOTE_FRUSTRATED,
+    AssetKind.POSE_EMOTE_PROUD,
+    AssetKind.POSE_EMOTE_CONFUSED,
+    AssetKind.POSE_EMOTE_SAD,
+})
+```
+
+Use explicit MIME lookups instead of `mimetypes`; the enum is controlled and
+small.
+
+### `backend/app/data_store/schema.py`
+
+```python
+class AssetRef(pydantic.BaseModel):
+    vibemon_id: uuid.UUID
+    kind: types.AssetKind
+    key: str
+    content_type: str
+    byte_size: int
+    sha256: str
+    version: str = const.ASSET_VERSION
+```
+
+Do not include DB timestamps in `AssetRef`. Blob write metadata and DB upsert
+timestamps are related but not identical.
+
+### `backend/app/data_store/monstore.py`
+
+```python
 @lru_cache(maxsize=1)
 def _store() -> ObjectStore:
     return from_url(settings.asset_store_url)
 
 
-def _scheme() -> str:
-    return urlsplit(settings.asset_store_url).scheme
+def asset_key(vibemon_id: uuid.UUID, kind: types.AssetKind) -> str:
+    return f"{vibemon_id}/{const.ASSET_VERSION}/{kind.value}"
 
 
-def asset_key(vibemon_id: uuid.UUID, kind: AssetKind) -> str:
-    return f"{vibemon_id}/{SCHEMA_PREFIX}/{kind.value}"
-
-
-async def put(vibemon_id: uuid.UUID, kind: AssetKind, data: bytes) -> str:
+async def put(
+    vibemon_id: uuid.UUID,
+    kind: types.AssetKind,
+    data: bytes,
+    *,
+    content_type: str | None = None,
+) -> schema.AssetRef:
     key = asset_key(vibemon_id, kind)
     await obstore.put_async(_store(), key, data)
-    return key
-
-
-async def get(key: str) -> bytes:
-    result = await obstore.get_async(_store(), key)
-    return bytes(await result.bytes_async())
-
-
-async def url(key: str, *, expires_in: dt.timedelta = dt.timedelta(hours=1)) -> str:
-    if _scheme() in _UNSIGNABLE_SCHEMES:
-        base = settings.asset_store_url.rstrip("/")
-        return f"{base}/{key}"
-    return await obstore.sign_async(_store(), "GET", key, expires_in)
+    return schema.AssetRef(
+        vibemon_id=vibemon_id,
+        kind=kind,
+        key=key,
+        content_type=content_type or const.ASSET_CONTENT_TYPES[kind],
+        byte_size=len(data),
+        sha256=hashlib.sha256(data).hexdigest(),
+        version=const.ASSET_VERSION,
+    )
 ```
 
-### `backend/app/settings.py` — rename
+Rules:
+
+- `put()` accepts only `AssetKind`, not arbitrary paths.
+- Do not read-after-write in the normal path. Trust successful
+  `obstore.put_async`.
+- `get(key)` returns bytes.
+- `url(key)` returns a URL string: direct `file://.../<key>` for local stores,
+  `memory:///.../<key>` for memory stores, signed URL for remote stores.
+
+### `backend/app/data_store/assets.py`
+
+DB helper responsibilities:
+
+- Convert `AssetRef` objects to `models.VibemonAsset` rows.
+- Upsert idempotently by `(vibemon_id, version, kind)`.
+- Preserve `created_at` on update.
+- Update `object_key`, `content_type`, `byte_size`, `sha256`, and `updated_at`.
+
+The object blob is written before the DB row. If DB persistence fails, an
+orphan blob is acceptable and retry-safe. A DB row pointing at a missing blob is
+worse and should be reported by integrity checks.
+
+---
+
+## Settings
+
+Rename:
 
 ```python
-# old
 sprite_store_url: str = "file://./.generated/sprites"
-# new
+```
+
+to:
+
+```python
 asset_store_url: str = "file://./.generated/monstore"
 ```
 
-Update validator name + reference. Behavior unchanged.
+Update the validator name and docs, but keep the behavior: relative `file://`
+paths anchor at the repo root and are created if missing.
 
-### `backend/app/types.py` — pose enum, drop layout
+---
 
-Drop `SpriteLayout` TypedDict (lines 153-172). Add:
+## Domain types
+
+### `backend/app/types.py`
+
+Drop `SpriteLayout`. Add:
 
 ```python
-class PoseT(StrEnum):
-    BATTLE_BACK      = "battle_back"
-    BATTLE_HERO      = "battle_hero"
-    BATTLE_OPPONENT  = "battle_opponent"
-    EMOTE_RESTING    = "emote_resting"
-    EMOTE_HAPPY      = "emote_happy"
+class PoseT(enum.StrEnum):
+    BATTLE_BACK = "battle_back"
+    BATTLE_HERO = "battle_hero"
+    BATTLE_OPPONENT = "battle_opponent"
+    EMOTE_RESTING = "emote_resting"
+    EMOTE_HAPPY = "emote_happy"
     EMOTE_FRUSTRATED = "emote_frustrated"
-    EMOTE_PROUD      = "emote_proud"
-    EMOTE_CONFUSED   = "emote_confused"
-    EMOTE_SAD        = "emote_sad"
+    EMOTE_PROUD = "emote_proud"
+    EMOTE_CONFUSED = "emote_confused"
+    EMOTE_SAD = "emote_sad"
+
+
+class VibemonLifecycleT(enum.StrEnum):
+    BORN = "born"
+    CHRISTENED = "christened"
+    MANIFESTED = "manifested"
 ```
 
-`POSE_TO_ASSET: dict[PoseT, AssetKind]` lookup near `AssetKind` so callers
-have one source of truth mapping pose → asset slot.
-
-### `backend/app/utils.py:568-628` — `extract_sprites` returns dict
+Use nullable `trainer_id` for ownership. Do not add an ownership enum now.
+Wild/owned is derived:
 
 ```python
-def extract_sprites(
-    image: bytes | Image.Image,
-    rows: int = 3, cols: int = 3, padding: int = 8,
-    *, strict_matte: bool = False,
-) -> dict[types.PoseT, Image.Image]:
-    ...
-    bb, bh, bo, er, eh, ef, ep, ec, es = aligned
-    return {
-        types.PoseT.BATTLE_BACK: bb,
-        types.PoseT.BATTLE_HERO: bh,
-        types.PoseT.BATTLE_OPPONENT: bo,
-        types.PoseT.EMOTE_RESTING: er,
-        types.PoseT.EMOTE_HAPPY: eh,
-        types.PoseT.EMOTE_FRUSTRATED: ef,
-        types.PoseT.EMOTE_PROUD: ep,
-        types.PoseT.EMOTE_CONFUSED: ec,
-        types.PoseT.EMOTE_SAD: es,
-    }
+is_wild = trainer_id is None
+is_owned = trainer_id is not None
 ```
 
-The `sheet` key in the old layout is gone — sheet has its own
-`AssetKind.SHEET` slot.
+---
 
-### `backend/app/genai/client.py` — split
+## Schema model changes
+
+### Base classes
+
+Replace `_Static` and `_Transient` with:
+
+```python
+class Schema(pydantic.BaseModel):
+    model_config = pydantic.ConfigDict(
+        extra="forbid",
+        arbitrary_types_allowed=True,
+        validate_assignment=True,
+    )
+
+
+class FrozenSchema(Schema):
+    model_config = pydantic.ConfigDict(
+        extra="forbid",
+        arbitrary_types_allowed=True,
+        frozen=True,
+    )
+```
+
+Use `Schema` by default. Use `FrozenSchema` only for stable value/definition
+objects:
+
+- `BirthSeed`
+- `BirthSnapshot`
+- `Move`
+- `MoveBehavior`
+- `EffectGroup`
+- individual effect and condition objects
+- battle action command objects
+- battle event/result log objects
+
+`Move` remains effectively frozen and name-identified. `BattleMove` remains the
+mutable runtime version that layers battle state over a move definition.
+
+### `Identity`
+
+Update the docstring. It is not immutable anymore.
+
+```python
+class Identity(Schema):
+    """Represents the core identity and battle profile of a Vibemon."""
+```
+
+Lifecycle code may finalize `identity.name` and future evolution may update
+identity state. Do not infer christening from `identity.name`, because provider
+merge already supplies a name before christening.
+
+### `Affinity`
+
+Keep mutable under `Schema`. Change:
+
+```python
+moves: list[Move]
+```
+
+to:
+
+```python
+moves: tuple[Move, ...]
+```
+
+The generated learnset is a snapshot. Providers may still build lists, but
+schema boundaries should coerce to tuples.
+
+### `Trainer`
+
+Align schema with DB identity:
+
+```python
+class Trainer(Schema):
+    id: types.TrainerIdT = pydantic.Field(default_factory=uuid.uuid7)
+    username: str
+    team: list[Vibemon] = pydantic.Field(default_factory=list)
+```
+
+### `Aesthetic`
+
+Target shape:
+
+```python
+class Aesthetic(Schema):
+    primary_color: brand.Color
+    secondary_color: brand.Color | None = None
+    background_color: brand.Color
+    assets: dict[data_store_types.AssetKind, data_store_schema.AssetRef] = pydantic.Field(default_factory=dict)
+
+    def has(self, kind: data_store_types.AssetKind) -> bool: ...
+    async def url_for(self, kind: data_store_types.AssetKind, *, expires_in: dt.timedelta = dt.timedelta(hours=1)) -> str | None: ...
+    async def bytes_for(self, kind: data_store_types.AssetKind) -> bytes | None: ...
+
+    @classmethod
+    def from_vibemon(cls, vibemon: Vibemon) -> Self:
+        # derive colors only; no I/O
+```
+
+Rules:
+
+- Drop `_vibemon`.
+- Drop `_unwrap_sprite_sheet`.
+- Drop `sprites`, `battle_cry`, and `sprite_sheet_key`.
+- `url_for()` and `bytes_for()` use known `AssetRef`s only. Do not silently
+  derive deterministic keys when refs are absent.
+
+### `Vibemon`
+
+Target additions:
+
+```python
+class Vibemon(Schema):
+    id: uuid.UUID = pydantic.Field(default_factory=uuid.uuid7)
+    trainer_id: types.TrainerIdT | None = None
+    lifecycle: types.VibemonLifecycleT = types.VibemonLifecycleT.BORN
+    aesthetic: Aesthetic | None = None
+```
+
+`Vibemon.birth()` should generate the canonical id and initialize
+`aesthetic=Aesthetic.from_vibemon(instance)` because color derivation is pure and
+cheap. The asset map remains empty until christening.
+
+`Vibemon.rebirth()` should reset aesthetic assets and lifecycle. Current
+no-network rebirth should leave the Vibemon `BORN` because it does not generate
+new preview assets.
+
+Remove `Vibemon.christen()` and `Vibemon.render_aesthetic()` methods. New code
+uses lifecycle functions.
+
+---
+
+## SQLAlchemy model changes
+
+### `models.Trainer`
+
+Add:
+
+```python
+class Trainer(Base):
+    __tablename__ = "trainer"
+
+    id: Mapped[uuid.UUID] = mapped_column(primary_key=True, default=uuid.uuid7)
+    username: Mapped[str] = mapped_column(unique=True)
+
+    vibemons: Mapped[list["Vibemon"]] = relationship(back_populates="trainer")
+```
+
+### `models.Vibemon`
+
+Add:
+
+```python
+trainer_id: Mapped[uuid.UUID | None]
+lifecycle: Mapped[str]
+```
+
+Preserve schema id when persisting:
+
+```python
+models.Vibemon(id=vibemon.id, ...)
+```
+
+Add FK:
+
+```python
+ForeignKeyConstraint(
+    ["trainer_id"],
+    ["trainer.id"],
+    name="fk_vibemon_trainer",
+    ondelete="SET NULL",
+)
+```
+
+Add relationships:
+
+```python
+trainer: Mapped["Trainer | None"] = relationship(back_populates="vibemons")
+assets: Mapped[list["VibemonAsset"]] = relationship(
+    back_populates="vibemon",
+    cascade="all, delete-orphan",
+    single_parent=True,
+)
+```
+
+### `models.VibemonAsset`
+
+Add:
+
+```python
+class VibemonAsset(Base):
+    __tablename__ = "vibemon_asset"
+
+    id: Mapped[uuid.UUID] = mapped_column(primary_key=True, default=uuid.uuid7)
+    vibemon_id: Mapped[uuid.UUID]
+    kind: Mapped[str]
+    version: Mapped[str]
+    object_key: Mapped[str] = mapped_column(unique=True)
+    content_type: Mapped[str]
+    byte_size: Mapped[int]
+    sha256: Mapped[str]
+    created_at: Mapped[dt.datetime]
+    updated_at: Mapped[dt.datetime]
+
+    __table_args__ = (
+        ForeignKeyConstraint(["vibemon_id"], ["vibemon.id"], name="fk_vibemon_asset_vibemon", ondelete="CASCADE"),
+        sa.UniqueConstraint("vibemon_id", "version", "kind", name="uq_vibemon_asset_slot"),
+    )
+
+    vibemon: Mapped["Vibemon"] = relationship(back_populates="assets")
+```
+
+Use UTC timestamps in Python when creating/updating rows. The repo currently
+uses `metadata.create_all`, not migrations, so existing DB compatibility is a
+separate concern.
+
+---
+
+## GenAI split
+
+Replace `generate_vibemon_sprite()` with:
 
 ```python
 async def generate_sprite_reference(vibemon: schema.Vibemon) -> bytes:
     p = utils.load_prompt("sprite-reference.mdc", vibemon=vibemon)
     r = await FAST_IMG_AGENT.run(p)
     return app_utils.normalize_sprite_matte(
-        r.output.data, bg_color=vibemon.aesthetic.background_color,
-        rows=1, cols=1,
+        r.output.data,
+        bg_color=vibemon.aesthetic.background_color,
+        rows=1,
+        cols=1,
     )
 
 
@@ -301,139 +581,197 @@ async def generate_sprite_sheet(vibemon: schema.Vibemon, reference: bytes) -> by
         p,
     ])
     d = app_utils.normalize_sprite_matte(r.output.data, bg_color=vibemon.aesthetic.background_color)
-
     if issues := app_utils.validate_sprite_sheet(d):
         raise RuntimeError(f"Generated sprite sheet failed validation: {'; '.join(issues)}")
     return d
-
-
-# generate_battle_cry unchanged
 ```
 
-Delete the old combined `generate_vibemon_sprite`.
+Keep `generate_battle_cry()` but move when it is called: christening now
+generates battle cry for the preview contract.
 
-### `backend/app/schema.py` — Vibemon id + Aesthetic shape
+---
 
-`Vibemon` (line 615):
-```python
-class Vibemon(_Transient):
-    id: uuid.UUID = pydantic.Field(default_factory=uuid.uuid7)
-    nickname: str | None = None
-    affinity: Affinity
-    ...
-```
+## Sprite extraction
 
-`Aesthetic` (line 399) becomes:
-```python
-class Aesthetic(_Transient):
-    primary_color: brand.Color
-    secondary_color: brand.Color | None = None
-    background_color: brand.Color
-    assets: dict[types.AssetKind, str] = pydantic.Field(default_factory=dict)
+`utils.extract_sprites()` returns `dict[types.PoseT, Image.Image]`.
 
-    _vibemon: Vibemon | None = pydantic.PrivateAttr(default=None)
+The old `"sheet"` key goes away. Sheet bytes are stored in
+`AssetKind.SHEET`; poses are stored individually.
 
-    def has(self, kind: types.AssetKind) -> bool:
-        return kind in self.assets
+---
 
-    async def url_for(self, kind: types.AssetKind, *, expires_in=dt.timedelta(hours=1)) -> str | None:
-        key = self.assets.get(kind)
-        return await monstore.url(key, expires_in=expires_in) if key else None
+## Lifecycle
 
-    async def bytes_for(self, kind: types.AssetKind) -> bytes | None:
-        key = self.assets.get(kind)
-        return await monstore.get(key) if key else None
+Create `backend/app/lifecycle/vibemon.py`.
 
-    @classmethod
-    def from_vibemon(cls, vibemon: Vibemon) -> Self:
-        # color derivation unchanged
-        ins = cls(**colors)
-        ins._vibemon = vibemon
-        return ins
-```
+### `christen(vibemon)`
 
-Drop `_unwrap_sprite_sheet` validator, `sprites`, `battle_cry`,
-`sprite_sheet_key`, and the old `regenerate()`.
+Responsibilities:
 
-`Vibemon.christen()`:
-```python
-async def christen(self) -> Self:
-    from app.genai.client import generate_vibemon_name, generate_sprite_reference
+1. If lifecycle is already `CHRISTENED` or `MANIFESTED` and required preview
+   assets exist, return the same object.
+2. Generate the final name first if lifecycle is `BORN`.
+3. Ensure `vibemon.aesthetic` exists.
+4. Generate `REFERENCE` and `CRY_BATTLE` concurrently.
+5. Store both via `monstore.put()`.
+6. Populate `vibemon.aesthetic.assets`.
+7. Set lifecycle to `CHRISTENED` only after both required preview assets exist.
 
-    name = await generate_vibemon_name(...)
-    self.affinity = ...model_copy(update={"identity": ...with name})
+If name generation succeeds but asset generation fails, keep lifecycle `BORN`.
+Retry should be safe and can overwrite/fill deterministic asset slots.
 
-    if not hasattr(self, "_aesthetic"):
-        self._aesthetic = Aesthetic.from_vibemon(self)
+### `manifest(vibemon)`
 
-    ref_bytes = await generate_sprite_reference(self)
-    key = await monstore.put(self.id, AssetKind.REFERENCE, ref_bytes)
-    self._aesthetic.assets[AssetKind.REFERENCE] = key
-    return self
-```
+Internal asset-realization primitive. It does not assign ownership.
 
-`Vibemon.render_aesthetic()`:
-```python
-async def render_aesthetic(self) -> Self:
-    if not hasattr(self, "_aesthetic"):
-        raise RuntimeError("call christen() first — no reference image to base sheet on")
+Responsibilities:
 
-    ref_key = self._aesthetic.assets.get(AssetKind.REFERENCE)
-    if ref_key is None:
-        raise RuntimeError("missing REFERENCE asset; christen() must run first")
-    reference_bytes = await monstore.get(ref_key)
+1. Require lifecycle `CHRISTENED` or `MANIFESTED`.
+2. Require `REFERENCE` and `CRY_BATTLE` refs.
+3. Read reference bytes from monstore.
+4. Generate `SHEET`.
+5. Store `SHEET`.
+6. Extract 9 poses from sheet.
+7. Store each pose PNG using `const.POSE_TO_ASSET`.
+8. Set lifecycle `MANIFESTED` only after `REQUIRED_MANIFEST_ASSETS` are present.
 
-    async with asyncio.TaskGroup() as g:
-        sheet_task = g.create_task(generate_sprite_sheet(self, reference_bytes))
-        cry_task = g.create_task(generate_battle_cry(self))
+`manifested` means full required v1 assets exist. Partial generation is allowed
+as recoverable state, but lifecycle stays `CHRISTENED` until complete.
 
-    sheet_bytes = sheet_task.result()
-    cry_bytes = cry_task.result()
+### `adopt(vibemon, trainer_id)`
 
-    sheet_key = await monstore.put(self.id, AssetKind.SHEET, sheet_bytes)
-    self._aesthetic.assets[AssetKind.SHEET] = sheet_key
-
-    poses = utils.extract_sprites(image=sheet_bytes)
-    pose_kinds = {
-        types.PoseT.BATTLE_BACK:      AssetKind.POSE_BATTLE_BACK,
-        types.PoseT.BATTLE_HERO:      AssetKind.POSE_BATTLE_HERO,
-        types.PoseT.BATTLE_OPPONENT:  AssetKind.POSE_BATTLE_OPPONENT,
-        types.PoseT.EMOTE_RESTING:    AssetKind.POSE_EMOTE_RESTING,
-        types.PoseT.EMOTE_HAPPY:      AssetKind.POSE_EMOTE_HAPPY,
-        types.PoseT.EMOTE_FRUSTRATED: AssetKind.POSE_EMOTE_FRUSTRATED,
-        types.PoseT.EMOTE_PROUD:      AssetKind.POSE_EMOTE_PROUD,
-        types.PoseT.EMOTE_CONFUSED:   AssetKind.POSE_EMOTE_CONFUSED,
-        types.PoseT.EMOTE_SAD:        AssetKind.POSE_EMOTE_SAD,
-    }
-    for pose, image in poses.items():
-        buf = io.BytesIO()
-        image.save(buf, format="PNG")
-        kind = pose_kinds[pose]
-        self._aesthetic.assets[kind] = await monstore.put(self.id, kind, buf.getvalue())
-
-    cry_key = await monstore.put(self.id, AssetKind.CRY_BATTLE, cry_bytes)
-    self._aesthetic.assets[AssetKind.CRY_BATTLE] = cry_key
-    return self
-```
-
-### `.scripts/vibemon_generator.py:122-130` — async dump
+Public adoption transition:
 
 ```python
-async def write_aesthetic_to_disk(vibemon: schema.Vibemon) -> None:
-    aesthetic = vibemon.aesthetic
-    directory = pathlib.Path(__file__).parent / "generated" / vibemon.name.lower()
-    directory.mkdir(parents=True, exist_ok=True)
-    for kind in aesthetic.assets:
-        data = await aesthetic.bytes_for(kind)
-        if data is None:
-            continue
-        ext = pathlib.Path(kind.value).suffix
-        stem = pathlib.Path(kind.value).stem
-        directory.joinpath(f"{stem}{ext}").write_bytes(data)
+async def adopt(vibemon: schema.Vibemon, trainer_id: types.TrainerIdT) -> schema.Vibemon:
+    # Future trainer ownership/workflow logic belongs here.
+    vibemon.trainer_id = trainer_id
+    await manifest(vibemon)
+    return vibemon
 ```
 
-Caller in `generate_vibemon_in_world` (line 154) becomes
-`await write_aesthetic_to_disk(vibemon)`.
+Comment this function to signal future ownership intent: trainer persistence,
+party/box placement, wilderness removal, and async manifestation can land here
+without changing the call site.
+
+---
+
+## Persistence flow
+
+Schema/lifecycle functions do not own database sessions.
+
+When persisting a generated Vibemon:
+
+1. Object blobs are already written by lifecycle functions.
+2. The caller with an `AsyncSession` inserts/updates `models.Vibemon`.
+3. The caller persists current `AssetRef`s to `models.VibemonAsset` rows through
+   `data_store.assets`.
+4. Commit the Vibemon row and current asset rows in one DB transaction.
+
+For preview stage, persisted rows should have:
+
+- `trainer_id=None`
+- `lifecycle="christened"`
+- asset rows for `REFERENCE` and `CRY_BATTLE`
+
+For adopt stage, persisted rows should have:
+
+- `trainer_id=<trainer id>`
+- `lifecycle="manifested"`
+- asset rows for all required manifest assets
+
+During `rebirth_all_vibemon`:
+
+- Delete existing `VibemonAsset` child rows.
+- Reset lifecycle to `BORN` unless the script explicitly rechristens.
+- Leave old blobs in object storage as cleanup-script candidates.
+
+---
+
+## Script updates
+
+### `.scripts/vibemon_generator.py`
+
+Replace `--headless` with:
+
+```text
+--stage preview
+--stage adopt
+--trainer-username "Script Trainer"
+```
+
+Default: `--stage preview`.
+
+Behavior:
+
+- `preview`: birth + christen, no trainer, no manifestation.
+- `adopt`: birth + christen + query/create trainer by username + adopt/manifest.
+
+Use one stable default trainer per DB:
+
+```text
+username = "Script Trainer"
+```
+
+### Asset dump
+
+Rename the old `write_aesthetic_to_disk()` to `dump_vibemon_assets()`.
+
+Write debug dumps under UUID folders, not names:
+
+```text
+.scripts/generated/<vibemon_uuid>/
+  name.txt
+  sprite/reference.png
+  sprite/sheet.png
+  pose/battle-back.png
+  audio/cry-battle.mp3
+```
+
+`name.txt` should contain:
+
+```text
+id: <uuid>
+name: <display name>
+lifecycle: <born|christened|manifested>
+```
+
+Rules:
+
+- Preserve asset subdirectories from `AssetKind.value`.
+- Overwrite current files.
+- Do not delete stale files by default.
+- If `aesthetic` is missing, raise a clear error.
+- If assets are empty, still write `name.txt`.
+
+---
+
+## Cleanup script
+
+Add:
+
+```text
+.scripts/cleanup_monstore.py
+```
+
+Initial scope: local `file://` stores only.
+
+Behavior:
+
+- Dry-run by default.
+- Require `--apply` to delete.
+- Accept `--older-than-hours 24` to avoid deleting fresh previews.
+- Compare top-level UUID folders against `models.Vibemon.id`.
+- Report UUID folders with no DB Vibemon row as orphan preview/deleted-Vibemon
+  candidates.
+- Report blobs under valid Vibemon UUID folders with no matching
+  `VibemonAsset.object_key` as stale asset candidates.
+- Delete orphan/stale blobs only when `--apply` is passed.
+- Report DB asset rows whose blobs are missing as integrity errors. Do not
+  delete those DB rows automatically.
+
+Remote store cleanup can be added later if/when listing/deletion behavior is
+needed for S3/GCS/Azure.
 
 ---
 
@@ -441,92 +779,153 @@ Caller in `generate_vibemon_in_world` (line 154) becomes
 
 | File | Action |
 |---|---|
-| `backend/app/monstore.py` | **NEW** — generic asset store |
-| `backend/app/sprite_store.py` | **DELETE** |
-| `backend/app/settings.py` | rename `sprite_store_url` → `asset_store_url` |
-| `backend/app/types.py` | drop `SpriteLayout`, add `PoseT` |
+| `backend/app/data_store/__init__.py` | New package marker |
+| `backend/app/data_store/types.py` | New `AssetKind` |
+| `backend/app/data_store/const.py` | New asset version, mappings, required sets |
+| `backend/app/data_store/schema.py` | New `AssetRef` |
+| `backend/app/data_store/monstore.py` | New object-store API replacing `sprite_store.py` |
+| `backend/app/data_store/assets.py` | New DB asset upsert helpers |
+| `backend/app/lifecycle/__init__.py` | New lifecycle package marker |
+| `backend/app/lifecycle/vibemon.py` | New `christen`, `manifest`, `adopt` |
+| `backend/app/sprite_store.py` | Delete |
+| `backend/app/settings.py` | Rename `sprite_store_url` to `asset_store_url` |
+| `backend/app/types.py` | Drop `SpriteLayout`; add `PoseT`, `VibemonLifecycleT` |
 | `backend/app/utils.py` | `extract_sprites` returns `dict[PoseT, Image]` |
-| `backend/app/genai/client.py` | split sprite gen into reference + sheet |
-| `backend/app/schema.py` | `Vibemon.id` field; new `Aesthetic` shape; christen+render split |
-| `.scripts/vibemon_generator.py` | async asset dump via `bytes_for` |
-| `.agents/skills/development/frontend-design/SKILL.md` | update `sprite_store` references |
-| `backend/tests/test_determinism.py` | adapt if it asserts old Aesthetic fields |
+| `backend/app/genai/client.py` | Split reference and sheet generation |
+| `backend/app/schema.py` | Add `Schema`/`FrozenSchema`, ids, lifecycle, trainer_id, new `Aesthetic` |
+| `backend/app/models.py` | Add `Trainer`, `VibemonAsset`, lifecycle/trainer fields |
+| `.scripts/vibemon_generator.py` | New stages, trainer creation, asset persistence, UUID dump |
+| `.scripts/cleanup_monstore.py` | New local cleanup script |
+| `.agents/skills/development/frontend-design/SKILL.md` | Update stale `sprite_store` references if present |
+| `backend/tests/test_determinism.py` | Update for schema base, tuple moves, lifecycle defaults if needed |
 
 ---
 
-## Reused functions (don't reinvent)
+## Reused functions
 
-- `obstore.put_async` / `get_async` / `sign_async` — same primitives as
-  `sprite_store.py:46,52,68`.
-- `app.utils.normalize_sprite_matte` (`utils.py:380`) — both reference
-  and sheet stages.
-- `app.utils.validate_sprite_sheet` (`utils.py:466`) — sheet-stage check.
-- `app.utils.extract_sprites` (`utils.py:568`) — slicing math intact;
-  return type changes.
-- `_UNSIGNABLE_SCHEMES` + presigning fallback (`sprite_store.py:26,
-  64-66`) — port verbatim into monstore.
-- `uuid.uuid7` — already used in `models.py` for DB ids; reuse for the
-  new `schema.Vibemon.id` so in-memory and DB ids align.
+- `obstore.put_async`, `get_async`, `sign_async`
+- `app.utils.normalize_sprite_matte`
+- `app.utils.validate_sprite_sheet`
+- `app.utils.extract_sprites`
+- Current local-store anchoring behavior from `settings.py`
+- Current unsigned URL behavior from `sprite_store.py`
+- `uuid.uuid7` for schema and DB ids
 
 ---
 
 ## Lifecycle: before vs after
 
-```
+```text
 BEFORE:
-  birth() → christen() [name only]   → render_aesthetic() [ref + sheet + cry]
-                                       └─ pays for sheet even on rejected previews
+  birth()
+    -> christen()              # LLM name only
+    -> render_aesthetic()      # reference + sheet + cry
 
 AFTER:
-  birth() → christen() [name + REFERENCE]   → render_aesthetic() [SHEET + 9 POSES + CRY_BATTLE]
-            └─ cheap; reference shown in UI    └─ runs only after user adopts
+  birth()
+    -> lifecycle.christen()    # final name + REFERENCE + CRY_BATTLE
+    -> lifecycle.adopt()       # trainer_id + manifest full assets
+         -> manifest()         # SHEET + 9 POSES
+```
+
+Preview/adoption split:
+
+```text
+preview assets:
+  sprite/reference.png
+  audio/cry-battle.mp3
+
+adoption/manifest assets:
+  sprite/sheet.png
+  pose/battle-back.png
+  pose/battle-hero.png
+  pose/battle-opponent.png
+  pose/emote-resting.png
+  pose/emote-happy.png
+  pose/emote-frustrated.png
+  pose/emote-proud.png
+  pose/emote-confused.png
+  pose/emote-sad.png
 ```
 
 ---
 
 ## Verification
 
-1. **Determinism harness** — `cd backend && uv run pytest tests/test_determinism.py`.
-   Update only if it asserts old `Aesthetic` field shape.
-2. **End-to-end gen** — `uv run .scripts/vibemon_generator.py` for one
-   non-headless run. Confirm `.generated/monstore/<uuid>/v1/sprite/...`,
-   `.../pose/...`, `.../audio/cry-battle.mp3` all exist.
-   `.scripts/generated/<name>/` dump should still contain sheet + 9
-   poses + battle_cry.mp3 sourced via `bytes_for`.
-3. **Stage-by-stage** — manually stop after `christen()`. Only
-   `sprite/reference.png` should exist for that UUID. Then run
-   `render_aesthetic()`. Sheet, poses, cry fill in.
-4. **Memory backend smoke** — set `ASSET_STORE_URL=memory:///` and run
-   one gen. All `monstore.put` / `get` calls succeed; `url_for` returns
-   the appended-key form (per `_UNSIGNABLE_SCHEMES`).
-5. **Cleanup grep** — `rg "sprite_store|SpriteLayout|battle_cry: bytes|sprite_sheet_key"`
-   must return zero hits across the live codebase.
+1. **Determinism harness**
+
+   ```text
+   cd backend && uv run pytest tests/test_determinism.py
+   ```
+
+2. **Preview script smoke**
+
+   ```text
+   uv run .scripts/vibemon_generator.py --stage preview --count 1
+   ```
+
+   Confirm:
+
+   - DB row has lifecycle `christened`.
+   - `trainer_id` is null.
+   - `vibemon_asset` has `REFERENCE` and `CRY_BATTLE`.
+   - `.generated/monstore/<uuid>/v1/sprite/reference.png` exists.
+   - `.generated/monstore/<uuid>/v1/audio/cry-battle.mp3` exists.
+
+3. **Adopt script smoke**
+
+   ```text
+   uv run .scripts/vibemon_generator.py --stage adopt --count 1
+   ```
+
+   Confirm:
+
+   - DB row has lifecycle `manifested`.
+   - `trainer_id` points at `"Script Trainer"`.
+   - all required manifest assets have DB rows.
+   - monstore has sprite, pose, and audio files.
+   - `.scripts/generated/<uuid>/name.txt` exists.
+
+4. **Stage-by-stage manual**
+
+   Stop after `lifecycle.christen(vibemon)`: only preview assets should exist.
+   Then call `lifecycle.adopt(vibemon, trainer_id)`: sheet and poses should fill
+   in.
+
+5. **Memory backend smoke**
+
+   Set `ASSET_STORE_URL=memory:///` and run lifecycle calls in-process.
+   `monstore.put` / `get` should work and `url_for` should return appended-key
+   memory URLs.
+
+6. **Cleanup dry-run**
+
+   ```text
+   uv run .scripts/cleanup_monstore.py --db-path .scripts/vibemon.db
+   ```
+
+   Confirm it reports orphan folders/stale blobs/missing blob integrity errors
+   without deleting anything.
+
+7. **Grep cleanup**
+
+   ```text
+   rg "sprite_store|SpriteLayout|battle_cry: bytes|sprite_sheet_key|render_aesthetic|headless"
+   ```
+
+   Expected: no live-code hits except intentionally updated historical docs or
+   migration notes.
 
 ---
 
-## Out of scope (intentionally)
+## Out of scope
 
-- Faint + emote sound generators — `AssetKind` reserves the slots, no
-  ElevenLabs prompts wired yet. Follow-up task.
-- Frontend client wiring — backend already exposes `url_for(kind)` and
-  the URL contract is unchanged in spirit.
-- Re-roll versioning beyond static `v1`. If we need overwrite-safe
-  re-rolls, bump to a per-Vibemon counter (e.g. `v1` → generation
-  attempt N) — easy to add later.
-- DB persistence of `Aesthetic.assets` map — separate concern; DB
-  schema currently doesn't store any aesthetic state.
-
----
-
-## Open questions when resuming
-
-- **`Aesthetic.from_vibemon` access pattern**: currently sets
-  `_vibemon` private attr. After the refactor, christen must be able to
-  construct it before render_aesthetic — confirm there's no caller that
-  relies on aesthetic existing only post-render.
-- **Reference normalization**: keep `rows=1, cols=1` matte normalization
-  on the reference? Yes for now (parity), but it's cheap to drop later
-  if reference doesn't need the matte cleanup.
-- **Path versioning**: `v1` is a static literal. If a future change needs
-  invalidation, plan for `v2` etc. — `SCHEMA_PREFIX` constant centralizes
-  it.
+- Faint and emote sound generation.
+- Frontend client wiring.
+- Remote object-store cleanup.
+- Full trainer gameplay/persistence beyond minimal trainer identity and
+  `trainer_id`.
+- Wilderness encounter state.
+- Evolution behavior, except reserving lifecycle package space for it.
+- Asset versioning beyond static `"v1"`.
+- Provider proposal vs finalized identity split.
