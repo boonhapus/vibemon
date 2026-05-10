@@ -1,3 +1,10 @@
+"""Pydantic domain data objects used by the Vibemon application.
+
+Use this module for runtime data shape, validation, serialization, and cheap
+domain behavior. Keep database sessions, table declarations, and object-store
+workflows in dedicated persistence or lifecycle modules.
+"""
+
 from collections.abc import Iterable
 from typing import Annotated, Any, Literal, Self
 import asyncio

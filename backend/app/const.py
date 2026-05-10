@@ -1,3 +1,8 @@
+"""Fixed domain values and lookup tables for Vibemon rules.
+
+Use this module for constants that do not carry runtime state or perform I/O.
+"""
+
 # ── Status Chance Constants ───────────────────────────────────────────────────────────
 
 FREEZE_THAW_CHANCE = 0.2

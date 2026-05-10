@@ -1,3 +1,9 @@
+"""Domain vocabularies, constrained types, and type aliases.
+
+Use this module for units of meaning such as enums and aliases, not data
+objects, persistence models, or runtime workflows.
+"""
+
 from typing import Annotated, Literal, TypedDict, NotRequired
 from annotated_types import Len
 import enum

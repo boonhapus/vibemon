@@ -1,3 +1,10 @@
+"""SQLAlchemy ORM table declarations for persisted Vibemon data.
+
+Use this module for database schema shape: mapped columns, relationships,
+constraints, and persistence-only metadata. Keep generation, lifecycle
+orchestration, and object-store writes outside ORM models.
+"""
+
 from sqlalchemy import JSON, Table, Column, ForeignKeyConstraint
 from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column, relationship
 import datetime as dt
