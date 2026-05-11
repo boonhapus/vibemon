@@ -32,7 +32,8 @@ class Settings(pydantic_settings.BaseSettings):
     # ── Sprite storage ────────────────────────────────────────────────────────────────
 
     sprite_store_url: str = "file://./.generated/sprites"
-    """Where sprite sheets get persisted. Any obstore-supported URL.
+    """
+    Where sprite sheets get persisted. Any obstore-supported URL.
 
     Local: ``file://<path>`` (relative paths anchor at repo root).
     Remote: ``s3://bucket/prefix``, ``gs://bucket/prefix``, ``az://container/prefix``.
