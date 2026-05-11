@@ -20,16 +20,16 @@ import logging
 import pathlib
 import random
 
+from sqlalchemy.ext.asyncio import create_async_engine, AsyncSession
+from sqlalchemy.orm import selectinload, sessionmaker
 import geonamescache
+import sqlalchemy as sa
+from sqlalchemy import event
 import structlog
 
 from app.plugins.climate.provider import ClimateProvider
 from app.plugins.provider import VibeProvider
 from app import models, schema
-
-from sqlalchemy.ext.asyncio import create_async_engine, AsyncSession
-from sqlalchemy.orm import selectinload, sessionmaker
-import sqlalchemy as sa
 
 _LOGGER = structlog.get_logger(__name__)
 
@@ -100,6 +100,14 @@ async def log_vibemon(event: str, vibemon: schema.Vibemon, **extra: Any) -> None
 async def database_session(db_path: str) -> AsyncIterator[AsyncSession]:
     """Spin up an async SQLite db, create tables, yield a session."""
     engine = create_async_engine(f"sqlite+aiosqlite:///{db_path}")
+
+    @event.listens_for(engine.sync_engine, "connect")
+    def _set_sqlite_pragma(dbapi_connection, _connection_record):
+        # SQLite disables FK enforcement by default; force it on for every connection.
+        cursor = dbapi_connection.cursor()
+        cursor.execute("PRAGMA foreign_keys=ON")
+        cursor.close()
+
     try:
         async with engine.begin() as conn:
             await conn.run_sync(models.Base.metadata.create_all)
@@ -117,17 +125,6 @@ def get_random_city() -> tuple[str, str, float, float]:
     city = random.choice(list(cache.get_cities().values()))
     country = cache.get_countries()[city["countrycode"]]["name"]
     return city["name"], country, city["latitude"], city["longitude"]
-
-
-def write_aesthetic_to_disk(vibemon: schema.Vibemon) -> None:
-    aesthetic = vibemon.aesthetic
-    assert aesthetic.battle_cry is not None and aesthetic.sprites is not None
-
-    directory = pathlib.Path(__file__).parent / "generated" / vibemon.name.lower()
-    directory.mkdir(parents=True, exist_ok=True)
-    directory.joinpath("battle_cry.mp3").write_bytes(aesthetic.battle_cry)
-    for key, sprite in aesthetic.sprites.items():
-        sprite.save(directory.joinpath(f"{key}.png"))
 
 
 async def generate_vibemon_in_world(
@@ -151,7 +148,6 @@ async def generate_vibemon_in_world(
 
     if not headless:
         await vibemon.render_aesthetic()
-        write_aesthetic_to_disk(vibemon)
 
     return country, seed, snapshot, vibemon
 
@@ -168,13 +164,14 @@ async def stream_vibemon_in_world(
 
     async def _delayed(delay: float):
         await asyncio.sleep(delay)
+
         try:
             return await generate_vibemon_in_world(headless=headless, **vibemon_options)
         except Exception as e:
             await _LOGGER.awarning("Birth failed, skipping", error=repr(e))
-            return None
 
     tasks = [asyncio.create_task(_delayed(i * stagger)) for i in range(count)]
+
     try:
         async for coro in asyncio.as_completed(tasks):
             if (result := await coro) is not None:
@@ -196,13 +193,24 @@ async def birth_many_vibemon(
     stagger: float,
     headless: bool,
     core_identity: str | None,
-) -> None:
+) -> int:
     """Birth `count` fresh vibemon, persisting each as it arrives."""
     moves_cache = await _load_moves_cache(sess)
+
+    persisted_count = 0
 
     async for country, seed, snapshot, vibemon in stream_vibemon_in_world(
         count=count, stagger=stagger, headless=headless, core_identity=core_identity
     ):
+        snapshot_model = models.BirthSnapshot(
+            provider_payloads=dict(snapshot.provider_payloads),
+            birth_seed=models.BirthSeed(
+                timestamp=seed.timestamp,
+                geo_coords=list(seed.geo_coords),
+                provider_names=[p.name for p in seed.providers],
+            ),
+        )
+
         sess.add(models.Vibemon(
             nickname=vibemon.nickname,
             level=vibemon.level,
@@ -210,17 +218,16 @@ async def birth_many_vibemon(
             birth_affinities=[
                 affinity_schema_to_model(a, moves_cache) for a in vibemon.birth_affinities
             ],
-            birth_seed=models.BirthSeed(
-                timestamp=seed.timestamp,
-                geo_coords=list(seed.geo_coords),
-                provider_names=[p.name for p in seed.providers],
-                birth_snapshots=[
-                    models.BirthSnapshot(provider_payloads=dict(snapshot.provider_payloads))
-                ],
-            ),
+            birth_snapshot=snapshot_model,
         ))
+
         await sess.commit()
+
+        persisted_count += 1
+
         await log_vibemon("Persisted Vibemon", vibemon, country=country)
+
+    return persisted_count
 
 
 async def rebirth_all_vibemon(sess: AsyncSession) -> int:
@@ -231,18 +238,22 @@ async def rebirth_all_vibemon(sess: AsyncSession) -> int:
         sa.select(models.Vibemon).options(
             selectinload(models.Vibemon.affinity).selectinload(models.Affinity.identity),
             selectinload(models.Vibemon.affinity).selectinload(models.Affinity.moves),
-            selectinload(models.Vibemon.birth_seed).selectinload(models.BirthSeed.birth_snapshots),
+            selectinload(models.Vibemon.birth_snapshot).selectinload(models.BirthSnapshot.birth_seed),
             selectinload(models.Vibemon.birth_affinities).selectinload(models.Affinity.identity),
             selectinload(models.Vibemon.birth_affinities).selectinload(models.Affinity.moves),
         )
     )
 
-    reborn_count = 0
+    persisted_count = 0
+
     for vibemon_model in result.scalars():
-        seed_model = vibemon_model.birth_seed
-        if seed_model is None or not seed_model.birth_snapshots:
-            await _LOGGER.awarning("Skipping vibemon — no birth_seed/snapshot", id=str(vibemon_model.id))
+        snapshot_model = vibemon_model.birth_snapshot
+
+        if snapshot_model is None or snapshot_model.birth_seed is None:
+            await _LOGGER.awarning("Skipping vibemon — no birth_snapshot/birth_seed", id=str(vibemon_model.id))
             continue
+
+        seed_model = snapshot_model.birth_seed
 
         try:
             providers = [PROVIDERS_BY_NAME[name] for name in seed_model.provider_names]
@@ -255,12 +266,10 @@ async def rebirth_all_vibemon(sess: AsyncSession) -> int:
             geo_coords=tuple(seed_model.geo_coords),
             providers=providers,
         )
-        snapshot = schema.BirthSnapshot(
-            provider_payloads=seed_model.birth_snapshots[0].provider_payloads
-        )
 
-        affinities = await snapshot.regenerate(providers, seed)
-        if not affinities:
+        snapshot = schema.BirthSnapshot(provider_payloads=snapshot_model.provider_payloads)
+
+        if not (affinities := await snapshot.regenerate(providers, seed)):
             continue
 
         reborn = schema.Vibemon.rebirth(
@@ -279,41 +288,45 @@ async def rebirth_all_vibemon(sess: AsyncSession) -> int:
         ]
 
         await sess.commit()
-        reborn_count += 1
+
+        persisted_count += 1
+
         await log_vibemon("Reborn Vibemon", reborn)
 
-    return reborn_count
+    return persisted_count
 
 
 def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser()
-    parser.add_argument("--count", type=int, default=150, help="Ignored when --rebirth is set.")
+    parser.add_argument("--count", type=int, default=1, help="Ignored when --rebirth is set.")
     parser.add_argument("--core-identity", type=str, default=None)
     parser.add_argument("--headless", action="store_true")
     parser.add_argument("--stagger", type=float, default=2.0)
     parser.add_argument("--db-path", type=str, default=pathlib.Path(__file__).parent.joinpath("vibemon.db").as_posix())
-    parser.add_argument("--rebirth", action="store_true",
-        help="Re-run merge/balance on all persisted vibemon in place. No network.")
+    parser.add_argument("--rebirth", action="store_true", help="Re-run merge/balance on all persisted vibemon in place. No network.")
     return parser.parse_args()
 
 
 async def main() -> None:
     args = parse_args()
+
     structlog.configure(wrapper_class=structlog.make_filtering_bound_logger(logging.INFO))
+
     await _LOGGER.ainfo("Starting", headless=args.headless, rebirth=args.rebirth)
 
     async with database_session(db_path=args.db_path) as sess:
         if args.rebirth:
             count = await rebirth_all_vibemon(sess)
-            await _LOGGER.ainfo("Rebirth complete", reborn=count)
         else:
-            await birth_many_vibemon(
+            count = await birth_many_vibemon(
                 sess,
                 count=args.count,
                 stagger=args.stagger,
                 headless=args.headless,
                 core_identity=args.core_identity,
             )
+
+        await _LOGGER.ainfo("Complete", n_mons=count)
 
 
 if __name__ == "__main__":
