@@ -4,7 +4,6 @@ version = "0.1.0"
 description = "Vibemon Litestar API"
 requires-python = ">=3.12"
 dependencies = [
-    "rembg[cpu]>=2.0.50",
     "niquests>=3.18.5",
     "structlog>=25.5.0",
     "google-genai>=1.0.0",
@@ -16,10 +15,11 @@ dependencies = [
     "numpy>=2.4.4",
     "elevenlabs>=1.15.0",
     "annotated-types>=0.7.0",
-    "scikit-learn>=1.8.0",
-    "scikit-image>=0.26.0",
     "scipy>=1.17.1",
     "pillow>=12.2.0",
+    "scikit-image>=0.26.0",
+    "scikit-learn>=1.8.0",
+    "obstore>=0.9.4",
 ]
 
 [dependency-groups]

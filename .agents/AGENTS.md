@@ -46,22 +46,42 @@ More Python import rules: `.agents/SKILLS/development/python-conventions/SKILL.m
 2. Target Python 3.14.
 3. Do not add `from __future__ import annotations`.
 
-### Where code goes: `types.py` vs `schema.py`
+### Backend module roles: `const.py`, `types.py`, `schema.py`, `models.py`
+
+Use these names consistently at the top level and inside subpackages. For
+example, `app.data_store.types` should mean the same kind of thing as
+`app.types`, but scoped to storage.
+
+**Put in `const.py`**
+
+- Fixed values, thresholds, tunables, and lookup tables.
+- Static mappings between known units, such as enum-to-enum or enum-to-MIME-type maps.
+- No I/O, no generated runtime state, and no business workflows.
 
 **Put in `types.py`**
 
-- Enums (example: move category, status names)
-- Type aliases (example: trainer id type)
+- Units of meaning: enums, constrained vocabularies, type aliases, protocols, and `TypedDict`s.
+- Names that describe what a value is, not an object carrying live state.
+- No Pydantic data objects, SQLAlchemy models, or imports from `schema.py` / `models.py`.
 
 **Put in `schema.py`**
 
-- Game objects which need to hold data (example: vibemon, trainer, battle state, turn logs)
+- Pydantic data objects used by the app at runtime: Vibemon, moves, battle state, logs, API payload shapes, and small serializable records.
+- Validation, serialization shape, and domain behavior that belongs to those data objects.
+- No SQLAlchemy sessions, queries, commits, or table declarations.
+
+**Put in `models.py`**
+
+- SQLAlchemy ORM table declarations, relationships, constraints, and database column types.
+- Persistence shape only. Keep generation, API orchestration, and object-store writes out of ORM models.
+- Mapping between Pydantic schema objects and ORM models belongs in a caller/service/helper module, not in `models.py` by default.
 
 **Import direction**
 
-- `schema` may import `types`. OK.
-- Game engine may import `schema` and `types`. OK.
-- `types` must not import `schema`. Not OK.
+- `types.py` is low-level and must not import `schema.py` or `models.py`.
+- `const.py` may import `types.py` for typed lookup keys, but must not import `schema.py` or `models.py`.
+- `schema.py` may import `types.py` and `const.py`.
+- `models.py` should stay independent of Pydantic `schema.py`; use external mapper/helper code when conversion is needed.
 
 ---
 

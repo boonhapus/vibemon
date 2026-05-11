@@ -1,6 +1,12 @@
+from typing import cast
 import math
 
-from app import const, utils, types
+import structlog
+
+from app import const, types, utils
+from app.balance.element_chart import ELEMENT_STAT_GRADE, GRADE_WEIGHT
+
+_LOGGER = structlog.get_logger(__name__)
 
 
 def base_stat_level_scaling(base_value: int, *, level: int, true_floor: int = 5) -> int:
@@ -13,6 +19,28 @@ def base_stat_level_scaling(base_value: int, *, level: int, true_floor: int = 5)
       +5 constant acts as true floor.
     """
     return math.floor((2 * base_value * level) / const.MAX_LEVEL) + true_floor
+
+
+def stat_ratio_from_grade(
+    signal_value: float,
+    *,
+    elements: tuple[types.VibemonTypeT, ...],
+    stat: types.BaseStatNameT,
+) -> float:
+    """
+    Combine an element-aware grade with a 0-1 signal value into a stat ratio.
+
+    Grade defines the band midpoint (D=0.1, C=0.3, B=0.5, A=0.7, S=0.9). Signal
+    varies within a 0.3-wide band centered on midpoint. Dual-type Vibemon average
+    the two grade weights.
+
+    Pass `signal_value` as a center-anchored mix (Signal.mix(..., mode="center")
+    or signal.center) so a median city produces a median stat for its grade.
+    """
+    weights = [GRADE_WEIGHT[ELEMENT_STAT_GRADE[e][stat]] for e in elements]
+    avg_weight = sum(weights) / len(weights)
+    midpoint = (avg_weight * 2 - 1) / 10
+    return utils.clamp(midpoint + (signal_value - 0.5) * 0.3, minimum=0.0, maximum=1.0)
 
 
 def base_stat_asymmetric_scaling(ratio: float, *, stat: types.BaseStatNameT) -> int:
@@ -47,3 +75,42 @@ def base_stat_asymmetric_scaling(ratio: float, *, stat: types.BaseStatNameT) -> 
         # (0.5, 1.0] → [med, max]
         t = (r - 0.5) / 0.5
         return int(stat_med + t * (stat_max - stat_med))
+
+
+def apply_evo_seed_bst_bias(
+    stats: dict[str, int],
+    *,
+    evo_seed: types.EvolutionStageT,
+    evo_stage: types.EvolutionStageT,
+) -> dict[str, int]:
+    """
+    Re-scale base stats so total BST tracks evolution-line expectations.
+
+    This keeps each stat's relative profile, then clamps to stat bounds and
+    distributes rounding remainder to preserve the target BST when possible.
+    """
+    from app import schema
+
+    BST_SCALING_MATRIX = {
+        types.EvolutionStageT.BASE:             [485],
+        types.EvolutionStageT.STAGE_2:          [300, 490],
+        types.EvolutionStageT.STAGE_3:          [280, 410, 530],
+        types.EvolutionStageT.PSUEDO_LEGENDARY: [300, 420, 600],
+        types.EvolutionStageT.LEGENDARY:        [575],
+        types.EvolutionStageT.ULTRA_LEGENDARY:  [675],
+    }
+
+    scale_factor = BST_SCALING_MATRIX[evo_seed][evo_stage - 1] / sum(stats.values())
+    scaled: dict[str, int] = {}
+
+    for key, value in stats.items():
+        stat = cast(types.BaseStatNameT, key.replace("base_", ""))
+        stat_min = schema.Identity._stat_info(name=stat, type="min")
+        stat_max = schema.Identity._stat_info(name=stat, type="max")
+
+        assert stat_min is not None, f"Stat.min is not set for {stat}"
+        assert stat_max is not None, f"Stat.max is not set for {stat}"
+
+        scaled[key] = math.floor(utils.clamp(value * scale_factor, minimum=stat_min, maximum=stat_max))
+
+    return scaled

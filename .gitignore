@@ -11,7 +11,11 @@ __pycache__/
 # Ignore project-specific build artifacts
 .venv/
 .data/
+.generated/
 .scripts/generated
+.scripts/battle_runs
+.scripts/*.db
+.scripts/*.md
 
 # Ignore coding agents
 CLAUDE.md

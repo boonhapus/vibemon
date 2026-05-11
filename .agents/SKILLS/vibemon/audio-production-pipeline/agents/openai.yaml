@@ -1,0 +1,4 @@
+interface:
+  display_name: "Audio Production Pipeline"
+  short_description: "Process, loop-test, and export Vibemon music cues."
+  default_prompt: "Use this skill to stage a Vibemon music cue, process it with the audio pipeline, create intro/loop or loop-only runtime exports, and guide listening approval."

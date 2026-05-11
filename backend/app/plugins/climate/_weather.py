@@ -10,6 +10,7 @@ from app import __project__
 
 class OpenMeteoAdapter(AsyncHTTPAdapter):
     """Rewrites placeholder URLs to real Open Meteo subdomains."""
+
     def __init__(self, subdomain: str, *a, **kw) -> None:
         self.subdomain = subdomain
         super().__init__(*a, **kw)
@@ -30,6 +31,7 @@ class OpenMeteoAPIClient(niquests.AsyncSession):
     provider_name = "open-meteo.weather_forecast"
 
     def __init__(self, **session_opts) -> None:
+        # fmt: off
         RATE_LIMITER = RateLimiterHook(
             (    600, dt.timedelta(minutes= 1)),
             (  5_000, dt.timedelta(hours  = 1)),
@@ -37,6 +39,7 @@ class OpenMeteoAPIClient(niquests.AsyncSession):
             (300_000, dt.timedelta(days   =30)),
             provider=OpenMeteoAPIClient.provider_name,
         )
+        # fmt: on
         RETRY_POLICY = niquests.RetryConfiguration(
             total=5,
             backoff_factor=2,
@@ -73,7 +76,7 @@ class OpenMeteoAPIClient(niquests.AsyncSession):
         """Find the weather at a given coordinate."""
         if end_date is None:
             end_date = dt.datetime.now(tz=dt.timezone.utc).date()
-        
+
         assert isinstance(end_date, dt.date), "end_date must be provided."
 
         if start_date is None:
@@ -86,25 +89,30 @@ class OpenMeteoAPIClient(niquests.AsyncSession):
         p = {
             "latitude": latitude,
             "longitude": longitude,
-            "daily": ",".join([
-                "uv_index_max",
-                "weather_code",
-                "shortwave_radiation_sum",
-                "relative_humidity_2m_mean",
-                "temperature_2m_max",
-                "temperature_2m_min",
-                "apparent_temperature_mean",
-                "visibility_mean",
-                "pressure_msl_mean",
-                "cloud_cover_mean",
-                "precipitation_sum",
-                "et0_fao_evapotranspiration",
-                "dew_point_2m_mean",
-                "wind_speed_10m_max",
-                "wind_gusts_10m_max",
-                "cape_mean",
-                "snowfall_sum",
-            ]),
+            "daily": ",".join(
+                [
+                    "uv_index_max",
+                    "weather_code",
+                    "shortwave_radiation_sum",
+                    "relative_humidity_2m_mean",
+                    "temperature_2m_max",
+                    "temperature_2m_min",
+                    "apparent_temperature_mean",
+                    "visibility_mean",
+                    "pressure_msl_mean",
+                    "pressure_msl_max",
+                    "pressure_msl_min",
+                    "cloud_cover_mean",
+                    "precipitation_sum",
+                    "et0_fao_evapotranspiration",
+                    "dew_point_2m_mean",
+                    "wind_speed_10m_max",
+                    "wind_gusts_10m_max",
+                    "cape_mean",
+                    "snowfall_sum",
+                ]
+            ),
+            "hourly": "soil_moisture_0_to_1cm",
             "timezone": "GMT",
             "start_date": start_date.isoformat(),
             "end_date": end_date.isoformat(),
@@ -133,12 +141,10 @@ class OpenMeteoAPIClient(niquests.AsyncSession):
         assert isinstance(start_date, dt.date), "start_date must be provided."
         assert start_date < end_date, "Time range must be contiguous, start_date < end_date."
 
-        from collections.abc import Mapping
-
         p = {
             "latitude": latitude,
             "longitude": longitude,
-            "hourly": "pm2_5",
+            "hourly": "pm2_5,dust",
             "timezone": "GMT",
             "start_date": start_date.isoformat(),
             "end_date": end_date.isoformat(),

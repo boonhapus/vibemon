@@ -252,3 +252,64 @@ Two transition types are period-accurate and should be used exclusively for ente
 ```
 
 **Implementation note:** `steps(16)` on both transitions gives the wipe and iris a characteristic "notched" edge as they move — they do not glide smoothly, they advance in visible increments. This is deliberate and period-accurate; a smooth `ease` iris would read as a modern video effect. A stepped iris reads as a 16mm projector.
+
+---
+
+## 7. Audio Architecture
+
+### 7.1 Sonic Vision
+The audio should translate 1990s monster-game structure through a 1960s-70s analog sound world. The 1990s influence belongs in the composition shape: immediate cue starts, short memorable hooks, compact loops, a clear role hierarchy across the game's audio layers, and tight UI/gameplay rhythm. It should not appear as clean handheld chiptune timbres.
+
+The sound source should feel like 1960s-70s library music, psych-rock, jazz-funk, analog synths, and playback through a wooden-cabinet television or portable transistor radio. Avoid modern orchestral scoring, EDM polish, pristine square-wave leads, and overly cute novelty instrumentation.
+
+This vision spans the **entire game**, not battle music alone. Title themes, menu navigation sounds, overworld ambience, and every distinct battle variant (wild, trainer, rare Vibemon, special-event/boss) must read as cuts from the same fictional 1960s–70s library record. Shared traits across all audio:
+
+* **Common instrumentation pool** — Hammond B3 + Leslie, fuzz bass, damped drums, wah guitar, Mellotron, analog synth blips. A given cue may emphasize a subset, but no cue should introduce timbres outside the family (no orchestral strings on the title, no chiptune on a boss).
+* **Common processing chain** — every asset, music and SFX alike, passes through the lo-fi chain in §7.2. The title theme should sound like it came off the same tape reel as the trainer battle.
+* **Common harmonic language** — modal jazz colorings, dominant-seventh tension, parallel chord motion typical of period library cues. A title theme may be atmospheric and a boss theme may be dense, but both should feel harmonically related, like tracks from one composer's notebook.
+* **Common rhythmic DNA** — even the calm cues should carry a faint sense of the same drum-kit and percussion vocabulary (brushes, congas, dry tom fills) so transitions between menu and battle never feel like crossing genres.
+
+The goal is that a player hearing the title theme can already anticipate the sonic world they'll meet in their first wild encounter — and that the jump from wild to boss feels like an intensification of the same record, not a switch to a different soundtrack.
+
+### 7.2 The "Lo-Fi" Processing Chain
+To achieve the "Vibemon" sound, all audio assets—whether music or SFX—must pass through a simulated signal chain:
+* **Tape Saturation:** A subtle harmonic distortion to "glue" the frequencies together.
+* **Wow & Flutter:** Slight, periodic pitch instability (0.1%–0.3%) to mimic a spinning record or tape reel.
+* **Frequency Capping:** A steep high-cut filter at **12kHz** and a low-cut at **100Hz**. The "tinny" mids are where the nostalgia lives.
+* **Resolution Texture:** Use 12-bit or 8-bit texture only when it supports the Saturday-morning analog illusion. The goal is warmth and period character, not damaged audio.
+* **Mono Compatibility:** Music may remain stereo, but bass, drums, hooks, and loop seams must survive small speaker and mono playback.
+
+### 7.3 SFX Palette: Physical & Electrical
+| Event | Sound Description | Analog Reference |
+| :--- | :--- | :--- |
+| **Menu Navigation** | A heavy, plastic "thunk" or a metallic "clack." | 1970s typewriter keys; rotary phone dial returning to home. |
+| **Selection/Confirm** | A warm, resonant sine-wave "blip" with a long decay. | Early Atari 2600 UI sounds; laboratory oscillators. |
+| **Taking Damage** | A brief burst of white noise followed by a low-frequency hum. | A CRT television being slapped; a mic-stand being bumped. |
+| **Fainting** | A pitch-sliding downward "whirr" that slows down. | A record player being switched off while the needle is still down. |
+| **HP Bar Draining** | A rhythmic, percussive "ticking." | A film projector's mechanical shutter. |
+
+### 7.4 Musical Direction: "The Lounge Battle"
+The soundtrack should pivot away from "epic orchestral" and toward **Library Music**, **Psych-Rock**, **Jazz-Funk**, and fast bossa nova rhythm influence. Battles should feel energetic, tense, playful, mischievous, compact, and scrappy but tight.
+
+* **Instrumentation:** Hammond B3 organ with Leslie speaker should be a signature hook color, supported by fuzzy distorted bass guitar, dry damped 1970s drums, muted wah-wah rhythm guitar, Mellotron string stabs, and sparse warm analog synth blips.
+* **Composition:** Use 4/4 battle urgency, short hooks, and compact A/B/A loop forms. The B section should add color and motion without boss-level drama.
+* **Looping:** Battle music may use a short intro plus a separate loop. Loops may include a subtle tape-seam artifact when musically appropriate, but the runtime loop must still feel intentional and non-distracting.
+* **Tone Guardrails:** Do not let playful become comedic. Avoid circus colors, cartoon novelty sounds, cinematic risers, EDM drops, metal aggression, or pristine chiptune leads unless a later cue explicitly calls for them.
+
+### 7.5 Soundtrack Hierarchy
+Each cue has a role in the emotional ladder. Every cue shares the instrumentation pool, processing chain, and harmonic language defined in §7.1 — the hierarchy is achieved through density, tempo, and arrangement, not through genre swaps.
+
+| Cue | Role | Relative Intensity |
+| :--- | :--- | :--- |
+| **Title Theme** | Calm, atmospheric, signature melodic motif that subtly references the battle themes' harmonic language | Lowest |
+| **Menu / UI Beds** | Sparse, ambient pad or organ drone under menu screens; quiet enough to layer with SFX | Very low |
+| **Overworld / Ambience** | Light, unobtrusive, retains shared instrumentation but at low arrangement density | Low |
+| **Wild Battle** | Immediate, simple, tense, playful, lower-stakes; first battle layer in the world | Medium |
+| **Trainer Battle** | More developed and assertive; full kit, longer A/B/A form | Higher |
+| **Rare Vibemon Battle** | Tense and uncommon-feeling — minor-mode shift, extra percussion, slight tempo lift relative to wild | High |
+| **Special Event / Boss Vibemon** | Densest, most urgent, boss-like; full ensemble, harmonic tension peaks, climactic | Highest |
+
+The Title Theme should plant a short melodic or harmonic motif that the battle cues later quote, paraphrase, or invert — this is what makes the whole game feel like one record rather than a playlist.
+
+### 7.6 Technical Implementation (Web Audio API)
+To match the `steps()` logic of the animations, audio playback and processing may use a **Bit-Crusher node** set to 12-bit or 8-bit depth when the source feels too clean. For battle music with separate intro and loop assets, prefer tightly scheduled playback so the intro hands off to the loop without a perceptible gap.

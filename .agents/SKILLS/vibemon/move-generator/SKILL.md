@@ -6,7 +6,7 @@ description: >
   file writes are allowed only after explicit user approval. Uses provider docstring,
   type quotas, and learnset constraints.
 metadata:
-  version: 1.3.1
+  version: 1.4.0
 ---
 
 # Vibemon Move Generator (Orchestrator-First)
@@ -49,16 +49,26 @@ Default behavior is ideation orchestration, not code generation.
 
 - Type quotas: `base = N // k`, `rem = N % k`, first `rem` types get +1.
 - Level-1 share: choose `L1` minimizing `|L1 / N - 0.7|` (tiebreak upward). This is a **hard target**, not advisory — see Step B2.5 gate.
+- Level-1 power gate: L1 damaging moves are starter moves, not relearner/capstone moves. Use `references/move_balance_reference.md` §6:
+  - 20-30% at 10-30 power,
+  - 45-60% at 35-45 power,
+  - 10-20% at 50-55 power,
+  - 0-5% at 56-60 power,
+  - 0% above 60 unless the user explicitly requests overtuned/prototype content.
 - Per-type L1 floor: each type's L1 share must land within `±15pp` of the batch L1 ratio. No type may hoard or starve the L1 bucket.
-- Non-L1 levels: use `references/move_balance_reference.md`; keep `56-80` sparse, `81-100` trace.
+- Non-L1 levels: use `references/move_balance_reference.md` §5 and §7 level-power caps; keep `56-80` sparse, `81-100` trace.
 - Secondary-effect budget (damaging moves only): target `~70%` with no rider and `~30%` with riders.
   - Compute per-batch rider budget before ideation using `D = damaging_move_count`.
   - Use `R = round(0.3 * D)` as target rider count (acceptable drift: `R ± 1` for small batches).
   - Treat status moves separately: they always have effects and never count toward the damaging-move rider budget.
+- Early accuracy/evasion guard: moves below level 15 must not raise `evasion` or lower the target's `accuracy`.
+  - This applies to both STATUS moves and damaging-move riders.
+  - Use resolvable utility instead: `defense`, `sp_defense`, `speed`, `attack`, or `sp_attack` stage changes.
+  - Accuracy/evasion manipulation can appear at level 15+ only when sparse and deliberately counterplayable.
 - Power-band distribution (damaging moves only): compute per-tier targets from `references/move_balance_reference.md` §3.5.
   - Floor: each tier must reach `≥50%` of its target count.
   - Ceiling: no single tier may hold `>40%` of damaging moves.
-  - Capstone rule: at least **one** move at `power ≥120` per batch.
+  - Capstone rule: at least **one** move at `power ≥120` per substantial batch, but it must be level `56+` and should be omitted for small starter-only batches when it would distort quality.
 - Priority budget: at most `~7%` of moves in the batch carry elevated priority (`priority ≥1`). Higher tiers (`+2..+7`) follow the sparsity ladder in `references/move_balance_reference.md` §3.6.
 
 ### Step A4 — Parallel creative subagents (required)
@@ -143,13 +153,17 @@ In merge mode, resolve collisions per move with user input.
 - Use `from app import schema, types` and enum members (no raw strings).
 - Enforce `1 <= level_requirement <= 100`.
 - Enforce unique `Move.name` in batch and merged pool.
-- STATUS moves must use `power=None` and non-`None` effect.
+- STATUS moves must use `power=None` and at least one `EffectGroup`.
+- Render effects as `Effects`: use `effects=(schema.EffectGroup(...),)` containing typed effects such as `schema.StatusInflict`, `schema.StatChange`, `schema.Heal`, `schema.WeatherSet`, `schema.Drain`, or `schema.Recoil`.
+- Use explicit `EffectTarget` (`"self"` / `"target"` / etc.).
+- Provider move files are content plugins only. Do not add executable callbacks, third-party battle scripts, or raw Python function refs. `MoveBehavior.script_id` is only for existing first-party engine scripts and requires explicit user approval.
 - Expose module-level `MOVES = (...,)`.
 - Final output must be fully inlined `schema.Move(...)` entries.
 - Never leave helper maps/tables, factory/build functions, loops/comprehensions, or generated assembly in the final `moves.py`.
 - Flavor text must be unique per move and thematic to that move's fantasy/effect; do not reuse sentence templates.
 - For every move, choose `power`, `accuracy`, `pp`, and `level_requirement` by consulting `references/move_balance_reference.md`.
 - Resolve dials in this order: type/theme -> category -> power tier -> accuracy/PP -> level band -> secondary effect chance.
+- Enforce level-power caps from `references/move_balance_reference.md` §7. In particular, normal level-1 damaging moves cap at 45 power; rare level-1 moves cap at 55 power and must not carry a strong rider.
 - Enforce damaging-move rider budget from Phase A:
   - Let `D` be damaging moves in the rendered set; target `R = round(0.3 * D)` rider-bearing damaging moves.
   - Keep realized rider count within `R ± 1` (small-batch tolerance), preferring fewer riders when tied.
@@ -157,6 +171,7 @@ In merge mode, resolve collisions per move with user input.
 - Enforce power-band distribution from Phase A: realized per-tier counts must respect §3.5 floors and ceiling. Re-tier a concept rather than dropping it from the band.
 - Enforce priority budget: realized count of `priority ≥1` moves must be `≤ round(0.07 * N)`. Respect the §3.6 sparsity ladder for `+2..+7`.
 - Enforce per-type L1 floor: each type's rendered L1 share within `±15pp` of the batch L1 ratio.
+- Enforce early accuracy/evasion guard: no move with `level_requirement < 15` may include `schema.StatChange` that raises `evasion` or lowers target `accuracy`.
 - Quality is non-negotiable: never trade moveset quality for speed, token savings, or mechanical safety.
 - Never flatten effect design (for example: blanket `effect.chance=1.0` across most moves) unless the user explicitly requests a "safe baseline only" pass.
 - For effect-bearing moves, intentionally distribute reliability (`accuracy`, `pp`, `effect.chance`) so utility texture exists across the batch.
@@ -173,10 +188,13 @@ Every check below is **MUST-PASS**. Run `uv run .agents/SKILLS/vibemon/move-gene
 - **Per-type L1 floor (HARD)**: every type's L1 share within `±15pp` of the batch L1 ratio.
 - **Level density**: keep `56-80` sparse and `81-100` trace unless explicitly requested otherwise.
 - **Power-band distribution (HARD)**: per `references/move_balance_reference.md` §3.5 — every tier ≥50% of target floor, no tier >40% of damaging moves, ≥1 capstone (power ≥120) present.
+- **Level-power caps (HARD)**: per `references/move_balance_reference.md` §7. L1 damaging moves above 55 power are rejected; L1 50-55 power moves must stay within the §6 share.
 - **Priority budget (HARD)**: count of moves with `priority ≥1` must be `≤ round(0.07 * N)`; per-tier sparsity caps from §3.6 hold.
 - **Sure-Hit budget (HARD)**: count of moves with `accuracy=None` must be `≤ round(0.05 * N)`.
+- **Early accuracy/evasion guard (HARD)**: no move below level 15 may raise `evasion` or lower target `accuracy`, including damaging riders.
 - **Dial sanity**: run anti-pattern checks from `references/move_balance_reference.md` §12.
 - **Effect texture**: meaningful variance in effect reliability; no single pattern dominates.
+- **Current effect schema**: rendered moves use `EffectGroup` and typed effects. No legacy `target_self`, callback field, or executable provider script refs.
 - **Damaging-rider ratio (HARD)**: damaging moves at ~`70%` no rider / `~30%` rider-bearing (within Step B2 tolerance). STATUS moves are exempt from the ratio but should not be used to bypass the "Loaded" feel of a moveset.
 - **Type/category fit**: cross-category choices flavor-justified, not accidental.
 
@@ -197,10 +215,13 @@ After all checks pass, print the same batch summary block from Step A7 with real
 - [ ] `N >= k` enforced (or exception documented)
 - [ ] Per-type quotas computed with even split + enum-order remainder
 - [ ] `L1` chosen by `|L1/N - 0.7|` rule (upward tiebreak), realized within `±5pp` (HARD)
+- [ ] L1 damaging power distribution follows `references/move_balance_reference.md` §6
+- [ ] Level-power caps from `references/move_balance_reference.md` §7 are enforced
 - [ ] Per-type L1 share within `±15pp` of batch ratio (HARD)
 - [ ] Non-L1 level bands follow `references/move_balance_reference.md` density guidance
 - [ ] Power-band distribution respects §3.5 floors, ceiling, and capstone rule
 - [ ] Priority budget: ≤7% elevated priority (`priority ≥1`); §3.6 sparsity respected
+- [ ] Early accuracy/evasion guard: no `level_requirement < 15` move raises evasion or lowers target accuracy
 - [ ] Approval gate showed batch summary block (Step A7) before user signed off
 - [ ] 3 parallel creative subagents were used in Phase A
 - [ ] Any code leakage was rejected and re-run policy applied
@@ -209,6 +230,7 @@ After all checks pass, print the same batch summary block from Step A7 with real
 - [ ] Phase B edits happened only after explicit trigger and write-mode confirmation
 - [ ] `moves.py` opens with the AI GENERATED banner (semver + `YYYY/MM/DD`) after imports, before `MOVES`
 - [ ] Final `moves.py` uses only inlined `schema.Move(...)` entries (no helper maps/builders/generators/comprehensions)
+- [ ] Effects use `schema.EffectGroup` + typed effects; no legacy callbacks or provider battle scripts
 - [ ] Flavor text is unique and move-specific (not templated boilerplate)
 - [ ] `power`/`accuracy`/`pp`/`level_requirement` were selected by consulting `references/move_balance_reference.md`
 - [ ] Generation did not sacrifice quality for speed or simplicity

@@ -4,6 +4,12 @@ Ground truth for move generation in Vibemon. Read **§1 Design Philosophy** and 
 
 Vibemon caps learnsets at **`MAX_LEVEL = 100`** (`backend/app/const.py`).
 
+The battle engine uses the modern mainline Pokemon-style integer damage formula:
+base damage floors at intermediate steps, critical hits use a 1.5x modifier, random damage is an integer roll
+from 85 through 100, STAB is 1.5x, type immunity deals exactly 0 damage, and damage is clamped to at least 1 only
+after confirming the hit was not immune. At level 1, generated Vibemon usually have about 12-15 HP and attacking
+stats near 5-8, so 75-100 power moves are not "starter" moves; they are 2HKO/OHKO pressure.
+
 ---
 
 ## 1. Design Philosophy
@@ -39,7 +45,7 @@ When generating any move, walk these steps top to bottom. Earlier steps constrai
 2. **Category** — Physical / Special / Status. Default to the type's natural category (§4); cross only if flavor demands it.
 3. **Power tier** — pick a band from §3 based on how impactful the move should feel. This single choice locks most of the next two steps.
 4. **PP & Accuracy** — read straight off §3 from the power tier. Adjust within the band only with a *reason* (e.g. "this is the signature finisher, drop accuracy to 85%").
-5. **Level requirement** — combine power tier (§7) with role in the learnset (§5–§6). About **70%** of any batch should still be at level 1.
+5. **Level requirement** — combine power tier (§7) with role in the learnset (§5–§6). About **70%** of any batch should still be at level 1, but level-1 damaging moves must stay in starter power bands.
 6. **Secondary effect** — *first decide whether the move has one at all.* For damaging moves, default to **no rider** (~70% of damaging moves should have none); add one only if the theme calls for it. If you do add one, pick a status / stat change consistent with the theme (§10) and set its chance per §8: the stronger the move, the rarer the proc. Status-category moves always have an effect (the effect *is* the move).
 7. **Sanity check** — run the §11 anti-pattern list. If the move violates any, weaken a dial.
 
@@ -52,8 +58,8 @@ The spine of the whole system. *If you set power, the other two are 80% determin
 | Power | Typical PP | Typical Accuracy | What this tier *is* | Real anchors |
 |---|---|---|---|---|
 | **None (Status)** | 10–20 | 1.0 (or 0.75–0.9 if the effect is huge) | Utility — PP set by §6, not by damage | Swords Dance (—/100%/20), Thunder Wave (—/90%/20), Sleep Powder (—/75%/15), Stealth Rock (—/100%/20) |
-| **10–30** | 25–40 | 1.0 | Chip damage / spammable | Pound (40/100%/35), Vine Whip (45/100%/25) |
-| **40–60** | 20–25 | 1.0 | Early-game STAB; reliable filler | Ember (40/100%/25), Water Gun (40/100%/25), Bubble (40/100%/30) |
+| **10–30** | 25–40 | 1.0 | Chip damage / spammable | Pound, weak jabs, soft openers |
+| **35–55** | 20–30 | 1.0 | Early-game STAB; reliable filler | Tackle (40/100%/35), Ember (40/100%/25), Water Gun (40/100%/25), Vine Whip (45/100%/25) |
 | **65–80** | 15–20 | 0.95–1.0 | Mid-game upgrade tier | Bubble Beam (65/100%/20), Flame Wheel (60/100%/25), Aerial Ace (60/—%/20, never miss) |
 | **80–100** | 10–15 | 0.9–1.0 | The "always good" workhorses; competitive kit | Flamethrower (90/100%/15), Surf (90/100%/15), Ice Beam (90/100%/10), Earthquake (100/100%/10), Thunderbolt (90/100%/15) |
 | **100–110** | 5–10 | 0.8–1.0 | Reliable high power; one dial usually pays | Hydro Pump (110/80%/5) — pays in accuracy *and* PP |
@@ -78,7 +84,7 @@ Let `D` = damaging move count in the batch.
 | Tier label  | Power     | Share of `D` | Per-tier floor | Real anchor                      |
 |-------------|-----------|--------------|----------------|----------------------------------|
 | `spam`      | 10–30     | 5–10%        | `≥0.5×target`  | Tackle, Pound, Vine Whip (45)    |
-| `early-stab`| 40–60     | 15–20%       | `≥0.5×target`  | Ember, Water Gun                 |
+| `early-stab`| 35–55     | 15–20%       | `≥0.5×target`  | Tackle, Ember, Water Gun         |
 | `mid`       | 65–80     | 25–30%       | `≥0.5×target`  | Bubble Beam, Flame Wheel         |
 | `workhorse` | 80–100    | 25–30%       | `≥0.5×target`  | Flamethrower, Surf, Earthquake   |
 | `high`      | 100–120   | 10–15%       | `≥0.5×target`  | Hydro Pump, Thunder, Fire Blast  |
@@ -168,12 +174,18 @@ Where to place the **non-level-1** moves. Not every band gets equal weight — h
 
 | Level range | Density | Typical power | Strategic role |
 |---|---|---|---|
-| **1** | Massive | 10–120+ | The bucket: starters, relearner pool, egg/coverage moves |
-| **2 – 15** | High | 10–40 | Setup era: basic STAB, light chip, early STATUS |
-| **16 – 35** | Moderate | 40–65 | Evolution window: mid STAB, battle pivots |
-| **36 – 55** | Moderate | 70–95 | Core kit: Flamethrower / Ice Beam workhorse tier |
-| **56 – 80** | Low | 100–150 | Finishers: high-risk / signature moves |
-| **81 – 100** | Trace | N/A | Capstones only — legendary-tone moves, very rare |
+| Level range | Density | Typical power | Strategic role |
+|---|---|---|---|
+| **1** | Massive | 10–55 | Starters: chip, basic STAB, simple status |
+| **2 – 15** | High | 20–60 | Setup era: stronger basic STAB, light chip, early STATUS |
+| **16 – 35** | Moderate | 40–80 | Evolution window: mid STAB, battle pivots |
+| **36 – 55** | Moderate | 65–100 | Core kit: Flamethrower / Ice Beam workhorse tier |
+| **56 – 80** | Low | 90–120 | Finishers: high-risk / signature moves |
+| **81 – 100** | Trace | 120+ | Capstones only — legendary-tone moves, very rare |
+
+Level requirement is a battle-availability gate, not only flavor metadata. If a generated Vibemon is level 1 and its
+learnset includes an 85 power move at level 1, the debug battle can legitimately become a 1-2 turn fight. Do not put
+midgame or finisher power at level 1.
 
 **STATUS moves (`power is None`)** are placed by **utility tier** (§6), not power. Lean them earlier when in doubt — keep 56–80 and 81–100 reserved.
 
@@ -182,6 +194,19 @@ Where to place the **non-level-1** moves. Not every band gets equal weight — h
 ## 6. Level-1 Batch Sizing (~70% target)
 
 Most moves in any provider batch sit at level 1 (the relearner / TM-equivalent pool). For a batch of size **N**, pick `L1 ∈ 0…N` minimizing `|L1/N − 0.7|`. On ties, pick the **larger** `L1`.
+
+The 70% L1 target does **not** license high-power L1 moves. Within level-1 damaging moves, use this distribution:
+
+| L1 damaging power band | Share of L1 damaging moves | Notes |
+|---|---:|---|
+| **10–30** | 20–30% | true chip, high PP, clean damage |
+| **35–45** | 45–60% | default starter attacks; reliable STAB lives here |
+| **50–55** | 10–20% | strong-for-L1; usually lower PP or no rider |
+| **56–60** | 0–5% | rare edge case; no strong rider |
+| **>60** | 0% | not level 1 unless the user explicitly asks for overtuned/prototype moves |
+
+For level-1 battles, target a normal matchup lasting roughly 4-6 turns, type advantage 3-4 turns, and crit/mismatch
+outliers 2-3 turns. If L1 battles routinely end in 1-2 turns without crits, move power is too high for the level.
 
 | N | Best L1 | L1 / N |
 |---|---|---|
@@ -203,12 +228,24 @@ For the **non-L1** moves, soft anchors once you've picked power/utility tier (§
 | STATUS — reliable control | 8–35 | Confuse Ray (L17), Toxic (L24-ish) |
 | STATUS — team-defining | 36–55 | Calm Mind, Swords Dance (mid-late) |
 | STATUS — fight-warping | 56–80 (rare) | Trick Room, Tailwind on signature users |
-| Weak damage (≤ 50) | 2–25 | Tackle (L1), Ember (early) |
-| Mid damage (55–80) | 16–45 | Flame Wheel (mid-20s), Bite (mid) |
+| Starter damage (10–45) | 1–15 | Tackle (L1), Ember (early) |
+| Strong starter damage (50–55) | 1–20 | upper edge of L1; keep clean or lightly budgeted |
+| Mid damage (60–80) | 16–45 | Flame Wheel (mid-20s), Bite (mid) |
 | Strong damage (85–100) | 30–55 | Flamethrower (mid-40s on Charizard line) |
 | Very strong (100–120) | 45–75 | Hydro Pump (mid-50s), Fire Blast (50s) |
 | Signature / 120+ | 56–90 | Draco Meteor, Outrage (high tier) |
 | Capstone (legendary tone) | 91–100 (almost never) | Reserved — most Vibemon never get here |
+
+Hard level-power caps for normal generation:
+
+| Level requirement | Normal max power | Rare max power | Requirements for rare max |
+|---|---:|---:|---|
+| **1** | 45 | 55 | no strong rider; PP/accuracy not both premium |
+| **2–15** | 55 | 60 | flavor-justified, not batch-common |
+| **16–35** | 75 | 80 | midgame upgrade |
+| **36–55** | 95 | 100 | workhorse tier |
+| **56–80** | 110 | 120 | pays with accuracy, PP, recoil, self-debuff, or similar |
+| **81–100** | 120 | 150 | capstone only; major drawback for 130+ |
 
 ---
 
@@ -344,11 +381,14 @@ If any of these are true, the move is overtuned — weaken a dial.
 - [ ] Power ≥ 120 with no drawback (acc penalty / recharge / recoil / 5 PP / self-debuff)
 - [ ] Power ≥ 100 with a ≥ 30% strong-status proc (paralysis / burn / freeze / sleep)
 - [ ] Status move with 100% accuracy that inflicts SLEEP or FREEZE (these always trade accuracy)
+- [ ] Move below level 15 raises evasion or lowers target accuracy
 - [ ] +2 stat change paired with damage and no downside
 - [ ] Sub-60 power move with accuracy under 100% (no flavor reason to miss)
 - [ ] 5 PP on a move under 90 power and without a heavy effect
 - [ ] Crossed type→category without a flavor reason (a "Special FIGHTING punch" or "Physical PSYCHIC beam")
 - [ ] Common move parked in the 56–80 or 81–100 level band
+- [ ] Level 1 damaging move above 55 power
+- [ ] Level 1 damaging pool has too many 50-55 power moves (>20% of L1 damaging moves)
 - [ ] Batch's L1 ratio drifted outside `|L1/N − 0.7| ≤ 0.05` (HARD)
 - [ ] Any single type's L1 share drifted more than `±15pp` from the batch L1 ratio
 - [ ] Batch's damaging-move rider ratio drifted far from ~30% (most common drift: too many riders, making every move feel "loaded")

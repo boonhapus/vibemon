@@ -51,6 +51,18 @@ CORE_PALETTE: Final[tuple[Color, ...]] = (
 # Lineart floor — never render lineart darker than this (DESIGN.md §6 / sprite prompt).
 LINEART_FLOOR: Final = Color("#2A1E16", "Tobacco Black", "Hard floor for lineart darkness")
 
+# Colors that the sprite prompt can produce regardless of elemental typing.
+# Include these when choosing a chroma-key background; otherwise the solver can
+# pick a key color that is far from the body fills but close to eyes, claws,
+# highlights, or lineart.
+SPRITE_CHROMA_PROTECTED_COLORS: Final[tuple[Color, ...]] = (
+    TOBACCO_BROWN,
+    LINEART_FLOOR,
+    CREAM,
+    MUSTARD_YELLOW,
+    Color("#A03020", "Warm Red Detail Guard", "Common iris/accent color family"),
+)
+
 
 # ============================================================================
 # §2.2 Vibemon Type Colors — elemental classifications
@@ -138,6 +150,22 @@ def _hex_to_rgb(hex_str: str) -> tuple[float, float, float]:
     )
 
 
+def _hex_to_hue(hex_str: str) -> float:
+    """Return hue angle in degrees (0-360) from a hex color string."""
+    r, g, b = _hex_to_rgb(hex_str)
+    mx = max(r, g, b)
+    mn = min(r, g, b)
+    if mx == mn:
+        return 0.0
+    delta = mx - mn
+    if mx == r:
+        return 60.0 * (((g - b) / delta) % 6)
+    elif mx == g:
+        return 60.0 * (((b - r) / delta) + 2)
+    else:
+        return 60.0 * (((r - g) / delta) + 4)
+
+
 @ft.cache
 def _rgb_to_lab(rgb: tuple[float, float, float]) -> tuple[float, float, float]:
     """Convert sRGB in [0, 1] to CIELAB (D65 illuminant).
@@ -182,7 +210,11 @@ def _delta_e_76(lab1: tuple[float, float, float], lab2: tuple[float, float, floa
     return sum((a - b) ** 2 for a, b in zip(lab1, lab2)) ** 0.5
 
 
-def solve_background_color(*foreground_colors: Color, candidates: Iterable[Color] = CHROMA_KEY_CANDIDATES) -> Color:
+def solve_background_color(
+    *foreground_colors: Color,
+    candidates: Iterable[Color] = CHROMA_KEY_CANDIDATES,
+    hue_protected: Iterable[Color] = (),
+) -> Color:
     """
     Choose the candidate background most perceptually distant from every
     foreground color, optimized for clean chroma-key separation.
@@ -204,6 +236,15 @@ def solve_background_color(*foreground_colors: Color, candidates: Iterable[Color
 
     Any candidate whose hex matches a foreground color is excluded
     automatically — you cannot key a background away from itself.
+
+    ``hue_protected`` specifies colors whose hue family should not overlap
+    with the chosen background. When the AI sprite model generates hues
+    in the same family as a type color (e.g. water's teal), a chroma-key
+    background in that same hue region (e.g. Chroma Blue) may erase
+    sprite elements even though the exact hex isn't in the foreground
+    set. Candidates whose hue is within 50° of any hue-protected color
+    are skipped unless no candidate passes the filter, in which case the
+    max-min winner from the full pool is used.
 
     Examples:
         >>> # Single-typed Fire creature, chroma-key default
@@ -230,17 +271,32 @@ def solve_background_color(*foreground_colors: Color, candidates: Iterable[Color
     fg_labs = [_rgb_to_lab(_hex_to_rgb(c.hex)) for c in foreground_colors]
     fg_hex_set = {c.hex.upper() for c in foreground_colors}
 
+    protected_hues = {_hex_to_hue(c.hex) for c in hue_protected}
+
+    def _hue_filtered(candidates: list[Color]) -> list[Color]:
+        if not protected_hues:
+            return list(candidates)
+        result: list[Color] = []
+        for c in candidates:
+            ch = _hex_to_hue(c.hex)
+            if any(min(abs(ch - ph), 360 - abs(ch - ph)) < 50 for ph in protected_hues):
+                continue
+            result.append(c)
+        return result
+
+    candidate_list = list(candidates)
+    filtered = _hue_filtered(candidate_list)
+    pool = filtered if filtered else candidate_list
+
     best: Color | None = None
     best_score = -1.0
 
-    for candidate in candidates:
+    for candidate in pool:
         if candidate.hex.upper() in fg_hex_set:
             continue
 
         cand_lab = _rgb_to_lab(_hex_to_rgb(candidate.hex))
 
-        # Score = closest foreground color — we want to push the *worst*
-        # case as far as possible, hence max-min rather than max-mean.
         min_dist = min(_delta_e_76(cand_lab, fg_lab) for fg_lab in fg_labs)
 
         if min_dist > best_score:
@@ -254,6 +310,13 @@ def solve_background_color(*foreground_colors: Color, candidates: Iterable[Color
         )
 
     return best
+
+
+def sprite_foreground_colors(elements: Iterable[VibemonTypeT]) -> tuple[Color, ...]:
+    """Return all expected sprite foreground colors for chroma-key solving."""
+    colors = [TYPE_COLORS[element] for element in elements]
+    colors.extend(SPRITE_CHROMA_PROTECTED_COLORS)
+    return tuple(colors)
 
 
 # ============================================================================

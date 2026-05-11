@@ -1,83 +1,66 @@
 ---
 name: vibemon-sprite-sheet
-description: Generates a Pokémon-style sprite sheet for a Vibemon.
-version: 1.4.1
+description: Generates a Pokémon-style sprite contact sheet for a Vibemon.
+version: 1.6.0
 ---
-{%- set elements = vibemon.affinity.identity.elements -%}
+Use the attached reference image as the canonical model for the creature named "{{ vibemon.affinity.identity.name }}".
 
-Render ONE continuous image of a single Pokémon-style creature named "{{ vibemon.affinity.identity.name }}" in nine poses across three rows on a 21:27 ultrawide canvas. Same creature in all nine — identical silhouette, proportions, palette, and design features. Only the pose and expression change.
+TASK
+- Render ONE square 1:1 sprite contact sheet.
+- The sheet contains exactly nine complete full-body copies of the same creature from the reference image.
+- Arrange the nine copies in a strict three-by-three layout: top-left, top-center, top-right, middle-left, middle-center, middle-right, bottom-left, bottom-center, bottom-right.
+- This is a contact sheet, not a shared scene. Each copy is independent and centered in its own equal area.
+- Leave generous plain background space between copies so every sprite can be cropped cleanly.
 
-STYLE
-- Pokémon Sugimori aesthetic: flat cel shading, clean confident lineart, warm gradient fills.
-- Lineart: #3D2B1F (Tobacco Brown). Never pure black or darker than #2A1E16.
-- Fills must be Kodachrome-warmed and desaturated — no full-saturation digital primaries.
-- Highlights: #F5F5DC (Cream). Never pure white.
-- Shadows: warm-shifted darker variants of the fill color, mixed toward Tobacco Brown. Never black or cool gray.
-- Apply a subtle film-grain overlay and a soft corner vignette across the whole canvas.
-- No text, numbers, labels, borders, panel dividers, watermarks, or UI.
+REFERENCE LOCK
+- The attached image wins over all text for anatomy, silhouette, proportions, palette, markings, appendage count, and signature feature placement.
+- Do not redesign, simplify, evolve, age, accessorize, or reinterpret the creature.
+- R1C2 is the closest match to the reference design. Every other cell changes only view angle, posture, gesture, and facial expression.
+- Keep every attached feature rooted in the same place in every cell: tail, fins, shell, plates, crest, horns, wings, limbs, markings, and any other signature feature.
+- If a pose would require adding, removing, enlarging, shrinking, splitting, or transforming a feature, keep the feature unchanged and make the pose subtler.
 
-CANVAS
-- Nine poses arranged in three rows, left to right. Row 1 (top): three battle poses across 21:9. Row 2 (middle): three idle/expressive poses across 21:9. Row 3 (bottom): three deep-emotional poses across 21:9. Overall canvas 21:27 ultrawide.
-- Within each row: three equal horizontal panels, seamless — no visible borders or gutters between poses.
-- Background: flat matte {{ vibemon.aesthetic.background_color }} as a single uniform wash across the entire canvas, edge to edge. ({{ vibemon.aesthetic.background_color }} must come from the core palette — Mustard Yellow #E1AD01, Avocado Green #568203, Burnt Orange #CC5500, Tobacco Brown #3D2B1F, Cream #F5F5DC, Grape Plum #7C4D8A — or from the creature's own type color.)
-- No gradient, vignette on the background itself, ground shadow, or floor line. No borders between rows.
+CANVAS RULES
+- Background: flat matte {{ vibemon.aesthetic.background_color }} as one uniform wash filling every non-creature pixel.
+- No scenery, terrain, horizon, sky, floor line, ground shadow, cast shadow, aura, glow, weather, particles, texture, pattern, gradient, vignette, film grain, or noise.
+- No panel borders, frames, dividers, grid lines, labels, numbers, text, UI, watermarks, or visible guide marks.
+- Empty matte spacing between sprites is allowed and desired. Drawn separators are not allowed.
+- The only foreground marks are the nine creature bodies themselves.
 
-CREATURE
-- Name: {{ vibemon.affinity.identity.name }}
-- Types: {{ elements | join(", ") }}
-- Primary fill: {{ vibemon.aesthetic.primary_color }}
-{%- if elements | length > 1 %}
-- Accent fill (extremities, markings, underbelly): {{ vibemon.aesthetic.secondary_color }}
-{%- endif %}
-- Optional single accent detail (eye highlight, claw tip, marking): #E1AD01 Mustard Yellow OR #7C4D8A Grape Plum. At most one, used sparingly.
-{% if vibemon.affinity.identity.visual_notes -%}
-- Design notes: {{ vibemon.affinity.identity.visual_notes }}
-{% endif %}
-ANATOMY: avoid cute-mammal defaults (cat, fox, dog, rabbit, bear). Pull from plant, fungal, insect, arachnid, crustacean, mollusk, reptile, amphibian, avian, aquatic, elemental, or invented hybrid body plans. Let typing suggest non-obvious anatomy.
+COUNT AND FIT
+- Treat the canvas as nine equal cells: R1C1, R1C2, R1C3, R2C1, R2C2, R2C3, R3C1, R3C2, R3C3.
+- Each cell contains exactly one complete creature copy.
+- No cell may be blank.
+- Do not merge two cells into one large pose.
+- Do not split one creature across cells.
+- If the reference creature is wide, long-tailed, winged, coiled, bulky, or highly ornamented, draw every copy smaller so all nine complete bodies fit with margin.
 
-INFLUENCES (earlier dominates, later are accents — every entry must be visible; translate abstract influences into concrete shape, texture, color, material, motif, or motion):
-{% for affinity in vibemon.birth_affinities -%}
-{% if affinity.visual_notes -%}
-- {{ affinity.visual_notes }} ({{ affinity.intensity * 100 | round(2) }}%)
-{% endif -%}
-{% endfor %}
-RESOLUTION ORDER when constraints conflict: tier (complexity ceiling) > role (body language) > type (materials/palette) > influences (specifics) > design notes (personality only).
+STYLE LOCK
+- Match the reference image's Pokémon Sugimori style: clean tobacco-brown lineart, warm desaturated fills, flat cel shading, gentle cream highlights, and warm shadows.
+- Keep the reference palette. Do not introduce new body colors.
+- Highlights stay inside the creature silhouette only.
+- Do not draw detached elemental effects, speed lines, expression symbols, or decorative marks.
 
-TIER
-{% include "tiers/" ~ vibemon.affinity.identity.tier ~ "/visual.j2" %}
+EMOTION RULES
+- Show every emotion only through eyes, mouth, brow, posture, head angle, and the creature's existing appendages.
+- Do not use punctuation or cartoon shorthand: no question marks, exclamation points, hearts, stars, sweat drops, tear drops, anger marks, thought bubbles, motion lines, or floating symbols.
+- If the creature does not have arms or hands, do not invent them. Use its actual fins, claws, wings, shell, head, body mass, tail, tentacles, or other existing anatomy.
 
-ROLE
-{% include "roles/" ~ vibemon.affinity.identity.battle_role[0] | lower ~ ".j2" %}
+POSES
+R1C1 — Back battle view. Rear view from behind, oriented toward canvas right. Face hidden or barely visible. Same anatomy as reference.
+R1C2 — Hero showcase. Front or slight three-quarter view, battle-ready, focused expression. Closest match to the reference design.
+R1C3 — Opponent battle view. Three-quarter confrontation pose, weight forward, intent gaze, same creature and same features.
 
-POSES (left → center → right, same creature throughout)
-The three poses depict one battle scene: LEFT and RIGHT face each other as opponents, CENTER is the hero showcase between them. Every pose must read the role's stance, limbs, and energy — a Glass Cannon's combat stance differs fundamentally from a Wall's. Adapt all pose language to the creature's actual anatomy; if it has no arms, no wings, or unusual anatomy, interpret limb-based instructions accordingly. Do not add features not in the established design.
+R2C1 — Resting. Settled low, seated, crouched, perched, or compactly lying down. Calm eyes or closed eyes. No tail loop unless the reference already has that exact loop.
+R2C2 — Happy. Open, playful, energetic posture using existing appendages. Bright face and smile if the mouth design allows it.
+R2C3 — Frustrated or determined. Tense posture, furrowed brow, defiant tilt. Existing forelimbs or body mass drawn inward if anatomically possible.
 
-1. LEFT — Full back view. Camera behind the creature; only back, rear, tail, and backs of ears/wings/limbs visible. Face NOT visible (at most a sliver of cheek). Body oriented toward canvas right, squaring up against the RIGHT pose. Posture conveys role from behind: a Wall stands square and rooted, a Glass Cannon's back is coiled, a Cleric's back is open, a Wallbreaker's shoulders are loaded. Think: a trainer's view of their own Pokémon from behind during a battle.
+R3C1 — Proud. Chin or head lifted, stable balanced posture, confident eyes. Composed rather than puffed-up.
+R3C2 — Confused. Head tilted, uneven brows, uncertain mouth, slightly off-center weight. An existing appendage may lift toward the face if natural.
+R3C3 — Sad. Lowered head, downturned mouth, heavy eyelids, gently slumped posture. No tears or floating marks.
 
-2. CENTER — Hero showcase, facing camera (or 5–10° turn), full body. Flagship "cover of the box" presentation. Expression and gesture must read role + typing simultaneously: Sweeper smirks mid-stride, Wall stands immovable arms crossed, Cleric extends open palms, Glass Cannon coils with manic intensity, Staller stands serene. Not a neutral at-rest pose.
-
-3. RIGHT — Enemy-sprite confrontation pose. Body angled three-quarter toward the viewer, as if mid-confrontation or about to strike. Creature locked onto the viewer with aggressive intent. Weight forward, stance ready. This is the classic Pokémon opponent pose from battle screens — threatening, coiled, imminent. Role-specific form: Wallbreaker winds up a heavy strike with loaded shoulders; Sweeper is mid-dash extending forward; Wall plants feet in a brace; Staller's weight barely shifts but eyes are fixed; Glass Cannon coils with pounce-ready intensity; Cleric's posture is open but commanding. Eyes make direct aggressive contact with the viewer. Intensity scales with tier — restrained for runt, commanding for apex, reality-bending for mythic.
-
-Adapt all pose language to the creature's actual anatomy. If it has no arms, no wings, or unusual anatomy (serpentine, blob, quadruped, floating), interpret "limbs raised," "signature gesture," "arms crossed," or "squared up" accordingly. Do not add features not in the established design.
-
-IDLE POSES (left → center → right, same creature throughout)
-This is the exact same creature from the battle row above, shown in moments of rest and emotion — not a different design or form. Keep identical silhouette, proportions, palette, and design features across both rows. Only the posture, expression, and emotional state change. Same head shape, limb/tentacle structure, body frame, stance weight. Role informs the flavor of each emotion.
-
-1. LEFT — Resting pose, calm and settled. Creature is in a relaxed, self-contained posture: sitting, curled up, or turned inward. Posture is loose and grounded. Expression is soft, peaceful, or gently contemplative. Keep the same silhouette, head shape, and limb structure from the battle row — this is the creature at rest, not a softer or younger version. For a Wallbreaker, even at rest the creature feels sturdy and solid — planted and immovable, not limp. Eyes are calm, closed, or distant. A moment of vulnerability or repose, but still carries the creature's inherent weight and frame.
-
-2. CENTER — Happy/playful pose, full of joy and high spirits. Creature is animated, open, and energetic: arms/limbs spread wide, jumping, bouncing, dancing, or mid-gesture. Expression is bright, smiling, gleeful. Keep the same head shape, body proportions, and limb structure from the battle row — the creature is the same size and build, just joyful. For a Wallbreaker, happiness reads as forceful enthusiasm and bold joy — robust, exuberant, maybe playfully winding up or flexing. This is the creature at its most uninhibited and joyful. Full body, front-facing or slight turn.
-
-3. RIGHT — Frustrated or determined pose, showing inner tension without aggression. Creature displays minor distress, stubbornness, or resolve: clenched fists/limbs, furrowed brow, crossed arms, or a defiant tilt. Expression shows character and friction, but is introspective rather than combative. Keep the same proportions and limb structure from the battle row — same creature, just emotionally wound up. For a Wallbreaker, frustration reads as stubborn resistance — jaw set, weight planted, refusing to budge. Eyes fixed but not hostile. A portrait of willful determination.
-
-Tier and personality scale these emotions. A runt's frustration is an adorable pout; an apex's is dramatic intensity. Do not add features or expressions not part of the established design.
-
-EXPRESSIVE POSES (left → center → right, same creature throughout)
-This is the exact same creature from the rows above — not a variation, not a younger or older form. Keep identical silhouette, proportions, palette, and design features across all nine poses. Only posture, expression, and emotional state change. These three poses explore deeper emotional states: pride, confusion, and sadness. Same head shape, limb/tentacle structure, body frame, stance weight.
-
-1. LEFT — Proud/confident pose. Creature stands with quiet assured strength: chin up, chest slightly out, steady balanced weight. Posture is composed and self-assured, not arrogant or puffed-up. Eyes are focused and determined. This is the creature believing in itself — solid confidence in its own power. Keep the same proportions and body frame from the rows above. For a Wallbreaker, pride reads as confident, immovable strength — self-assured but not boastful.
-
-2. CENTER — Confused pose. Creature displays bewilderment and uncertainty: head tilted, eyes unsure or questioning, maybe a hand to chin or tilted stance. Expression is puzzled, taken aback, processing. Keep the same silhouette and proportions from the rows above — the sturdy frame remains consistent, but confidence wavers. A moment of "Wait, what?" The design doesn't change; only clarity of purpose does.
-
-3. RIGHT — Sad pose. Creature displays sorrow, disappointment, or defeat: shoulders slightly slumped (not limp or weakened, just resigned), head down or averted, eyes closed or distant. Expression is melancholic, heavy-hearted. Keep the same body structure and proportions from the rows above. For a Wallbreaker, sadness reads as heavy defeat — disappointment that feels weighty and substantial, not fragile or frail. Still carries inherent presence and weight.
-
-Tier and personality scale these emotions. A runt's sadness is a cute mope; an apex's is tragic weight. Do not add features or expressions not part of the established design.
+FINAL CHECK
+- Exactly nine complete creature bodies.
+- One body centered in each cell.
+- Same creature, same anatomy, same colors, same signature features in every cell.
+- Plain matte background only.
+- No symbols, text, dividers, shadows, effects, or extra marks.

@@ -1,15 +1,30 @@
 # /// script
 # requires-python = ">=3.14"
-# dependencies = ["vibemon-backend", "rich"]
+# dependencies = ["vibemon-backend", "rich", "sqlalchemy[asyncio]", "aiosqlite"]
 #
 # [tool.uv.sources]
 # vibemon-backend = { path = "../backend" , editable = true }
 # ///
 
+import argparse
+import asyncio
+import pathlib
+import random
+import sys
 import uuid
 
+from contextlib import redirect_stdout
+from io import StringIO
+
+import sqlalchemy as sa
+from sqlalchemy.ext.asyncio import AsyncSession, create_async_engine
+from sqlalchemy.orm import selectinload, sessionmaker
+
+from app import models
 from app import schema, types
-from app.battle import game_engine
+from app.battle import actions, events
+from app.battle import schema as battle_schema
+from app.battle.engine import GameEngine
 from rich import box, columns, console, panel, rule, text
 
 STYLE_COLORS = {
@@ -61,6 +76,16 @@ STAGE_FIELDS = (
     ("spe", "speed"),
 )
 
+DB_PATH = pathlib.Path(__file__).parent / "vibemon.db"
+
+
+def parse_args() -> argparse.Namespace:
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--render", choices=("rich", "chat"), default="rich")
+    parser.add_argument("--output-dir", type=str, default=None, help="Directory to save battle files")
+    parser.add_argument("--battle-id", type=int, default=None, help="Battle number for filename")
+    return parser.parse_args()
+
 
 def hp_bar(current: int, maximum: int, bar_width: int = 20) -> text.Text:
     pct = current / maximum if maximum > 0 else 0
@@ -103,12 +128,14 @@ def section(string: str) -> None:
     rich_console.print(rule.Rule(text.Text(string, style="bold"), style="cyan"))
 
 
-def _build_stage_line(v: schema.BattleVibemon) -> text.Text | None:
+def _build_stage_line(v: battle_schema.BattleVibemon) -> text.Text | None:
     stage_parts: list[text.Text] = []
     for label, attr_name in STAGE_FIELDS:
         value = getattr(v.stat_stages, attr_name)
         if value != 0:
-            stage_parts.append(text.Text(f"{label}{value:+d}", style="green" if value > 0 else "red"))
+            stage_parts.append(
+                text.Text(f"{label}{value:+d}", style="green" if value > 0 else "red")
+            )
 
     if not stage_parts:
         return None
@@ -121,7 +148,7 @@ def _build_stage_line(v: schema.BattleVibemon) -> text.Text | None:
     return stage_line
 
 
-def _build_move_line(move: schema.BattleMove) -> text.Text:
+def _build_move_line(move: battle_schema.BattleMove) -> text.Text:
     type_color = TYPE_COLORS.get(move.type.value, "white")
     pp_ratio = move.pp_current / move.pp if move.pp > 0 else 0
     pp_color = "green" if pp_ratio > 0.5 else "yellow" if pp_ratio > 0 else "red"
@@ -129,7 +156,9 @@ def _build_move_line(move: schema.BattleMove) -> text.Text:
 
     move_line = text.Text()
     move_line.append(f"{icon} {move.name:<14} ")
-    move_line.append(f"{move.type.value.upper():<10}", style=STYLE_COLORS.get(type_color, "white"))
+    move_line.append(
+        f"{move.type.value.upper():<10}", style=STYLE_COLORS.get(type_color, "white")
+    )
     move_line.append(f" PWR {move.power:<3} PP ")
     move_line.append(str(move.pp_current), style=pp_color)
     move_line.append(f"/{move.pp}")
@@ -138,7 +167,7 @@ def _build_move_line(move: schema.BattleMove) -> text.Text:
     return move_line
 
 
-def _volatile_effects(v: schema.BattleVibemon) -> list[str]:
+def _volatile_effects(v: battle_schema.BattleVibemon) -> list[str]:
     volatile: list[str] = []
     if v.is_confused:
         volatile.append(f"Confused({v.confusion_turns}t)")
@@ -162,23 +191,34 @@ def _lines_to_text(lines: list[text.Text]) -> text.Text:
     return body
 
 
-def _event_parts(event: schema.TurnEvent) -> list[text.Text]:
+def _event_parts(event: events.TurnEvent) -> list[text.Text]:
     parts: list[text.Text] = []
-    if event.hp_delta:
-        hp_color = "green" if event.hp_delta > 0 else "red"
-        parts.append(text.Text(f"{event.hp_delta:+d} HP", style=hp_color))
-    if event.missed:
+    if isinstance(event, events.DamageEvent):
+        parts.append(text.Text(f"-{event.amount} HP", style="red"))
+        if event.is_crit:
+            parts.append(text.Text("CRIT", style="yellow"))
+        if event.effectiveness > 1:
+            parts.append(text.Text(f"{event.effectiveness:g}x", style="green"))
+        elif event.effectiveness < 1:
+            parts.append(text.Text(f"{event.effectiveness:g}x", style="yellow"))
+    if isinstance(event, events.HealEvent):
+        parts.append(text.Text(f"+{event.amount} HP", style="green"))
+    if isinstance(event, events.StatusDamageEvent):
+        parts.append(text.Text(f"-{event.amount} HP", style="red"))
+    if isinstance(event, events.MoveMissedEvent):
         parts.append(text.Text("MISSED", style="yellow"))
-    if event.fainted:
+    if isinstance(event, events.FaintEvent):
         parts.append(text.Text("FAINTED ✖", style="red"))
-    if event.stat_stage_changes:
-        for stat, delta in event.stat_stage_changes.items():
+    if isinstance(event, events.StatChangeEvent):
+        for stat, delta in event.changes.items():
             stat_color = "green" if delta > 0 else "red"
             parts.append(text.Text(f"{stat} {delta:+d}", style=stat_color))
     return parts
 
 
-def _build_vibemon_panel(v: schema.BattleVibemon, trainer_name: str, color: str) -> panel.Panel:
+def _build_vibemon_panel(
+    v: battle_schema.BattleVibemon, trainer_name: str, color: str
+) -> panel.Panel:
     lines: list[text.Text] = []
 
     title = text.Text()
@@ -227,7 +267,7 @@ def _build_vibemon_panel(v: schema.BattleVibemon, trainer_name: str, color: str)
         lines.append(stage_line)
 
     lines.append(text.Text("Moves:", style="dim"))
-    for move in v.moves:
+    for move in v.battle_moves:
         lines.append(_build_move_line(move))
 
     volatile = _volatile_effects(v)
@@ -235,10 +275,12 @@ def _build_vibemon_panel(v: schema.BattleVibemon, trainer_name: str, color: str)
         lines.append(text.Text("⚡ " + " | ".join(volatile), style="red"))
 
     body = _lines_to_text(lines)
-    return panel.Panel(body, border_style=STYLE_COLORS[color], box=box.ROUNDED, expand=True)
+    return panel.Panel(
+        body, border_style=STYLE_COLORS[color], box=box.ROUNDED, expand=True
+    )
 
 
-def print_matchup(battle: schema.Battle) -> None:
+def print_matchup(battle: battle_schema.Battle) -> None:
     ta = battle.trainer_a
     tb = battle.trainer_b
     va = ta.active_vibemon
@@ -258,9 +300,85 @@ def print_matchup(battle: schema.Battle) -> None:
     rich_console.print()
 
 
-def print_events(events: list[schema.TurnEvent]) -> None:
-    for event in events:
-        line = text.Text.assemble(("› ", "dim"), (event.actor, "bold"), (": "), (event.description or ""))
+def _event_actor(event: events.TurnEvent) -> str:
+    match event:
+        case events.MoveUsedEvent():
+            return event.user
+        case events.MoveMissedEvent():
+            return event.user
+        case events.MoveFailedEvent():
+            return event.user
+        case events.DamageEvent():
+            return event.source
+        case events.FaintEvent():
+            return event.target
+        case events.StatusInflictedEvent():
+            return event.source or event.target
+        case events.StatusDamageEvent():
+            return event.target
+        case events.StatusMessageEvent():
+            return event.target
+        case events.StatChangeEvent():
+            return event.source or event.target
+        case events.HealEvent():
+            return event.source or event.target
+        case events.WeatherSetEvent():
+            return event.source or "Field"
+
+
+def _status_message(target: str, message_key: str) -> str:
+    messages = {
+        "woke_up": f"{target} woke up!",
+        "asleep": f"{target} is asleep!",
+        "thawed": f"{target} thawed out!",
+        "frozen": f"{target} is frozen!",
+        "flinched": f"{target} flinched!",
+        "fully_paralyzed": f"{target} is paralyzed and can't move!",
+        "confusion_self_hit": f"{target} hurt itself in confusion!",
+        "confusion_ended": f"{target} snapped out of confusion!",
+        "taunt_ended": f"{target}'s taunt wore off!",
+        "bind_ended": f"{target} is freed from bind!",
+    }
+    return messages.get(message_key, message_key.replace("_", " "))
+
+
+def _event_description(event: events.TurnEvent) -> str:
+    match event:
+        case events.MoveUsedEvent():
+            targets = ", ".join(event.targets)
+            return f"used {event.move}" + (f" on {targets}" if targets else "")
+        case events.MoveMissedEvent():
+            return f"{event.move} missed {event.target}"
+        case events.MoveFailedEvent():
+            move = f"{event.move} " if event.move else ""
+            reason = f" ({event.reason})" if event.reason else ""
+            return f"{move}failed{reason}"
+        case events.DamageEvent():
+            return f"{event.move or 'damage'} hit {event.target} for {event.amount}"
+        case events.FaintEvent():
+            return "fainted"
+        case events.StatusInflictedEvent():
+            return f"{event.target} got {event.status.value}"
+        case events.StatusDamageEvent():
+            return f"takes status damage: {event.amount}"
+        case events.StatusMessageEvent():
+            return _status_message(event.target, event.message_key)
+        case events.StatChangeEvent():
+            return f"{event.target} stat stages changed"
+        case events.HealEvent():
+            return f"{event.target} recovered {event.amount} HP"
+        case events.WeatherSetEvent():
+            return f"weather became {event.weather.value} for {event.turns} turns"
+
+
+def print_events(turn_events: list[events.TurnEvent]) -> None:
+    for event in turn_events:
+        line = text.Text.assemble(
+            ("› ", "dim"),
+            (_event_actor(event), "bold"),
+            (": "),
+            (_event_description(event)),
+        )
         parts = _event_parts(event)
 
         if parts:
@@ -273,157 +391,318 @@ def print_events(events: list[schema.TurnEvent]) -> None:
         rich_console.print(line)
 
 
-def create_shocktail() -> schema.BattleVibemon:
-    """Fake a new Vibemon."""
-    affinity = schema.Affinity(
+def _event_parts_plain(event: events.TurnEvent) -> str:
+    parts: list[str] = []
+    if isinstance(event, events.DamageEvent):
+        parts.append(f"-{event.amount} HP")
+        if event.is_crit:
+            parts.append("crit")
+        if event.effectiveness != 1:
+            parts.append(f"{event.effectiveness:g}x")
+    elif isinstance(event, events.HealEvent):
+        parts.append(f"+{event.amount} HP")
+    elif isinstance(event, events.StatusDamageEvent):
+        parts.append(f"-{event.amount} HP")
+    elif isinstance(event, events.MoveMissedEvent):
+        parts.append("missed")
+    elif isinstance(event, events.FaintEvent):
+        parts.append("fainted")
+    elif isinstance(event, events.StatChangeEvent):
+        parts.extend(f"{stat} {delta:+d}" for stat, delta in event.changes.items())
+    return f" ({', '.join(parts)})" if parts else ""
+
+
+def _event_plain(event: events.TurnEvent) -> str:
+    return (
+        f"{_event_actor(event)}: {_event_description(event)}{_event_parts_plain(event)}"
+    )
+
+
+def _vibemon_plain(label: str, vibemon: battle_schema.BattleVibemon) -> str:
+    types_text = "/".join(t.value for t in vibemon.elements)
+    moves = ", ".join(
+        f"{move.name} [{move.type.value}, {move.category.value}, {move.power or '-'}]"
+        for move in vibemon.battle_moves
+    )
+    fainted = " fainted" if vibemon.is_fainted else ""
+    bst = vibemon.affinity.identity.bst
+    return (
+        f"{label}: {vibemon.name} Lv.{vibemon.level} ({types_text}) BST {bst}"
+        f" HP {vibemon.current_hp}/{vibemon.max_hp}{fainted}\n"
+        f"  Stats: Atk {vibemon.attack}, Def {vibemon.defense}, SpA {vibemon.sp_attack}, "
+        f"SpD {vibemon.sp_defense}, Spe {vibemon.speed}\n"
+        f"  Moves: {moves}"
+    )
+
+
+def print_chat_turn(
+    turn_number: int,
+    battle: battle_schema.Battle,
+    action_a: actions.MoveAction,
+    action_b: actions.MoveAction,
+    turn_events: list[events.TurnEvent],
+) -> None:
+    print(f"\n### Turn {turn_number}")
+    print(f"- Red chose {action_a.move_name}")
+    print(f"- Blue chose {action_b.move_name}")
+    print("\nEvents:")
+    for event in turn_events:
+        print(f"- {_event_plain(event)}")
+    print("\nState:")
+    print(
+        f"- Red: {battle.trainer_a.active_vibemon.name} HP {battle.trainer_a.active_vibemon.current_hp}/{battle.trainer_a.active_vibemon.max_hp}"
+    )
+    print(
+        f"- Blue: {battle.trainer_b.active_vibemon.name} HP {battle.trainer_b.active_vibemon.current_hp}/{battle.trainer_b.active_vibemon.max_hp}"
+    )
+
+
+def choose_random_usable_move(
+    vibemon: battle_schema.BattleVibemon,
+) -> battle_schema.BattleMove:
+    usable_moves = [move for move in vibemon.battle_moves if move.pp_current > 0]
+    if not usable_moves:
+        raise RuntimeError(f"{vibemon.name} has no moves with remaining PP")
+    return random.choice(usable_moves)
+
+
+def _model_move_to_schema(move: models.Move) -> schema.Move:
+    return schema.Move(
+        name=move.name,
+        flavor_text=move.flavor_text,
+        type=types.VibemonTypeT(move.type),
+        category=types.MoveCategoryT(move.category),
+        power=move.power,
+        accuracy=move.accuracy,
+        pp=move.pp,
+        priority=move.priority,
+        effects=tuple(
+            schema.EffectGroup.model_validate(group) for group in (move.effects or ())
+        ),
+        level_requirement=move.level_requirement,
+    )
+
+
+def _model_affinity_to_schema(affinity: models.Affinity) -> schema.Affinity:
+    identity = affinity.identity
+    return schema.Affinity(
         identity=schema.Identity(
-            name="Shocktail",
-            elements=(types.VibemonTypeT.ELECTRIC,),
-            base_hp=111,
-            base_attack=55,
-            base_defense=40,
-            base_sp_attack=50,
-            base_sp_defense=50,
-            base_speed=90,
+            name=identity.name,
+            visual_notes=identity.visual_notes,
+            elements=tuple(
+                types.VibemonTypeT(element) for element in identity.elements
+            ),
+            base_hp=identity.base_hp,
+            base_attack=identity.base_attack,
+            base_defense=identity.base_defense,
+            base_sp_attack=identity.base_sp_attack,
+            base_sp_defense=identity.base_sp_defense,
+            base_speed=identity.base_speed,
+            evo_seed=identity.evo_seed,
+            evo_stage=types.EvolutionStageT[identity.evo_stage],
+            is_mythic=identity.is_mythic,
         ),
-        provider_id="debug",
-        moves=[
-            schema.Move(
-                name="Arc Burst",
-                flavor_text="A sharp static burst from a storm-charged tail.",
-                type=types.VibemonTypeT.ELECTRIC,
-                category=types.MoveCategoryT.SPECIAL,
-                power=32,
-                accuracy=1.0,
-                pp=20,
-            ),
-            schema.Move(
-                name="Dash Claw",
-                flavor_text="A quick slash that lands before slower moves.",
-                type=types.VibemonTypeT.NORMAL,
-                category=types.MoveCategoryT.PHYSICAL,
-                power=24,
-                accuracy=1.0,
-                priority=1,
-                pp=30,
-            ),
-        ],
+        visual_notes=affinity.visual_notes,
+        intensity=affinity.intensity,
+        provider_id=affinity.provider_id,
+        moves=[_model_move_to_schema(move) for move in affinity.moves],
     )
 
-    vibemon = schema.BattleVibemon(affinity=affinity, level=5)
 
-    return vibemon
-
-
-def create_embermoth() -> schema.BattleVibemon:
-    """Fake a new Vibemon."""
-    affinity = schema.Affinity(
-        identity=schema.Identity(
-            name="Embermoth",
-            elements=(types.VibemonTypeT.FIRE,),
-            base_hp=150,
-            base_attack=64,
-            base_defense=92,
-            base_sp_attack=78,
-            base_sp_defense=94,
-            base_speed=88,
-        ),
-        provider_id="debug",
-        moves=[
-            schema.Move(
-                name="Cinder Lance",
-                flavor_text="A narrow lance of ember-hot air.",
-                type=types.VibemonTypeT.FIRE,
-                category=types.MoveCategoryT.SPECIAL,
-                power=30,
-                accuracy=1.0,
-                pp=20,
-            ),
-            schema.Move(
-                name="Ash Flare",
-                flavor_text="A flare of ash and heat from patterned wings.",
-                type=types.VibemonTypeT.FIRE,
-                category=types.MoveCategoryT.SPECIAL,
-                power=22,
-                accuracy=1.0,
-                pp=25,
-            ),
-        ],
-    )
-
-    vibemon = schema.BattleVibemon(affinity=affinity, level=5)
-
-    return vibemon
-
-
-def main() -> None:
-    trainer_a_id = uuid.uuid4()
-    trainer_b_id = uuid.uuid4()
-
-    engine = game_engine.GameEngine(
-        trainer_a=schema.BattleTrainer(
-            id=trainer_a_id,
-            username="Red",
-            team=[create_shocktail()],
-        ),
-        trainer_b=schema.BattleTrainer(
-            id=trainer_b_id,
-            username="Blue",
-            team=[create_embermoth()],
+def _model_vibemon_to_battle(vibemon: models.Vibemon) -> battle_schema.BattleVibemon:
+    return battle_schema.BattleVibemon(
+        nickname=vibemon.nickname,
+        affinity=_model_affinity_to_schema(vibemon.affinity),
+        level=vibemon.level,
+        birth_affinities=tuple(
+            _model_affinity_to_schema(affinity) for affinity in vibemon.birth_affinities
         ),
     )
 
-    action_a = schema.BattleAction(
-        trainer_name=trainer_a_id,
-        action_type=types.ActionTypeT.MOVE,
-        value="Arc Burst",
-    )
-    action_b = schema.BattleAction(
-        trainer_name=trainer_b_id,
-        action_type=types.ActionTypeT.MOVE,
-        value="Cinder Lance",
-    )
 
-    header("⚔  BATTLE START  ⚔")
-    print_matchup(engine.battle)
-
-    turn_count = 0
-    while not engine.battle.concluded and turn_count < 10:
-        turn_count += 1
-        events = engine.submit(action_a, action_b)
-
-        header(f"TURN {turn_count}")
-
-        section("Actions")
-        rich_console.print(text.Text.assemble(("Red", "yellow"), (f":  {action_a.value}")))
-        rich_console.print(text.Text.assemble(("Blue", "magenta"), (f": {action_b.value}")))
-
-        section("Events")
-        print_events(events)
-
-        section("State")
-        print_matchup(engine.battle)
-
-    header("🏆  BATTLE RESULT  🏆")
-    if engine.battle.winner:
-        rich_console.print()
-        rich_console.print(
-            text.Text.assemble(
-                ("Winner", "bold green"),
-                (": "),
-                (engine.battle.winner.username, "bold"),
-                ("!"),
-            )
+async def load_random_battle_vibemon(
+    count: int = 2,
+) -> list[battle_schema.BattleVibemon]:
+    engine = create_async_engine(f"sqlite+aiosqlite:///{DB_PATH}")
+    try:
+        async_session = sessionmaker(
+            engine, class_=AsyncSession, expire_on_commit=False
         )
-        rich_console.print()
-    print_matchup(engine.battle)
+        async with async_session() as sess:
+            result = await sess.execute(
+                sa.select(models.Vibemon)
+                .options(
+                    selectinload(models.Vibemon.affinity).selectinload(
+                        models.Affinity.identity
+                    ),
+                    selectinload(models.Vibemon.affinity).selectinload(
+                        models.Affinity.moves
+                    ),
+                    selectinload(models.Vibemon.birth_affinities).selectinload(
+                        models.Affinity.identity
+                    ),
+                    selectinload(models.Vibemon.birth_affinities).selectinload(
+                        models.Affinity.moves
+                    ),
+                )
+                .order_by(sa.func.random())
+                .limit(count)
+            )
+            vibemon = list(result.scalars())
+    finally:
+        await engine.dispose()
 
-    section("Turn History")
-    for record in engine.battle.turn_history:
-        rich_console.print()
-        rich_console.print(text.Text(f"Turn {record.turn_number}", style="bold"))
-        print_events(record.events)
+    if len(vibemon) < count:
+        raise RuntimeError(
+            f"Need at least {count} Vibemon in {DB_PATH}; run .scripts/vibemon_generator.py first."
+        )
+    return [_model_vibemon_to_battle(v) for v in vibemon]
+
+
+async def main() -> None:
+    args = parse_args()
+
+    need_file_output = args.render == "chat" and args.output_dir and args.battle_id is not None
+    output_buffer = StringIO() if need_file_output else None
+
+    if need_file_output:
+        cm = redirect_stdout(output_buffer)
+        cm.__enter__()
+
+    try:
+        trainer_a_id = uuid.uuid4()
+        trainer_b_id = uuid.uuid4()
+        vibemon_a, vibemon_b = await load_random_battle_vibemon()
+
+        engine = GameEngine(
+            trainer_a=battle_schema.BattleTrainer(
+                id=trainer_a_id,
+                username="Red",
+                team=[vibemon_a],
+            ),
+            trainer_b=battle_schema.BattleTrainer(
+                id=trainer_b_id,
+                username="Blue",
+                team=[vibemon_b],
+            ),
+        )
+
+        if args.render == "chat":
+            print("# Battle Debug Transcript")
+            print()
+            print(_vibemon_plain("Red", engine.battle.trainer_a.active_vibemon))
+            print()
+            print(_vibemon_plain("Blue", engine.battle.trainer_b.active_vibemon))
+        else:
+            header("⚔  BATTLE START  ⚔")
+            print_matchup(engine.battle)
+
+        turn_count = 0
+        while not engine.battle.concluded:
+            turn_count += 1
+            move_a = choose_random_usable_move(engine.battle.trainer_a.active_vibemon)
+            move_b = choose_random_usable_move(engine.battle.trainer_b.active_vibemon)
+            action_a = actions.MoveAction(
+                trainer=trainer_a_id,
+                move_name=move_a.name,
+            )
+            action_b = actions.MoveAction(
+                trainer=trainer_b_id,
+                move_name=move_b.name,
+            )
+            turn_events = engine.submit_actions([action_a, action_b])
+
+            if args.render == "chat":
+                print_chat_turn(turn_count, engine.battle, action_a, action_b, turn_events)
+                continue
+
+            header(f"TURN {turn_count}")
+
+            section("Actions")
+            rich_console.print(
+                text.Text.assemble(("Red", "yellow"), (f":  {action_a.move_name}"))
+            )
+            rich_console.print(
+                text.Text.assemble(("Blue", "magenta"), (f": {action_b.move_name}"))
+            )
+
+            section("Events")
+            print_events(turn_events)
+
+            section("State")
+            print_matchup(engine.battle)
+
+        if args.render == "chat":
+            print("\n## Result")
+            if engine.battle.winner:
+                print(f"Winner: {engine.battle.winner.username}")
+            else:
+                print("No winner within the turn limit.")
+            print()
+            print(_vibemon_plain("Red", engine.battle.trainer_a.active_vibemon))
+            print()
+            print(_vibemon_plain("Blue", engine.battle.trainer_b.active_vibemon))
+        else:
+            header("🏆  BATTLE RESULT  🏆")
+            if engine.battle.winner:
+                rich_console.print()
+                rich_console.print(
+                    text.Text.assemble(
+                        ("Winner", "bold green"),
+                        (": "),
+                        (engine.battle.winner.username, "bold"),
+                        ("!"),
+                    )
+                )
+                rich_console.print()
+            print_matchup(engine.battle)
+
+            section("Turn History")
+            for record in engine.battle.turn_history:
+                rich_console.print()
+                rich_console.print(text.Text(f"Turn {record.turn_number}", style="bold"))
+                print_events(record.events)
+
+        # Store result for file output
+        battle_winner = engine.battle.winner
+        battle_turns = turn_count
+        va = engine.battle.trainer_a.active_vibemon
+        vb = engine.battle.trainer_b.active_vibemon
+
+    finally:
+        if need_file_output:
+            cm.__exit__(None, None, None)
+            captured = output_buffer.getvalue()
+
+            if battle_winner:
+                if battle_winner.username == "Red":
+                    winner_v, loser_v = va, vb
+                else:
+                    winner_v, loser_v = vb, va
+                one_liner = (
+                    f"Battle {args.battle_id:03d}: "
+                    f"✅ {winner_v.name} (BST {winner_v.affinity.identity.bst}) "
+                    f"vs {loser_v.name} (BST {loser_v.affinity.identity.bst}) "
+                    f"- {battle_turns} turns"
+                )
+            else:
+                one_liner = (
+                    f"Battle {args.battle_id:03d}: "
+                    f"No winner (Red: {va.name} BST {va.affinity.identity.bst} "
+                    f"vs Blue: {vb.name} BST {vb.affinity.identity.bst}) "
+                    f"- {battle_turns} turns"
+                )
+
+            output_path = pathlib.Path(args.output_dir) / f"battle_{args.battle_id:03d}.txt"
+            output_path.parent.mkdir(parents=True, exist_ok=True)
+            with open(output_path, "w") as f:
+                f.write(captured)
+                if not captured.endswith("\n"):
+                    f.write("\n")
+                f.write(one_liner + "\n")
+
+            print(one_liner)
 
 
 if __name__ == "__main__":
-    main()
+    asyncio.run(main())

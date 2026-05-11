@@ -1,4 +1,5 @@
 # app/genai/image.py
+from collections.abc import Sequence
 from typing import Any, Protocol
 import base64 as b64
 import dataclasses
@@ -15,10 +16,15 @@ class ImageRunResult:
     output: pydantic_ai.BinaryImage
 
 
+type ImagePrompt = str | Sequence[pydantic_ai.UserContent]
+
+
 class ImageAgent(Protocol):
+    supports_image_inputs: bool
+
     async def run(
         self,
-        user_prompt: str,
+        user_prompt: ImagePrompt,
         *,
         output_type: Any = pydantic_ai.BinaryImage,
         builtin_tools: list[Any] | None = None,
@@ -28,6 +34,8 @@ class ImageAgent(Protocol):
 class _GeminiImageAgent:
     """Thin wrapper over a real pydantic_ai.Agent for Gemini's image models."""
 
+    supports_image_inputs = True
+
     def __init__(self, *, api_key: str, model: str):
         from pydantic_ai.models.google import GoogleModel
         from pydantic_ai.providers.google import GoogleProvider
@@ -36,7 +44,7 @@ class _GeminiImageAgent:
 
     async def run(
         self,
-        user_prompt: str,
+        user_prompt: ImagePrompt,
         *,
         output_type: Any = pydantic_ai.BinaryImage,
         builtin_tools: list[Any] | None = None,
@@ -44,7 +52,7 @@ class _GeminiImageAgent:
         result = await self._agent.run(
             user_prompt,
             output_type=output_type,
-            builtin_tools=builtin_tools or [pydantic_ai.ImageGenerationTool(size="2K")],
+            builtin_tools=builtin_tools or [pydantic_ai.ImageGenerationTool(size="2K", aspect_ratio="1:1")],
         )
 
         return ImageRunResult(output=result.output)
@@ -52,6 +60,8 @@ class _GeminiImageAgent:
 
 class _OpenAICompatibleImageAgent:
     """Calls /v1/images/generations on Together, OpenRouter, OpenAI, etc."""
+
+    supports_image_inputs = False
 
     def __init__(self, *, api_key: str, base_url: str, model: str, **request_defaults: Any):
         from openai import AsyncOpenAI
@@ -62,7 +72,7 @@ class _OpenAICompatibleImageAgent:
 
     async def run(
         self,
-        user_prompt: str,
+        user_prompt: ImagePrompt,
         *,
         output_type: Any = pydantic_ai.BinaryImage,
         builtin_tools: list[Any] | None = None,
@@ -70,6 +80,9 @@ class _OpenAICompatibleImageAgent:
         # output_type / builtin_tools are accepted for API parity but ignored:
         # /v1/images/generations always returns image bytes, no agent loop.
         del output_type, builtin_tools
+
+        if not isinstance(user_prompt, str):
+            raise ValueError("This image provider does not support reference image inputs")
 
         response = await self._client.images.generate(
             model=self._model,

@@ -26,21 +26,22 @@ from importlib import import_module
 from statistics import mean, median, stdev
 
 from app import types
+from app import schema
 from app.schema import Move
 
 
 # ── Tier definitions (§3.5) ────────────────────────────────────────────────────
 # Lower-bound-dominant boundaries to eliminate overlap from the reference table.
-# Reference: spam 10-30, early-stab 40-60, mid 65-80, workhorse 80-100,
+# Reference: spam 10-30, early-stab 35-55, mid 65-80, workhorse 80-100,
 # high 100-120, signature 120+. Boundaries assigned to the higher tier.
 TIERS: tuple[tuple[str, int, int, float], ...] = (
     # (label, lo, hi_inclusive, target_share_of_D)
-    ("spam",       0,   39,  0.075),  # 5–10%, midpoint 7.5%
-    ("early-stab", 40,  64,  0.175),  # 15–20%, midpoint 17.5%
-    ("mid",        65,  79,  0.275),  # 25–30%, midpoint 27.5%
-    ("workhorse",  80,  99,  0.275),  # 25–30%, midpoint 27.5%
-    ("high",       100, 119, 0.125),  # 10–15%, midpoint 12.5%
-    ("signature",  120, 999, 0.050),  # 3–7%, midpoint 5%
+    ("spam", 0, 34, 0.075),  # 5–10%, midpoint 7.5%
+    ("early-stab", 35, 64, 0.175),  # 15–20%, midpoint 17.5%
+    ("mid", 65, 79, 0.275),  # 25–30%, midpoint 27.5%
+    ("workhorse", 80, 99, 0.275),  # 25–30%, midpoint 27.5%
+    ("high", 100, 119, 0.125),  # 10–15%, midpoint 12.5%
+    ("signature", 120, 999, 0.050),  # 3–7%, midpoint 5%
 )
 
 STRONG_STATUS = {
@@ -65,6 +66,54 @@ def tier_of(power: int) -> str:
     return "spam"
 
 
+def move_effect_groups(m: Move) -> tuple[schema.EffectGroup, ...]:
+    return tuple(m.effects)
+
+
+def flat_effects(m: Move) -> list[tuple[schema.EffectGroup, schema.Effect]]:
+    return [(group, effect) for group in move_effect_groups(m) for effect in group.effects]
+
+
+def is_self_drawback(effect: schema.Effect) -> bool:
+    return (
+        isinstance(effect, schema.StatChange)
+        and effect.target == "self"
+        and any(delta < 0 for delta in effect.changes.values())
+    )
+
+
+def has_visible_drawback(m: Move) -> bool:
+    if m.accuracy is not None and m.accuracy < 0.9:
+        return True
+    if m.pp <= 5:
+        return True
+    return any(isinstance(effect, schema.Recoil) or is_self_drawback(effect) for _group, effect in flat_effects(m))
+
+
+def has_damaging_rider(m: Move) -> bool:
+    if m.category == types.MoveCategoryT.STATUS:
+        return False
+    for _group, effect in flat_effects(m):
+        if isinstance(effect, schema.Recoil) or is_self_drawback(effect):
+            continue
+        return True
+    return False
+
+
+def level_power_cap(level: int) -> tuple[int, int]:
+    if level == 1:
+        return (45, 55)
+    if 2 <= level <= 15:
+        return (55, 60)
+    if 16 <= level <= 35:
+        return (75, 80)
+    if 36 <= level <= 55:
+        return (95, 100)
+    if 56 <= level <= 80:
+        return (110, 120)
+    return (120, 150)
+
+
 def fmt_check(passed: bool, hard: bool = True) -> str:
     if passed:
         return "PASS"
@@ -77,39 +126,50 @@ def anti_pattern_flags(m: Move) -> list[str]:
     p = m.power
     a = m.accuracy
     pp = m.pp
-    eff = m.effect
+    effects = flat_effects(m)
 
     is_status_cat = m.category == types.MoveCategoryT.STATUS
 
     if p is not None:
         if p >= 100 and a == 1.0 and pp >= 15:
             flags.append("§12: power≥100 ∧ acc=1.0 ∧ pp≥15 (too strong on every dial)")
-        if p >= 120 and a == 1.0 and pp > 5 and not (eff and eff.target_self):
+        if p >= 120 and a == 1.0 and pp > 5 and not has_visible_drawback(m):
             flags.append("§12: power≥120 with no visible drawback (acc/pp/self-debuff)")
         if p < 60 and a is not None and a < 1.0:
             flags.append("§12: sub-60 power with acc<1.0 (no flavor reason to miss)")
-        if pp == 5 and p < 90 and eff is None:
+        if pp == 5 and p < 90 and not effects:
             flags.append("§12: 5 PP on sub-90 power with no heavy effect")
+        for group, effect in effects:
+            if (
+                isinstance(effect, schema.StatusInflict)
+                and effect.target != "self"
+                and group.chance >= 0.30
+                and effect.status in STRONG_STATUS
+                and p >= 100
+            ):
+                flags.append("§12: power≥100 with ≥30% strong-status proc")
+
+    for _group, effect in effects:
         if (
-            eff
-            and not eff.target_self
-            and eff.chance >= 0.30
-            and eff.status_inflict in STRONG_STATUS
-            and p >= 100
+            is_status_cat
+            and a == 1.0
+            and isinstance(effect, schema.StatusInflict)
+            and effect.status in {types.StatusConditionT.SLEEP, types.StatusConditionT.FREEZE}
         ):
-            flags.append("§12: power≥100 with ≥30% strong-status proc")
+            flags.append("§12: STATUS sleep/freeze with acc=1.0 (must trade accuracy)")
 
-    if is_status_cat and a == 1.0 and eff and eff.status_inflict in {
-        types.StatusConditionT.SLEEP,
-        types.StatusConditionT.FREEZE,
-    }:
-        flags.append("§12: STATUS sleep/freeze with acc=1.0 (must trade accuracy)")
+        if isinstance(effect, schema.StatChange) and effect.target != "self" and not is_status_cat:
+            for stat, delta in effect.changes.items():
+                if abs(delta) >= 2:
+                    flags.append(f"§12: +{delta} {stat} on damaging move with no self-cost")
+                    break
 
-    if eff and not eff.target_self:
-        for stat, delta in eff.stat_changes.items():
-            if abs(delta) >= 2 and not is_status_cat:
-                flags.append(f"§12: +{delta} {stat} on damaging move with no self-cost")
-                break
+    if p is not None:
+        normal_cap, rare_cap = level_power_cap(m.level_requirement)
+        if p > rare_cap:
+            flags.append(f"§12: level {m.level_requirement} power {p} exceeds rare cap {rare_cap}")
+        elif p > normal_cap and not has_visible_drawback(m):
+            flags.append(f"§12: level {m.level_requirement} power {p} exceeds normal cap {normal_cap} without drawback")
 
     if m.priority >= 1 and p is not None and p >= 80:
         flags.append("§12: priority≥1 on power≥80 without obvious drawback")
@@ -117,6 +177,22 @@ def anti_pattern_flags(m: Move) -> list[str]:
         flags.append("§12: priority≥3 on damaging move")
 
     return flags
+
+
+def early_accuracy_evasion_violations(moves: tuple[Move, ...]) -> list[tuple[str, str]]:
+    violations: list[tuple[str, str]] = []
+    for m in moves:
+        if m.level_requirement >= 15:
+            continue
+        for _group, effect in flat_effects(m):
+            if not isinstance(effect, schema.StatChange):
+                continue
+            for stat, delta in effect.changes.items():
+                if stat == "evasion" and delta > 0:
+                    violations.append((m.name, f"raises evasion ({delta:+}) below level 15"))
+                if effect.target != "self" and stat == "accuracy" and delta < 0:
+                    violations.append((m.name, f"lowers target accuracy ({delta:+}) below level 15"))
+    return violations
 
 
 def main() -> int:
@@ -148,7 +224,7 @@ def main() -> int:
     l1_target = round(0.7 * N)
     l1_drift = abs(l1 / N - 0.7) if N else 0.0
 
-    riders = sum(1 for m in damaging if m.effect is not None)
+    riders = sum(1 for m in damaging if has_damaging_rider(m))
     rider_target = round(0.3 * D) if D else 0
 
     pri_elevated = sum(1 for m in moves if m.priority >= 1)
@@ -190,7 +266,9 @@ def main() -> int:
     )
     print(f"  Priority elevated (≥1): {pri_elevated} / {N}        cap: {pri_cap}")
     if type_l1_rows:
-        print(f"  Per-type L1 share min/max: {type_l1_lo*100:.1f}% / {type_l1_hi*100:.1f}% (must be within ±15pp of batch ratio)")
+        print(
+            f"  Per-type L1 share min/max: {type_l1_lo * 100:.1f}% / {type_l1_hi * 100:.1f}% (must be within ±15pp of batch ratio)"
+        )
     print()
 
     # ── HARD gates (Step B2.5) ───────────────────────────────────────────
@@ -211,7 +289,7 @@ def main() -> int:
         failures.append("per-type-l1")
     print(f"  [{fmt_check(ok)}] Per-type L1 ±15pp: {len(type_l1_violations)} violation(s)")
     for tname, t_l1, t_total, ratio, diff in type_l1_violations:
-        print(f"        {tname:<10} {t_l1}/{t_total} = {ratio*100:.1f}% (diff {diff:+.3f})")
+        print(f"        {tname:<10} {t_l1}/{t_total} = {ratio * 100:.1f}% (diff {diff:+.3f})")
 
     if D:
         tier_floor_fail: list[str] = []
@@ -223,7 +301,7 @@ def main() -> int:
             if cnt < floor:
                 tier_floor_fail.append(f"{label} ({cnt} < floor {floor:.1f})")
             if cnt / D > 0.40:
-                tier_ceiling_fail.append(f"{label} ({cnt}/{D} = {cnt/D*100:.1f}% > 40%)")
+                tier_ceiling_fail.append(f"{label} ({cnt}/{D} = {cnt / D * 100:.1f}% > 40%)")
         ok = not tier_floor_fail and not tier_ceiling_fail
         if not ok:
             failures.append("power-band")
@@ -233,15 +311,30 @@ def main() -> int:
         for f in tier_ceiling_fail:
             print(f"        ceiling: {f}")
 
-        ok = capstone
+        capstone_required = N >= 20 and D >= 10
+        ok = capstone or not capstone_required
         if not ok:
             failures.append("capstone")
-        print(f"  [{fmt_check(ok)}] Capstone (≥1 move at power ≥120)")
+        print(f"  [{fmt_check(ok)}] Capstone (≥1 move at power ≥120 when N≥20 and D≥10)")
 
         ok = abs(riders - rider_target) <= 1
         if not ok:
             failures.append("rider-budget")
         print(f"  [{fmt_check(ok)}] Damaging rider ratio: {riders}/{D} (target {rider_target} ±1)")
+
+        l1_damaging = [m for m in damaging if m.level_requirement == 1 and m.power is not None]
+        l1_high = [m for m in l1_damaging if m.power is not None and m.power > 55]
+        l1_strong = [m for m in l1_damaging if m.power is not None and 50 <= m.power <= 55]
+        l1_strong_ratio = len(l1_strong) / len(l1_damaging) if l1_damaging else 0.0
+        ok = not l1_high and l1_strong_ratio <= 0.20
+        if not ok:
+            failures.append("l1-power")
+        print(
+            f"  [{fmt_check(ok)}] L1 damaging power: >55={len(l1_high)}, "
+            f"50-55={len(l1_strong)}/{len(l1_damaging)} ({l1_strong_ratio * 100:.1f}%, cap 20%)"
+        )
+        for m in l1_high:
+            print(f"        {m.name}: L1 power {m.power} > 55")
 
     ok = pri_elevated <= pri_cap
     if not ok:
@@ -271,6 +364,14 @@ def main() -> int:
         failures.append("sure-hit")
     print(f"  [{fmt_check(ok)}] Sure-hit budget: {sure_hit}/{N} (cap {sure_hit_cap})")
 
+    early_acc_evasion = early_accuracy_evasion_violations(moves)
+    ok = not early_acc_evasion
+    if not ok:
+        failures.append("early-accuracy-evasion")
+    print(f"  [{fmt_check(ok)}] Early accuracy/evasion guard: {len(early_acc_evasion)} violation(s)")
+    for name, reason in early_acc_evasion:
+        print(f"        {name}: {reason}")
+
     flagged = [(m.name, anti_pattern_flags(m)) for m in moves]
     flagged = [(n, fl) for n, fl in flagged if fl]
     ok = not flagged
@@ -289,14 +390,14 @@ def main() -> int:
     for t in types.VibemonTypeT:
         c = type_counts.get(t, 0)
         if c:
-            print(f"  {t.value:<12} {c:>3}  {c/N*100:.1f}%")
+            print(f"  {t.value:<12} {c:>3}  {c / N * 100:.1f}%")
     print()
 
     print("DETAIL — LEVEL BANDS")
     for lo, hi in [(1, 1), (2, 20), (21, 40), (41, 55), (56, 80), (81, 100)]:
         cnt = sum(1 for l in levels if lo <= l <= hi)
         label = "L1 only" if lo == hi == 1 else f"{lo:>3}-{hi:<3}"
-        print(f"  {label:<10}  {cnt:>3}  {cnt/N*100:.1f}%")
+        print(f"  {label:<10}  {cnt:>3}  {cnt / N * 100:.1f}%")
     print()
 
     if powers:
@@ -307,10 +408,12 @@ def main() -> int:
         for label, lo, hi, share in TIERS:
             cnt = tier_counts.get(label, 0)
             target = share * D
-            print(f"  {label:<11} ({lo:>3}-{hi:<3})  {cnt:>3}  {cnt/D*100:.1f}%  target≈{target:.1f}  floor≥{0.5*target:.1f}")
+            print(
+                f"  {label:<11} ({lo:>3}-{hi:<3})  {cnt:>3}  {cnt / D * 100:.1f}%  target≈{target:.1f}  floor≥{0.5 * target:.1f}"
+            )
         print()
 
-    chances = [m.effect.chance for m in moves if m.effect is not None]
+    chances = [group.chance for m in moves for group in move_effect_groups(m)]
     if chances:
         print("DETAIL — EFFECT TEXTURE")
         print(f"  Moves with effect: {len(chances)} / {N}")
