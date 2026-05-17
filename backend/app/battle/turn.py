@@ -7,14 +7,13 @@ from app import schema, types
 from app.battle import actions, events
 from app.battle import schema as battle_schema
 
-
 type PipelinePhaseName = Literal[
     "turn_start", "action_sorting", "pre_action", "execute_stack", "end_of_turn", "turn_end"
 ]
 type ActorRef = tuple[types.TrainerIdT, int]
 
 
-class MoveUse(schema._Transient):
+class MoveUse(schema.Schema):
     """Resolved use of a move by an active combatant."""
 
     user_trainer: types.TrainerIdT
@@ -24,7 +23,7 @@ class MoveUse(schema._Transient):
     action: actions.MoveAction
 
 
-class HitResult(schema._Transient):
+class HitResult(schema.Schema):
     """Result of one move hit against one target."""
 
     use: MoveUse
@@ -34,7 +33,7 @@ class HitResult(schema._Transient):
     damage_result: events.DamageResult | None = None
 
 
-class StackEntry(schema._Transient):
+class StackEntry(schema.Schema):
     """One action scheduled for execution."""
 
     trainer: types.TrainerIdT

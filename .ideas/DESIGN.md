@@ -22,7 +22,7 @@ The **Grape Plum** accent draws from the era's enthusiasm for bold, slightly-mut
 ---
 
 ### 2.2 Vibemon Type Colors
-All type colors are drawn from period-accurate mid-century references: Pantone textile standards of the era, Kodachrome film stock, and the muted-but-warm household color trends of the 1960s–70s. Full-saturation digital primaries are intentionally avoided.
+All type colors are drawn from period-accurate mid-century references: Pantone textile standards of the era, Kodachrome film stock, and the muted-but-warm household color trends of the 1960s-70s. Full-saturation digital primaries are intentionally avoided.
 
 | Type | Color Name | Hex Code | Reference |
 | :--- | :--- | :--- | :--- |
@@ -43,7 +43,7 @@ All type colors are drawn from period-accurate mid-century references: Pantone t
 | **Dragon** | Deep Verdigris | #2A5C58 | Oxidized copper, mid-century brass-and-patina hardware |
 | **Dark** | Espresso | #4A3428 | Dark-roast coffee, walnut veneer furniture |
 | **Steel** | Pewter | #8A8C8E | Vintage Airstream aluminum, 60s appliance chrome faded by use |
-| **Fairy** | Rose Quartz | #C4909A | Pastel cosmetics packaging, 50s–60s nursery pink |
+| **Fairy** | Rose Quartz | #C4909A | Pastel cosmetics packaging, 50s-60s nursery pink |
 
 Type badges should be rendered as small pill or rounded-rectangle labels using the type color as a background and Tobacco Brown or Cream as text, depending on luminosity. Apply a subtle linen-grain texture overlay to each badge.
 
@@ -88,13 +88,13 @@ The animation language must feel like Saturday-morning television, not a game en
 ### 6.1 Foundational Animation Principles
 
 #### The "Step" Timing Function — Limited Animation
-Hanna-Barbera productions of the 1960s operated on strict budgets, which forced animators to shoot on "twos" or "threes" — holding a single drawing for two or three film frames rather than one. The result was a characteristic choppiness running at roughly 8–12 drawings per second. `steps(N)` replicates this exactly: it snaps between keyframe positions in discrete jumps rather than interpolating smoothly. Using `ease` or `linear` on an attack animation would immediately feel wrong — too fluid, too digital. **Use `steps(8)` to `steps(16)` for all action states. Reserve `ease-in-out` only for slow, ambient loops like breathing.**
+Hanna-Barbera productions of the 1960s operated on strict budgets, which forced animators to shoot on "twos" or "threes" — holding a single drawing for two or three film frames rather than one. The result was a characteristic choppiness running at roughly 8-12 drawings per second. `steps(N)` replicates this exactly: it snaps between keyframe positions in discrete jumps rather than interpolating smoothly. Using `ease` or `linear` on an attack animation would immediately feel wrong — too fluid, too digital. **Use `steps(8)` to `steps(16)` for all action states. Reserve `ease-in-out` only for slow, ambient loops like breathing.**
 
 #### Non-Uniform Scaling — Rubber-Hose Squash & Stretch
-The Fleischer Studios and early Disney shorts of the 1930s–40s established squash-and-stretch as a fundamental principle of organic animation. A character landing from a jump squashes wide and flat; a character reaching for something stretches tall and thin. The key insight is that **volume is conserved**: when width increases, height decreases proportionally, and vice versa. `scale(1.02, 0.98)` expresses this — 2% wider, 2% shorter — maintaining mass while communicating life. A rigid `scale(1.02, 1.02)` just makes the sprite bigger; it doesn't feel alive.
+The Fleischer Studios and early Disney shorts of the 1930s-40s established squash-and-stretch as a fundamental principle of organic animation. A character landing from a jump squashes wide and flat; a character reaching for something stretches tall and thin. The key insight is that **volume is conserved**: when width increases, height decreases proportionally, and vice versa. `scale(1.02, 0.98)` expresses this — 2% wider, 2% shorter — maintaining mass while communicating life. A rigid `scale(1.02, 1.02)` just makes the sprite bigger; it doesn't feel alive.
 
 #### The Flicker — Kinescope & Celluloid Artifacts
-Before videotape became standard in US television broadcasting (roughly 1956–1960 for color), live programs were preserved by pointing a film camera at a monitor — a process called kinescoping. The resulting recordings carry a characteristic brightness pulse and grain flutter on hard cuts. When a Pokémon takes a hit, the mainline games approximate this with a rapid opacity strobe. We pair that opacity pulse with a `brightness` spike to simulate the overexposed frame that occurs during a kinescope splice or a film-projector hiccup. **Always apply `steps()` to damage flicker — a smooth sine-wave fade reads as "modern." A hard, binary snap reads as "analog."**
+Before videotape became standard in US television broadcasting (roughly 1956-1960 for color), live programs were preserved by pointing a film camera at a monitor — a process called kinescoping. The resulting recordings carry a characteristic brightness pulse and grain flutter on hard cuts. When a Pokémon takes a hit, the mainline games approximate this with a rapid opacity strobe. We pair that opacity pulse with a `brightness` spike to simulate the overexposed frame that occurs during a kinescope splice or a film-projector hiccup. **Always apply `steps()` to damage flicker — a smooth sine-wave fade reads as "modern." A hard, binary snap reads as "analog."**
 
 ---
 
@@ -262,7 +262,7 @@ The audio should translate 1990s monster-game structure through a 1960s-70s anal
 
 The sound source should feel like 1960s-70s library music, psych-rock, jazz-funk, analog synths, and playback through a wooden-cabinet television or portable transistor radio. Avoid modern orchestral scoring, EDM polish, pristine square-wave leads, and overly cute novelty instrumentation.
 
-This vision spans the **entire game**, not battle music alone. Title themes, menu navigation sounds, overworld ambience, and every distinct battle variant (wild, trainer, rare Vibemon, special-event/boss) must read as cuts from the same fictional 1960s–70s library record. Shared traits across all audio:
+This vision spans the **entire game**, not battle music alone. Title themes, menu navigation sounds, overworld ambience, and every distinct battle variant (wild, trainer, rare Vibemon, special-event/boss) must read as cuts from the same fictional 1960s-70s library record. Shared traits across all audio:
 
 * **Common instrumentation pool** — Hammond B3 + Leslie, fuzz bass, damped drums, wah guitar, Mellotron, analog synth blips. A given cue may emphasize a subset, but no cue should introduce timbres outside the family (no orchestral strings on the title, no chiptune on a boss).
 * **Common processing chain** — every asset, music and SFX alike, passes through the lo-fi chain in §7.2. The title theme should sound like it came off the same tape reel as the trainer battle.
@@ -274,7 +274,7 @@ The goal is that a player hearing the title theme can already anticipate the son
 ### 7.2 The "Lo-Fi" Processing Chain
 To achieve the "Vibemon" sound, all audio assets—whether music or SFX—must pass through a simulated signal chain:
 * **Tape Saturation:** A subtle harmonic distortion to "glue" the frequencies together.
-* **Wow & Flutter:** Slight, periodic pitch instability (0.1%–0.3%) to mimic a spinning record or tape reel.
+* **Wow & Flutter:** Slight, periodic pitch instability (0.1%-0.3%) to mimic a spinning record or tape reel.
 * **Frequency Capping:** A steep high-cut filter at **12kHz** and a low-cut at **100Hz**. The "tinny" mids are where the nostalgia lives.
 * **Resolution Texture:** Use 12-bit or 8-bit texture only when it supports the Saturday-morning analog illusion. The goal is warmth and period character, not damaged audio.
 * **Mono Compatibility:** Music may remain stereo, but bass, drums, hooks, and loop seams must survive small speaker and mono playback.

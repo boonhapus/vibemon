@@ -1,23 +1,24 @@
+from collections.abc import Iterable
+from typing import Any, ClassVar
 import collections
 import datetime as dt
 import functools as ft
 import itertools as it
 import math
 import statistics
-from typing import Any, Annotated, ClassVar
 
 import niquests
 import structlog
 
-from app.balance.formulas import base_stat_asymmetric_scaling, stat_ratio_from_grade
-from app.balance.element_chart import get_move_assignment_bonus
-from app.plugins.provider import VibeProvider
-from app.plugins.helpers import Signal, filter_element_types
-from app.types import VibemonTypeT
 from app import schema, utils
+from app.balance.element_chart import get_move_assignment_bonus
+from app.balance.formulas import base_stat_asymmetric_scaling, stat_ratio_from_grade
+from app.plugins.helpers import Signal, filter_element_types
+from app.plugins.provider import VibeProvider
+from app.types import VibemonTypeT
 
-from .const import WeatherCode
 from . import _weather, moves
+from .const import WeatherCode
 
 _LOGGER = structlog.get_logger(__name__)
 
@@ -40,25 +41,25 @@ class ClimateProvider(VibeProvider):
 
     name = "climate"
 
-    exposed_elements: ClassVar[list[Annotated[VibemonTypeT, str]]] = [
-        Annotated[VibemonTypeT.NORMAL, "overcast skies without precipitation"],
-        Annotated[VibemonTypeT.FIRE, "solar radiation or extreme heat"],
-        Annotated[VibemonTypeT.WATER, "precipitation (rain, drizzle, freezing rain)"],
-        Annotated[VibemonTypeT.GRASS, "evapotranspiration or humid dew points"],
-        Annotated[VibemonTypeT.ICE, "sub-freezing temperatures or snowfall"],
-        Annotated[VibemonTypeT.FLYING, "sustained winds (15+ km/h)"],
-        Annotated[VibemonTypeT.FIGHTING, "violent wind gusts (35+ km/h)"],
-        Annotated[VibemonTypeT.GROUND, "mineral dust or dry exposed topsoil"],
-        Annotated[VibemonTypeT.STEEL, "high atmospheric pressure systems"],
-        Annotated[VibemonTypeT.FAIRY, "UV radiation exposure"],
-        Annotated[VibemonTypeT.POISON, "air pollution concentration"],
-        Annotated[VibemonTypeT.PSYCHIC, "barometric pressure swings"],
-        Annotated[VibemonTypeT.DARK, "low visibility or heavy overcast"],
-        Annotated[VibemonTypeT.GHOST, "fog or low visibility under low-UV conditions"],
-        Annotated[VibemonTypeT.BUG, "humid tropical heat"],
-        Annotated[VibemonTypeT.ROCK, "elevation or hail events"],
-        Annotated[VibemonTypeT.DRAGON, "convective instability (CAPE)"],
-        Annotated[VibemonTypeT.ELECTRIC, "thunderstorms"],
+    exposed_elements: ClassVar[list[tuple[VibemonTypeT, str]]] = [
+        (VibemonTypeT.NORMAL, "overcast skies without precipitation"),
+        (VibemonTypeT.FIRE, "solar radiation or extreme heat"),
+        (VibemonTypeT.WATER, "precipitation (rain, drizzle, freezing rain)"),
+        (VibemonTypeT.GRASS, "evapotranspiration or humid dew points"),
+        (VibemonTypeT.ICE, "sub-freezing temperatures or snowfall"),
+        (VibemonTypeT.FLYING, "sustained winds (15+ km/h)"),
+        (VibemonTypeT.FIGHTING, "violent wind gusts (35+ km/h)"),
+        (VibemonTypeT.GROUND, "mineral dust or dry exposed topsoil"),
+        (VibemonTypeT.STEEL, "high atmospheric pressure systems"),
+        (VibemonTypeT.FAIRY, "UV radiation exposure"),
+        (VibemonTypeT.POISON, "air pollution concentration"),
+        (VibemonTypeT.PSYCHIC, "barometric pressure swings"),
+        (VibemonTypeT.DARK, "low visibility or heavy overcast"),
+        (VibemonTypeT.GHOST, "fog or low visibility under low-UV conditions"),
+        (VibemonTypeT.BUG, "humid tropical heat"),
+        (VibemonTypeT.ROCK, "elevation or hail events"),
+        (VibemonTypeT.DRAGON, "convective instability (CAPE)"),
+        (VibemonTypeT.ELECTRIC, "thunderstorms"),
     ]
 
     def __init__(self) -> None:
@@ -124,7 +125,9 @@ class ClimateProvider(VibeProvider):
         solar_radiation_score = signals["radiat"].ramp("N", thresh=0.65, reach=0.35)
         heat_temperature_score = signals["tmp_hi"].ramp("R", thresh=32.0, reach=20.0)
         fire_arid_factor = signals["humdty"].ramp("R", thresh=40.0, reach=30.0, invert=True)
-        score[VibemonTypeT.FIRE] += max(solar_radiation_score, heat_temperature_score, heat_temperature_score * fire_arid_factor)  # noqa: E501
+        score[VibemonTypeT.FIRE] += max(
+            solar_radiation_score, heat_temperature_score, heat_temperature_score * fire_arid_factor
+        )
 
         # WATER — oceans, lakes, rivers, beaches, harbors.
         # Open-Meteo has no proximity-to-water field, so coastal/lakeside cannot be detected.
@@ -248,7 +251,7 @@ class ClimateProvider(VibeProvider):
 
         # NORMAL — fields, suburbs, residential baseline.
         # The "average day" is the absence of extremes, not a positive signal. Attentuated
-        # at 0.3× so a moderate continuous signal (~0.25) competes evenly instead of being
+        # at 0.3x so a moderate continuous signal (~0.25) competes evenly instead of being
         # buried by NORMAL at ~0.75. Still acts as safety net when nothing fires.
         score[VibemonTypeT.NORMAL] += 0.3 * (1.0 - max(score.values(), default=0.0))  # maybe 0.4
 
@@ -280,7 +283,7 @@ class ClimateProvider(VibeProvider):
             # DRAGON bonus dropped — DRAGON now requires sqrt(cape * altitude); a lowland
             # thunderstorm bypassing the altitude gate via WMO bonus violates that semantic.
             # Mountain thunderstorms still trigger DRAGON via continuous block.
-            case WeatherCode.THUNDERSTORM | WeatherCode.THUNDERSTORM_WITHOUT_PRECIP | WeatherCode.THUNDERSTORM_WITHOUT_PRECIP_HEAVY:  # fmt: skip # noqa: E501
+            case WeatherCode.THUNDERSTORM | WeatherCode.THUNDERSTORM_WITHOUT_PRECIP | WeatherCode.THUNDERSTORM_WITHOUT_PRECIP_HEAVY:  # fmt: skip
                 score[VibemonTypeT.ELECTRIC] += 0.5
 
             # Light hail: thunderstorm + frozen-pellet impact (split between ICE and ROCK).
@@ -300,7 +303,7 @@ class ClimateProvider(VibeProvider):
                 score[VibemonTypeT.GHOST] += 0.5
 
             # Light precipitation: drizzle + slight rain (common, weak signal)
-            case WeatherCode.DRIZZLE_LIGHT | WeatherCode.DRIZZLE_MODERATE | WeatherCode.RAIN_SLIGHT | WeatherCode.RAIN_SHOWERS_SLIGHT:  # fmt: skip # noqa: E501
+            case WeatherCode.DRIZZLE_LIGHT | WeatherCode.DRIZZLE_MODERATE | WeatherCode.RAIN_SLIGHT | WeatherCode.RAIN_SHOWERS_SLIGHT:  # fmt: skip
                 score[VibemonTypeT.WATER] += 0.3
 
             # Moderate precipitation (common, medium signal)
@@ -312,7 +315,7 @@ class ClimateProvider(VibeProvider):
                 score[VibemonTypeT.WATER] += 0.5
 
             # Freezing rain/drizzle split affinity between water (liquid) and ice (freezing)
-            case WeatherCode.FREEZING_RAIN_LIGHT | WeatherCode.FREEZING_DRIZZLE_LIGHT | WeatherCode.FREEZING_DRIZZLE_DENSE:  # fmt: skip # noqa: E501
+            case WeatherCode.FREEZING_RAIN_LIGHT | WeatherCode.FREEZING_DRIZZLE_LIGHT | WeatherCode.FREEZING_DRIZZLE_DENSE:  # fmt: skip
                 score[VibemonTypeT.WATER] += 0.1
                 score[VibemonTypeT.ICE] += 0.2
 
@@ -358,6 +361,7 @@ class ClimateProvider(VibeProvider):
             ar.raise_for_status()
         except niquests.HTTPError as e:
             self._log_http_error(e)
+            raise
 
         d = wr.json()
         a = ar.json()
@@ -366,7 +370,7 @@ class ClimateProvider(VibeProvider):
         def daily_means(times: list[str], values: list[float | None]) -> dict[str, float]:
             return {
                 day: statistics.fmean(day_values)
-                for day, group in it.groupby(zip(times, values), key=lambda tp: tp[0][:10])
+                for day, group in it.groupby(zip(times, values, strict=True), key=lambda tp: tp[0][:10])
                 if (day_values := [value for _, value in group if value is not None])
             }
 
@@ -429,12 +433,18 @@ class ClimateProvider(VibeProvider):
         bonus_fx = ft.partial(get_move_assignment_bonus, vibemon_elements=elements)
         starters = {m: rankings[m.type] * bonus_fx(m.type) for m in moves.MOVES if m.level_requirement == 1}
 
-        hp_signal  = Signal.mix(signals["tmp_hi"] * 0.5, signals["elevat"] * 0.5, mode="center")  # mass + altitude endurance
-        atk_signal = signals["windgu"].center                                                       # gust impact
-        def_signal = Signal.mix(signals["elevat"] * 0.6, signals["pressr"] * 0.4, mode="center")  # solidity + compression
-        spa_signal = Signal.mix(signals["radiat"] * 0.5, signals["cape_m"] * 0.5, mode="center")  # solar + electric flux
+        hp_signal = Signal.mix(
+            signals["tmp_hi"] * 0.5, signals["elevat"] * 0.5, mode="center"
+        )  # mass + altitude endurance
+        atk_signal = signals["windgu"].center  # gust impact
+        def_signal = Signal.mix(
+            signals["elevat"] * 0.6, signals["pressr"] * 0.4, mode="center"
+        )  # solidity + compression
+        spa_signal = Signal.mix(
+            signals["radiat"] * 0.5, signals["cape_m"] * 0.5, mode="center"
+        )  # solar + electric flux
         spd_signal = Signal.mix(signals["humdty"] * 0.5, signals["precip"] * 0.5, mode="center")  # cushion + dampening
-        spe_signal = signals["windsp"].center                                                       # kinetic
+        spe_signal = signals["windsp"].center  # kinetic
 
         ratio = ft.partial(stat_ratio_from_grade, elements=elements)
 
@@ -456,6 +466,10 @@ class ClimateProvider(VibeProvider):
         )
 
         return affinity
+
+    def moves(self) -> Iterable[schema.Move]:
+        """Expose the climate move catalog for deterministic DB seeding."""
+        return moves.MOVES
 
     async def teardown(self) -> None:
         """Release provider-owned resources. Override only when needed."""

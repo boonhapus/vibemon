@@ -1,3 +1,4 @@
+# ruff: noqa: E501
 from app import schema, types
 
 # ── AI GENERATED v1.3.0 @ 2026/05/08 ──────────────────────────────────────────────────

@@ -36,12 +36,12 @@ from app.schema import Move
 # high 100-120, signature 120+. Boundaries assigned to the higher tier.
 TIERS: tuple[tuple[str, int, int, float], ...] = (
     # (label, lo, hi_inclusive, target_share_of_D)
-    ("spam", 0, 34, 0.075),  # 5–10%, midpoint 7.5%
-    ("early-stab", 35, 64, 0.175),  # 15–20%, midpoint 17.5%
-    ("mid", 65, 79, 0.275),  # 25–30%, midpoint 27.5%
-    ("workhorse", 80, 99, 0.275),  # 25–30%, midpoint 27.5%
-    ("high", 100, 119, 0.125),  # 10–15%, midpoint 12.5%
-    ("signature", 120, 999, 0.050),  # 3–7%, midpoint 5%
+    ("spam", 0, 34, 0.075),  # 5-10%, midpoint 7.5%
+    ("early-stab", 35, 64, 0.175),  # 15-20%, midpoint 17.5%
+    ("mid", 65, 79, 0.275),  # 25-30%, midpoint 27.5%
+    ("workhorse", 80, 99, 0.275),  # 25-30%, midpoint 27.5%
+    ("high", 100, 119, 0.125),  # 10-15%, midpoint 12.5%
+    ("signature", 120, 999, 0.050),  # 3-7%, midpoint 5%
 )
 
 STRONG_STATUS = {

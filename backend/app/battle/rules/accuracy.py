@@ -1,7 +1,7 @@
 from __future__ import annotations
 
-from app.battle import turn
 from app.battle import schema as battle_schema
+from app.battle import turn
 from app.battle.rules import stats
 
 

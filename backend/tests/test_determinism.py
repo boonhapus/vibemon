@@ -9,7 +9,7 @@ from app import schema, types
 
 def test_birth_seed_rng_seed_uses_canonical_material() -> None:
     seed = schema.BirthSeed(
-        timestamp=dt.datetime(2026, 5, 9, 12, 34, 56, 789, tzinfo=dt.timezone.utc),
+        timestamp=dt.datetime(2026, 5, 9, 12, 34, 56, 789, tzinfo=dt.UTC),
         geo_coords=(41.8781, -87.6298),
         providers=[],
     )
@@ -34,7 +34,7 @@ def test_birth_seed_rng_seed_uses_canonical_material() -> None:
 
 def test_birth_seed_rng_namespaces_are_stable_and_isolated() -> None:
     seed = schema.BirthSeed(
-        timestamp=dt.datetime(2026, 5, 9, 12, 34, 56, 789, tzinfo=dt.timezone.utc),
+        timestamp=dt.datetime(2026, 5, 9, 12, 34, 56, 789, tzinfo=dt.UTC),
         geo_coords=(41.8781, -87.6298),
         providers=[],
     )
@@ -58,8 +58,13 @@ import random
 
 from app import schema, types
 
-m1 = schema.Move(name="A", flavor_text="a", type=types.VibemonTypeT.FIRE, category=types.MoveCategoryT.PHYSICAL, power=40)
-m2 = schema.Move(name="B", flavor_text="b", type=types.VibemonTypeT.WATER, category=types.MoveCategoryT.SPECIAL, power=40)
+m1 = schema.Move(
+    name="A", flavor_text="a", type=types.VibemonTypeT.FIRE, category=types.MoveCategoryT.PHYSICAL, power=40
+)
+m2 = schema.Move(
+    name="B", flavor_text="b", type=types.VibemonTypeT.WATER, category=types.MoveCategoryT.SPECIAL, power=40
+)
+
 a1 = schema.Affinity(
     identity=schema.Identity(
         name="x",
@@ -93,7 +98,7 @@ a2 = schema.Affinity(
 merged = schema.Affinity.merge(a1, a2, rng=random.Random(5))
 print(json.dumps(list(merged.identity.elements)))
 """
-    outputs = []
+    outputs: list[list[str]] = []
 
     for hash_seed in ("1", "2"):
         env = os.environ.copy()

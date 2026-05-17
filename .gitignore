@@ -16,6 +16,7 @@ __pycache__/
 .scripts/battle_runs
 .scripts/*.db
 .scripts/*.md
+.scripts/_bak/
 
 # Ignore coding agents
 CLAUDE.md

@@ -3,21 +3,21 @@ name: battle-cry
 description: Generates a Pokémon-style creature cry description and duration.
 version: 1.1.0
 ---
-{%- set notes = [vibemon.affinity.identity.visual_notes, vibemon.affinity.visual_notes] | reject("none") | list -%}
+{%- set notes = [vibemon.identity.visual_notes, vibemon.identity.provider_visual_notes] | reject("none") | list -%}
 
 Create a vivid, creature-focused sound effect description for this monster. It should sound like a mix of an organic animal vocalization and a synthesized Pokémon-style digital effect.
 
 Name: {{ vibemon.name }}
-Type: {{ vibemon.affinity.identity.elements | join(", ") }}
+Type: {{ vibemon.identity.elements | join(", ") }}
 Concept: {{ notes | join("; ") if notes else "None" }}
 
 Moveset:
-{% for move in vibemon.affinity.moves -%}
+{% for move in vibemon.moves -%}
 - [{{ move.category }} {{ move.type }}] {{ move.name }} | {{ move.power }} Pwr | "{{ move.flavor_text }}"
 {% endfor %}
 
 Sonic scale (bias only — do not name a tier or stat in the output):
-{% include "tiers/" ~ vibemon.affinity.identity.tier ~ "/sonic.j2" %}
+{% include "tiers/" ~ vibemon.identity.tier ~ "/sonic.j2" %}
 
 Output a JSON object with two fields:
 - `description`: 2-3 sentences. 

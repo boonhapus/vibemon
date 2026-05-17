@@ -3,7 +3,7 @@ name: vibemon-sprite-sheet
 description: Generates a Pokémon-style sprite contact sheet for a Vibemon.
 version: 1.6.0
 ---
-Use the attached reference image as the canonical model for the creature named "{{ vibemon.affinity.identity.name }}".
+Use the attached reference image as the canonical model for the creature named "{{ vibemon.identity.name }}".
 
 TASK
 - Render ONE square 1:1 sprite contact sheet.

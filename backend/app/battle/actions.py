@@ -7,14 +7,14 @@ import pydantic
 from app import schema, types
 
 
-class TargetRef(schema._Static):
+class TargetRef(schema.FrozenSchema):
     """A concrete active battle slot."""
 
     trainer: types.TrainerIdT
     slot: int = 0
 
 
-class MoveAction(schema._Static):
+class MoveAction(schema.FrozenSchema):
     """Use a move from an active slot."""
 
     kind: Literal["move"] = "move"
@@ -24,7 +24,7 @@ class MoveAction(schema._Static):
     targets: tuple[TargetRef, ...] = ()
 
 
-class SwitchAction(schema._Static):
+class SwitchAction(schema.FrozenSchema):
     """Switch an active slot to a bench member."""
 
     kind: Literal["switch"] = "switch"
@@ -33,7 +33,7 @@ class SwitchAction(schema._Static):
     bench_index: int
 
 
-class ItemAction(schema._Static):
+class ItemAction(schema.FrozenSchema):
     """Use a trainer item."""
 
     kind: Literal["item"] = "item"
@@ -42,7 +42,7 @@ class ItemAction(schema._Static):
     target: TargetRef | None = None
 
 
-class RunAction(schema._Static):
+class RunAction(schema.FrozenSchema):
     """Attempt to run from battle."""
 
     kind: Literal["run"] = "run"

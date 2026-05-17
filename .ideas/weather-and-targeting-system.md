@@ -82,7 +82,7 @@ class Move(_Static):
 
 `game_engine.py` needs three integration points:
 
-1. **Damage modifier** — type × weather multipliers (Rain ×1.5 WATER, ×0.5 FIRE; Sun mirrors; Sandstorm boosts ROCK Sp.Def, Hail boosts ICE defense).
+1. **Damage modifier** — type x weather multipliers (Rain x1.5 WATER, x0.5 FIRE; Sun mirrors; Sandstorm boosts ROCK Sp.Def, Hail boosts ICE defense).
 2. **End-of-turn residual** — Sandstorm chips non-{ROCK, GROUND, STEEL}; Hail chips non-ICE; Sun/Rain modify burn/freeze rates.
 3. **Move execution** — apply `weather_set` from `MoveEffect`, decrement `turns_remaining`, transition back to `CLEAR` at zero.
 

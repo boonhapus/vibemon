@@ -4,14 +4,12 @@ Use this module for units of meaning such as enums and aliases, not data
 objects, persistence models, or runtime workflows.
 """
 
-from typing import Annotated, Literal, TypedDict, NotRequired
-from annotated_types import Len
+from typing import Annotated, Literal, Self
 import enum
 import random
 import uuid
 
-from PIL.Image import Image
-
+from annotated_types import Len
 
 type TrainerIdT = Annotated[uuid.UUID, "backend trainer identifier"]
 type BaseStatT = Annotated[int, "a clamped value between [5, 255]"]
@@ -94,7 +92,7 @@ class EvolutionStageT(enum.IntEnum):
     ULTRA_LEGENDARY = 99
 
     @classmethod
-    def random_seed(cls, *, rng: random.Random | None = None) -> EvolutionStageT:
+    def random_seed(cls, *, rng: random.Random | None = None) -> Self:
         stages = [cls.BASE, cls.STAGE_2, cls.STAGE_3, cls.PSUEDO_LEGENDARY]
         rarity = [24, 41, 34, 1]
         chooser = rng if rng is not None else random
@@ -156,23 +154,28 @@ class MoveTargetT(enum.StrEnum):
     FIELD = "field"
 
 
-class SpriteLayout(TypedDict):
-    """The types of sprites that a Vibemon can be generated in."""
+class PoseT(enum.StrEnum):
+    """The 9 poses extracted from a Vibemon's 3x3 sprite sheet (reading order)."""
 
-    # ROW 1
-    sheet: NotRequired[Image]
+    BATTLE_BACK = "battle_back"
+    BATTLE_HERO = "battle_hero"
+    BATTLE_OPPONENT = "battle_opponent"
+    EMOTE_RESTING = "emote_resting"
+    EMOTE_HAPPY = "emote_happy"
+    EMOTE_FRUSTRATED = "emote_frustrated"
+    EMOTE_PROUD = "emote_proud"
+    EMOTE_CONFUSED = "emote_confused"
+    EMOTE_SAD = "emote_sad"
 
-    # ROW 1
-    battle_back: Image
-    battle_hero: Image
-    battle_opponent: Image
 
-    # ROW 2
-    emote_resting: Image
-    emote_happy: Image
-    emote_frustrated: Image
+class VibemonLifecycleT(enum.StrEnum):
+    """Lifecycle states for a Vibemon's asset realization.
 
-    # ROW 3
-    emote_proud: Image
-    emote_confused: Image
-    emote_sad: Image
+    - ``BORN``: schema-ready, no preview assets.
+    - ``CHRISTENED``: name + reference + battle cry exist.
+    - ``MANIFESTED``: full sheet + 9 poses + cry exist.
+    """
+
+    BORN = "born"
+    CHRISTENED = "christened"
+    MANIFESTED = "manifested"

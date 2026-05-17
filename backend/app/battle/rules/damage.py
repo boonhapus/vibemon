@@ -1,13 +1,13 @@
 from __future__ import annotations
 
 from collections.abc import Iterable
+from typing import Literal
 import math
 
 from app import const, types
 from app.balance import element_chart
-from app.battle import events
+from app.battle import events, turn
 from app.battle import schema as battle_schema
-from app.battle import turn
 from app.battle.rules import stats
 
 MOD_ONE = 4096
@@ -15,6 +15,9 @@ MOD_HALF = 2048
 MOD_THREE_QUARTERS = 3072
 MOD_ONE_AND_HALF = 6144
 MOD_DOUBLE = 8192
+
+
+type RoundingModeT = Literal["floor", "round_half_down", "round_half_up"]
 
 
 def round_half_down(value: float) -> int:
@@ -121,7 +124,7 @@ def calc_damage(
     damage = base_damage
     steps: list[events.DamageStep] = []
 
-    ordered: list[tuple[str, tuple[events.DamageModifier, ...], str]] = []
+    ordered: list[tuple[str, tuple[events.DamageModifier, ...], RoundingModeT]] = []
     if spread:
         ordered.append(
             (

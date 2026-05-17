@@ -83,7 +83,7 @@ Hard output format:
 - structured prose records only with:
   `name`, `type`, `role`, `fantasy`, `counterplay`, `approx_power_band`, `power_tier`, `level_band`, `level`, `priority`, `effect_hook`.
 - `power_tier` ∈ {`status`, `spam`, `early-stab`, `mid`, `workhorse`, `high`, `signature`} per `references/move_balance_reference.md` §3.5.
-- `level` is the numeric `level_requirement` (1–100), not a band.
+- `level` is the numeric `level_requirement` (1-100), not a band.
 - `priority` defaults to `0`; non-zero priority must cite §3.6 sparsity bracket.
 
 ### Step A5 — Code leakage handling (hard)

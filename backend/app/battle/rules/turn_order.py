@@ -2,9 +2,8 @@ from __future__ import annotations
 
 import random
 
-from app.battle import actions
+from app.battle import actions, turn
 from app.battle import schema as battle_schema
-from app.battle import turn
 from app.battle.rules import conditions, stats
 
 

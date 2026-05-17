@@ -4,11 +4,11 @@ import pydantic
 
 from app import const, schema, types
 from app.battle import events as event_models
-from app.battle import turn
 from app.battle import schema as battle_schema
+from app.battle import turn
 
 
-class PreActionResult(schema._Static):
+class PreActionResult(schema.FrozenSchema):
     """Result of a pre-action check."""
 
     blocked: bool

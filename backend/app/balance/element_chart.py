@@ -1,3 +1,4 @@
+from collections.abc import Sequence
 from typing import Literal
 
 from app import types
@@ -12,24 +13,150 @@ GRADE_WEIGHT: dict[StatGradeT, int] = {"S": 5, "A": 4, "B": 3, "C": 2, "D": 1}
 # Used to bias base-stat distribution during Identity generation. Dual-type Vibemon
 # average the two elements' grade weights per stat.
 ELEMENT_STAT_GRADE: dict[types.VibemonTypeT, dict[types.BaseStatNameT, StatGradeT]] = {
-    types.VibemonTypeT.DRAGON:   {"hp": "S", "attack": "S", "defense": "A", "sp_attack": "S", "sp_defense": "S", "speed": "A"},  # noqa: E501
-    types.VibemonTypeT.STEEL:    {"hp": "B", "attack": "A", "defense": "S", "sp_attack": "B", "sp_defense": "A", "speed": "D"},  # noqa: E501
-    types.VibemonTypeT.FIGHTING: {"hp": "A", "attack": "S", "defense": "B", "sp_attack": "D", "sp_defense": "C", "speed": "B"},  # noqa: E501
-    types.VibemonTypeT.PSYCHIC:  {"hp": "C", "attack": "D", "defense": "C", "sp_attack": "S", "sp_defense": "S", "speed": "B"},  # noqa: E501
-    types.VibemonTypeT.ELECTRIC: {"hp": "D", "attack": "C", "defense": "D", "sp_attack": "A", "sp_defense": "B", "speed": "S"},  # noqa: E501
-    types.VibemonTypeT.FLYING:   {"hp": "B", "attack": "B", "defense": "D", "sp_attack": "B", "sp_defense": "C", "speed": "S"},  # noqa: E501
-    types.VibemonTypeT.ROCK:     {"hp": "B", "attack": "A", "defense": "S", "sp_attack": "D", "sp_defense": "B", "speed": "D"},  # noqa: E501
-    types.VibemonTypeT.ICE:      {"hp": "A", "attack": "B", "defense": "B", "sp_attack": "B", "sp_defense": "B", "speed": "C"},  # noqa: E501
-    types.VibemonTypeT.NORMAL:   {"hp": "S", "attack": "C", "defense": "D", "sp_attack": "D", "sp_defense": "D", "speed": "B"},  # noqa: E501
-    types.VibemonTypeT.GHOST:    {"hp": "D", "attack": "B", "defense": "B", "sp_attack": "B", "sp_defense": "B", "speed": "C"},  # noqa: E501
-    types.VibemonTypeT.GROUND:   {"hp": "A", "attack": "A", "defense": "A", "sp_attack": "D", "sp_defense": "D", "speed": "D"},  # noqa: E501
-    types.VibemonTypeT.FIRE:     {"hp": "C", "attack": "B", "defense": "C", "sp_attack": "A", "sp_defense": "B", "speed": "B"},  # noqa: E501
-    types.VibemonTypeT.FAIRY:    {"hp": "C", "attack": "D", "defense": "C", "sp_attack": "B", "sp_defense": "A", "speed": "C"},  # noqa: E501
-    types.VibemonTypeT.WATER:    {"hp": "B", "attack": "C", "defense": "B", "sp_attack": "C", "sp_defense": "B", "speed": "C"},  # noqa: E501
-    types.VibemonTypeT.DARK:     {"hp": "B", "attack": "A", "defense": "C", "sp_attack": "B", "sp_defense": "D", "speed": "A"},  # noqa: E501
-    types.VibemonTypeT.POISON:   {"hp": "C", "attack": "C", "defense": "C", "sp_attack": "C", "sp_defense": "C", "speed": "C"},  # noqa: E501
-    types.VibemonTypeT.GRASS:    {"hp": "C", "attack": "B", "defense": "B", "sp_attack": "B", "sp_defense": "B", "speed": "D"},  # noqa: E501
-    types.VibemonTypeT.BUG:      {"hp": "D", "attack": "D", "defense": "C", "sp_attack": "D", "sp_defense": "C", "speed": "C"},  # noqa: E501
+    types.VibemonTypeT.DRAGON: {
+        "hp": "S",
+        "attack": "S",
+        "defense": "A",
+        "sp_attack": "S",
+        "sp_defense": "S",
+        "speed": "A",
+    },
+    types.VibemonTypeT.STEEL: {
+        "hp": "B",
+        "attack": "A",
+        "defense": "S",
+        "sp_attack": "B",
+        "sp_defense": "A",
+        "speed": "D",
+    },
+    types.VibemonTypeT.FIGHTING: {
+        "hp": "A",
+        "attack": "S",
+        "defense": "B",
+        "sp_attack": "D",
+        "sp_defense": "C",
+        "speed": "B",
+    },
+    types.VibemonTypeT.PSYCHIC: {
+        "hp": "C",
+        "attack": "D",
+        "defense": "C",
+        "sp_attack": "S",
+        "sp_defense": "S",
+        "speed": "B",
+    },
+    types.VibemonTypeT.ELECTRIC: {
+        "hp": "D",
+        "attack": "C",
+        "defense": "D",
+        "sp_attack": "A",
+        "sp_defense": "B",
+        "speed": "S",
+    },
+    types.VibemonTypeT.FLYING: {
+        "hp": "B",
+        "attack": "B",
+        "defense": "D",
+        "sp_attack": "B",
+        "sp_defense": "C",
+        "speed": "S",
+    },
+    types.VibemonTypeT.ROCK: {
+        "hp": "B",
+        "attack": "A",
+        "defense": "S",
+        "sp_attack": "D",
+        "sp_defense": "B",
+        "speed": "D",
+    },
+    types.VibemonTypeT.ICE: {
+        "hp": "A",
+        "attack": "B",
+        "defense": "B",
+        "sp_attack": "B",
+        "sp_defense": "B",
+        "speed": "C",
+    },
+    types.VibemonTypeT.NORMAL: {
+        "hp": "S",
+        "attack": "C",
+        "defense": "D",
+        "sp_attack": "D",
+        "sp_defense": "D",
+        "speed": "B",
+    },
+    types.VibemonTypeT.GHOST: {
+        "hp": "D",
+        "attack": "B",
+        "defense": "B",
+        "sp_attack": "B",
+        "sp_defense": "B",
+        "speed": "C",
+    },
+    types.VibemonTypeT.GROUND: {
+        "hp": "A",
+        "attack": "A",
+        "defense": "A",
+        "sp_attack": "D",
+        "sp_defense": "D",
+        "speed": "D",
+    },
+    types.VibemonTypeT.FIRE: {
+        "hp": "C",
+        "attack": "B",
+        "defense": "C",
+        "sp_attack": "A",
+        "sp_defense": "B",
+        "speed": "B",
+    },
+    types.VibemonTypeT.FAIRY: {
+        "hp": "C",
+        "attack": "D",
+        "defense": "C",
+        "sp_attack": "B",
+        "sp_defense": "A",
+        "speed": "C",
+    },
+    types.VibemonTypeT.WATER: {
+        "hp": "B",
+        "attack": "C",
+        "defense": "B",
+        "sp_attack": "C",
+        "sp_defense": "B",
+        "speed": "C",
+    },
+    types.VibemonTypeT.DARK: {
+        "hp": "B",
+        "attack": "A",
+        "defense": "C",
+        "sp_attack": "B",
+        "sp_defense": "D",
+        "speed": "A",
+    },
+    types.VibemonTypeT.POISON: {
+        "hp": "C",
+        "attack": "C",
+        "defense": "C",
+        "sp_attack": "C",
+        "sp_defense": "C",
+        "speed": "C",
+    },
+    types.VibemonTypeT.GRASS: {
+        "hp": "C",
+        "attack": "B",
+        "defense": "B",
+        "sp_attack": "B",
+        "sp_defense": "B",
+        "speed": "D",
+    },
+    types.VibemonTypeT.BUG: {
+        "hp": "D",
+        "attack": "D",
+        "defense": "C",
+        "sp_attack": "D",
+        "sp_defense": "C",
+        "speed": "C",
+    },
 }
 
 
@@ -155,7 +282,9 @@ ELEMENT_CHART: dict[tuple[types.VibemonTypeT, types.VibemonTypeT], float] = {
 }
 
 
-def get_element_effectiveness(attack_type: types.VibemonTypeT, defender_elements: list[types.VibemonTypeT]) -> float:
+def get_element_effectiveness(
+    attack_type: types.VibemonTypeT, defender_elements: Sequence[types.VibemonTypeT]
+) -> float:
     """
     Multiply the attacker's type modifier against each of the defender's elements.
 
@@ -175,7 +304,7 @@ def get_element_effectiveness(attack_type: types.VibemonTypeT, defender_elements
 
 def get_move_assignment_bonus(
     move_type: types.VibemonTypeT,
-    vibemon_elements: list[types.VibemonTypeT],
+    vibemon_elements: Sequence[types.VibemonTypeT],
 ) -> float:
     """
     Bonus multiplier for assigning a move to a vibemon.

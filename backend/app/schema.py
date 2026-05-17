@@ -5,22 +5,27 @@ domain behavior. Keep database sessions, table declarations, and object-store
 workflows in dedicated persistence or lifecycle modules.
 """
 
+from __future__ import annotations
+
 from collections.abc import Iterable
-from typing import Annotated, Any, Literal, Self
+from typing import Annotated, Any, Literal, Self, cast
 import asyncio
 import datetime as dt
 import hashlib
 import json
 import math
 import random
-import structlog
+import uuid
 
 import pydantic
+import structlog
 
+from app import brand, const, types, utils, validators
 from app.balance.formulas import apply_evo_seed_bst_bias, base_stat_level_scaling
-from app.genai.client import generate_battle_cry, generate_vibemon_sprite
+from app.data_store import monstore
+from app.data_store import schema as ds_schema
+from app.data_store import types as ds_types
 from app.plugins.provider import VibeProvider
-from app import brand, const, sprite_store, types, utils, validators
 
 _LOGGER = structlog.get_logger(__name__)
 
@@ -28,31 +33,30 @@ _LOGGER = structlog.get_logger(__name__)
 # ── INTERNALS ─────────────────────────────────────────────────────────────────────────
 
 
-class _Static(pydantic.BaseModel):
-    """Base configuration for all models."""
+class Schema(pydantic.BaseModel):
+    """Mutable domain data object base. Use for runtime/lifecycle-shaped data."""
 
     model_config = pydantic.ConfigDict(
         extra="forbid",
-        frozen=True,
         arbitrary_types_allowed=True,
+        validate_assignment=True,
     )
 
 
-class _Transient(pydantic.BaseModel):
-    """Base configuration for all models."""
+class FrozenSchema(pydantic.BaseModel):
+    """Immutable value object base. Use for definitions and event/log records."""
 
     model_config = pydantic.ConfigDict(
         extra="forbid",
-        frozen=False,
         arbitrary_types_allowed=True,
-        validate_assignment=True,
+        frozen=True,
     )
 
 
 # ── SEED ──────────────────────────────────────────────────────────────────────────────
 
 
-class BirthSnapshot(_Static):
+class BirthSnapshot(FrozenSchema):
     """Captured provider payloads used to synthesize affinities."""
 
     provider_payloads: dict[str, dict[str, Any]]
@@ -62,9 +66,7 @@ class BirthSnapshot(_Static):
         providers_by_name = {provider.name: provider for provider in providers}
 
         missing_provider_ids = [
-            provider_id
-            for provider_id in self.provider_payloads
-            if provider_id not in providers_by_name
+            provider_id for provider_id in self.provider_payloads if provider_id not in providers_by_name
         ]
 
         if missing_provider_ids:
@@ -80,7 +82,7 @@ class BirthSnapshot(_Static):
         return affinities
 
 
-class BirthSeed(_Static, arbitrary_types_allowed=True):
+class BirthSeed(FrozenSchema):
     """Reproducible input used to fetch provider payloads."""
 
     timestamp: dt.datetime
@@ -92,8 +94,8 @@ class BirthSeed(_Static, arbitrary_types_allowed=True):
     def _normalize_to_utc(cls, v: dt.datetime) -> dt.datetime:
         """Ensure timestamp is aware UTC. SQLite strips tz, so naive values must round-trip stably."""
         if v.tzinfo is None:
-            return v.replace(tzinfo=dt.timezone.utc)
-        return v.astimezone(dt.timezone.utc)
+            return v.replace(tzinfo=dt.UTC)
+        return v.astimezone(dt.UTC)
 
     @property
     def datestamp(self) -> dt.date:
@@ -119,10 +121,12 @@ class BirthSeed(_Static, arbitrary_types_allowed=True):
 
     def rng_seed_for(self, namespace: str) -> int:
         """Stable integer seed for one deterministic birth subsystem."""
-        return self._hash_seed_material({
-            "birth_seed": self._rng_seed_material,
-            "namespace": namespace,
-        })
+        return self._hash_seed_material(
+            {
+                "birth_seed": self._rng_seed_material,
+                "namespace": namespace,
+            }
+        )
 
     def rng(self, namespace: str) -> random.Random:
         """Create a fresh deterministic RNG for one birth subsystem."""
@@ -130,13 +134,8 @@ class BirthSeed(_Static, arbitrary_types_allowed=True):
 
     async def fetch_snapshot(self) -> BirthSnapshot:
         """Fetch provider payloads for this seed."""
-        payloads = await asyncio.gather(*(provider.fetch(self) for provider in self.providers))
-        return BirthSnapshot(
-            provider_payloads={
-                provider.name: payload
-                for provider, payload in zip(self.providers, payloads, strict=True)
-            }
-        )
+        snapshots = await asyncio.gather(*(provider.fetch(self) for provider in self.providers))
+        return BirthSnapshot(provider_payloads={p.name: s for p, s in zip(self.providers, snapshots, strict=True)})
 
     async def regenerate(self) -> Iterable[Affinity]:
         """Fetch provider payloads, then synthesize affinities from that snapshot."""
@@ -147,19 +146,16 @@ class BirthSeed(_Static, arbitrary_types_allowed=True):
 # ── IDENTITY ──────────────────────────────────────────────────────────────────────────
 
 
-class Trainer(_Transient):
+class Trainer(Schema):
     """A player in the Vibemon universe."""
 
-    id: types.TrainerIdT
+    id: types.TrainerIdT = pydantic.Field(default_factory=uuid.uuid7)
     username: str
     team: list[Vibemon] = pydantic.Field(default_factory=list)
 
 
-# ── IDENTITY ──────────────────────────────────────────────────────────────────────────
-
-
-class Identity(_Static):
-    """Represents the core, immutable personality of a Vibemon."""
+class Identity(Schema):
+    """Represents the core identity and battle profile of a Vibemon."""
 
     name: str
     """The name of the Vibemon's identity."""
@@ -167,31 +163,38 @@ class Identity(_Static):
     visual_notes: str | None = None
     """Supplied by the Trainer themselves."""
 
+    provider_visual_notes: str | None = None
+    """Joined provider visual descriptions captured at birth (or rerate)."""
+
     elements: types.IdentityElementsT
 
     # fmt: off
-    base_hp: int         = pydantic.Field(default=70, ge= 1, le=255, json_schema_extra={"min":  1, "med": 70, "max": 255})
-    base_attack: int     = pydantic.Field(default=75, ge= 5, le=190, json_schema_extra={"min":  5, "med": 75, "max": 190})
-    base_defense: int    = pydantic.Field(default=70, ge= 5, le=230, json_schema_extra={"min":  5, "med": 70, "max": 230})
-    base_sp_attack: int  = pydantic.Field(default=70, ge=10, le=194, json_schema_extra={"min": 10, "med": 70, "max": 194})
-    base_sp_defense: int = pydantic.Field(default=70, ge=20, le=230, json_schema_extra={"min": 20, "med": 70, "max": 230})
-    base_speed: int      = pydantic.Field(default=70, ge= 5, le=200, json_schema_extra={"min":  5, "med": 70, "max": 200})
+    base_hp: int         = pydantic.Field(default=70, ge= 1, le=255, json_schema_extra={"min":  1, "med": 70, "max": 255})  # noqa: E501
+    base_attack: int     = pydantic.Field(default=75, ge= 5, le=190, json_schema_extra={"min":  5, "med": 75, "max": 190})  # noqa: E501
+    base_defense: int    = pydantic.Field(default=70, ge= 5, le=230, json_schema_extra={"min":  5, "med": 70, "max": 230})  # noqa: E501
+    base_sp_attack: int  = pydantic.Field(default=70, ge=10, le=194, json_schema_extra={"min": 10, "med": 70, "max": 194})  # noqa: E501
+    base_sp_defense: int = pydantic.Field(default=70, ge=20, le=230, json_schema_extra={"min": 20, "med": 70, "max": 230})  # noqa: E501
+    base_speed: int      = pydantic.Field(default=70, ge= 5, le=200, json_schema_extra={"min":  5, "med": 70, "max": 200})  # noqa: E501
     # fmt: on
 
     evo_seed: types.EvolutionStageT = types.EvolutionStageT.BASE
     """The max evolution stage for this Vibemon."""
 
-    evo_stage: types.EvolutionStageT = types.EvolutionStageT.BASE
-    """The current evolution of this Vibemon."""
-
     is_radiant: bool = False
     """A rare, alternative style that differs from its peer identities' appearance."""
+
+    generation: int = 0
+    """Monotonic counter bumped on balance/rebalance deploys; identifies stale identities."""
+
+    generated_at: dt.datetime = pydantic.Field(default_factory=lambda: dt.datetime.now(tz=dt.UTC))
+    """Wall-clock timestamp of this identity's most recent merge."""
 
     @classmethod
     def _stat_info(cls, name: types.BaseStatNameT, type: Literal["min", "med", "max"] = "med") -> int | None:
         """Fetch the descriptive statistic of the base stat field."""
         if (field := cls.model_fields.get(f"base_{name}")) and field.json_schema_extra:
-            return field.json_schema_extra[type]
+            assert isinstance(field.json_schema_extra, dict), "json_schema_extra must be a dict."
+            return cast(int, field.json_schema_extra[type])
         return None
 
     @property
@@ -244,20 +247,20 @@ class Identity(_Static):
 
         # Speed tiers calibrated to OU-ish play
         is_very_fast = speed >= 110
-        is_fast      = speed >= 95
-        is_slow      = speed < 65
+        is_fast = speed >= 95
+        is_slow = speed < 65
 
         # Offense tiers
-        is_elite_off  = best_offense >= 120
+        is_elite_off = best_offense >= 120
         is_strong_off = best_offense >= 100
         is_decent_off = best_offense >= 95
 
         # Bulk profiles
-        is_phys_wall  = phys_ehp >= 8000
-        is_spec_wall  = spec_ehp >= 8000
-        is_any_wall   = is_phys_wall or is_spec_wall
+        is_phys_wall = phys_ehp >= 8000
+        is_spec_wall = spec_ehp >= 8000
+        is_any_wall = is_phys_wall or is_spec_wall
         is_mixed_bulk = phys_ehp >= 6000 and spec_ehp >= 6000
-        is_frail      = avg_ehp < 5000
+        is_frail = avg_ehp < 5000
 
         match True:
             # Offensive (most specific first)
@@ -287,8 +290,12 @@ class Identity(_Static):
                 return types.BattleRole.UTILITY
 
 
-class Affinity(_Static, validate_assignment=True):
-    """Represents the nature of a Vibemon, steered by the source provider.."""
+class Affinity(FrozenSchema):
+    """A provider's translation of raw data into Vibemon-shaped attributes.
+
+    Transient runtime object: produced by ``VibeProvider.synthesize`` and
+    consumed by ``Affinity.merge`` to produce a ``BirthOutcome``. Not persisted.
+    """
 
     identity: Identity
     """Represents the core, immutable personality of a Vibemon."""
@@ -302,26 +309,32 @@ class Affinity(_Static, validate_assignment=True):
     provider_id: str
     """The source of steering."""
 
-    moves: list[Move]
+    moves: tuple[Move, ...]
 
-    @pydantic.model_validator(mode="after")
-    def _validate_intensity(self) -> Self:
+    @pydantic.field_validator("moves", mode="before")
+    @classmethod
+    def _coerce_moves_tuple(cls, value: Any) -> Any:
+        """Providers may supply a list; the schema boundary stores a tuple snapshot."""
+        if isinstance(value, list):
+            return tuple(value)
+        return value
+
+    @pydantic.field_validator("intensity")
+    @classmethod
+    def _clamp_intensity(cls, v: float) -> float:
         """Warn and clamp intensity to [0.0, 1.0] instead of failing."""
-        if 0.0 <= self.intensity <= 1.0:
-            return self
+        if 0.0 <= v <= 1.0:
+            return v
 
-        old = float(self.intensity)
-
-        self.intensity = utils.clamp(old, minimum=0.0, maximum=1.0)
+        clamped = utils.clamp(v, minimum=0.0, maximum=1.0)
 
         _LOGGER.warning(
             "Affinity.intensity out of bounds",
-            provider=self.provider_id,
-            original=old,
-            clamp_to=self.intensity,
+            original=v,
+            clamp_to=clamped,
         )
 
-        return self
+        return clamped
 
     @classmethod
     def merge(
@@ -331,8 +344,8 @@ class Affinity(_Static, validate_assignment=True):
         rng: random.Random | None = None,
         evo_rng: random.Random | None = None,
         radiant_rng: random.Random | None = None,
-    ) -> Affinity:
-        """Create an Affinity by merging a number of affinities."""
+    ) -> BirthOutcome:
+        """Merge per-provider affinities into a Vibemon's seed state."""
         stat_keys = (
             "base_hp",
             "base_attack",
@@ -352,7 +365,7 @@ class Affinity(_Static, validate_assignment=True):
         name = ""
         total = 0
         stats = {k: 0 for k in stat_keys}
-        notes = []
+        notes: list[str] = []
         pop_e: list[tuple[types.VibemonTypeT, int]] = []
         pop_m: list[tuple[Move, int]] = []
 
@@ -374,8 +387,8 @@ class Affinity(_Static, validate_assignment=True):
 
         try:
             stats_merged = {k: math.floor(stats[k] / total) for k in stat_keys}
-            elements = utils.weighted_sample(*zip(*pop_e), k=rng.randint(1, min(2, len(pop_e))), rng=rng)
-            moves = utils.weighted_sample(*zip(*pop_m), k=rng.randint(2, min(3, len(pop_m))), rng=rng)
+            elements = utils.weighted_sample(*zip(*pop_e, strict=True), k=rng.randint(1, min(2, len(pop_e))), rng=rng)
+            moves = utils.weighted_sample(*zip(*pop_m, strict=True), k=rng.randint(2, min(3, len(pop_m))), rng=rng)
         except ZeroDivisionError:
             _LOGGER.exception("Total is zero.", affinities=affinities)
             raise
@@ -384,85 +397,74 @@ class Affinity(_Static, validate_assignment=True):
         evo_stage = types.EvolutionStageT.BASE
         stats_scaled = apply_evo_seed_bst_bias(stats_merged, evo_seed=evo_seed, evo_stage=evo_stage)
 
-        merged_affinity = Affinity(
-            identity=Identity(
-                name=name,
-                visual_notes=core_identity_description,
-                elements=tuple(dict.fromkeys(elements)),
-                evo_seed=evo_seed,
-                evo_stage=evo_stage,
-                is_radiant=radiant_rng.randint(1, const.RADIANT_ODDS) == const.RADIANT_ODDS,
-                **stats_scaled,
-            ),
-            visual_notes=" ".join(notes),
-            provider_id="merged",
-            intensity=1,
-            moves=moves,
+        identity = Identity(
+            name=name,
+            visual_notes=core_identity_description,
+            provider_visual_notes=" ".join(notes) or None,
+            elements=tuple(dict.fromkeys(elements)),
+            evo_seed=evo_seed,
+            is_radiant=radiant_rng.randint(1, const.RADIANT_ODDS) == const.RADIANT_ODDS,
+            **stats_scaled,
         )
 
-        return merged_affinity
+        return BirthOutcome(
+            identity=identity,
+            moves=tuple(moves),
+            evo_stage=evo_stage,
+        )
 
 
-class Aesthetic(_Transient):
+class BirthOutcome(FrozenSchema):
+    """Merged result of one or more provider affinities. Direct input to ``Vibemon.birth``."""
+
+    identity: Identity
+    moves: tuple[Move, ...]
+    evo_stage: types.EvolutionStageT = types.EvolutionStageT.BASE
+
+
+class Aesthetic(Schema):
     """The visual and aural DNA of a Vibemon based on its attributes."""
 
     primary_color: brand.Color
     secondary_color: brand.Color | None = None
     background_color: brand.Color
+    assets: dict[ds_types.AssetKind, ds_schema.AssetRef] = pydantic.Field(default_factory=dict)
+    """Stable refs for blobs persisted in the monstore."""
 
-    # ── LOCKED BEHIND ASYNC GENERATION ────────────────────────────────────────────────
+    def has(self, kind: ds_types.AssetKind) -> bool:
+        """Whether a stored ref exists for the given asset kind."""
+        return kind in self.assets
 
-    sprite_sheet_key: str | None = None
-    """Object-store key for the canonical sprite sheet PNG (see ``app.sprite_store``)."""
+    async def url_for(
+        self,
+        kind: ds_types.AssetKind,
+        *,
+        expires_in: dt.timedelta = dt.timedelta(hours=1),
+    ) -> str | None:
+        """Return a fetchable URL for an asset, or ``None`` if no ref exists."""
+        ref = self.assets.get(kind)
+        if ref is None:
+            return None
+        return await monstore.url(ref.key, expires_in=expires_in)
 
-    sprites: types.SpriteLayout | None = pydantic.Field(default=None, exclude=True, repr=False)
-    """In-memory layout sliced from the sheet. Not serialized — derive from the sheet."""
-
-    battle_cry: bytes | None = None
-    """All sounds that the Vibemon makes."""
-
-    # ── LOCKED BEHIND ASYNC GENERATION ────────────────────────────────────────────────
-
-    _vibemon: Vibemon | None = None
-
-    @pydantic.field_validator("sprites", mode="before")
-    def _unwrap_sprite_sheet(cls, value: bytes | types.SpriteLayout | None) -> types.SpriteLayout | None:
-        if isinstance(value, bytes):
-            value = utils.extract_sprites(image=value)
-
-        return value
-
-    async def regenerate(self) -> Self:
-        """Recreate the Aesthetic. Sprite sheet is persisted via the configured store."""
-        if self._vibemon is None:
-            raise ValueError("No base Vibemon to regenerate from.")
-
-        async with asyncio.TaskGroup() as g:
-            sprite_task = g.create_task(generate_vibemon_sprite(vibemon=self._vibemon))
-            cry_task = g.create_task(generate_battle_cry(vibemon=self._vibemon))
-
-        sheet_bytes = sprite_task.result()
-        self.sprite_sheet_key = await sprite_store.put_sheet(self._vibemon.name, sheet_bytes)
-        self.sprites = utils.extract_sprites(image=sheet_bytes)
-        self.battle_cry = cry_task.result()
-
-        return self
+    async def bytes_for(self, kind: ds_types.AssetKind) -> bytes | None:
+        """Return the raw asset bytes, or ``None`` if no ref exists."""
+        ref = self.assets.get(kind)
+        if ref is None:
+            return None
+        return await monstore.get(ref.key)
 
     @classmethod
     def from_vibemon(cls, vibemon: Vibemon) -> Self:
-        """Generalize from the Vibemon's attributes."""
-        data = {
-            "primary_color": brand.TYPE_COLORS[vibemon.elements[0]],
-            "secondary_color": brand.TYPE_COLORS[vibemon.elements[1]] if len(vibemon.elements) == 2 else None,
-            "background_color": brand.solve_background_color(
+        """Derive colors from a Vibemon's elements; no assets, no I/O."""
+        return cls(
+            primary_color=brand.TYPE_COLORS[vibemon.elements[0]],
+            secondary_color=brand.TYPE_COLORS[vibemon.elements[1]] if len(vibemon.elements) == 2 else None,
+            background_color=brand.solve_background_color(
                 *brand.sprite_foreground_colors(vibemon.elements),
                 hue_protected=[brand.TYPE_COLORS[e] for e in vibemon.elements],
             ),
-        }
-
-        ins = cls(**data)
-        ins._vibemon = vibemon
-        return ins
+        )
 
 
 # ── MOVES ─────────────────────────────────────────────────────────────────────────────
@@ -471,7 +473,7 @@ class Aesthetic(_Transient):
 type EffectTarget = Literal["self", "target", "all_targets", "side", "opposing_side"]
 
 
-class StatusInflict(_Static):
+class StatusInflict(FrozenSchema):
     """Inflict a major status condition."""
 
     kind: Literal["status"] = "status"
@@ -479,7 +481,7 @@ class StatusInflict(_Static):
     status: types.StatusConditionT
 
 
-class StatChange(_Static):
+class StatChange(FrozenSchema):
     """Apply stat stage changes."""
 
     kind: Literal["stat"] = "stat"
@@ -487,21 +489,21 @@ class StatChange(_Static):
     changes: dict[types.StatStageNameT, int]
 
 
-class Drain(_Static):
+class Drain(FrozenSchema):
     """Heal the user for a ratio of damage dealt."""
 
     kind: Literal["drain"] = "drain"
     ratio: float
 
 
-class Recoil(_Static):
+class Recoil(FrozenSchema):
     """Damage the user for a ratio of damage dealt."""
 
     kind: Literal["recoil"] = "recoil"
     ratio: float
 
 
-class WeatherSet(_Static):
+class WeatherSet(FrozenSchema):
     """Set field weather."""
 
     kind: Literal["weather"] = "weather"
@@ -509,7 +511,7 @@ class WeatherSet(_Static):
     turns: int
 
 
-class Heal(_Static):
+class Heal(FrozenSchema):
     """Heal a target by a max HP ratio."""
 
     kind: Literal["heal"] = "heal"
@@ -523,7 +525,7 @@ type Effect = Annotated[
 ]
 
 
-class EffectGroup(_Static):
+class EffectGroup(FrozenSchema):
     """A shared-chance group of effects."""
 
     chance: float = 1.0
@@ -531,7 +533,7 @@ class EffectGroup(_Static):
     effects: tuple[Effect, ...] = ()
 
 
-class ConditionalOverride(_Static):
+class ConditionalOverride(FrozenSchema):
     """Declarative override for conditional move behavior."""
 
     valid: bool | None = None
@@ -541,7 +543,7 @@ class ConditionalOverride(_Static):
     flavor_key: str | None = None
 
 
-class IfOpponentAttacking(_Static):
+class IfOpponentAttacking(FrozenSchema):
     """Condition matching an opponent's attacking action."""
 
     kind: Literal["opponent_attacking"] = "opponent_attacking"
@@ -549,7 +551,7 @@ class IfOpponentAttacking(_Static):
     on_miss: ConditionalOverride | None = None
 
 
-class IfWeather(_Static):
+class IfWeather(FrozenSchema):
     """Condition matching current field weather."""
 
     kind: Literal["weather"] = "weather"
@@ -557,7 +559,7 @@ class IfWeather(_Static):
     on_match: ConditionalOverride
 
 
-class IfHpBelow(_Static):
+class IfHpBelow(FrozenSchema):
     """Condition matching user HP ratio."""
 
     kind: Literal["hp_below"] = "hp_below"
@@ -565,7 +567,7 @@ class IfHpBelow(_Static):
     on_match: ConditionalOverride
 
 
-class RandomPower(_Static):
+class RandomPower(FrozenSchema):
     """Condition selecting a random power bucket."""
 
     kind: Literal["random_power"] = "random_power"
@@ -578,14 +580,14 @@ type Condition = Annotated[
 ]
 
 
-class MoveBehavior(_Static):
+class MoveBehavior(FrozenSchema):
     """First-party move behavior references and declarative conditions."""
 
     conditions: tuple[Condition, ...] = ()
     script_id: str | None = None
 
 
-class Move(_Static):
+class Move(FrozenSchema):
     """A move that a Vibemon can learn and use in battle."""
 
     name: str
@@ -619,22 +621,55 @@ class Move(_Static):
 # ── PERSONALITY ───────────────────────────────────────────────────────────────────────
 
 
-class Vibemon(_Transient):
+class Vibemon(Schema):
     """Innate properties of a Vibemon with derived actual stats."""
+
+    id: uuid.UUID = pydantic.Field(default_factory=uuid.uuid7)
+    """Stable identifier; persists 1:1 with the DB row and asset key prefix."""
 
     nickname: str | None = None
     """The name given to the Vibemon by the Trainer."""
 
-    affinity: Affinity
-    """Represents the nature of a Vibemon, steered by the source provider.."""
+    identity: Identity
+    """Merged identity carrying species-level stats and notes. 1:1 with the Vibemon row."""
 
-    level: int
+    moves: tuple[Move, ...] = ()
+    """The Vibemon's active 4 moves (or fewer at low levels)."""
+
+    level: int = 1
     """The Vibemon's current level."""
 
-    birth_affinities: tuple[Affinity, ...] = ()
-    """The lineage of this Vibemon's aesthetic."""
+    xp: int = 0
+    """Cumulative experience points; canonical progression. ``level`` is the cached read."""
 
-    _aesthetic: Aesthetic = pydantic.PrivateAttr()
+    evo_stage: types.EvolutionStageT = types.EvolutionStageT.BASE
+    """Current evolution stage; advances on evolution events. Capped at ``identity.evo_seed``."""
+
+    trainer_id: types.TrainerIdT | None = None
+    """Trainer ownership. ``None`` means wild; populated means owned."""
+
+    team_slot: int | None = None
+    """Active party slot (0..5) when on a trainer's team; ``None`` when in storage."""
+
+    lifecycle: types.VibemonLifecycleT = types.VibemonLifecycleT.BORN
+    """Asset realization state. Mutated only by ``app.lifecycle`` functions."""
+
+    aesthetic: Aesthetic | None = None
+    """Visual and aural identity, including stored asset refs."""
+
+    @pydantic.field_validator("moves", mode="before")
+    @classmethod
+    def _coerce_moves_tuple(cls, value: Any) -> Any:
+        if isinstance(value, list):
+            return tuple(value)
+        return value
+
+    @pydantic.field_validator("moves")
+    @classmethod
+    def _validate_moves_count(cls, value: tuple[Move, ...]) -> tuple[Move, ...]:
+        if len(value) > 4:
+            raise ValueError(f"Vibemon cannot have more than 4 active moves, got {len(value)}")
+        return value
 
     @classmethod
     def birth(
@@ -644,11 +679,11 @@ class Vibemon(_Transient):
         nickname: str | None = None,
         core_identity: str | None = None,
     ) -> Self:
-        """Pure factory: merge raw affinities. No network. Name + aesthetic deferred."""
+        """Pure factory: merge raw affinities. No network. Name + assets deferred."""
         if not affinities:
             raise ValueError("Vibemon must be born from at least one Affinity!")
 
-        affinity = Affinity.merge(
+        outcome = Affinity.merge(
             *affinities,
             core_identity_description=core_identity,
             rng=birth_seed.rng("affinity.merge"),
@@ -656,22 +691,28 @@ class Vibemon(_Transient):
             radiant_rng=birth_seed.rng("identity.radiant"),
         )
 
-        return cls(
+        instance = cls(
             nickname=nickname,
-            affinity=affinity,
+            identity=outcome.identity,
+            moves=outcome.moves,
             level=1,
-            birth_affinities=affinities,
+            evo_stage=outcome.evo_stage,
         )
+        instance.aesthetic = Aesthetic.from_vibemon(instance)
+        return instance
 
     @classmethod
     def rebirth(
         cls,
         *affinities: Affinity,
+        id: uuid.UUID,
         name: str,
         birth_seed: BirthSeed,
         core_identity: str | None = None,
         nickname: str | None = None,
         level: int = 1,
+        xp: int = 0,
+        evo_stage: types.EvolutionStageT | None = None,
     ) -> Self:
         """Re-run merge/balance with stored identity preserved. No network."""
         instance = cls.birth(
@@ -680,49 +721,45 @@ class Vibemon(_Transient):
             nickname=nickname,
             core_identity=core_identity,
         )
-        instance.affinity = instance.affinity.model_copy(update={
-            "identity": instance.affinity.identity.model_copy(update={"name": name})
-        })
+        instance.id = id
+        instance.identity = instance.identity.model_copy(update={"name": name})
         instance.level = level
+        instance.xp = xp
+        if evo_stage is not None:
+            instance.evo_stage = evo_stage
+        instance.lifecycle = types.VibemonLifecycleT.BORN
+        # Refresh aesthetic to drop old asset refs; rebirth has no network so
+        # it cannot regenerate blobs. Callers must rechristen for new assets.
+        instance.aesthetic = Aesthetic.from_vibemon(instance)
         return instance
 
-    async def christen(self) -> Self:
-        """Network: LLM-name the identity."""
-        from app.genai.client import generate_vibemon_name
+    async def lineage(self, snapshot: BirthSnapshot, seed: BirthSeed) -> list[Affinity]:
+        """Rebuild the per-provider affinities that contributed to this Vibemon.
 
-        name = await generate_vibemon_name(
-            identity=self.affinity.identity,
-            moves=self.affinity.moves,
-            visual_notes=self.affinity.visual_notes,
-        )
-        self.affinity = self.affinity.model_copy(update={
-            "identity": self.affinity.identity.model_copy(update={"name": name})
-        })
-        return self
-
-    async def render_aesthetic(self) -> Self:
-        """Network: synthesize sprites + battle cry."""
-        self._aesthetic = Aesthetic.from_vibemon(self)
-        await self._aesthetic.regenerate()
-        return self
+        Cold-path operation: re-runs each provider's ``synthesize`` against the
+        cached snapshot payloads. No network. Use for lineage UI and rerate.
+        """
+        return list(await snapshot.regenerate(seed.providers, seed))
 
     @property
     def name(self) -> str:
         """The nickname or identity name of a Vibemon."""
-        return self.nickname or self.affinity.identity.name
+        return self.nickname or self.identity.name
 
     @property
     def elements(self) -> tuple[types.VibemonTypeT, ...]:
         """The Vibemon's elemental typing."""
-        return self.affinity.identity.elements
+        return self.identity.elements
 
     @property
-    def aesthetic(self) -> Aesthetic:
-        """The visual and aural layout of the Vibemon."""
-        if not hasattr(self, "_aesthetic"):
-            raise RuntimeError("You must call vibemon.birth()")
+    def is_wild(self) -> bool:
+        """A wild Vibemon has no trainer."""
+        return self.trainer_id is None
 
-        return self._aesthetic
+    @property
+    def is_owned(self) -> bool:
+        """An owned Vibemon has a trainer."""
+        return self.trainer_id is not None
 
     @property
     def hp(self) -> int:
@@ -731,35 +768,29 @@ class Vibemon(_Transient):
 
         HP adds level scaling for extra survivability at higher levels.
         """
-        return base_stat_level_scaling(self.affinity.identity.base_hp, level=self.level, true_floor=10) + self.level  # fmt: skip
+        return base_stat_level_scaling(self.identity.base_hp, level=self.level, true_floor=10) + self.level  # fmt: skip
 
     @property
     def attack(self) -> int:
         """Calculates the actual Attack stat."""
-        return base_stat_level_scaling(self.affinity.identity.base_attack, level=self.level)
+        return base_stat_level_scaling(self.identity.base_attack, level=self.level)
 
     @property
     def defense(self) -> int:
         """Calculates the actual Defense stat."""
-        return base_stat_level_scaling(self.affinity.identity.base_defense, level=self.level)
+        return base_stat_level_scaling(self.identity.base_defense, level=self.level)
 
     @property
     def sp_attack(self) -> int:
         """Calculates the actual Special Attack stat."""
-        return base_stat_level_scaling(self.affinity.identity.base_sp_attack, level=self.level)
+        return base_stat_level_scaling(self.identity.base_sp_attack, level=self.level)
 
     @property
     def sp_defense(self) -> int:
         """Calculates the actual Special Defense stat."""
-        return base_stat_level_scaling(self.affinity.identity.base_sp_defense, level=self.level)
+        return base_stat_level_scaling(self.identity.base_sp_defense, level=self.level)
 
     @property
     def speed(self) -> int:
         """Calculates the actual Speed stat."""
-        return base_stat_level_scaling(self.affinity.identity.base_speed, level=self.level)
-
-    @property
-    def moves(self) -> list[Move]:
-        """The nickname or identity name of a Vibemon."""
-        assert len(self.affinity.moves) == 4, "Vibemon cannot have more than 4 total moves."
-        return self.affinity.moves
+        return base_stat_level_scaling(self.identity.base_speed, level=self.level)

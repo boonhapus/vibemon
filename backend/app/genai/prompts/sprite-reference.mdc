@@ -3,7 +3,7 @@ name: vibemon-sprite-reference
 description: Generates a single canonical reference image for a Vibemon before posing.
 version: 1.0.0
 ---
-Render ONE clean canonical reference image for a Pokémon-style creature named "{{ vibemon.affinity.identity.name }}".
+Render ONE clean canonical reference image for a Pokémon-style creature named "{{ vibemon.identity.name }}".
 
 PURPOSE
 - This image will be used as the visual reference for a later nine-pose sprite sheet.
@@ -17,10 +17,10 @@ CANVAS RULES
 - Keep the whole creature inside frame with margin on all sides.
 
 IDENTITY
-- Name: {{ vibemon.affinity.identity.name }}
+- Name: {{ vibemon.identity.name }}
 - Element(s): {{ vibemon.elements | join(" / ") }}
-{% if vibemon.affinity.identity.visual_notes %}
-- Personality notes (do not infer anatomy from these): {{ vibemon.affinity.identity.visual_notes }}
+{% if vibemon.identity.visual_notes %}
+- Personality notes (do not infer anatomy from these): {{ vibemon.identity.visual_notes }}
 {% endif %}
 
 PRIMARY ELEMENT — {{ vibemon.elements[0] | upper }} (canonical anatomy, palette, and motifs — the source of truth for what this creature looks like). The BODY ARCHETYPE below dictates the silhouette type. Role and tier modify posture, scale, and complexity but NEVER override the body archetype.
@@ -32,18 +32,16 @@ SECONDARY ELEMENT — {{ vibemon.elements[1] | upper }} (accent layer only: extr
 
 {% endif %}
 TIER
-{% include "tiers/" ~ vibemon.affinity.identity.tier ~ "/visual.j2" +%}
+{% include "tiers/" ~ vibemon.identity.tier ~ "/visual.j2" +%}
 
 ROLE
-{% include "roles/" ~ vibemon.affinity.identity.battle_role.name | lower ~ ".j2" +%}
+{% include "roles/" ~ vibemon.identity.battle_role.name | lower ~ ".j2" +%}
 Role body-language cues describe attitude only. They must never add humanoid arms, hands, legs, shoulders, fists, palms, or upright posture if the chosen body archetype does not naturally have them.
 
 INFLUENCES (translate into one simple anatomical feature, marking, material, or silhouette cue; do not add extra detached effects):
-{% for affinity in vibemon.birth_affinities %}
-{% if affinity.visual_notes %}
-- {{ affinity.visual_notes }}
+{% if vibemon.identity.provider_visual_notes %}
+- {{ vibemon.identity.provider_visual_notes }}
 {% endif %}
-{% endfor %}
 
 LOCKED DESIGN DECISIONS
 - Choose one simple body plan from the primary element's BODY ARCHETYPE.

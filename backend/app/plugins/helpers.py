@@ -46,7 +46,7 @@ class Signal(pydantic.BaseModel):
     @property
     def center(self) -> types.UnitIntervalT:
         """
-        Zero‑median‑anchored normalization: median → 0.5.
+        Zero-median-anchored normalization: median → 0.5.
 
         Each half of the population is spread independently across [0, 0.5] or
         (0.5, 1.0] so the median always maps to 0.5 regardless of skew.
@@ -59,7 +59,7 @@ class Signal(pydantic.BaseModel):
     @classmethod
     def mix(
         cls,
-        *pairs: tuple["Signal", float],
+        *pairs: tuple[Signal, float],
         mode: Literal["normal", "center"] = "normal",
     ) -> types.UnitIntervalT:
         """
@@ -87,11 +87,11 @@ class Signal(pydantic.BaseModel):
         weighted_sum = sum(getattr(s, mode) * w for s, w in pairs)
         return utils.clamp(weighted_sum / divisor, minimum=0, maximum=1)
 
-    def __mul__(self, weight: float) -> tuple["Signal", float]:
+    def __mul__(self, weight: float) -> tuple[Signal, float]:
         """Syntactic sugar for signal.scale(weight). Enables: signal * 0.5"""
         return self.scale(weight)
 
-    def __rmul__(self, weight: float) -> tuple["Signal", float]:
+    def __rmul__(self, weight: float) -> tuple[Signal, float]:
         """Syntactic sugar for weight * signal. Enables: 0.5 * signal"""
         return self.scale(weight)
 
@@ -109,7 +109,7 @@ class Signal(pydantic.BaseModel):
         """
         return self.normal**power
 
-    def scale(self, factor: float) -> tuple["Signal", float]:
+    def scale(self, factor: float) -> tuple[Signal, float]:
         """
         Pairs this signal with a weight for use in Signal.mix().
 
@@ -220,7 +220,7 @@ def filter_element_types(
 
     candidates = sorted(
         [t for t, s in scores.items() if s >= thresh_primary * max_score],
-        key=scores.get,
+        key=lambda element: scores[element],
         reverse=True,
     )
 

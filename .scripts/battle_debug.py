@@ -10,7 +10,6 @@ import argparse
 import asyncio
 import pathlib
 import random
-import sys
 import uuid
 
 from contextlib import redirect_stdout
@@ -76,14 +75,25 @@ STAGE_FIELDS = (
     ("spe", "speed"),
 )
 
-DB_PATH = pathlib.Path(__file__).parent / "vibemon.db"
-
 
 def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser()
     parser.add_argument("--render", choices=("rich", "chat"), default="rich")
-    parser.add_argument("--output-dir", type=str, default=None, help="Directory to save battle files")
-    parser.add_argument("--battle-id", type=int, default=None, help="Battle number for filename")
+    parser.add_argument(
+        "--output-dir", type=str, default=None, help="Directory to save battle files"
+    )
+    parser.add_argument(
+        "--battle-id", type=int, default=None, help="Battle number for filename"
+    )
+    parser.add_argument(
+        "--db-path",
+        type=pathlib.Path,
+        default=pathlib.Path(__file__).parent.parent
+        / ".generated"
+        / "database"
+        / "vibemon.db",
+        help="Path to SQLite DB (defaults to migrated .generated database).",
+    )
     return parser.parse_args()
 
 
@@ -425,7 +435,7 @@ def _vibemon_plain(label: str, vibemon: battle_schema.BattleVibemon) -> str:
         for move in vibemon.battle_moves
     )
     fainted = " fainted" if vibemon.is_fainted else ""
-    bst = vibemon.affinity.identity.bst
+    bst = vibemon.identity.bst
     return (
         f"{label}: {vibemon.name} Lv.{vibemon.level} ({types_text}) BST {bst}"
         f" HP {vibemon.current_hp}/{vibemon.max_hp}{fainted}\n"
@@ -479,51 +489,74 @@ def _model_move_to_schema(move: models.Move) -> schema.Move:
         effects=tuple(
             schema.EffectGroup.model_validate(group) for group in (move.effects or ())
         ),
+        behavior=schema.MoveBehavior.model_validate(move.behavior or {}),
+        target=types.MoveTargetT(move.target),
         level_requirement=move.level_requirement,
     )
 
 
-def _model_affinity_to_schema(affinity: models.Affinity) -> schema.Affinity:
-    identity = affinity.identity
-    return schema.Affinity(
-        identity=schema.Identity(
-            name=identity.name,
-            visual_notes=identity.visual_notes,
-            elements=tuple(
-                types.VibemonTypeT(element) for element in identity.elements
+def _model_identity_to_schema(identity: models.Identity) -> schema.Identity:
+    return schema.Identity(
+        name=identity.name,
+        visual_notes=identity.visual_notes,
+        provider_visual_notes=identity.provider_visual_notes,
+        elements=tuple(types.VibemonTypeT(element) for element in identity.elements),
+        base_hp=identity.base_hp,
+        base_attack=identity.base_attack,
+        base_defense=identity.base_defense,
+        base_sp_attack=identity.base_sp_attack,
+        base_sp_defense=identity.base_sp_defense,
+        base_speed=identity.base_speed,
+        evo_seed=types.EvolutionStageT(identity.evo_seed),
+        is_radiant=identity.is_radiant,
+        generation=identity.generation,
+        generated_at=identity.generated_at,
+    )
+
+
+def _model_vibemon_move_to_schema(vibemon_move: models.VibemonMove) -> schema.Move:
+    if vibemon_move.move is None:
+        raise RuntimeError(f"Missing move row for vibemon {vibemon_move.vibemon_id}")
+    return _model_move_to_schema(vibemon_move.move)
+
+
+def _ordered_vibemon_moves(vibemon: models.Vibemon) -> tuple[schema.Move, ...]:
+    return tuple(
+        _model_vibemon_move_to_schema(vibemon_move)
+        for vibemon_move in sorted(
+            vibemon.moves,
+            key=lambda row: (
+                row.active_slot if row.active_slot is not None else 999,
+                row.learned_at_level,
+                row.move.name if row.move is not None else "",
             ),
-            base_hp=identity.base_hp,
-            base_attack=identity.base_attack,
-            base_defense=identity.base_defense,
-            base_sp_attack=identity.base_sp_attack,
-            base_sp_defense=identity.base_sp_defense,
-            base_speed=identity.base_speed,
-            evo_seed=identity.evo_seed,
-            evo_stage=types.EvolutionStageT[identity.evo_stage],
-            is_mythic=identity.is_mythic,
-        ),
-        visual_notes=affinity.visual_notes,
-        intensity=affinity.intensity,
-        provider_id=affinity.provider_id,
-        moves=[_model_move_to_schema(move) for move in affinity.moves],
+        )
     )
 
 
 def _model_vibemon_to_battle(vibemon: models.Vibemon) -> battle_schema.BattleVibemon:
+    if vibemon.identity is None:
+        raise RuntimeError(f"Vibemon {vibemon.id} is missing identity row")
+
     return battle_schema.BattleVibemon(
+        id=vibemon.id,
         nickname=vibemon.nickname,
-        affinity=_model_affinity_to_schema(vibemon.affinity),
+        identity=_model_identity_to_schema(vibemon.identity),
+        moves=_ordered_vibemon_moves(vibemon),
         level=vibemon.level,
-        birth_affinities=tuple(
-            _model_affinity_to_schema(affinity) for affinity in vibemon.birth_affinities
-        ),
+        xp=vibemon.xp,
+        evo_stage=types.EvolutionStageT(vibemon.evo_stage),
+        trainer_id=vibemon.trainer_id,
+        team_slot=vibemon.team_slot,
+        lifecycle=types.VibemonLifecycleT(vibemon.lifecycle),
     )
 
 
 async def load_random_battle_vibemon(
+    db_path: pathlib.Path,
     count: int = 2,
 ) -> list[battle_schema.BattleVibemon]:
-    engine = create_async_engine(f"sqlite+aiosqlite:///{DB_PATH}")
+    engine = create_async_engine(f"sqlite+aiosqlite:///{db_path}")
     try:
         async_session = sessionmaker(
             engine, class_=AsyncSession, expire_on_commit=False
@@ -532,17 +565,9 @@ async def load_random_battle_vibemon(
             result = await sess.execute(
                 sa.select(models.Vibemon)
                 .options(
-                    selectinload(models.Vibemon.affinity).selectinload(
-                        models.Affinity.identity
-                    ),
-                    selectinload(models.Vibemon.affinity).selectinload(
-                        models.Affinity.moves
-                    ),
-                    selectinload(models.Vibemon.birth_affinities).selectinload(
-                        models.Affinity.identity
-                    ),
-                    selectinload(models.Vibemon.birth_affinities).selectinload(
-                        models.Affinity.moves
+                    selectinload(models.Vibemon.identity),
+                    selectinload(models.Vibemon.moves).selectinload(
+                        models.VibemonMove.move
                     ),
                 )
                 .order_by(sa.func.random())
@@ -554,7 +579,7 @@ async def load_random_battle_vibemon(
 
     if len(vibemon) < count:
         raise RuntimeError(
-            f"Need at least {count} Vibemon in {DB_PATH}; run .scripts/vibemon_generator.py first."
+            f"Need at least {count} Vibemon in {db_path}; run .scripts/vibemon_generator.py first."
         )
     return [_model_vibemon_to_battle(v) for v in vibemon]
 
@@ -562,7 +587,9 @@ async def load_random_battle_vibemon(
 async def main() -> None:
     args = parse_args()
 
-    need_file_output = args.render == "chat" and args.output_dir and args.battle_id is not None
+    need_file_output = (
+        args.render == "chat" and args.output_dir and args.battle_id is not None
+    )
     output_buffer = StringIO() if need_file_output else None
 
     if need_file_output:
@@ -572,7 +599,7 @@ async def main() -> None:
     try:
         trainer_a_id = uuid.uuid4()
         trainer_b_id = uuid.uuid4()
-        vibemon_a, vibemon_b = await load_random_battle_vibemon()
+        vibemon_a, vibemon_b = await load_random_battle_vibemon(args.db_path)
 
         engine = GameEngine(
             trainer_a=battle_schema.BattleTrainer(
@@ -613,7 +640,9 @@ async def main() -> None:
             turn_events = engine.submit_actions([action_a, action_b])
 
             if args.render == "chat":
-                print_chat_turn(turn_count, engine.battle, action_a, action_b, turn_events)
+                print_chat_turn(
+                    turn_count, engine.battle, action_a, action_b, turn_events
+                )
                 continue
 
             header(f"TURN {turn_count}")
@@ -660,7 +689,9 @@ async def main() -> None:
             section("Turn History")
             for record in engine.battle.turn_history:
                 rich_console.print()
-                rich_console.print(text.Text(f"Turn {record.turn_number}", style="bold"))
+                rich_console.print(
+                    text.Text(f"Turn {record.turn_number}", style="bold")
+                )
                 print_events(record.events)
 
         # Store result for file output
@@ -681,19 +712,21 @@ async def main() -> None:
                     winner_v, loser_v = vb, va
                 one_liner = (
                     f"Battle {args.battle_id:03d}: "
-                    f"✅ {winner_v.name} (BST {winner_v.affinity.identity.bst}) "
-                    f"vs {loser_v.name} (BST {loser_v.affinity.identity.bst}) "
+                    f"✅ {winner_v.name} (BST {winner_v.identity.bst}) "
+                    f"vs {loser_v.name} (BST {loser_v.identity.bst}) "
                     f"- {battle_turns} turns"
                 )
             else:
                 one_liner = (
                     f"Battle {args.battle_id:03d}: "
-                    f"No winner (Red: {va.name} BST {va.affinity.identity.bst} "
-                    f"vs Blue: {vb.name} BST {vb.affinity.identity.bst}) "
+                    f"No winner (Red: {va.name} BST {va.identity.bst} "
+                    f"vs Blue: {vb.name} BST {vb.identity.bst}) "
                     f"- {battle_turns} turns"
                 )
 
-            output_path = pathlib.Path(args.output_dir) / f"battle_{args.battle_id:03d}.txt"
+            output_path = (
+                pathlib.Path(args.output_dir) / f"battle_{args.battle_id:03d}.txt"
+            )
             output_path.parent.mkdir(parents=True, exist_ok=True)
             with open(output_path, "w") as f:
                 f.write(captured)

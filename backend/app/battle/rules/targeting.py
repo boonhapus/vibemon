@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+from typing import cast
+
 from app import types
 from app.battle import actions, turn
 from app.battle import schema as battle_schema
@@ -40,9 +42,11 @@ def resolve_targets(ctx: turn.Turn, use: turn.MoveUse) -> tuple[battle_schema.Ba
         return ()
 
     if use.action.targets:
-        resolved = []
+        resolved: list[battle_schema.BattleVibemon] = []
         for target_ref in use.action.targets:
-            resolved.append(trainer_for_id(ctx, target_ref.trainer).team[target_ref.slot])
+            resolved.append(
+                cast(battle_schema.BattleVibemon, trainer_for_id(ctx, target_ref.trainer).team[target_ref.slot])
+            )
         return tuple(resolved)
 
     return (opposing_trainer(ctx, use.user_trainer).active_vibemon,)

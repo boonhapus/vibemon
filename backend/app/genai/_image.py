@@ -1,6 +1,6 @@
 # app/genai/image.py
 from collections.abc import Sequence
-from typing import Any, Protocol
+from typing import Any, Protocol, cast
 import base64 as b64
 import dataclasses
 
@@ -13,6 +13,7 @@ from app.settings import settings
 @dataclasses.dataclass(frozen=True, slots=True)
 class ImageRunResult:
     """Mirrors the shape of pydantic_ai.AgentRunResult, narrowed to images."""
+
     output: pydantic_ai.BinaryImage
 
 
@@ -91,7 +92,8 @@ class _OpenAICompatibleImageAgent:
             **self._request_defaults,
         )
 
-        item = response.data[0]
+        item = cast(Any, response).data[0]
+        data: bytes | None = None
 
         if item.b64_json:
             data = b64.b64decode(item.b64_json)
@@ -106,6 +108,9 @@ class _OpenAICompatibleImageAgent:
         else:
             raise RuntimeError("Image response had neither b64_json nor url")
 
+        if data is None:
+            raise RuntimeError("Image response body was empty")
+
         return ImageRunResult(output=pydantic_ai.BinaryImage(data=data, media_type="image/png"))
 
 
@@ -114,7 +119,6 @@ def build_image_agent(model_string: str) -> ImageAgent:
     provider, _, model = model_string.partition(":")
 
     match provider:
-        
         case "google-gla" | "google":
             if settings.google_api_key is None:
                 raise ValueError("google_api_key required for google: models")
@@ -139,7 +143,7 @@ def build_image_agent(model_string: str) -> ImageAgent:
         case "opencode":
             if settings.opencode_api_key is None:
                 raise ValueError("opencode_api_key required for opencode: models")
-            
+
             return _OpenAICompatibleImageAgent(
                 api_key=settings.opencode_api_key.get_secret_value(),
                 base_url="https://api.opencode.ai/v1",

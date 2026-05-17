@@ -30,8 +30,11 @@ def load_prompt(template_path: str, **variables: Any) -> str:
     """
     path = pathlib.Path(template_path)
     env = _env_for(_PROMPT_DIR / path.parent)
+    loader = env.loader
+    if loader is None:
+        raise RuntimeError("Jinja environment has no loader")
 
-    source, _, _ = env.loader.get_source(env, path.name)
+    source, _, _ = loader.get_source(env, path.name)
 
     if source.count("---\n") < 2:
         raise ValueError(f"'{template_path}' is missing frontmatter delimiters")

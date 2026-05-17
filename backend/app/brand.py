@@ -9,6 +9,7 @@ Organization mirrors the design document:
   - §2.2 Vibemon Type Colors → TYPE_COLORS[VibemonTypeT.FIRE]
   - §2.3 Status Colors       → STATUS_HEALTHY / CAUTION / CRITICAL
 """
+
 from collections.abc import Iterable
 from typing import Final, NamedTuple
 import functools as ft
@@ -37,15 +38,19 @@ class Color(NamedTuple):
 # ============================================================================
 
 MUSTARD_YELLOW: Final = Color("#E1AD01", "Mustard Yellow", "Highlights, selection cursors, health bars")
-AVOCADO_GREEN:  Final = Color("#568203", "Avocado Green",  "Background environments, stat bars")
-BURNT_ORANGE:   Final = Color("#CC5500", "Burnt Orange",   "Menus, flame accents")
-TOBACCO_BROWN:  Final = Color("#3D2B1F", "Tobacco Brown",  "Text, borders, shadows")
-CREAM:          Final = Color("#F5F5DC", "Cream/Eggshell", "Text boxes, background contrast")
-GRAPE_PLUM:     Final = Color("#7C4D8A", "Grape Plum",     "Accent — psychedelic flourishes")
+AVOCADO_GREEN: Final = Color("#568203", "Avocado Green", "Background environments, stat bars")
+BURNT_ORANGE: Final = Color("#CC5500", "Burnt Orange", "Menus, flame accents")
+TOBACCO_BROWN: Final = Color("#3D2B1F", "Tobacco Brown", "Text, borders, shadows")
+CREAM: Final = Color("#F5F5DC", "Cream/Eggshell", "Text boxes, background contrast")
+GRAPE_PLUM: Final = Color("#7C4D8A", "Grape Plum", "Accent — psychedelic flourishes")
 
 CORE_PALETTE: Final[tuple[Color, ...]] = (
-    MUSTARD_YELLOW, AVOCADO_GREEN, BURNT_ORANGE,
-    TOBACCO_BROWN, CREAM, GRAPE_PLUM,
+    MUSTARD_YELLOW,
+    AVOCADO_GREEN,
+    BURNT_ORANGE,
+    TOBACCO_BROWN,
+    CREAM,
+    GRAPE_PLUM,
 )
 
 # Lineart floor — never render lineart darker than this (DESIGN.md §6 / sprite prompt).
@@ -69,36 +74,36 @@ SPRITE_CHROMA_PROTECTED_COLORS: Final[tuple[Color, ...]] = (
 # ============================================================================
 
 TYPE_COLORS: Final[dict[VibemonTypeT, Color]] = {
-    VibemonTypeT.NORMAL:   Color("#C4A882", "Warm Parchment", "Aged paper, manila folders, linen upholstery"),
-    VibemonTypeT.FIRE:     Color("#C0542A", "Terracotta",     "70s earthenware pottery, Southwestern ceramics"),
-    VibemonTypeT.WATER:    Color("#3D8C8C", "Teal Mist",      "Mid-century aqua bathroom tile, Formica"),
-    VibemonTypeT.ELECTRIC: Color("#D4A017", "Harvest Gold",   "Appliance gold, 70s kitchen hardware"),
-    VibemonTypeT.GRASS:    Color("#6B7A2A", "Olive Drab",     "Army surplus, mid-century botanical illustration"),
-    VibemonTypeT.ICE:      Color("#A0BAC8", "Powder Blue",    "60s leisure wear, institutional wall paint"),
-    VibemonTypeT.FIGHTING: Color("#8B3A2A", "Brick Red",      "Exposed brick, Saltillo tile"),
-    VibemonTypeT.POISON:   Color("#7C4D8A", "Grape Plum",     "Poison dart frogs, psychedelic ink prints"),
-    VibemonTypeT.GROUND:   Color("#A0784A", "Sienna Sand",    "Southwest adobe, pre-Columbian pottery glaze"),
-    VibemonTypeT.FLYING:   Color("#6E8FA8", "Slate Sky",      "Faded denim, horizon haze photography"),
-    VibemonTypeT.PSYCHIC:  Color("#B0607A", "Dusty Orchid",   "Mod Op Art, pop-art poster ink"),
-    VibemonTypeT.BUG:      Color("#7A8C2A", "Moss Khaki",     "Field guide illustration, olive cotton canvas"),
-    VibemonTypeT.ROCK:     Color("#8C7A5A", "Warm Slate",     "Slate tile, mid-century stone veneer"),
-    VibemonTypeT.GHOST:    Color("#524870", "Dusk Indigo",    "Kodachrome late-evening sky, Ektachrome shadows"),
-    VibemonTypeT.DRAGON:   Color("#2A5C58", "Deep Verdigris", "Oxidized copper, brass-and-patina hardware"),
-    VibemonTypeT.DARK:     Color("#4A3428", "Espresso",       "Dark-roast coffee, walnut veneer furniture"),
-    VibemonTypeT.STEEL:    Color("#8A8C8E", "Pewter",         "Vintage Airstream aluminum, faded chrome"),
-    VibemonTypeT.FAIRY:    Color("#C4909A", "Rose Quartz",    "Pastel cosmetics packaging, 50s–60s nursery pink"),
+    VibemonTypeT.NORMAL: Color("#C4A882", "Warm Parchment", "Aged paper, manila folders, linen upholstery"),
+    VibemonTypeT.FIRE: Color("#C0542A", "Terracotta", "70s earthenware pottery, Southwestern ceramics"),
+    VibemonTypeT.WATER: Color("#3D8C8C", "Teal Mist", "Mid-century aqua bathroom tile, Formica"),
+    VibemonTypeT.ELECTRIC: Color("#D4A017", "Harvest Gold", "Appliance gold, 70s kitchen hardware"),
+    VibemonTypeT.GRASS: Color("#6B7A2A", "Olive Drab", "Army surplus, mid-century botanical illustration"),
+    VibemonTypeT.ICE: Color("#A0BAC8", "Powder Blue", "60s leisure wear, institutional wall paint"),
+    VibemonTypeT.FIGHTING: Color("#8B3A2A", "Brick Red", "Exposed brick, Saltillo tile"),
+    VibemonTypeT.POISON: Color("#7C4D8A", "Grape Plum", "Poison dart frogs, psychedelic ink prints"),
+    VibemonTypeT.GROUND: Color("#A0784A", "Sienna Sand", "Southwest adobe, pre-Columbian pottery glaze"),
+    VibemonTypeT.FLYING: Color("#6E8FA8", "Slate Sky", "Faded denim, horizon haze photography"),
+    VibemonTypeT.PSYCHIC: Color("#B0607A", "Dusty Orchid", "Mod Op Art, pop-art poster ink"),
+    VibemonTypeT.BUG: Color("#7A8C2A", "Moss Khaki", "Field guide illustration, olive cotton canvas"),
+    VibemonTypeT.ROCK: Color("#8C7A5A", "Warm Slate", "Slate tile, mid-century stone veneer"),
+    VibemonTypeT.GHOST: Color("#524870", "Dusk Indigo", "Kodachrome late-evening sky, Ektachrome shadows"),
+    VibemonTypeT.DRAGON: Color("#2A5C58", "Deep Verdigris", "Oxidized copper, brass-and-patina hardware"),
+    VibemonTypeT.DARK: Color("#4A3428", "Espresso", "Dark-roast coffee, walnut veneer furniture"),
+    VibemonTypeT.STEEL: Color("#8A8C8E", "Pewter", "Vintage Airstream aluminum, faded chrome"),
+    VibemonTypeT.FAIRY: Color("#C4909A", "Rose Quartz", "Pastel cosmetics packaging, 50s-60s nursery pink"),
 }
 
 
 def status_color_for_hp(hp_fraction: float) -> Color:
     """Return the status color appropriate for a given HP fraction."""
-    STATUS_HEALTHY:  Final = Color("#6B9B5A", "Sage",  "Full or near-full HP, OK state")
-    STATUS_CAUTION:  Final = Color("#CC7A22", "Amber", "Mid-range HP, status conditions, warnings")
+    STATUS_HEALTHY: Final = Color("#6B9B5A", "Sage", "Full or near-full HP, OK state")
+    STATUS_CAUTION: Final = Color("#CC7A22", "Amber", "Mid-range HP, status conditions, warnings")
     STATUS_CRITICAL: Final = Color("#A03020", "Brick", "Low HP, fainted, critical errors")
 
     # HP fraction thresholds for status-color transitions (DESIGN.md §2.3).
     # Crossing a threshold downward changes the bar color.
-    HP_THRESHOLD_CAUTION:  Final[float] = 0.50  # ≤ 50% of max → CAUTION
+    HP_THRESHOLD_CAUTION: Final[float] = 0.50  # ≤ 50% of max → CAUTION
     HP_THRESHOLD_CRITICAL: Final[float] = 0.20  # ≤ 20% of max → CRITICAL
 
     match hp_fraction:
@@ -129,14 +134,14 @@ def status_color_for_hp(hp_fraction: float) -> Color:
 # complements, the warm/cool extremes, and luma-key endpoints for
 # foregrounds that cluster near a single lightness band.
 CHROMA_KEY_CANDIDATES: Final[tuple[Color, ...]] = (
-    Color("#00B140", "Chroma Green",    "Industry-standard green-screen key"),
-    Color("#0047AB", "Chroma Blue",     "Industry-standard blue-screen key"),
-    Color("#C71585", "Chroma Magenta",  "Saturated complement to green"),
-    Color("#FFD700", "Chroma Gold",     "Saturated complement to blue"),
-    Color("#FF1744", "Chroma Red",      "Saturated warm extreme"),
-    Color("#00E5FF", "Chroma Cyan",     "Saturated cool extreme"),
+    Color("#00B140", "Chroma Green", "Industry-standard green-screen key"),
+    Color("#0047AB", "Chroma Blue", "Industry-standard blue-screen key"),
+    Color("#C71585", "Chroma Magenta", "Saturated complement to green"),
+    Color("#FFD700", "Chroma Gold", "Saturated complement to blue"),
+    Color("#FF1744", "Chroma Red", "Saturated warm extreme"),
+    Color("#00E5FF", "Chroma Cyan", "Saturated cool extreme"),
     Color("#1A1A2E", "Chroma Charcoal", "Luma key — dark endpoint"),
-    Color("#F0F0F5", "Chroma Snow",     "Luma key — light endpoint"),
+    Color("#F0F0F5", "Chroma Snow", "Luma key — light endpoint"),
 )
 
 
@@ -175,6 +180,7 @@ def _rgb_to_lab(rgb: tuple[float, float, float]) -> tuple[float, float, float]:
     far better than distance in RGB or HSV — and chroma-key cleanliness is
     fundamentally about *perceived* separation, not RGB-vector separation.
     """
+
     # sRGB gamma decode → linear RGB
     def _linearize(c: float) -> float:
         return c / 12.92 if c <= 0.04045 else ((c + 0.055) / 1.055) ** 2.4
@@ -207,7 +213,7 @@ def _delta_e_76(lab1: tuple[float, float, float], lab2: tuple[float, float, floa
     for this application the difference is negligible and CIE76 is much
     simpler to reason about.
     """
-    return sum((a - b) ** 2 for a, b in zip(lab1, lab2)) ** 0.5
+    return sum((a - b) ** 2 for a, b in zip(lab1, lab2, strict=True)) ** 0.5
 
 
 def solve_background_color(

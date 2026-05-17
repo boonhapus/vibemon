@@ -130,7 +130,9 @@ class ProviderContractReport(_Model):
     missing_exposed_elements: list[str]
     birth_seed_columns: list[str]
     birth_snapshot_columns: list[str]
-    affinity_columns: list[str]
+    vibemon_columns: list[str]
+    identity_columns: list[str]
+    vibemon_move_columns: list[str]
     unseeded_replay_deterministic: bool
     seeded_replay_deterministic: bool
     synthesize_network_free: bool
@@ -504,7 +506,6 @@ def _affinity_signature(affinity: schema.Affinity) -> tuple[object, ...]:
         identity.base_sp_defense,
         identity.base_speed,
         identity.evo_seed.name,
-        identity.evo_stage.name,
         identity.is_radiant,
         round(affinity.intensity, 4),
         tuple(move.name for move in affinity.moves),
@@ -595,7 +596,9 @@ async def analyze_provider_contract(provider: ClimateProvider, specs: Sequence[S
         missing_exposed_elements=sorted(element.value for element in all_types - set(exposed)),
         birth_seed_columns=list(models.BirthSeed.__table__.columns.keys()),
         birth_snapshot_columns=list(models.BirthSnapshot.__table__.columns.keys()),
-        affinity_columns=list(models.Affinity.__table__.columns.keys()),
+        vibemon_columns=list(models.Vibemon.__table__.columns.keys()),
+        identity_columns=list(models.Identity.__table__.columns.keys()),
+        vibemon_move_columns=list(models.VibemonMove.__table__.columns.keys()),
         unseeded_replay_deterministic=unseeded_deterministic,
         seeded_replay_deterministic=seeded_deterministic,
         synthesize_network_free=synthesize_network_free,
@@ -794,19 +797,12 @@ def analyze_generated_affinities(
 
 
 def _vibemon_from_affinity(affinity: schema.Affinity, *, level: int) -> schema.Vibemon:
-    if len(affinity.moves) > 4:
-        affinity = schema.Affinity(
-            identity=affinity.identity,
-            visual_notes=affinity.visual_notes,
-            intensity=affinity.intensity,
-            provider_id=affinity.provider_id,
-            moves=tuple(affinity.moves[:4]),
-        )
+    moves = tuple(affinity.moves[:4])
     return schema.Vibemon(
         nickname=affinity.identity.name,
-        affinity=affinity,
+        identity=affinity.identity,
+        moves=moves,
         level=level,
-        birth_affinities=(affinity,),
     )
 
 

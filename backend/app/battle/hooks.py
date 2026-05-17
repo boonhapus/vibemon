@@ -1,7 +1,6 @@
 from __future__ import annotations
 
-from collections.abc import Callable
-from typing import Protocol, TypeVar
+from typing import Protocol, TypeVar, cast
 import enum
 
 from app import schema
@@ -16,12 +15,12 @@ class HookPriority(enum.IntEnum):
     LATE = 100
 
 
-class RegisteredHook(schema._Static):
+class RegisteredHook(schema.FrozenSchema):
     """A hook with explicit ordering metadata."""
 
     priority: int = HookPriority.NORMAL
     source: str
-    hook: Callable
+    hook: object
 
 
 T = TypeVar("T")
@@ -38,7 +37,7 @@ class HookRegistry:
 
     def get(self, protocol: type[T]) -> tuple[T, ...]:
         registered = sorted(self._hooks.get(protocol, ()), key=lambda item: (item.priority, item.source))
-        return tuple(item.hook for item in registered)
+        return tuple(cast(T, item.hook) for item in registered)
 
 
 class DamageModifierHook(Protocol):

@@ -1,5 +1,5 @@
-from typing import Any, Annotated, ClassVar, TYPE_CHECKING, get_args, get_origin
-import annotationlib
+from collections.abc import Iterable
+from typing import TYPE_CHECKING, Any, ClassVar
 import abc
 
 import niquests
@@ -47,39 +47,13 @@ class VibeProvider(abc.ABC):
     name: ClassVar[str]
     """Stable provider identifier (persisted in `Affinity.provider_id`)."""
 
-    exposed_elements: ClassVar[list[Annotated[types.VibemonTypeT, str]]]
-    """Elements this provider can assign, annotated with real-world signal descriptions."""
+    exposed_elements: ClassVar[list[tuple[types.VibemonTypeT, str]]]
+    """Elements this provider can assign with real-world signal descriptions."""
 
     @classmethod
     def get_exposed_elements(cls) -> dict[types.VibemonTypeT, str]:
         """Return a mapping of elements to their real-world signal descriptions."""
-        result = {}
-
-        for annotated_type in cls.exposed_elements:
-            # Filter for Annotated
-            if get_origin(annotated_type) is not Annotated:
-                continue
-
-            # Get arguments: [Type, Metadata1, ...]
-            args = get_args(annotated_type)
-
-            if len(args) < 2 or not isinstance(args[1], str):
-                continue
-
-            raw_element, description = args[0], args[1]
-
-            if isinstance(raw_element, (str, annotationlib.ForwardRef)):
-                # Evaluate the reference into a real object
-                # Format.VALUE ensures it tries to find the actual class/type
-                element = annotationlib.Format.VALUE.evaluate(raw_element, owner=cls)
-            else:
-                element = raw_element
-
-            # Final check: Ensure it matches your expected Enum/Type
-            if isinstance(element, types.VibemonTypeT):
-                result[element] = description
-                
-        return result
+        return dict(cls.exposed_elements)
 
     def _log_http_error(self, exception: niquests.HTTPError) -> None:
         """If an HTTP error is encountered, log its context."""
@@ -116,5 +90,10 @@ class VibeProvider(abc.ABC):
         Return a complete Affinity with identity, moves, intensity, and visual_notes.
         """
 
+    @abc.abstractmethod
+    def moves(self) -> Iterable[schema.Move]:
+        """Return provider-authored moves for catalog seeding/sync."""
+
+    @abc.abstractmethod
     async def teardown(self) -> None:
         """Release provider-owned resources. Override only when needed."""

@@ -45,7 +45,7 @@ def stat_ratio_from_grade(
 
 def base_stat_asymmetric_scaling(ratio: float, *, stat: types.BaseStatNameT) -> int:
     """
-    Map a 0‑1 ratio onto an asymmetric stat range, anchored at the median.
+    Map a 0-1 ratio onto an asymmetric stat range, anchored at the median.
 
     ratio = 0.0 → stat.min
     ratio = 0.5 → stat.med
@@ -69,7 +69,7 @@ def base_stat_asymmetric_scaling(ratio: float, *, stat: types.BaseStatNameT) -> 
 
     if r <= 0.5:
         # [0.0, 0.5] → [min, med]
-        t = r / 0.5  # re-normalize to 0‑1
+        t = r / 0.5  # re-normalize to 0-1
         return int(stat_min + t * (stat_med - stat_min))
     else:
         # (0.5, 1.0] → [med, max]
@@ -92,12 +92,12 @@ def apply_evo_seed_bst_bias(
     from app import schema
 
     BST_SCALING_MATRIX = {
-        types.EvolutionStageT.BASE:             [485],
-        types.EvolutionStageT.STAGE_2:          [300, 490],
-        types.EvolutionStageT.STAGE_3:          [280, 410, 530],
+        types.EvolutionStageT.BASE: [485],
+        types.EvolutionStageT.STAGE_2: [300, 490],
+        types.EvolutionStageT.STAGE_3: [280, 410, 530],
         types.EvolutionStageT.PSUEDO_LEGENDARY: [300, 420, 600],
-        types.EvolutionStageT.LEGENDARY:        [575],
-        types.EvolutionStageT.ULTRA_LEGENDARY:  [675],
+        types.EvolutionStageT.LEGENDARY: [575],
+        types.EvolutionStageT.ULTRA_LEGENDARY: [675],
     }
 
     scale_factor = BST_SCALING_MATRIX[evo_seed][evo_stage - 1] / sum(stats.values())

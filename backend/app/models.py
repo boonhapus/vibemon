@@ -5,42 +5,137 @@ constraints, and persistence-only metadata. Keep generation, lifecycle
 orchestration, and object-store writes outside ORM models.
 """
 
-from sqlalchemy import JSON, Table, Column, ForeignKeyConstraint
-from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column, relationship
+from typing import Any
 import datetime as dt
 import uuid
+
+from sqlalchemy import (
+    JSON,
+    CheckConstraint,
+    ForeignKeyConstraint,
+    Index,
+    UniqueConstraint,
+    text,
+)
+from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column, relationship
 
 
 class Base(DeclarativeBase):
     pass
 
 
-affinity_moves = Table(
-    "affinity_moves",
-    Base.metadata,
-    Column("affinity_id", primary_key=True),
-    Column("move_id", primary_key=True),
-    ForeignKeyConstraint(["affinity_id"], ["affinity.id"], name="fk_affinity_moves_affinity", ondelete="CASCADE"),
-    ForeignKeyConstraint(["move_id"], ["move.id"], name="fk_affinity_moves_move", ondelete="CASCADE"),
-)
+class Trainer(Base):
+    __tablename__ = "trainer"
+
+    id: Mapped[uuid.UUID] = mapped_column(primary_key=True, default=uuid.uuid7)
+    username: Mapped[str] = mapped_column(unique=True)
+
+    vibemons: Mapped[list[Vibemon]] = relationship(back_populates="trainer")
 
 
-vibemon_birth_affinities = Table(
-    "vibemon_birth_affinities",
-    Base.metadata,
-    Column("vibemon_id", primary_key=True),
-    Column("affinity_id", primary_key=True),
-    ForeignKeyConstraint(["vibemon_id"], ["vibemon.id"], name="fk_vibemon_birth_vibemon", ondelete="CASCADE"),
-    ForeignKeyConstraint(["affinity_id"], ["affinity.id"], name="fk_vibemon_birth_affinity", ondelete="CASCADE"),
-)
+class BirthSeed(Base):
+    __tablename__ = "birth_seed"
+
+    id: Mapped[uuid.UUID] = mapped_column(primary_key=True, default=uuid.uuid7)
+    timestamp: Mapped[dt.datetime]
+    geo_coords: Mapped[list[float]] = mapped_column(JSON)
+
+    birth_snapshots: Mapped[list[BirthSnapshot]] = relationship(
+        back_populates="birth_seed",
+        cascade="all, delete-orphan",
+        single_parent=True,
+    )
+
+
+class BirthSnapshot(Base):
+    __tablename__ = "birth_snapshot"
+
+    id: Mapped[uuid.UUID] = mapped_column(primary_key=True, default=uuid.uuid7)
+    birth_seed_id: Mapped[uuid.UUID]
+    provider_payloads: Mapped[dict[str, dict[str, Any]]] = mapped_column(JSON)
+
+    __table_args__ = (
+        ForeignKeyConstraint(
+            ["birth_seed_id"],
+            ["birth_seed.id"],
+            name="fk_birth_snapshot_birth_seed",
+            ondelete="CASCADE",
+        ),
+    )
+
+    birth_seed: Mapped[BirthSeed] = relationship(back_populates="birth_snapshots")
+    vibemons: Mapped[list[Vibemon]] = relationship(back_populates="birth_snapshot")
+
+
+class Vibemon(Base):
+    __tablename__ = "vibemon"
+
+    id: Mapped[uuid.UUID] = mapped_column(primary_key=True, default=uuid.uuid7)
+    nickname: Mapped[str | None]
+    xp: Mapped[int] = mapped_column(default=0)
+    level: Mapped[int]
+    evo_stage: Mapped[int]
+    lifecycle: Mapped[str]
+    team_slot: Mapped[int | None]
+    trainer_id: Mapped[uuid.UUID | None]
+    birth_snapshot_id: Mapped[uuid.UUID]
+
+    __table_args__ = (
+        ForeignKeyConstraint(
+            ["trainer_id"],
+            ["trainer.id"],
+            name="fk_vibemon_trainer",
+            ondelete="SET NULL",
+        ),
+        ForeignKeyConstraint(
+            ["birth_snapshot_id"],
+            ["birth_snapshot.id"],
+            name="fk_vibemon_birth_snapshot",
+            ondelete="RESTRICT",
+        ),
+        CheckConstraint(
+            "team_slot IS NULL OR (team_slot >= 0 AND team_slot <= 5)",
+            name="ck_vibemon_team_slot",
+        ),
+        Index(
+            "uq_vibemon_team_slot",
+            "trainer_id",
+            "team_slot",
+            unique=True,
+            sqlite_where=text("team_slot IS NOT NULL"),
+        ),
+    )
+
+    identity: Mapped[Identity] = relationship(
+        back_populates="vibemon",
+        uselist=False,
+        cascade="all, delete-orphan",
+        single_parent=True,
+    )
+    birth_snapshot: Mapped[BirthSnapshot] = relationship(back_populates="vibemons")
+    trainer: Mapped[Trainer | None] = relationship(back_populates="vibemons")
+    moves: Mapped[list[VibemonMove]] = relationship(
+        back_populates="vibemon",
+        cascade="all, delete-orphan",
+    )
+    history: Mapped[list[VibemonHistory]] = relationship(
+        back_populates="vibemon",
+        cascade="all, delete-orphan",
+    )
+    assets: Mapped[list[VibemonAsset]] = relationship(
+        back_populates="vibemon",
+        cascade="all, delete-orphan",
+    )
 
 
 class Identity(Base):
     __tablename__ = "identity"
 
     id: Mapped[uuid.UUID] = mapped_column(primary_key=True, default=uuid.uuid7)
+    vibemon_id: Mapped[uuid.UUID] = mapped_column(unique=True)
     name: Mapped[str]
     visual_notes: Mapped[str | None]
+    provider_visual_notes: Mapped[str | None]
     elements: Mapped[list[str]] = mapped_column(JSON)
     base_hp: Mapped[int]
     base_attack: Mapped[int]
@@ -49,10 +144,20 @@ class Identity(Base):
     base_sp_defense: Mapped[int]
     base_speed: Mapped[int]
     evo_seed: Mapped[int]
-    evo_stage: Mapped[str]
     is_radiant: Mapped[bool]
+    generation: Mapped[int] = mapped_column(default=0)
+    generated_at: Mapped[dt.datetime]
 
-    affinity: Mapped["Affinity"] = relationship(back_populates="identity", uselist=False)
+    __table_args__ = (
+        ForeignKeyConstraint(
+            ["vibemon_id"],
+            ["vibemon.id"],
+            name="fk_identity_vibemon",
+            ondelete="CASCADE",
+        ),
+    )
+
+    vibemon: Mapped[Vibemon] = relationship(back_populates="identity")
 
 
 class Move(Base):
@@ -65,88 +170,98 @@ class Move(Base):
     category: Mapped[str]
     power: Mapped[int | None]
     accuracy: Mapped[float | None]
-    pp: Mapped[int]
-    priority: Mapped[int]
-    effect: Mapped[dict | None] = mapped_column(JSON)
-    effects: Mapped[list[dict] | None] = mapped_column(JSON)
-    level_requirement: Mapped[int]
+    pp: Mapped[int] = mapped_column(default=10)
+    priority: Mapped[int] = mapped_column(default=0)
+    target: Mapped[str]
+    level_requirement: Mapped[int] = mapped_column(default=1)
+    effects: Mapped[list[dict[str, Any]]] = mapped_column(JSON, default=list)
+    behavior: Mapped[dict[str, Any]] = mapped_column(JSON, default=dict)
 
-    affinities: Mapped[list["Affinity"]] = relationship(secondary=affinity_moves, back_populates="moves")
-
-
-class Affinity(Base):
-    __tablename__ = "affinity"
-
-    id: Mapped[uuid.UUID] = mapped_column(primary_key=True, default=uuid.uuid7)
-    identity_id: Mapped[uuid.UUID] = mapped_column(unique=True)
-    visual_notes: Mapped[str | None]
-    intensity: Mapped[float]
-    provider_id: Mapped[str]
-
-    __table_args__ = (
-        ForeignKeyConstraint(["identity_id"], ["identity.id"], name="fk_affinity_identity", ondelete="CASCADE"),
-    )
-
-    identity: Mapped["Identity"] = relationship(
-        back_populates="affinity", uselist=False, single_parent=True,
-        cascade="all, delete-orphan",
-    )
-    vibemon: Mapped["Vibemon"] = relationship(back_populates="affinity", uselist=False)
-    moves: Mapped[list["Move"]] = relationship(secondary=affinity_moves, back_populates="affinities")
+    __table_args__ = (CheckConstraint("priority BETWEEN -7 AND 7", name="ck_move_priority"),)
 
 
-class BirthSeed(Base):
-    __tablename__ = "birth_seed"
+class VibemonMove(Base):
+    __tablename__ = "vibemon_move"
 
-    id: Mapped[uuid.UUID] = mapped_column(primary_key=True, default=uuid.uuid7)
-    timestamp: Mapped[dt.datetime]
-    geo_coords: Mapped[list[float]] = mapped_column(JSON)
-    provider_names: Mapped[list[str]] = mapped_column(JSON)
-
-    birth_snapshots: Mapped[list["BirthSnapshot"]] = relationship(
-        back_populates="birth_seed", cascade="all, delete-orphan", single_parent=True,
-    )
-
-
-class BirthSnapshot(Base):
-    __tablename__ = "birth_snapshot"
-
-    id: Mapped[uuid.UUID] = mapped_column(primary_key=True, default=uuid.uuid7)
-    birth_seed_id: Mapped[uuid.UUID]
-    provider_payloads: Mapped[dict[str, dict]] = mapped_column(JSON)
+    vibemon_id: Mapped[uuid.UUID] = mapped_column(primary_key=True)
+    move_id: Mapped[uuid.UUID] = mapped_column(primary_key=True)
+    learned_at_level: Mapped[int]
+    learned_at_ts: Mapped[dt.datetime]
+    active_slot: Mapped[int | None]
 
     __table_args__ = (
         ForeignKeyConstraint(
-            ["birth_seed_id"], ["birth_seed.id"], name="fk_birth_snapshot_birth_seed", ondelete="CASCADE"
+            ["vibemon_id"],
+            ["vibemon.id"],
+            name="fk_vibemon_move_vibemon",
+            ondelete="CASCADE",
+        ),
+        ForeignKeyConstraint(
+            ["move_id"],
+            ["move.id"],
+            name="fk_vibemon_move_move",
+            ondelete="RESTRICT",
+        ),
+        CheckConstraint(
+            "active_slot IS NULL OR (active_slot >= 0 AND active_slot <= 3)",
+            name="ck_vibemon_move_slot",
+        ),
+        Index(
+            "uq_vibemon_move_active_slot",
+            "vibemon_id",
+            "active_slot",
+            unique=True,
+            sqlite_where=text("active_slot IS NOT NULL"),
         ),
     )
 
-    birth_seed: Mapped["BirthSeed"] = relationship(back_populates="birth_snapshots")
-    vibemons: Mapped[list["Vibemon"]] = relationship(back_populates="birth_snapshot")
+    vibemon: Mapped[Vibemon] = relationship(back_populates="moves")
+    move: Mapped[Move] = relationship()
 
 
-class Vibemon(Base):
-    __tablename__ = "vibemon"
+class VibemonHistory(Base):
+    __tablename__ = "vibemon_history"
 
     id: Mapped[uuid.UUID] = mapped_column(primary_key=True, default=uuid.uuid7)
-    nickname: Mapped[str | None]
-    affinity_id: Mapped[uuid.UUID] = mapped_column(unique=True)
-    birth_snapshot_id: Mapped[uuid.UUID | None]
-    level: Mapped[int]
+    vibemon_id: Mapped[uuid.UUID]
+    event_type: Mapped[str]
+    occurred_at: Mapped[dt.datetime]
+    payload: Mapped[dict[str, Any]] = mapped_column(JSON, default=dict)
 
     __table_args__ = (
-        ForeignKeyConstraint(["affinity_id"], ["affinity.id"], name="fk_vibemon_affinity", ondelete="CASCADE"),
         ForeignKeyConstraint(
-            ["birth_snapshot_id"], ["birth_snapshot.id"], name="fk_vibemon_birth_snapshot", ondelete="SET NULL"
+            ["vibemon_id"],
+            ["vibemon.id"],
+            name="fk_vibemon_history_vibemon",
+            ondelete="CASCADE",
         ),
+        Index("ix_vibemon_history_vibemon_occurred", "vibemon_id", "occurred_at"),
     )
 
-    affinity: Mapped["Affinity"] = relationship(
-        back_populates="vibemon", cascade="all, delete-orphan", single_parent=True,
+    vibemon: Mapped[Vibemon] = relationship(back_populates="history")
+
+
+class VibemonAsset(Base):
+    __tablename__ = "vibemon_asset"
+
+    id: Mapped[uuid.UUID] = mapped_column(primary_key=True, default=uuid.uuid7)
+    vibemon_id: Mapped[uuid.UUID]
+    kind: Mapped[str]
+    object_key: Mapped[str] = mapped_column(unique=True)
+    content_type: Mapped[str]
+    byte_size: Mapped[int]
+    sha256: Mapped[str]
+    created_at: Mapped[dt.datetime]
+    updated_at: Mapped[dt.datetime]
+
+    __table_args__ = (
+        ForeignKeyConstraint(
+            ["vibemon_id"],
+            ["vibemon.id"],
+            name="fk_vibemon_asset_vibemon",
+            ondelete="CASCADE",
+        ),
+        UniqueConstraint("vibemon_id", "kind", name="uq_vibemon_asset_slot"),
     )
-    birth_snapshot: Mapped["BirthSnapshot | None"] = relationship(
-        back_populates="vibemons",
-    )
-    birth_affinities: Mapped[list["Affinity"]] = relationship(
-        secondary=vibemon_birth_affinities, cascade="all, delete-orphan", single_parent=True,
-    )
+
+    vibemon: Mapped[Vibemon] = relationship(back_populates="assets")

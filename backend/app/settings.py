@@ -3,15 +3,15 @@ from urllib.parse import urlsplit
 import os
 import pathlib
 
-import pydantic_settings
 import pydantic
-
+import pydantic_settings
 
 _REPO_ROOT = pathlib.Path(__file__).resolve().parent.parent.parent
 
 
 class Settings(pydantic_settings.BaseSettings):
     """A collection for API keys."""
+
     eleven_labs_api_key: pydantic.SecretStr = pydantic.Field(json_schema_extra={"mirror_to_os.environ": True})
     """https://elevenlabs.io/app/api/api-keys"""
 
@@ -29,11 +29,12 @@ class Settings(pydantic_settings.BaseSettings):
     txt_ai_model: str
     img_ai_model: str
 
-    # ── Sprite storage ────────────────────────────────────────────────────────────────
+    # ── Asset storage ─────────────────────────────────────────────────────────────────
 
-    sprite_store_url: str = "file://./.generated/sprites"
+    asset_store_url: str = "file://./.generated/monstore"
     """
-    Where sprite sheets get persisted. Any obstore-supported URL.
+    Where Vibemon assets (sprites, audio, poses) get persisted.
+    Any obstore-supported URL.
 
     Local: ``file://<path>`` (relative paths anchor at repo root).
     Remote: ``s3://bucket/prefix``, ``gs://bucket/prefix``, ``az://container/prefix``.
@@ -58,7 +59,7 @@ class Settings(pydantic_settings.BaseSettings):
 
         return v
 
-    @pydantic.field_validator("sprite_store_url")
+    @pydantic.field_validator("asset_store_url")
     @classmethod
     def _anchor_local_store(cls, v: str) -> str:
         # Resolve relative file:// paths against the repo root and ensure the dir exists.

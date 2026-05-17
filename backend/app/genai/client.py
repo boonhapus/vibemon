@@ -5,9 +5,9 @@ from elevenlabs import AsyncElevenLabs
 import pydantic_ai
 import structlog
 
-from app.settings import settings
 from app import utils as app_utils
 from app.genai import _image, structured_output, utils
+from app.settings import settings
 
 if TYPE_CHECKING:
     from app import schema
@@ -36,25 +36,30 @@ async def generate_vibemon_name(identity: schema.Identity, moves: list[schema.Mo
     return d
 
 
-async def generate_vibemon_sprite(vibemon: schema.Vibemon) -> bytes:
-    """Generate a Vibemon's sprite sheet."""
+async def generate_sprite_reference(vibemon: schema.Vibemon) -> bytes:
+    """Generate a Vibemon's preview sprite reference (single cell PNG)."""
+    if vibemon.aesthetic is None:
+        raise ValueError("Vibemon aesthetic is required to generate sprite assets")
+
     p = utils.load_prompt("sprite-reference.mdc", vibemon=vibemon)
     r = await FAST_IMG_AGENT.run(p)
     await _LOGGER.adebug("Generate :: Vibemon sprite reference", vibemon=vibemon.name, prompt=p)
 
-    # TODO: this should likely be returned to the frontend, and then the sprite-sheet
-    #       generated once this mon is adopted. that way we save on the second image
-    #       generation cost if the user doesn't like this one. the second generation is
-    #       primarily to support UI function anyway.
-    d = app_utils.normalize_sprite_matte(
+    return app_utils.normalize_sprite_matte(
         r.output.data,
         bg_color=vibemon.aesthetic.background_color,
         rows=1,
         cols=1,
     )
 
+
+async def generate_sprite_sheet(vibemon: schema.Vibemon, reference: bytes) -> bytes:
+    """Generate a Vibemon's full 3x3 sprite sheet from a preview reference."""
+    if vibemon.aesthetic is None:
+        raise ValueError("Vibemon aesthetic is required to generate sprite assets")
+
     p = utils.load_prompt("sprite-sheet.mdc", vibemon=vibemon)
-    r = await FAST_IMG_AGENT.run([pydantic_ai.BinaryImage(data=d, media_type="image/png"), p])
+    r = await FAST_IMG_AGENT.run([pydantic_ai.BinaryImage(data=reference, media_type="image/png"), p])
     d = app_utils.normalize_sprite_matte(r.output.data, bg_color=vibemon.aesthetic.background_color)
 
     if issues := app_utils.validate_sprite_sheet(d):

@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from typing import Any, Self
+from typing import Any, Self, cast
 
 import pydantic
 
@@ -9,14 +9,14 @@ from app.battle import actions as action_models
 from app.battle import events as event_models
 
 
-class FieldWeather(schema._Transient):
+class FieldWeather(schema.Schema):
     """Battle-scoped weather state."""
 
     kind: types.WeatherT = types.WeatherT.CLEAR
     turns_remaining: int = 0
 
 
-class FieldState(schema._Transient):
+class FieldState(schema.Schema):
     """Battle field state."""
 
     weather: FieldWeather = pydantic.Field(default_factory=FieldWeather)
@@ -36,7 +36,7 @@ class BattleMove(schema.Move, frozen=False, validate_assignment=True):
         return self
 
 
-class StatStages(schema._Transient):
+class StatStages(schema.Schema):
     """Stat stage modifiers accumulated during battle."""
 
     attack: int = 0
@@ -87,18 +87,18 @@ class BattleTrainer(schema.Trainer, frozen=False, validate_assignment=True):
     """Transient battle state layered on top of a Trainer."""
 
     active_index: int = 0
-    team: list[BattleVibemon] = pydantic.Field(default_factory=list)
+    team: list[schema.Vibemon] = pydantic.Field(default_factory=list)
 
     @property
     def active_vibemon(self) -> BattleVibemon:
-        return self.team[self.active_index]
+        return cast(BattleVibemon, self.team[self.active_index])
 
     @property
     def has_vibemon_remaining(self) -> bool:
-        return any(not p.is_fainted for p in self.team)
+        return any(not cast(BattleVibemon, p).is_fainted for p in self.team)
 
 
-class TurnRecord(schema._Transient):
+class TurnRecord(schema.Schema):
     """A submitted turn and its emitted events."""
 
     turn_number: int
@@ -106,7 +106,7 @@ class TurnRecord(schema._Transient):
     events: list[event_models.TurnEvent] = pydantic.Field(default_factory=list)
 
 
-class Battle(schema._Transient):
+class Battle(schema.Schema):
     """The persistent mutable state of a battle."""
 
     trainer_a: BattleTrainer

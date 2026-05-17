@@ -24,7 +24,7 @@ def weighted_sample[T](
     """Like random.choices, but without replacement."""
     # Convert these to lists so we can be sure that indexing and .pop() works.
     population = list(population)
-    weights    = list(weights)
+    weights = list(weights)
 
     if len(population) != len(weights):
         raise ValueError("population and weights must have the same length")
@@ -54,12 +54,14 @@ def _edge_pixels(arr: np.ndarray, *, border: int = 6) -> np.ndarray:
     border = max(1, min(border, max(1, h // 2), max(1, w // 2)))
     c = arr.shape[2]
 
-    return np.concatenate([
-        arr[:border, :].reshape(-1, c),
-        arr[-border:, :].reshape(-1, c),
-        arr[:, :border].reshape(-1, c),
-        arr[:, -border:].reshape(-1, c),
-    ])
+    return np.concatenate(
+        [
+            arr[:border, :].reshape(-1, c),
+            arr[-border:, :].reshape(-1, c),
+            arr[:, :border].reshape(-1, c),
+            arr[:, -border:].reshape(-1, c),
+        ]
+    )
 
 
 def _dominant_background_sample_mask(
@@ -103,15 +105,21 @@ def _background_lab_distances(arr: np.ndarray, *, border: int = 6) -> tuple[np.n
     edge_center = np.median(edge_lab, axis=0)
     edge_dist = np.linalg.norm(edge_lab - edge_center, axis=1)
 
-    strict_tolerance = float(np.clip(
-        np.percentile(edge_dist, STRICT_PCT) * STRICT_SCALE + STRICT_OFFSET,
-        STRICT_LO, STRICT_HI,
-    ))
+    strict_tolerance = float(
+        np.clip(
+            np.percentile(edge_dist, STRICT_PCT) * STRICT_SCALE + STRICT_OFFSET,
+            STRICT_LO,
+            STRICT_HI,
+        )
+    )
     cand_lo = max(CAND_LO_FLOOR, strict_tolerance + CAND_STRICT_MARGIN)
-    edge_candidate_tolerance = float(np.clip(
-        np.percentile(edge_dist, CAND_PCT) * CAND_SCALE + CAND_OFFSET,
-        cand_lo, CAND_HI,
-    ))
+    edge_candidate_tolerance = float(
+        np.clip(
+            np.percentile(edge_dist, CAND_PCT) * CAND_SCALE + CAND_OFFSET,
+            cand_lo,
+            CAND_HI,
+        )
+    )
 
     dominant_bg = _dominant_background_sample_mask(arr, lab, edge_center, edge_dist)
     sample_lab = np.concatenate([edge_lab, lab[dominant_bg]]) if dominant_bg.any() else edge_lab
@@ -119,10 +127,13 @@ def _background_lab_distances(arr: np.ndarray, *, border: int = 6) -> tuple[np.n
 
     dist = np.linalg.norm(lab - center, axis=2)
     sample_dist = np.linalg.norm(sample_lab - center, axis=1)
-    candidate_tolerance = float(np.clip(
-        np.percentile(sample_dist, CAND_PCT) * CAND_SCALE + CAND_OFFSET,
-        cand_lo, CAND_HI,
-    ))
+    candidate_tolerance = float(
+        np.clip(
+            np.percentile(sample_dist, CAND_PCT) * CAND_SCALE + CAND_OFFSET,
+            cand_lo,
+            CAND_HI,
+        )
+    )
 
     if (dist <= candidate_tolerance).mean() > RUNAWAY_FRACTION:
         dist = np.linalg.norm(lab - edge_center, axis=2)
@@ -313,6 +324,9 @@ def _fill_transparent_rgb(rgb: np.ndarray, alpha_mask: np.ndarray) -> np.ndarray
         return_distances=False,
         return_indices=True,
     )
+    if indices is None:
+        return filled
+
     filled[transparent] = rgb[tuple(axis[transparent] for axis in indices)]
 
     return filled
@@ -396,12 +410,7 @@ def normalize_sprite_matte(
     AI-generated sheet with chroma drift or stray symbols.
     """
     arr = _image_to_rgb_array(image)
-
-    if strict_matte:
-        clean_fg = _normalize_fg_strict(arr, rows=rows, cols=cols)
-    else:
-        clean_fg = _simple_foreground(arr)
-
+    clean_fg = _normalize_fg_strict(arr, rows=rows, cols=cols) if strict_matte else _simple_foreground(arr)
     normalized = arr.copy()
     normalized[~clean_fg] = _hex_rgb(bg_color)
 
@@ -572,7 +581,7 @@ def extract_sprites(
     padding: int = 8,
     *,
     strict_matte: bool = False,
-) -> types.SpriteLayout:
+) -> dict[types.PoseT, Image.Image]:
     """Extract `rows*cols` sprites from `image` in reading order.
 
     Each cell is assumed to contain exactly one sprite that does not cross
@@ -589,40 +598,24 @@ def extract_sprites(
     Parameters
     ----------
     image : bytes (encoded image) or PIL.Image
-    rows, cols : grid shape, default 3×3
+    rows, cols : grid shape, default 3x3
     padding : pixels of empty space around each crop, default 8
     strict_matte : opt into the layered matte detector for noisy inputs
 
     Returns
     -------
-    SpriteLayout with named PIL RGBA images, one per cell, in reading order
+    A ``PoseT``-keyed dict of PIL RGBA images, one per cell, in reading order
     (top-to-bottom, left-to-right). Background is transparent.
     """
-    image = _to_pil(image)
-    arr = np.array(image.convert("RGB"))
+    arr = np.array(_to_pil(image).convert("RGB"))
 
     if strict_matte:
         aligned = _extract_strict(arr, rows=rows, cols=cols, padding=padding)
     else:
         aligned = _extract_simple(arr, rows=rows, cols=cols, padding=padding)
 
-    # Unpack rather than indexing — any drift in length fails loudly here.
-    bb, bh, bo, er, eh, ef, ep, ec, es = aligned
+    if len(aligned) != rows * cols:
+        raise RuntimeError(f"expected {rows * cols} extracted sprites, got {len(aligned)}")
 
-    sprite_layout: types.SpriteLayout = {
-        "sheet": image,
-        # Battle row (row 0)
-        "battle_back": bb,
-        "battle_hero": bh,
-        "battle_opponent": bo,
-        # Idle row (row 1)
-        "emote_resting": er,
-        "emote_happy": eh,
-        "emote_frustrated": ef,
-        # Expressive row (row 2)
-        "emote_proud": ep,
-        "emote_confused": ec,
-        "emote_sad": es,
-    }
-
-    return sprite_layout
+    # PoseT enum order matches the 3x3 reading order of the sheet.
+    return dict(zip(types.PoseT, aligned, strict=True))

@@ -19,16 +19,16 @@ Moveset:
 
 BST tier reference:
   <400     runt    — soft consonants (F, L, M, N, soft S), short vowels, open endings (-i, -ee, -o, -a)
-  400–499  mid     — balanced mix, familiar consonant clusters, medium vowels, standard endings (-on, -ix, -el)
-  500–569  solid   — hard stops (T, K, D, G), closed syllables, weighted endings (-ak, -ort, -un)
-  570–669  apex    — long dark vowels (o, u, or), Latinate roots, resonant consonants (R, M, N), multi-syllable endings (-ora, -arus, -eon)
+  400-499  mid     — balanced mix, familiar consonant clusters, medium vowels, standard endings (-on, -ix, -el)
+  500-569  solid   — hard stops (T, K, D, G), closed syllables, weighted endings (-ak, -ort, -un)
+  570-669  apex    — long dark vowels (o, u, or), Latinate roots, resonant consonants (R, M, N), multi-syllable endings (-ora, -arus, -eon)
   670+     mythic  — dense clusters, archaic suffixes (-yx, -oth, -aeus, -ion), uncommon letters (X, Z, Y as vowel), ancient-sounding roots
 
 Rules:
 1. Fusion contract — **Type** and **Concept** are co-primary: the name should plausibly suggest **both** the listed element(s) and the identity. **Moveset** is tertiary (texture, secondary motif); use it only where Concept is thin. If moveset and Concept disagree, **Concept** wins over moveset (never as an excuse to drop the elemental anchor).
 2. Slots — Fuse **(A) an elemental fragment**: a coined morpheme or tight sound-shape that evokes the Type line without being a plain English type word, and **(B) an identity fragment** from Concept / visual notes. If there are **two Types**, both must leave a trace in the fusion (split across syllables, blended phonemes, or one type-colored onset and one type-colored rime). If Concept is sparse, you may add **at most one** extra cluster from the moveset's dominant theme to reinforce **(B)** — not in place of **(A)**.
 3. Fuse the sources phonetically — overlap shared sounds, elide syllables, or interleave phonemes. End-to-end stitching (magma|mantis) is too weak; the seam should dissolve.
-4. 2–3 syllables, 4 acceptable if the fusion demands it. One word or one hyphenated pair.
+4. 2-3 syllables, 4 acceptable if the fusion demands it. One word or one hyphenated pair.
 5. Coined word only. No real words, no common compounds, no trivial suffixes on real words (cloudix, stormo).
 6. Pronounceable on first read. Front-loaded stress, no awkward consonant clusters, at most one hyphen.
 7. Prefer fused fragments over whole theme words (nimbra, not nimbuscloud).

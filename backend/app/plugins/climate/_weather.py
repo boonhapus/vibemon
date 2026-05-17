@@ -1,24 +1,55 @@
-import datetime as dt
-
+from collections.abc import Awaitable, Callable
+from typing import Any, cast
 from urllib.parse import urlparse, urlunparse
+import datetime as dt
+import os
+
 from niquests.adapters import AsyncHTTPAdapter
 import niquests
 
-from app.plugins.api_hooks import LoggingHook, RateLimiterHook
 from app import __project__
+from app.plugins.api_hooks import LoggingHook, RateLimiterHook
 
 
 class OpenMeteoAdapter(AsyncHTTPAdapter):
     """Rewrites placeholder URLs to real Open Meteo subdomains."""
 
-    def __init__(self, subdomain: str, *a, **kw) -> None:
+    def __init__(self, subdomain: str, *a: Any, **kw: Any) -> None:
         self.subdomain = subdomain
         super().__init__(*a, **kw)
 
-    async def send(self, request: niquests.PreapredRequest, **kwargs) -> niquests.AsyncResponse:
+    async def send(
+        self,
+        request: niquests.PreparedRequest,
+        stream: bool = False,
+        timeout: Any = None,
+        verify: bool | str | bytes | os.PathLike[str] = True,
+        cert: str | tuple[str, str] | tuple[str, str, str] | None = None,
+        proxies: dict[str, str] | None = None,
+        on_post_connection: Callable[[Any], Awaitable[None]] | None = None,
+        on_upload_body: Callable[[int, int | None, bool, bool], Awaitable[None]] | None = None,
+        on_early_response: Callable[[niquests.Response], Awaitable[None]] | None = None,
+        multiplexed: bool = False,
+    ) -> niquests.AsyncResponse:
+        if request.url is None:
+            raise ValueError("Prepared request URL was not set")
+
         parts = urlparse(request.url)
-        request.url = urlunparse(parts._replace(netloc=f"{self.subdomain}.open-meteo.com"))
-        return await super().send(request, **kwargs)
+        rewritten = urlunparse(parts._replace(netloc=f"{self.subdomain}.open-meteo.com"))
+        request.url = rewritten.decode("utf-8") if isinstance(rewritten, bytes) else rewritten
+
+        return await super().send(
+            request,
+            stream=stream,
+            timeout=timeout,
+            verify=verify,
+            cert=cert,
+            proxies=proxies,
+            on_post_connection=on_post_connection,
+            on_upload_body=on_upload_body,
+            on_early_response=on_early_response,
+            multiplexed=multiplexed,
+        )
 
 
 class OpenMeteoAPIClient(niquests.AsyncSession):
@@ -28,9 +59,10 @@ class OpenMeteoAPIClient(niquests.AsyncSession):
     Further reading:
       https://open-meteo.com/en/docs
     """
+
     provider_name = "open-meteo.weather_forecast"
 
-    def __init__(self, **session_opts) -> None:
+    def __init__(self, **session_opts: Any) -> None:
         # fmt: off
         RATE_LIMITER = RateLimiterHook(
             (    600, dt.timedelta(minutes= 1)),
@@ -48,9 +80,10 @@ class OpenMeteoAPIClient(niquests.AsyncSession):
             raise_on_status=False,
             respect_retry_after_header=True,
         )
+        hooks = cast(Any, LoggingHook(provider=OpenMeteoAPIClient.provider_name) + RATE_LIMITER)
         super().__init__(
             base_url="https://api.open-meteo.com/",
-            hooks=LoggingHook(provider=OpenMeteoAPIClient.provider_name) + RATE_LIMITER,
+            hooks=hooks,
             retries=RETRY_POLICY,
             **session_opts,
         )
@@ -75,7 +108,7 @@ class OpenMeteoAPIClient(niquests.AsyncSession):
     ) -> niquests.Response:
         """Find the weather at a given coordinate."""
         if end_date is None:
-            end_date = dt.datetime.now(tz=dt.timezone.utc).date()
+            end_date = dt.datetime.now(tz=dt.UTC).date()
 
         assert isinstance(end_date, dt.date), "end_date must be provided."
 
@@ -86,9 +119,9 @@ class OpenMeteoAPIClient(niquests.AsyncSession):
         assert isinstance(start_date, dt.date), "start_date must be provided."
         assert start_date < end_date, "Time range must be contiguous, start_date < end_date."
 
-        p = {
-            "latitude": latitude,
-            "longitude": longitude,
+        p: dict[str, str] = {
+            "latitude": str(latitude),
+            "longitude": str(longitude),
             "daily": ",".join(
                 [
                     "uv_index_max",
@@ -131,7 +164,7 @@ class OpenMeteoAPIClient(niquests.AsyncSession):
     ) -> niquests.Response:
         """Fetch air quality data (PM2.5) for Poison type mapping."""
         if end_date is None:
-            end_date = dt.datetime.now(tz=dt.timezone.utc).date()
+            end_date = dt.datetime.now(tz=dt.UTC).date()
 
         assert isinstance(end_date, dt.date), "end_date must be provided."
 
@@ -141,9 +174,9 @@ class OpenMeteoAPIClient(niquests.AsyncSession):
         assert isinstance(start_date, dt.date), "start_date must be provided."
         assert start_date < end_date, "Time range must be contiguous, start_date < end_date."
 
-        p = {
-            "latitude": latitude,
-            "longitude": longitude,
+        p: dict[str, str] = {
+            "latitude": str(latitude),
+            "longitude": str(longitude),
             "hourly": "pm2_5,dust",
             "timezone": "GMT",
             "start_date": start_date.isoformat(),
