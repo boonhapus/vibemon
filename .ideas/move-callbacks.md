@@ -1,5 +1,19 @@
 # Move Callbacks
 
+## Status
+
+Superseded direction.
+
+The current backend should prefer declarative move behavior first:
+
+- `EffectGroup` and typed effects for common move outcomes;
+- `MoveBehavior.conditions` for conditional validity, priority, accuracy, power, and flavor keys;
+- `MoveBehavior.script_id` only as a future escape hatch for exceptional first-party mechanics.
+
+Do not add provider-authored Python callbacks to move content. If executable custom move logic becomes necessary, use a backend-owned `MoveBehaviorRegistry` or `MoveBehaviorService` that maps stable `script_id` values to first-party battle code.
+
+This note is kept for historical design context, not as the active implementation plan.
+
 ## Concept
 
 Add a `callback` field to `Move` that allows moves to inspect battle state at resolution time to determine their own validity, accuracy, priority, and power dynamically.

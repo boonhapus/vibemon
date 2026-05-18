@@ -110,6 +110,25 @@ Responsibilities:
 - Reject unknown fields and invalid enum values.
 - Keep executable behavior out of provider content. `script_id` may reference first-party scripts only.
 
+## Move Behavior Script IDs
+
+`MoveBehavior.script_id` is a future escape hatch for exceptional move mechanics that cannot be expressed with the normal declarative move language.
+
+Most moves should remain pure data:
+
+- static move fields such as type, category, power, accuracy, PP, priority, target, and level requirement;
+- declarative effects such as status infliction, stat changes, healing, recoil, drain, and weather;
+- declarative conditions such as opponent action, weather, HP thresholds, or random power buckets.
+
+If a move eventually needs executable custom logic, the JSON/data content may store a stable `script_id`, but the provider content must not provide executable code. The id should resolve only to first-party battle code registered by the backend.
+
+Ownership boundary:
+
+- `MoveCatalogService` owns persisted move definitions and frontend/catalog queries.
+- A battle/runtime `MoveBehaviorRegistry` or `MoveBehaviorService` should own `script_id` to executable-code resolution if scripted moves become necessary.
+
+This is not a near-term implementation priority. It should be wired when the first real scripted move needs it, not as part of the initial services layer.
+
 ## Migration Plan
 
 1. Add `Move.id` while keeping `name` and `flavor_text`.
