@@ -103,6 +103,10 @@ async def fake_manifest(vibemon: schema.Vibemon) -> schema.Vibemon:
     return vibemon
 
 
+async def failing_manifest(vibemon: schema.Vibemon) -> schema.Vibemon:
+    raise RuntimeError("manifest failed")
+
+
 async def fake_asset_url(key: str, expires_in: dt.timedelta) -> str:
     return f"asset://{key}"
 
@@ -337,6 +341,46 @@ async def test_full_party_adoption_swaps_atomically(sess: AsyncSession) -> None:
         )
     ).scalar_one()
     assert owned_count == 6
+
+
+@pytest.mark.asyncio
+async def test_full_party_adoption_does_not_release_when_manifest_fails(sess: AsyncSession) -> None:
+    trainer_id = await _trainer(sess)
+    owned_ids: list[uuid.UUID] = []
+    for day_offset in range(2):
+        day = NOW + dt.timedelta(days=day_offset)
+        for _ in range(3):
+            generated = await _service(day).generate_candidate(sess, trainer_id=trainer_id, birth_seed=_seed())
+            await _service(day).adopt_candidate(sess, trainer_id=trainer_id, vibemon_id=generated.id)
+            owned_ids.append(generated.id)
+
+    day3 = NOW + dt.timedelta(days=2)
+    new_candidate = await _service(day3).generate_candidate(sess, trainer_id=trainer_id, birth_seed=_seed())
+    released = owned_ids[2]
+    failing_service = vibemon_service.VibemonService(
+        clock=lambda: day3,
+        rng=random.Random(1),
+        christen_step=fake_christen,
+        manifest_step=failing_manifest,
+        asset_urler=fake_asset_url,
+    )
+
+    with pytest.raises(RuntimeError, match="manifest failed"):
+        await failing_service.adopt_candidate(
+            sess,
+            trainer_id=trainer_id,
+            vibemon_id=new_candidate.id,
+            release_vibemon_id=released,
+        )
+
+    released_after = await sess.get(models.Vibemon, released)
+    candidate_after = await sess.get(models.Vibemon, new_candidate.id)
+    assert released_after is not None
+    assert candidate_after is not None
+    assert released_after.disposition == types.VibemonDispositionT.OWNED.value
+    assert released_after.trainer_id == trainer_id
+    assert candidate_after.disposition is None
+    assert candidate_after.trainer_id is None
 
 
 @pytest.mark.asyncio

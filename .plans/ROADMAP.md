@@ -42,8 +42,8 @@ This roadmap translates the backend architecture review and domain decisions int
 ## Immediate Next Slice
 
 - Recreate/reset local development data after schema changes; no backwards-compatible migration path is needed before users exist.
-- Harden generation credit holds and adoption swaps for real concurrent requests.
-- Add focused tests for one-active-generation enforcement, adoption-after-timeout rejection, and full-party swap behavior.
+- Harden generation credit holds and adoption swaps for real concurrent requests. **Progress 2026-05-18:** service reads now request row locks for trainer, pending-review, credit-day, owned-party, release, and encounter-adjustment rows; full-party adoption no longer mutates the released Vibemon before candidate manifestation succeeds. Crash hold expiry remains unresolved.
+- ~~Add focused tests for one-active-generation enforcement, adoption-after-timeout rejection, and full-party swap behavior.~~ Done; also covered manifest-failure rollback behavior for full-party swaps.
 - ~~Replace or simplify script callers so candidate generation goes through `VibemonService`.~~ Done; admins/testers bypass via `bypass_credits=True`.
 
 ## Deferred Implementation

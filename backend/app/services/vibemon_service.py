@@ -36,6 +36,12 @@ type LifecycleStep = Callable[[schema.Vibemon], Awaitable[schema.Vibemon]]
 type AssetUrler = Callable[[str, dt.timedelta], Awaitable[str]]
 
 
+class _AdoptionPlan:
+    def __init__(self, *, slot: int, release: models.Vibemon | None) -> None:
+        self.slot = slot
+        self.release = release
+
+
 class VibemonService:
     """Application seam for Vibemon generation and trainer ownership workflows."""
 
@@ -120,14 +126,16 @@ class VibemonService:
             await sess.flush()
             raise CandidateReviewUnavailable("Candidate review has timed out.")
 
-        slot = await self._adoption_slot(sess, trainer_id=trainer_id, release_vibemon_id=release_vibemon_id, now=now)
+        plan = await self._adoption_plan(sess, trainer_id=trainer_id, release_vibemon_id=release_vibemon_id)
         vibemon = await self._schema_from_row(review.vibemon)
         if vibemon.lifecycle is not types.VibemonLifecycleT.MANIFESTED:
             vibemon = await self._manifest(vibemon)
 
+        if plan.release is not None:
+            self._release_to_wild(sess, plan.release, trainer_id, now)
         self._apply_schema_to_row(review.vibemon, vibemon)
         review.vibemon.trainer_id = trainer_id
-        review.vibemon.team_slot = slot
+        review.vibemon.team_slot = plan.slot
         review.vibemon.disposition = types.VibemonDispositionT.OWNED.value
         review.vibemon.wild_entered_at = None
         review.vibemon.last_encountered_at = None
@@ -177,11 +185,13 @@ class VibemonService:
         now = self._now()
         row = (
             await sess.execute(
-                sa.select(models.Vibemon).where(
+                sa.select(models.Vibemon)
+                .where(
                     models.Vibemon.id == vibemon_id,
                     models.Vibemon.trainer_id == trainer_id,
                     models.Vibemon.disposition == types.VibemonDispositionT.OWNED.value,
                 )
+                .with_for_update()
             )
         ).scalar_one_or_none()
         if row is None:
@@ -255,21 +265,23 @@ class VibemonService:
         await self._upsert_encounter_adjustment(sess, review.trainer_id, review.vibemon_id, status.value, now)
         self._history(sess, review.vibemon_id, event, now, {"trainer_id": str(review.trainer_id)})
 
-    async def _adoption_slot(
+    async def _adoption_plan(
         self,
         sess: AsyncSession,
         *,
         trainer_id: types.TrainerIdT,
         release_vibemon_id: uuid.UUID | None,
-        now: dt.datetime,
-    ) -> int:
+    ) -> _AdoptionPlan:
+        await self._lock_trainer(sess, trainer_id)
         rows = (
             (
                 await sess.execute(
-                    sa.select(models.Vibemon).where(
+                    sa.select(models.Vibemon)
+                    .where(
                         models.Vibemon.trainer_id == trainer_id,
                         models.Vibemon.disposition == types.VibemonDispositionT.OWNED.value,
                     )
+                    .with_for_update()
                 )
             )
             .scalars()
@@ -277,15 +289,13 @@ class VibemonService:
         )
         used = {row.team_slot for row in rows if row.team_slot is not None}
         if len(rows) < 6:
-            return next(slot for slot in range(6) if slot not in used)
+            return _AdoptionPlan(slot=next(slot for slot in range(6) if slot not in used), release=None)
         if release_vibemon_id is None:
             raise PartyFull("Adoption requires releasing one party Vibemon.")
         release = next((row for row in rows if row.id == release_vibemon_id), None)
         if release is None or release.team_slot is None:
             raise PartyFull("Release Vibemon is not owned by this trainer.")
-        slot = release.team_slot
-        self._release_to_wild(sess, release, trainer_id, now)
-        return slot
+        return _AdoptionPlan(slot=release.team_slot, release=release)
 
     async def _reserve_credit(
         self,
@@ -294,6 +304,7 @@ class VibemonService:
         trainer_id: types.TrainerIdT,
         now: dt.datetime,
     ) -> tuple[models.GenerationCreditDay, uuid.UUID]:
+        await self._lock_trainer(sess, trainer_id)
         row = await self._credit_day(sess, trainer_id=trainer_id, credit_date=now.date())
         if row.active_hold_id is not None:
             raise GenerationAlreadyActive("Trainer already has an active generation hold.")
@@ -338,10 +349,12 @@ class VibemonService:
     ) -> models.GenerationCreditDay:
         row = (
             await sess.execute(
-                sa.select(models.GenerationCreditDay).where(
+                sa.select(models.GenerationCreditDay)
+                .where(
                     models.GenerationCreditDay.trainer_id == trainer_id,
                     models.GenerationCreditDay.credit_date == credit_date,
                 )
+                .with_for_update()
             )
         ).scalar_one_or_none()
         if row is None:
@@ -349,6 +362,9 @@ class VibemonService:
             sess.add(row)
             await sess.flush()
         return row
+
+    async def _lock_trainer(self, sess: AsyncSession, trainer_id: types.TrainerIdT) -> None:
+        await sess.execute(sa.select(models.Trainer.id).where(models.Trainer.id == trainer_id).with_for_update())
 
     async def _persist_new_vibemon(
         self,
@@ -477,6 +493,7 @@ class VibemonService:
                     models.CandidateReview.vibemon_id == vibemon_id,
                     models.CandidateReview.status == types.CandidateReviewStatusT.PENDING.value,
                 )
+                .with_for_update()
             )
         ).scalar_one_or_none()
         if review is None:
@@ -586,10 +603,12 @@ class VibemonService:
         ends_at = now + self._cooldown_duration()
         adjustment = (
             await sess.execute(
-                sa.select(models.EncounterAdjustment).where(
+                sa.select(models.EncounterAdjustment)
+                .where(
                     models.EncounterAdjustment.trainer_id == trainer_id,
                     models.EncounterAdjustment.vibemon_id == vibemon_id,
                 )
+                .with_for_update()
             )
         ).scalar_one_or_none()
         if adjustment is None:

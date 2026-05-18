@@ -26,7 +26,7 @@
 ### Not Yet Implemented
 
 - [ ] Recreate/reset local development data after schema changes; no backwards-compatible migration path is needed before users exist.
-- [ ] Full generation-credit concurrency hardening beyond the in-session service path.
+- [ ] Full generation-credit concurrency hardening beyond the in-session service path. Trainer/row locking and swap failure ordering improved on May 18, 2026; crash hold expiry remains open.
 - [x] Atomic full-party adoption swap.
 - [x] Release service workflow outside full-party adoption.
 - [ ] Wild encounter selection, prewarming, expiration cleanup, catch mechanics, and PvP matching.
