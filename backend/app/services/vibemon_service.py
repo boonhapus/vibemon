@@ -3,10 +3,12 @@
 from __future__ import annotations
 
 from collections.abc import Awaitable, Callable
+from typing import Any, cast
 import datetime as dt
 import random
 import uuid
 
+from sqlalchemy.engine import CursorResult
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 import sqlalchemy as sa
@@ -27,6 +29,7 @@ from app.plugins import move_catalog
 
 DAILY_GENERATION_CREDITS = 3
 CANDIDATE_REVIEW_TIMEOUT = dt.timedelta(hours=24)
+GENERATION_HOLD_TIMEOUT = dt.timedelta(minutes=10)
 REJECTION_ENCOUNTER_MULTIPLIER = 0.0
 REJECTION_COOLDOWN_MIN = dt.timedelta(days=1)
 REJECTION_COOLDOWN_MAX = dt.timedelta(days=3)
@@ -236,6 +239,25 @@ class VibemonService:
         await sess.flush()
         return len(reviews)
 
+    async def resolve_stale_holds(
+        self,
+        sess: AsyncSession,
+        *,
+        timeout: dt.timedelta = GENERATION_HOLD_TIMEOUT,
+    ) -> int:
+        """Clear generation holds that have exceeded the timeout."""
+        now = self._now()
+        threshold = now - timeout
+        result = await sess.execute(
+            sa.update(models.GenerationCreditDay)
+            .where(
+                models.GenerationCreditDay.active_hold_id.is_not(None),
+                models.GenerationCreditDay.hold_started_at <= threshold,
+            )
+            .values(active_hold_id=None, hold_started_at=None)
+        )
+        return cast(CursorResult[Any], result).rowcount or 0
+
     async def _timeout_review(self, sess: AsyncSession, review: models.CandidateReview, now: dt.datetime) -> None:
         await self._resolve_to_wild(
             sess,
@@ -307,7 +329,11 @@ class VibemonService:
         await self._lock_trainer(sess, trainer_id)
         row = await self._credit_day(sess, trainer_id=trainer_id, credit_date=now.date())
         if row.active_hold_id is not None:
-            raise GenerationAlreadyActive("Trainer already has an active generation hold.")
+            if row.hold_started_at is not None and row.hold_started_at <= now - GENERATION_HOLD_TIMEOUT:
+                row.active_hold_id = None
+                row.hold_started_at = None
+            else:
+                raise GenerationAlreadyActive("Trainer already has an active generation hold.")
         if row.credits_consumed >= DAILY_GENERATION_CREDITS:
             raise GenerationCreditUnavailable("Trainer has no generation credits remaining today.")
         hold_id = uuid.uuid7()
