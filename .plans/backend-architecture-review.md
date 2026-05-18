@@ -27,8 +27,8 @@
 
 - [ ] Recreate/reset local development data after schema changes; no backwards-compatible migration path is needed before users exist.
 - [ ] Full generation-credit concurrency hardening beyond the in-session service path.
-- [ ] Atomic full-party adoption swap.
-- [ ] Release service workflow outside full-party adoption.
+- [x] Atomic full-party adoption swap.
+- [x] Release service workflow outside full-party adoption.
 - [ ] Wild encounter selection, prewarming, expiration cleanup, catch mechanics, and PvP matching.
 
 ---
@@ -76,7 +76,7 @@ To maintain the flexibility of provider-authored content, we maintain a strict b
 
 ### Phase 2: The VibemonService
 *   [x] **Implementation:** Create `app/services/vibemon_service.py` covering candidate generation, `birth`, `christen`, `manifest`, `adopt`, `reject`, and review-timeout workflows.
-*   [ ] **Orchestration:** Consolidate any current CLI/script generator orchestration into this service. Do not depend on a `.scripts/vibemon_generator.py` path existing; treat scripts as callers to replace or simplify, not as the source of truth.
+*   [x] **Orchestration:** Consolidate any current CLI/script generator orchestration into this service. Do not depend on a `.scripts/vibemon_generator.py` path existing; treat scripts as callers to replace or simplify, not as the source of truth.
 *   [x] **Persistence:** Implement transaction-aware upserts for Vibemon, disposition, candidate-review metadata, generation-credit accounting, and associated aesthetic/asset records.
 *   [x] **Dependencies:** Accept injectable provider, GenAI, and asset/object-store dependencies so tests can run without external APIs.
 *   [ ] **Tests:** Cover candidate generation, `birth`, `christen`, `manifest`, `adopt`, `reject`, and review timeout with fakes. Tests should verify lifecycle transitions, disposition transitions, candidate review invariants, generation credit holds/consumption, persisted rows, asset refs, and idempotent reruns where applicable.
@@ -155,8 +155,8 @@ Acceptance criteria:
 - [x] Implement candidate adoption: reject timed-out candidates first, assign `owned`, set `trainer_id`, preserve assets, manifest if needed, and resolve review.
 - [x] Implement candidate rejection: resolve review to `wild`, clear ownership, set wild-pool timing, and create trainer-specific encounter adjustment.
 - [x] Implement review-timeout resolution: candidates older than 24 hours become `wild`; timeout is authoritative even if cleanup runs late.
-- [ ] Implement release: transition `owned` to `wild`, reset wild expiration baseline to release time, preserve progression, moves, history, and core assets.
-- [ ] Implement full-party adoption swap atomically: release selected party Vibemon, adopt new Vibemon, and assign freed battle slot in one transaction.
+- [x] Implement release: transition `owned` to `wild`, reset wild expiration baseline to release time, preserve progression, moves, history, and core assets.
+- [x] Implement full-party adoption swap atomically: release selected party Vibemon, adopt new Vibemon, and assign freed battle slot in one transaction.
 
 ### 7.3 Read Models
 
@@ -177,11 +177,11 @@ Acceptance criteria:
 
 - [x] Test successful candidate generation consumes one daily credit only after a christened candidate is shown.
 - [x] Test failed candidate generation releases the hold and does not consume a credit.
-- [ ] Test one active generation job per trainer, while allowing multiple unresolved shown candidates up to available daily credits.
+- [x] Test one active generation job per trainer, while allowing multiple unresolved shown candidates up to available daily credits.
 - [x] Test candidate adoption is free, resolves review, sets `owned`, assigns ownership, and manifests only when needed.
 - [x] Test candidate rejection resolves to `wild` and creates a `0.00x` encounter adjustment.
 - [x] Test candidate timeout after 24 hours from `shown_at` resolves to `wild` even if cleanup runs late.
-- [ ] Test adoption after timeout is rejected and first resolves the candidate to `wild`.
-- [ ] Test full-party adoption requires an atomic release/adopt slot swap.
-- [ ] Test release preserves level, XP, moves, history, and assets while resetting wild expiration baseline.
+- [x] Test adoption after timeout is rejected and first resolves the candidate to `wild`.
+- [x] Test full-party adoption requires an atomic release/adopt slot swap.
+- [x] Test release preserves level, XP, moves, history, and assets while resetting wild expiration baseline.
 - [ ] Test encounter queries exclude under-review and expired Vibemon once encounter surfaces are introduced.

@@ -16,6 +16,13 @@ from app.data_store import assets as ds_assets
 from app.data_store import monstore
 from app.data_store import schema as ds_schema
 from app.data_store import types as ds_types
+from app.errors import (
+    CandidateReviewUnavailable,
+    GenerationAlreadyActive,
+    GenerationCreditUnavailable,
+    PartyFull,
+    ReleaseUnavailable,
+)
 from app.plugins import move_catalog
 
 DAILY_GENERATION_CREDITS = 3
@@ -27,26 +34,6 @@ REJECTION_COOLDOWN_MAX = dt.timedelta(days=3)
 type Clock = Callable[[], dt.datetime]
 type LifecycleStep = Callable[[schema.Vibemon], Awaitable[schema.Vibemon]]
 type AssetUrler = Callable[[str, dt.timedelta], Awaitable[str]]
-
-
-class VibemonServiceError(RuntimeError):
-    """Base error for Vibemon service failures."""
-
-
-class GenerationCreditUnavailable(VibemonServiceError):
-    """Raised when a trainer has no usable generation credit."""
-
-
-class GenerationAlreadyActive(VibemonServiceError):
-    """Raised when a trainer already has a generation hold."""
-
-
-class CandidateReviewUnavailable(VibemonServiceError):
-    """Raised when a pending candidate review cannot be acted on."""
-
-
-class PartyFull(VibemonServiceError):
-    """Raised when adoption needs a release swap and none was supplied."""
 
 
 class VibemonService:
@@ -75,9 +62,13 @@ class VibemonService:
         birth_seed: schema.BirthSeed,
         nickname: str | None = None,
         core_identity: str | None = None,
+        bypass_credits: bool = False,
     ) -> schema.PublicVibemon:
         now = self._now()
-        credit_day, hold_id = await self._reserve_credit(sess, trainer_id=trainer_id, now=now)
+        credit_day: models.GenerationCreditDay | None = None
+        hold_id: uuid.UUID | None = None
+        if not bypass_credits:
+            credit_day, hold_id = await self._reserve_credit(sess, trainer_id=trainer_id, now=now)
         try:
             snapshot = await birth_seed.fetch_snapshot()
             affinities = await snapshot.regenerate(birth_seed.providers, birth_seed)
@@ -103,12 +94,14 @@ class VibemonService:
                 now,
                 {"trainer_id": str(trainer_id)},
             )
-            await self._consume_credit(sess, credit_day, hold_id)
+            if credit_day is not None and hold_id is not None:
+                await self._consume_credit(sess, credit_day, hold_id)
             await sess.flush()
             loaded = await self._load_vibemon(sess, row.id)
             return await self._read_model(loaded, reviewing_trainer_id=trainer_id)
         except Exception:
-            await self._release_credit(sess, credit_day, hold_id)
+            if credit_day is not None and hold_id is not None:
+                await self._release_credit(sess, credit_day, hold_id)
             await sess.flush()
             raise
 
@@ -172,6 +165,45 @@ class VibemonService:
         await sess.flush()
         loaded = await self._load_vibemon(sess, vibemon_id)
         return await self._read_model(loaded, reviewing_trainer_id=trainer_id)
+
+    async def release_vibemon(
+        self,
+        sess: AsyncSession,
+        *,
+        trainer_id: types.TrainerIdT,
+        vibemon_id: uuid.UUID,
+    ) -> schema.PublicVibemon:
+        """Release an owned Vibemon back to wild. Preserves progression, moves, history, assets."""
+        now = self._now()
+        row = (
+            await sess.execute(
+                sa.select(models.Vibemon).where(
+                    models.Vibemon.id == vibemon_id,
+                    models.Vibemon.trainer_id == trainer_id,
+                    models.Vibemon.disposition == types.VibemonDispositionT.OWNED.value,
+                )
+            )
+        ).scalar_one_or_none()
+        if row is None:
+            raise ReleaseUnavailable("Vibemon is not owned by this trainer.")
+        self._release_to_wild(sess, row, trainer_id, now)
+        await sess.flush()
+        loaded = await self._load_vibemon(sess, vibemon_id)
+        return await self._read_model(loaded, reviewing_trainer_id=trainer_id)
+
+    def _release_to_wild(
+        self,
+        sess: AsyncSession,
+        row: models.Vibemon,
+        trainer_id: types.TrainerIdT,
+        now: dt.datetime,
+    ) -> None:
+        row.trainer_id = None
+        row.team_slot = None
+        row.disposition = types.VibemonDispositionT.WILD.value
+        row.wild_entered_at = now
+        row.last_encountered_at = now
+        self._history(sess, row.id, types.VibemonHistoryEventT.RELEASED, now, {"trainer_id": str(trainer_id)})
 
     async def resolve_review_timeouts(self, sess: AsyncSession) -> int:
         now = self._now()
@@ -252,12 +284,7 @@ class VibemonService:
         if release is None or release.team_slot is None:
             raise PartyFull("Release Vibemon is not owned by this trainer.")
         slot = release.team_slot
-        release.trainer_id = None
-        release.team_slot = None
-        release.disposition = types.VibemonDispositionT.WILD.value
-        release.wild_entered_at = now
-        release.last_encountered_at = now
-        self._history(sess, release.id, types.VibemonHistoryEventT.RELEASED, now, {"trainer_id": str(trainer_id)})
+        self._release_to_wild(sess, release, trainer_id, now)
         return slot
 
     async def _reserve_credit(
@@ -467,6 +494,7 @@ class VibemonService:
                     selectinload(models.Vibemon.candidate_reviews),
                 )
                 .where(models.Vibemon.id == vibemon_id)
+                .execution_options(populate_existing=True)
             )
         ).scalar_one()
 

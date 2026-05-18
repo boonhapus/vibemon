@@ -29,8 +29,8 @@ This roadmap translates the backend architecture review and domain decisions int
 
 - [x] Treat the six-slot party as the trainer's full owned roster.
 - [x] Defer storage/box ownership.
-- [ ] Make full-party adoption an atomic release/adopt slot swap.
-- [ ] Preserve progression, moves, history, and assets on release.
+- [x] Make full-party adoption an atomic release/adopt slot swap.
+- [x] Preserve progression, moves, history, and assets on release.
 
 ### Phase 4: Read Models
 
@@ -44,7 +44,7 @@ This roadmap translates the backend architecture review and domain decisions int
 - Recreate/reset local development data after schema changes; no backwards-compatible migration path is needed before users exist.
 - Harden generation credit holds and adoption swaps for real concurrent requests.
 - Add focused tests for one-active-generation enforcement, adoption-after-timeout rejection, and full-party swap behavior.
-- Replace or simplify script callers so candidate generation goes through `VibemonService`.
+- ~~Replace or simplify script callers so candidate generation goes through `VibemonService`.~~ Done; admins/testers bypass via `bypass_credits=True`.
 
 ## Deferred Implementation
 
@@ -152,7 +152,7 @@ Questions to resolve:
 
 - When does the daily credit window reset: UTC, trainer-local timezone, or rolling 24 hours?
 - Can credits accumulate or are they capped at three?
-- Should admins/testers bypass credits?
+- Should admins/testers bypass credits? **Decided 2026-05-18: yes; exposed as `bypass_credits=True` on `VibemonService.generate_candidate` for script/admin callers.**
 - Should encounter supply generation consume any trainer credit? Current assumption: no.
 
 ### 7. Battle and Catch Boundary

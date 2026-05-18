@@ -12,7 +12,7 @@ pytest.importorskip("aiosqlite")
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker, create_async_engine
 import sqlalchemy as sa
 
-from app import models, schema, types
+from app import errors, models, schema, types
 from app.data_store import schema as ds_schema
 from app.data_store import types as ds_types
 from app.plugins.provider import VibeProvider
@@ -200,6 +200,143 @@ async def test_adopt_candidate_assigns_owned_slot_and_manifests(sess: AsyncSessi
     assert result.trainer_id == trainer_id
     assert result.team_slot == 0
     assert result.lifecycle == types.VibemonLifecycleT.MANIFESTED
+
+
+@pytest.mark.asyncio
+async def test_release_owned_vibemon_returns_to_wild(sess: AsyncSession) -> None:
+    trainer_id = await _trainer(sess)
+    generated = await _service().generate_candidate(sess, trainer_id=trainer_id, birth_seed=_seed())
+    await _service().adopt_candidate(sess, trainer_id=trainer_id, vibemon_id=generated.id)
+
+    later = NOW + dt.timedelta(hours=2)
+    result = await _service(later).release_vibemon(sess, trainer_id=trainer_id, vibemon_id=generated.id)
+
+    assert result.disposition == types.VibemonDispositionT.WILD
+    assert result.trainer_id is None
+    assert result.team_slot is None
+    assert result.lifecycle == types.VibemonLifecycleT.MANIFESTED
+    assert len(result.assets) == 3
+    row = await sess.get(models.Vibemon, generated.id)
+    assert row is not None
+    assert row.wild_entered_at is not None
+    assert row.wild_entered_at.replace(tzinfo=dt.UTC) == later
+    events = (
+        (await sess.execute(sa.select(models.VibemonHistory).where(models.VibemonHistory.vibemon_id == generated.id)))
+        .scalars()
+        .all()
+    )
+    assert any(e.event_type == types.VibemonHistoryEventT.RELEASED.value for e in events)
+
+
+@pytest.mark.asyncio
+async def test_release_rejects_non_owner(sess: AsyncSession) -> None:
+    owner = await _trainer(sess)
+    stranger = await _trainer(sess)
+    generated = await _service().generate_candidate(sess, trainer_id=owner, birth_seed=_seed())
+    await _service().adopt_candidate(sess, trainer_id=owner, vibemon_id=generated.id)
+
+    with pytest.raises(errors.ReleaseUnavailable):
+        await _service().release_vibemon(sess, trainer_id=stranger, vibemon_id=generated.id)
+
+
+@pytest.mark.asyncio
+async def test_bypass_credits_skips_daily_cap(sess: AsyncSession) -> None:
+    trainer_id = await _trainer(sess)
+    service = _service()
+    for _ in range(4):
+        await service.generate_candidate(
+            sess,
+            trainer_id=trainer_id,
+            birth_seed=_seed(),
+            bypass_credits=True,
+        )
+    credit = (await sess.execute(sa.select(models.GenerationCreditDay))).scalar_one_or_none()
+    assert credit is None
+
+
+@pytest.mark.asyncio
+async def test_one_active_generation_per_trainer(sess: AsyncSession) -> None:
+    trainer_id = await _trainer(sess)
+    row = models.GenerationCreditDay(
+        trainer_id=trainer_id,
+        credit_date=NOW.date(),
+        credits_consumed=0,
+        active_hold_id=uuid.uuid7(),
+        hold_started_at=NOW,
+    )
+    sess.add(row)
+    await sess.flush()
+
+    with pytest.raises(errors.GenerationAlreadyActive):
+        await _service().generate_candidate(sess, trainer_id=trainer_id, birth_seed=_seed())
+
+
+@pytest.mark.asyncio
+async def test_adopt_after_timeout_rejects_and_resolves_to_wild(sess: AsyncSession) -> None:
+    trainer_id = await _trainer(sess)
+    generated = await _service().generate_candidate(sess, trainer_id=trainer_id, birth_seed=_seed())
+    later = NOW + dt.timedelta(hours=25)
+
+    with pytest.raises(errors.CandidateReviewUnavailable):
+        await _service(later).adopt_candidate(sess, trainer_id=trainer_id, vibemon_id=generated.id)
+
+    review = (await sess.execute(sa.select(models.CandidateReview))).scalar_one()
+    assert review.status == types.CandidateReviewStatusT.TIMED_OUT.value
+    row = await sess.get(models.Vibemon, generated.id)
+    assert row is not None
+    assert row.disposition == types.VibemonDispositionT.WILD.value
+
+
+@pytest.mark.asyncio
+async def test_full_party_adoption_swaps_atomically(sess: AsyncSession) -> None:
+    trainer_id = await _trainer(sess)
+    owned_ids: list[uuid.UUID] = []
+    for day_offset in range(2):
+        day = NOW + dt.timedelta(days=day_offset)
+        for _ in range(3):
+            generated = await _service(day).generate_candidate(sess, trainer_id=trainer_id, birth_seed=_seed())
+            await _service(day).adopt_candidate(sess, trainer_id=trainer_id, vibemon_id=generated.id)
+            owned_ids.append(generated.id)
+            if len(owned_ids) == 6:
+                break
+        if len(owned_ids) == 6:
+            break
+
+    day3 = NOW + dt.timedelta(days=2)
+    new_candidate = await _service(day3).generate_candidate(sess, trainer_id=trainer_id, birth_seed=_seed())
+
+    with pytest.raises(errors.PartyFull):
+        await _service(day3).adopt_candidate(sess, trainer_id=trainer_id, vibemon_id=new_candidate.id)
+
+    released = owned_ids[2]
+    released_row = await sess.get(models.Vibemon, released)
+    assert released_row is not None
+    freed_slot = released_row.team_slot
+
+    result = await _service(day3).adopt_candidate(
+        sess,
+        trainer_id=trainer_id,
+        vibemon_id=new_candidate.id,
+        release_vibemon_id=released,
+    )
+
+    assert result.trainer_id == trainer_id
+    assert result.team_slot == freed_slot
+    released_after = await sess.get(models.Vibemon, released)
+    assert released_after is not None
+    assert released_after.disposition == types.VibemonDispositionT.WILD.value
+    assert released_after.team_slot is None
+    owned_count = (
+        await sess.execute(
+            sa.select(sa.func.count())
+            .select_from(models.Vibemon)
+            .where(
+                models.Vibemon.trainer_id == trainer_id,
+                models.Vibemon.disposition == types.VibemonDispositionT.OWNED.value,
+            )
+        )
+    ).scalar_one()
+    assert owned_count == 6
 
 
 @pytest.mark.asyncio
