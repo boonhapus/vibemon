@@ -1,0 +1,3 @@
+# Candidate review is separate from disposition
+
+A shown candidate under trainer review does not use disposition to represent its temporary decision state. Disposition remains focused on gameplay availability: **Owned**, **Wild**, or non-playable **Expired**. A shown candidate is already a real Vibemon row with identity and preview assets; separate review metadata tracks the pending decision and reviewing trainer without assigning ownership. A Vibemon may have no gameplay disposition only while an active candidate review exists, and resolving that review assigns **Owned** or **Wild** through adoption, rejection, or timeout. The Vibemon's owning trainer is set only by adoption.
