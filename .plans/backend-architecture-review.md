@@ -6,6 +6,31 @@
 
 ---
 
+## 0. Progress Snapshot
+
+### Completed
+
+- [x] Merged glossary into `docs/CONTEXT.md`; removed `docs/LANGUAGE.md`.
+- [x] Added ADRs for disposition, lifecycle asset gating, provider fetch/synthesize split, deterministic birth, battle events, move effects, wild pool rules, candidate review, generation credits, party slots, encounter matching, and deferred catch language.
+- [x] Added `.plans/ROADMAP.md` with `/grill-with-docs` resume marker for unresolved decisions.
+- [x] Existing code has provider `fetch()` / `synthesize()` split.
+- [x] Existing code has deterministic `BirthSeed` RNG namespaces.
+- [x] Existing code has monstore-backed asset refs and asset-row upsert helpers.
+- [x] Existing code has lifecycle states `born`, `christened`, and `manifested`.
+- [x] Existing code has battle turn events emitted from the battle engine.
+
+### Not Yet Implemented
+
+- [ ] `app/services/` and `VibemonService`.
+- [ ] Persisted disposition (`owned`, `wild`, `expired`) and candidate-review metadata.
+- [ ] Generation-credit accounting and credit holds.
+- [ ] Candidate generation/adoption/rejection/timeout service workflows.
+- [ ] Atomic full-party adoption swap.
+- [ ] Public Vibemon read model for future API routes.
+- [ ] Wild encounter selection, prewarming, expiration cleanup, catch mechanics, and PvP matching.
+
+---
+
 ## 1. Executive Summary
 The Vibemon backend is a data-driven system built on Python 3.14+ and Pydantic. It successfully decouples **Thematic Intent** (authored by Providers) from **Generic Mechanics** (executed by the Battle Engine). As the project transitions toward frontend integration, this document establishes a **Service-First** roadmap to resolve current maintainability bottlenecks—primarily monolithic schemas and dispersed lifecycle logic—without premature refactoring.
 
@@ -44,29 +69,29 @@ To maintain the flexibility of provider-authored content, we maintain a strict b
 ## 4. Implementation Roadmap
 
 ### Phase 1: Establish Language and Read Models
-*   **Language Alignment:** Ensure `docs/CONTEXT.md` accurately reflects the "Service vs. Lifecycle" distinction.
-*   **Vibemon Read Model:** Define the Pydantic schemas for the "public-facing" Vibemon, including identity, stats, lifecycle, ownership, aesthetic colors, and fetchable asset URLs. Asset URLs may be signed/temporary; persisted identity should remain the asset ref/object key metadata.
+*   [x] **Language Alignment:** Ensure `docs/CONTEXT.md` accurately reflects the "Service vs. Lifecycle" distinction.
+*   [ ] **Vibemon Read Model:** Define the Pydantic schemas for the "public-facing" Vibemon, including identity, stats, lifecycle, ownership, aesthetic colors, and fetchable asset URLs. Asset URLs may be signed/temporary; persisted identity should remain the asset ref/object key metadata.
 
 ### Phase 2: The VibemonService
-*   **Implementation:** Create `app/services/vibemon_service.py` covering candidate generation, `birth`, `christen`, `manifest`, `adopt`, `reject`, and review-timeout workflows.
-*   **Orchestration:** Consolidate any current CLI/script generator orchestration into this service. Do not depend on a `.scripts/vibemon_generator.py` path existing; treat scripts as callers to replace or simplify, not as the source of truth.
-*   **Persistence:** Implement transaction-aware upserts for Vibemon, disposition, candidate-review metadata, generation-credit accounting, and associated aesthetic/asset records.
-*   **Dependencies:** Accept injectable provider, GenAI, and asset/object-store dependencies so tests can run without external APIs.
-*   **Tests:** Cover candidate generation, `birth`, `christen`, `manifest`, `adopt`, `reject`, and review timeout with fakes. Tests should verify lifecycle transitions, disposition transitions, candidate review invariants, generation credit holds/consumption, persisted rows, asset refs, and idempotent reruns where applicable.
+*   [ ] **Implementation:** Create `app/services/vibemon_service.py` covering candidate generation, `birth`, `christen`, `manifest`, `adopt`, `reject`, and review-timeout workflows.
+*   [ ] **Orchestration:** Consolidate any current CLI/script generator orchestration into this service. Do not depend on a `.scripts/vibemon_generator.py` path existing; treat scripts as callers to replace or simplify, not as the source of truth.
+*   [ ] **Persistence:** Implement transaction-aware upserts for Vibemon, disposition, candidate-review metadata, generation-credit accounting, and associated aesthetic/asset records.
+*   [ ] **Dependencies:** Accept injectable provider, GenAI, and asset/object-store dependencies so tests can run without external APIs.
+*   [ ] **Tests:** Cover candidate generation, `birth`, `christen`, `manifest`, `adopt`, `reject`, and review timeout with fakes. Tests should verify lifecycle transitions, disposition transitions, candidate review invariants, generation credit holds/consumption, persisted rows, asset refs, and idempotent reruns where applicable.
 
 ### Phase 3: Move Catalog & Read Service
-*   **Implementation:** Create `MoveCatalogService` to provide a queryable interface for the frontend.
-*   **Separation of Concerns:** Ensure the catalog service remains data-oriented, deferring executable behavior resolution to the battle engine's runtime registry.
+*   [ ] **Implementation:** Create `MoveCatalogService` to provide a queryable interface for the frontend.
+*   [x] **Separation of Concerns:** Ensure the catalog service remains data-oriented, deferring executable behavior resolution to the battle engine's runtime registry.
 
 ### Phase 4: Contextual Schema Distribution
-*   **Refactor:** Once service boundaries are stable, split `app/schema.py` into domain-specific modules:
+*   [ ] **Refactor:** Once service boundaries are stable, split `app/schema.py` into domain-specific modules:
     *   `app/domain/vibemon.py` (Core Identity/Aesthetic)
     *   `app/domain/moves.py` (Declarative Move/Effect schemas)
     *   `app/domain/seed.py` (Birth inputs)
 *   Maintain `app/schema.py` as a thin compatibility layer during the transition.
 
 ### Phase 5: API Layer Integration
-*   **Wrapping:** Wrap the Service layer in a RESTful API (e.g., Litestar) to expose the "Internal API" to the Svelte frontend.
+*   [ ] **Wrapping:** Wrap the Service layer in a RESTful API (e.g., Litestar) to expose the "Internal API" to the Svelte frontend.
 
 ---
 
