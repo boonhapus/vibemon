@@ -59,9 +59,14 @@ A normalized real-world measurement used by a provider to score elements, stats,
 
 **Move**:
 A battle action available to a **Vibemon**.
+Each Move has a stable globally unique `move.id`.
+Move names are globally unique display labels.
+Move-name uniqueness is enforced on a normalized canonical key (case-folded, trimmed, punctuation-normalized), while preserving display casing.
+The canonical `move.id` format is `<provider_slug>.<move_slug>`.
 
 **Move Catalog**:
 The persisted set of known moves.
+Only human-approved moves may be published to the Move Catalog.
 
 **Effect**:
 A declarative piece of move behavior such as status infliction, stat change, drain, recoil, weather, or healing.
@@ -188,6 +193,9 @@ The pre-battle presentation moment that introduces a **Wild** **Vibemon** before
 Application orchestration that coordinates use cases crossing domain rules, persistence, external generation, and presentation.
 _Avoid_: Lifecycle
 
+**Transition Policy**:
+The explicit rule-set that defines which domain state transitions are allowed in Vibemon and candidate-review workflows.
+
 ## Relationships
 
 - **Generation** may include **Birth**, **Christen**, **Manifest**, and an initial **Disposition** such as **Owned** or **Wild**.
@@ -197,10 +205,10 @@ _Avoid_: Lifecycle
 - A **Birth Snapshot** captures provider payloads used to derive **Affinities**.
 - **Lineage** is derived from a **Birth Snapshot** and **Birth Seed**.
 - A **Vibemon** has exactly one **Lifecycle** state.
-- Current **Lifecycle** states are `born`, `christened`, and `manifested`.
+- Current **Lifecycle** states are `born`, `christened`, `armed`, and `awakened`.
 - **Christen** transitions a born **Vibemon** toward preview presentation.
 - **Manifest** transitions a christened **Vibemon** toward full presentation.
-- A **Vibemon** is fully realized when it is manifested and all required generated assets exist.
+- A **Vibemon** is fully realized when it is `awakened` and all required generated assets exist.
 - **Adoption** assigns at most one **Trainer** to a **Vibemon**, makes it **Owned**, and may trigger **Manifest**.
 - **Adoption Source** distinguishes trainer acceptance of a generated **Candidate** from future wild catching.
 - **Adoption** preserves existing core manifestation assets and does not regenerate them.
@@ -218,6 +226,7 @@ _Avoid_: Lifecycle
 - There is no storage or box concept at this stage.
 - If **Adoption** would exceed six **Battle Slots**, the trainer must **Release** one party **Vibemon**.
 - Full-party **Adoption** is an atomic swap: **Release** one party **Vibemon**, adopt the new **Vibemon**, and assign the freed **Battle Slot** together.
+- Full-party **Adoption** swap runs as one transaction with lock/validate/write/commit semantics.
 - **Adoption** is not itself a **Lifecycle** state.
 - **Release** removes trainer ownership from a **Vibemon** and makes it **Wild**.
 - **Release** resets the **Wild Expiration** clock to the release time.
@@ -238,6 +247,7 @@ _Avoid_: Lifecycle
 - A trainer may have multiple unresolved **Candidates** under review.
 - A trainer cannot run more than one candidate generation job at a time.
 - A **Generation Credit Hold** is placed while candidate generation is running.
+- A stale **Generation Credit Hold** is treated as expired once its timeout deadline passes, even if cleanup executes later.
 - A **Generation Credit** is consumed only when a christened **Candidate** is successfully shown.
 - Failed candidate generation releases its **Generation Credit Hold** without consuming a **Generation Credit**.
 - **Adoption** of a shown **Candidate** is free and does not consume another **Generation Credit**.
@@ -245,6 +255,8 @@ _Avoid_: Lifecycle
 - An unresolved shown **Candidate** becomes **Wild** after the 24-hour **Candidate Review Timeout**.
 - **Candidate Review Timeout** starts when the **Candidate** is successfully shown.
 - **Candidate Review Timeout** is authoritative even if cleanup runs late.
+- Timeout cleanup may run concurrently across workers; each pending review resolves at most once.
+- When timeout and trainer action race on the same pending review, first successful transition wins and later conflicting operations fail.
 - **Adoption** of a timed-out **Candidate** is rejected and first resolves the **Candidate** to **Wild**.
 - The player-facing explanation for **Candidate Review Timeout** is that the Vibemon ran away.
 - A **Candidate** enters the **Wild Pool** only after rejection or **Candidate Review Timeout**.
@@ -252,7 +264,7 @@ _Avoid_: Lifecycle
 - Candidate rejection applies a trainer-specific encounter adjustment for the resulting **Wild** **Vibemon**.
 - **Candidate Review Timeout** applies the same trainer-specific encounter adjustment as rejection.
 - Candidate rejection and timeout start at `0.00x` encounter weight and continuously decay back to normal over a randomly assigned 1-3 day window.
-- **Battle-Ready** **Vibemon** require battle sprite assets from the manifested sprite sheet.
+- **Battle-Ready** **Vibemon** require battle sprite assets and correspond to lifecycle `armed` or later.
 - **Wild** can include trainer-rejected candidates whose birth and preview generation costs were already incurred.
 - The **Wild Pool** is scoped by birth latitude and longitude.
 - Wild encounter queries exclude **Candidate** review records and **Expired** Vibemon.
@@ -276,6 +288,8 @@ _Avoid_: Lifecycle
 - The 45% wild target reduction applies only to wild 6v1 encounter matching.
 - Wild encounter matching initially allows candidates from 70% to 140% of the wild target strength, weighted toward the target.
 - Strength formula coefficients and variance bands are **Encounter Tuning Constants** and should be centralized as code constants for easy adjustment.
+- Type-assignment weighting constants are centralized and initially tuned to a Pokemon-like baseline, then adjusted through balance iteration.
+- Pre-user balance changes (including move-assignment weighting updates) ship by direct rollout with regression tests, not feature-flag gating.
 - Strength matching allows variance, including wild encounters the trainer may lose.
 - Non-geographic provider context does not gate **Wild Pool** eligibility.
 - **Wild Expiration** removes **Wild** **Vibemon** whose last actual encounter is older than 30 days.
@@ -294,7 +308,7 @@ _Avoid_: Lifecycle
 - **Wild Expiration** marks a **Vibemon** as **Expired** rather than immediately deleting its rows and assets.
 - Asset cleanup after **Wild Expiration** is separate retention work.
 - **Wild Expiration** is not a **Lifecycle** state.
-- A **Wild** **Vibemon** may enter the **Wild Pool** while christened and become manifested lazily during **Encounter Preparation**.
+- A **Wild** **Vibemon** may enter the **Wild Pool** while christened and advance lifecycle lazily during **Encounter Preparation**.
 - Background prewarming may opportunistically manifest likely **Wild** encounter candidates.
 - **Encounter Preparation** must hide cold manifestation latency before the player-facing battle start.
 - **Encounter Reveal** may hide manifestation latency with a silhouette slide-in or similar pre-battle animation.
@@ -310,12 +324,21 @@ _Avoid_: Lifecycle
 - **Providers** do not own persistence, blob storage, trainer ownership, adoption, lifecycle orchestration, or frontend-facing API behavior.
 - **Monstore** stores and retrieves asset bytes; it is not a **Provider**.
 - Providers can publish **Moves** into the **Move Catalog**; battle code executes moves through the shared move/effect language rather than provider-specific logic.
+- AI-generated move content is gated by explicit human approval before publication to the Move Catalog.
+- **Move** identity is `move.id`, not display name text.
+- Draft move content may revise `move.id` and name before approval.
+- Once approved/published, `move.id` is immutable; post-approval renames preserve the same `move.id`.
+- Move-content validation hard-fails on `move.id` or canonical-name collisions; generation must regenerate/review rather than auto-suffixing identifiers.
+- Move-content contracts are strict: unknown or malformed fields are rejected, not ignored.
+- Move content is organized as one canonical JSON moves file per provider.
+- Move uniqueness validation runs against the full loaded Move Catalog across all providers, not provider-local scope only.
+- Draft moves may collide during review; global uniqueness enforcement is required at approval/publish time for catalog entries.
 - **Battle Events** are the battle system's frontend-consumable narration and state-change stream.
 
 ## Example dialogue
 
-> **Dev:** "Does adoption make the Vibemon manifested?"
-> **Domain expert:** "No. **Adoption** assigns a **Trainer**. A service may choose to trigger **Manifest**, but **Adoption** is not a **Lifecycle** state."
+> **Dev:** "Does adoption make the Vibemon awakened?"
+> **Domain expert:** "No. **Adoption** assigns a **Trainer**. A service may choose lifecycle advancement, but **Adoption** is not a **Lifecycle** state."
 
 > **Dev:** "Is birth the whole generation process?"
 > **Domain expert:** "No. **Birth** creates the schema-ready **Vibemon** from provider data. **Generation** is broader: it can include naming, asset creation, and the initial disposition."
@@ -404,8 +427,8 @@ _Avoid_: Lifecycle
 > **Dev:** "Do we regenerate a wild Vibemon's assets when it is adopted?"
 > **Domain expert:** "No. **Adoption** keeps existing core manifestation assets."
 
-> **Dev:** "Do released Vibemon lose their manifested battle assets?"
-> **Domain expert:** "No. **Release** keeps core manifestation assets and returns the Vibemon to the **Wild Pool** battle-ready if it was already manifested."
+> **Dev:** "Do released Vibemon lose their battle assets?"
+> **Domain expert:** "No. **Release** keeps core presentation assets and returns the Vibemon to the **Wild Pool** battle-ready if it was already `armed` or beyond."
 
 > **Dev:** "Does release reset a Vibemon's level or moves?"
 > **Domain expert:** "No. **Release** preserves progression, learned moves, and history."
@@ -511,3 +534,4 @@ _Avoid_: Lifecycle
 - "Lifecycle" previously referred both to asset-realization states and side-effecting generation workflows; resolved: **Lifecycle** is the state model, while **Service** owns orchestration.
 - "Birth" was proposed for the end-to-end creation workflow; resolved: **Birth** is the deterministic creation step, while **Generation** is the broader end-to-end process.
 - "Release" was proposed as the first-class non-owned disposition; resolved: **Wild** is the disposition, while **Release** is the action that gives up trainer ownership.
+
