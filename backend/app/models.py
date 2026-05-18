@@ -31,6 +31,8 @@ class Trainer(Base):
     username: Mapped[str] = mapped_column(unique=True)
 
     vibemons: Mapped[list[Vibemon]] = relationship(back_populates="trainer")
+    candidate_reviews: Mapped[list[CandidateReview]] = relationship(back_populates="trainer")
+    generation_credit_days: Mapped[list[GenerationCreditDay]] = relationship(back_populates="trainer")
 
 
 class BirthSeed(Base):
@@ -76,9 +78,13 @@ class Vibemon(Base):
     level: Mapped[int]
     evo_stage: Mapped[int]
     lifecycle: Mapped[str]
+    disposition: Mapped[str | None]
     team_slot: Mapped[int | None]
     trainer_id: Mapped[uuid.UUID | None]
     birth_snapshot_id: Mapped[uuid.UUID]
+    wild_entered_at: Mapped[dt.datetime | None]
+    last_encountered_at: Mapped[dt.datetime | None]
+    expired_at: Mapped[dt.datetime | None]
 
     __table_args__ = (
         ForeignKeyConstraint(
@@ -123,6 +129,14 @@ class Vibemon(Base):
         cascade="all, delete-orphan",
     )
     assets: Mapped[list[VibemonAsset]] = relationship(
+        back_populates="vibemon",
+        cascade="all, delete-orphan",
+    )
+    candidate_reviews: Mapped[list[CandidateReview]] = relationship(
+        back_populates="vibemon",
+        cascade="all, delete-orphan",
+    )
+    encounter_adjustments: Mapped[list[EncounterAdjustment]] = relationship(
         back_populates="vibemon",
         cascade="all, delete-orphan",
     )
@@ -265,3 +279,90 @@ class VibemonAsset(Base):
     )
 
     vibemon: Mapped[Vibemon] = relationship(back_populates="assets")
+
+
+class CandidateReview(Base):
+    __tablename__ = "candidate_review"
+
+    id: Mapped[uuid.UUID] = mapped_column(primary_key=True, default=uuid.uuid7)
+    vibemon_id: Mapped[uuid.UUID] = mapped_column(unique=True)
+    trainer_id: Mapped[uuid.UUID]
+    status: Mapped[str]
+    shown_at: Mapped[dt.datetime]
+    timeout_at: Mapped[dt.datetime]
+    resolved_at: Mapped[dt.datetime | None]
+    resolution: Mapped[str | None]
+
+    __table_args__ = (
+        ForeignKeyConstraint(
+            ["vibemon_id"],
+            ["vibemon.id"],
+            name="fk_candidate_review_vibemon",
+            ondelete="CASCADE",
+        ),
+        ForeignKeyConstraint(
+            ["trainer_id"],
+            ["trainer.id"],
+            name="fk_candidate_review_trainer",
+            ondelete="CASCADE",
+        ),
+        Index("ix_candidate_review_trainer_status", "trainer_id", "status"),
+    )
+
+    vibemon: Mapped[Vibemon] = relationship(back_populates="candidate_reviews")
+    trainer: Mapped[Trainer] = relationship(back_populates="candidate_reviews")
+
+
+class GenerationCreditDay(Base):
+    __tablename__ = "generation_credit_day"
+
+    id: Mapped[uuid.UUID] = mapped_column(primary_key=True, default=uuid.uuid7)
+    trainer_id: Mapped[uuid.UUID]
+    credit_date: Mapped[dt.date]
+    credits_consumed: Mapped[int] = mapped_column(default=0)
+    active_hold_id: Mapped[uuid.UUID | None]
+    hold_started_at: Mapped[dt.datetime | None]
+
+    __table_args__ = (
+        ForeignKeyConstraint(
+            ["trainer_id"],
+            ["trainer.id"],
+            name="fk_generation_credit_day_trainer",
+            ondelete="CASCADE",
+        ),
+        UniqueConstraint("trainer_id", "credit_date", name="uq_generation_credit_day"),
+        CheckConstraint("credits_consumed >= 0 AND credits_consumed <= 3", name="ck_generation_credit_day_consumed"),
+    )
+
+    trainer: Mapped[Trainer] = relationship(back_populates="generation_credit_days")
+
+
+class EncounterAdjustment(Base):
+    __tablename__ = "encounter_adjustment"
+
+    id: Mapped[uuid.UUID] = mapped_column(primary_key=True, default=uuid.uuid7)
+    trainer_id: Mapped[uuid.UUID]
+    vibemon_id: Mapped[uuid.UUID]
+    source: Mapped[str]
+    initial_multiplier: Mapped[float]
+    starts_at: Mapped[dt.datetime]
+    ends_at: Mapped[dt.datetime]
+
+    __table_args__ = (
+        ForeignKeyConstraint(
+            ["trainer_id"],
+            ["trainer.id"],
+            name="fk_encounter_adjustment_trainer",
+            ondelete="CASCADE",
+        ),
+        ForeignKeyConstraint(
+            ["vibemon_id"],
+            ["vibemon.id"],
+            name="fk_encounter_adjustment_vibemon",
+            ondelete="CASCADE",
+        ),
+        UniqueConstraint("trainer_id", "vibemon_id", name="uq_encounter_adjustment_pair"),
+    )
+
+    trainer: Mapped[Trainer] = relationship()
+    vibemon: Mapped[Vibemon] = relationship(back_populates="encounter_adjustments")

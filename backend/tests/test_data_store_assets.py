@@ -33,9 +33,13 @@ async def _insert_vibemon(sess: AsyncSession, *, vibemon_id: uuid.UUID) -> None:
         level=1,
         evo_stage=1,
         lifecycle="born",
+        disposition=None,
         team_slot=None,
         trainer_id=None,
         birth_snapshot_id=snapshot.id,
+        wild_entered_at=None,
+        last_encountered_at=None,
+        expired_at=None,
     )
     sess.add_all([seed, snapshot, vibemon])
     await sess.flush()

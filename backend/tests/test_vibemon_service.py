@@ -1,0 +1,218 @@
+from collections.abc import AsyncGenerator
+from typing import ClassVar
+import datetime as dt
+import random
+import uuid
+
+import pytest
+
+pytest.importorskip("sqlalchemy")
+pytest.importorskip("aiosqlite")
+
+from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker, create_async_engine
+import sqlalchemy as sa
+
+from app import models, schema, types
+from app.data_store import schema as ds_schema
+from app.data_store import types as ds_types
+from app.plugins.provider import VibeProvider
+from app.services import vibemon_service
+
+NOW = dt.datetime(2026, 5, 17, 12, 0, tzinfo=dt.UTC)
+
+
+class FakeProvider(VibeProvider):
+    name = "fake"
+    exposed_elements: ClassVar = [(types.VibemonTypeT.FIRE, "test heat")]
+
+    async def fetch(self, seed: schema.BirthSeed) -> dict[str, object]:
+        return {"ok": True}
+
+    async def synthesize(self, seed: schema.BirthSeed, payload: dict[str, object]) -> schema.Affinity:
+        return schema.Affinity(
+            identity=schema.Identity(
+                name="emberling",
+                elements=(types.VibemonTypeT.FIRE,),
+                base_hp=70,
+                base_attack=70,
+                base_defense=70,
+                base_sp_attack=70,
+                base_sp_defense=70,
+                base_speed=70,
+            ),
+            provider_id=self.name,
+            intensity=1.0,
+            moves=self.moves(),
+        )
+
+    def moves(self) -> tuple[schema.Move, ...]:
+        return (
+            self._move("Spark Tap", types.MoveCategoryT.PHYSICAL),
+            self._move("Cinder Ping", types.MoveCategoryT.SPECIAL),
+        )
+
+    async def teardown(self) -> None:
+        return None
+
+    def _move(self, name: str, category: types.MoveCategoryT) -> schema.Move:
+        return schema.Move(
+            name=name,
+            flavor_text="A small testing hit.",
+            type=types.VibemonTypeT.FIRE,
+            category=category,
+            power=40,
+        )
+
+
+async def fake_christen(vibemon: schema.Vibemon) -> schema.Vibemon:
+    vibemon.identity.name = "Testmon"
+    if vibemon.aesthetic is None:
+        vibemon.aesthetic = schema.Aesthetic.from_vibemon(vibemon)
+    vibemon.aesthetic.assets[ds_types.AssetKind.REFERENCE] = ds_schema.AssetRef(
+        vibemon_id=vibemon.id,
+        kind=ds_types.AssetKind.REFERENCE,
+        key=f"{vibemon.id}/reference",
+        content_type="image/png",
+        byte_size=1,
+        sha256="ref",
+    )
+    vibemon.aesthetic.assets[ds_types.AssetKind.CRY_BATTLE] = ds_schema.AssetRef(
+        vibemon_id=vibemon.id,
+        kind=ds_types.AssetKind.CRY_BATTLE,
+        key=f"{vibemon.id}/cry",
+        content_type="audio/mpeg",
+        byte_size=1,
+        sha256="cry",
+    )
+    vibemon.lifecycle = types.VibemonLifecycleT.CHRISTENED
+    return vibemon
+
+
+async def fake_manifest(vibemon: schema.Vibemon) -> schema.Vibemon:
+    if vibemon.aesthetic is None:
+        vibemon.aesthetic = schema.Aesthetic.from_vibemon(vibemon)
+    vibemon.aesthetic.assets[ds_types.AssetKind.SHEET] = ds_schema.AssetRef(
+        vibemon_id=vibemon.id,
+        kind=ds_types.AssetKind.SHEET,
+        key=f"{vibemon.id}/sheet",
+        content_type="image/png",
+        byte_size=1,
+        sha256="sheet",
+    )
+    vibemon.lifecycle = types.VibemonLifecycleT.MANIFESTED
+    return vibemon
+
+
+async def fake_asset_url(key: str, expires_in: dt.timedelta) -> str:
+    return f"asset://{key}"
+
+
+@pytest.fixture
+async def sess() -> AsyncGenerator[AsyncSession]:
+    engine = create_async_engine("sqlite+aiosqlite:///:memory:")
+    try:
+        async with engine.begin() as conn:
+            await conn.run_sync(models.Base.metadata.create_all)
+        async_session = async_sessionmaker(engine, expire_on_commit=False)
+        async with async_session() as session:
+            yield session
+    finally:
+        await engine.dispose()
+
+
+def _service(now: dt.datetime = NOW) -> vibemon_service.VibemonService:
+    return vibemon_service.VibemonService(
+        clock=lambda: now,
+        rng=random.Random(1),
+        christen_step=fake_christen,
+        manifest_step=fake_manifest,
+        asset_urler=fake_asset_url,
+    )
+
+
+def _seed() -> schema.BirthSeed:
+    return schema.BirthSeed(timestamp=NOW, geo_coords=(41.0, -87.0), providers=[FakeProvider()])
+
+
+async def _trainer(sess: AsyncSession) -> uuid.UUID:
+    trainer_id = uuid.uuid7()
+    sess.add(models.Trainer(id=trainer_id, username=f"trainer-{trainer_id}"))
+    await sess.flush()
+    return trainer_id
+
+
+@pytest.mark.asyncio
+async def test_generate_candidate_consumes_credit_and_opens_review(sess: AsyncSession) -> None:
+    trainer_id = await _trainer(sess)
+
+    result = await _service().generate_candidate(sess, trainer_id=trainer_id, birth_seed=_seed())
+
+    assert result.lifecycle == types.VibemonLifecycleT.CHRISTENED
+    assert result.disposition is None
+    assert result.candidate_review is not None
+    assert result.candidate_review.status == types.CandidateReviewStatusT.PENDING
+    assert len(result.assets) == 2
+
+    credit = (await sess.execute(sa.select(models.GenerationCreditDay))).scalar_one()
+    assert credit.credits_consumed == 1
+    assert credit.active_hold_id is None
+
+
+@pytest.mark.asyncio
+async def test_failed_generation_releases_hold_without_consuming_credit(sess: AsyncSession) -> None:
+    trainer_id = await _trainer(sess)
+
+    async def failing_christen(vibemon: schema.Vibemon) -> schema.Vibemon:
+        raise RuntimeError("generation failed")
+
+    service = vibemon_service.VibemonService(clock=lambda: NOW, christen_step=failing_christen)
+
+    with pytest.raises(RuntimeError, match="generation failed"):
+        await service.generate_candidate(sess, trainer_id=trainer_id, birth_seed=_seed())
+
+    credit = (await sess.execute(sa.select(models.GenerationCreditDay))).scalar_one()
+    assert credit.credits_consumed == 0
+    assert credit.active_hold_id is None
+
+
+@pytest.mark.asyncio
+async def test_reject_candidate_resolves_to_wild_with_encounter_adjustment(sess: AsyncSession) -> None:
+    trainer_id = await _trainer(sess)
+    generated = await _service().generate_candidate(sess, trainer_id=trainer_id, birth_seed=_seed())
+
+    result = await _service().reject_candidate(sess, trainer_id=trainer_id, vibemon_id=generated.id)
+
+    assert result.disposition == types.VibemonDispositionT.WILD
+    assert result.candidate_review is not None
+    assert result.candidate_review.status == types.CandidateReviewStatusT.REJECTED
+    adjustment = (await sess.execute(sa.select(models.EncounterAdjustment))).scalar_one()
+    assert adjustment.initial_multiplier == 0.0
+
+
+@pytest.mark.asyncio
+async def test_adopt_candidate_assigns_owned_slot_and_manifests(sess: AsyncSession) -> None:
+    trainer_id = await _trainer(sess)
+    generated = await _service().generate_candidate(sess, trainer_id=trainer_id, birth_seed=_seed())
+
+    result = await _service().adopt_candidate(sess, trainer_id=trainer_id, vibemon_id=generated.id)
+
+    assert result.disposition == types.VibemonDispositionT.OWNED
+    assert result.trainer_id == trainer_id
+    assert result.team_slot == 0
+    assert result.lifecycle == types.VibemonLifecycleT.MANIFESTED
+
+
+@pytest.mark.asyncio
+async def test_timeout_resolution_moves_candidate_to_wild(sess: AsyncSession) -> None:
+    trainer_id = await _trainer(sess)
+    generated = await _service().generate_candidate(sess, trainer_id=trainer_id, birth_seed=_seed())
+    later = NOW + dt.timedelta(hours=25)
+
+    count = await _service(later).resolve_review_timeouts(sess)
+
+    assert count == 1
+    review = (await sess.execute(sa.select(models.CandidateReview))).scalar_one()
+    vibemon = await sess.get(models.Vibemon, generated.id)
+    assert review.status == types.CandidateReviewStatusT.TIMED_OUT.value
+    assert vibemon is not None
+    assert vibemon.disposition == types.VibemonDispositionT.WILD.value

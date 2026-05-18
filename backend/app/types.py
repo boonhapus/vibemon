@@ -179,3 +179,31 @@ class VibemonLifecycleT(enum.StrEnum):
     BORN = "born"
     CHRISTENED = "christened"
     MANIFESTED = "manifested"
+
+
+class VibemonDispositionT(enum.StrEnum):
+    """Gameplay availability state for a Vibemon."""
+
+    OWNED = "owned"
+    WILD = "wild"
+    EXPIRED = "expired"
+
+
+class CandidateReviewStatusT(enum.StrEnum):
+    """Resolution state for a candidate review."""
+
+    PENDING = "pending"
+    ADOPTED = "adopted"
+    REJECTED = "rejected"
+    TIMED_OUT = "timed_out"
+
+
+class VibemonHistoryEventT(enum.StrEnum):
+    """Persisted lifecycle and gameplay history events."""
+
+    CANDIDATE_SHOWN = "candidate_shown"
+    CANDIDATE_ADOPTED = "candidate_adopted"
+    CANDIDATE_REJECTED = "candidate_rejected"
+    CANDIDATE_TIMED_OUT = "candidate_timed_out"
+    RELEASED = "released"
+    EXPIRED = "expired"

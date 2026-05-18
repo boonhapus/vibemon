@@ -1,7 +1,7 @@
 # Vibemon Roadmap
 
 **Status:** Draft  
-**Last updated:** May 17, 2026
+**Last updated:** May 18, 2026
 
 This roadmap translates the backend architecture review and domain decisions into implementation phases and future grilling topics.
 
@@ -9,35 +9,42 @@ This roadmap translates the backend architecture review and domain decisions int
 
 ### Phase 1: Service Foundation
 
-- Add `app/services/`.
-- Add `VibemonService` with injected provider, GenAI, asset/object-store, clock, and random dependencies.
-- Keep HTTP/API framework choices deferred.
-- Wrap existing lifecycle functions first; do not rewrite lifecycle internals as part of the first service slice.
+- [x] Add `app/services/`.
+- [x] Add `VibemonService` with injected provider, GenAI, asset/object-store, clock, and random dependencies.
+- [x] Keep HTTP/API framework choices deferred.
+- [x] Wrap existing lifecycle functions first; do not rewrite lifecycle internals as part of the first service slice.
 
 ### Phase 2: Candidate Review and Disposition
 
-- Add persisted Vibemon disposition: `owned`, `wild`, and non-playable `expired`.
-- Allow missing gameplay disposition only while an active candidate review exists.
-- Add candidate-review metadata for shown candidates.
-- Keep `trainer_id` as ownership only; candidate review records the reviewing trainer separately.
-- Implement candidate generation, adoption, rejection, and timeout resolution.
-- Enforce 24-hour candidate review timeout from `shown_at`.
-- Generate up to three candidates per trainer per day, sequentially, with one active generation job at a time.
-- Consume generation credit only after a christened candidate is successfully shown.
+- [x] Add persisted Vibemon disposition: `owned`, `wild`, and non-playable `expired`.
+- [x] Allow missing gameplay disposition only while an active candidate review exists.
+- [x] Add candidate-review metadata for shown candidates.
+- [x] Keep `trainer_id` as ownership only; candidate review records the reviewing trainer separately.
+- [x] Implement candidate generation, adoption, rejection, and timeout resolution.
+- [x] Enforce 24-hour candidate review timeout from `shown_at`.
+- [x] Generate up to three candidates per trainer per day, sequentially, with one active generation job at a time.
+- [x] Consume generation credit only after a christened candidate is successfully shown.
 
 ### Phase 3: Party Ownership Rules
 
-- Treat the six-slot party as the trainer's full owned roster.
-- Defer storage/box ownership.
-- Make full-party adoption an atomic release/adopt slot swap.
-- Preserve progression, moves, history, and assets on release.
+- [x] Treat the six-slot party as the trainer's full owned roster.
+- [x] Defer storage/box ownership.
+- [ ] Make full-party adoption an atomic release/adopt slot swap.
+- [ ] Preserve progression, moves, history, and assets on release.
 
 ### Phase 4: Read Models
 
-- Add public Vibemon read models suitable for future API routes.
-- Include identity, stats, lifecycle, disposition, ownership, party slot, colors, and asset URLs.
-- Include candidate-review state only for the reviewing trainer.
-- Persist asset refs/object keys; return fetchable URLs in read models.
+- [x] Add public Vibemon read models suitable for future API routes.
+- [x] Include identity, stats, lifecycle, disposition, ownership, party slot, colors, and asset URLs.
+- [x] Include candidate-review state only for the reviewing trainer.
+- [x] Persist asset refs/object keys; return fetchable URLs in read models.
+
+## Immediate Next Slice
+
+- Recreate/reset local development data after schema changes; no backwards-compatible migration path is needed before users exist.
+- Harden generation credit holds and adoption swaps for real concurrent requests.
+- Add focused tests for one-active-generation enforcement, adoption-after-timeout rejection, and full-party swap behavior.
+- Replace or simplify script callers so candidate generation goes through `VibemonService`.
 
 ## Deferred Implementation
 
@@ -100,7 +107,7 @@ Questions to resolve:
 - What exact fields belong on `vibemon`: `disposition`, `wild_entered_at`, `last_encountered_at`, `expired_at`, `party_slot`, `trainer_id`?
 - Should generation credits be derived from event history or stored as daily counters?
 - What database constraints enforce candidate-review/disposition invariants?
-- How should migrations handle existing `trainer_id is None` rows?
+- How should local development data be reset after schema changes?
 
 ### 2. Service API Surface
 

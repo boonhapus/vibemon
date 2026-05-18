@@ -18,15 +18,17 @@
 - [x] Existing code has monstore-backed asset refs and asset-row upsert helpers.
 - [x] Existing code has lifecycle states `born`, `christened`, and `manifested`.
 - [x] Existing code has battle turn events emitted from the battle engine.
+- [x] Added `app/services/` and first-pass `VibemonService`.
+- [x] Added persisted disposition, candidate-review metadata, generation-credit day/hold storage, and encounter-adjustment storage.
+- [x] Added a public Vibemon read model with candidate-review and asset URL fields.
+- [x] Added fake-backed service tests for candidate generation, credit release on failure, adoption, rejection, and timeout.
 
 ### Not Yet Implemented
 
-- [ ] `app/services/` and `VibemonService`.
-- [ ] Persisted disposition (`owned`, `wild`, `expired`) and candidate-review metadata.
-- [ ] Generation-credit accounting and credit holds.
-- [ ] Candidate generation/adoption/rejection/timeout service workflows.
+- [ ] Recreate/reset local development data after schema changes; no backwards-compatible migration path is needed before users exist.
+- [ ] Full generation-credit concurrency hardening beyond the in-session service path.
 - [ ] Atomic full-party adoption swap.
-- [ ] Public Vibemon read model for future API routes.
+- [ ] Release service workflow outside full-party adoption.
 - [ ] Wild encounter selection, prewarming, expiration cleanup, catch mechanics, and PvP matching.
 
 ---
@@ -70,13 +72,13 @@ To maintain the flexibility of provider-authored content, we maintain a strict b
 
 ### Phase 1: Establish Language and Read Models
 *   [x] **Language Alignment:** Ensure `docs/CONTEXT.md` accurately reflects the "Service vs. Lifecycle" distinction.
-*   [ ] **Vibemon Read Model:** Define the Pydantic schemas for the "public-facing" Vibemon, including identity, stats, lifecycle, ownership, aesthetic colors, and fetchable asset URLs. Asset URLs may be signed/temporary; persisted identity should remain the asset ref/object key metadata.
+*   [x] **Vibemon Read Model:** Define the Pydantic schemas for the "public-facing" Vibemon, including identity, stats, lifecycle, ownership, aesthetic colors, and fetchable asset URLs. Asset URLs may be signed/temporary; persisted identity should remain the asset ref/object key metadata.
 
 ### Phase 2: The VibemonService
-*   [ ] **Implementation:** Create `app/services/vibemon_service.py` covering candidate generation, `birth`, `christen`, `manifest`, `adopt`, `reject`, and review-timeout workflows.
+*   [x] **Implementation:** Create `app/services/vibemon_service.py` covering candidate generation, `birth`, `christen`, `manifest`, `adopt`, `reject`, and review-timeout workflows.
 *   [ ] **Orchestration:** Consolidate any current CLI/script generator orchestration into this service. Do not depend on a `.scripts/vibemon_generator.py` path existing; treat scripts as callers to replace or simplify, not as the source of truth.
-*   [ ] **Persistence:** Implement transaction-aware upserts for Vibemon, disposition, candidate-review metadata, generation-credit accounting, and associated aesthetic/asset records.
-*   [ ] **Dependencies:** Accept injectable provider, GenAI, and asset/object-store dependencies so tests can run without external APIs.
+*   [x] **Persistence:** Implement transaction-aware upserts for Vibemon, disposition, candidate-review metadata, generation-credit accounting, and associated aesthetic/asset records.
+*   [x] **Dependencies:** Accept injectable provider, GenAI, and asset/object-store dependencies so tests can run without external APIs.
 *   [ ] **Tests:** Cover candidate generation, `birth`, `christen`, `manifest`, `adopt`, `reject`, and review timeout with fakes. Tests should verify lifecycle transitions, disposition transitions, candidate review invariants, generation credit holds/consumption, persisted rows, asset refs, and idempotent reruns where applicable.
 
 ### Phase 3: Move Catalog & Read Service
@@ -107,14 +109,14 @@ To maintain the flexibility of provider-authored content, we maintain a strict b
 ## 6. First Implementation Slice
 For a new engineer or agent, the first concrete slice should be narrow:
 
-1. Add `app/services/`.
-2. Add `VibemonService` with dependency injection and no HTTP framework coupling.
-3. Add persisted disposition and candidate-review metadata. Disposition is `owned`, `wild`, or non-playable `expired`; a missing gameplay disposition is valid only while an active candidate review exists.
-4. Add generation-credit accounting: three credits per trainer per day, one active generation job at a time, credit hold during generation, consume only when a christened candidate is shown.
-5. Add a public/read schema for a Vibemon response that includes lifecycle, disposition, candidate-review state where relevant, ownership, identity, stats, colors, and fetchable asset URLs.
-6. Wrap existing lifecycle functions rather than rewriting them.
-7. Persist the resulting Vibemon, identity, moves, asset refs, trainer ownership, disposition, candidate review, and lifecycle state through existing ORM models/helpers.
-8. Add fake-backed tests for service behavior.
+1. [x] Add `app/services/`.
+2. [x] Add `VibemonService` with dependency injection and no HTTP framework coupling.
+3. [x] Add persisted disposition and candidate-review metadata. Disposition is `owned`, `wild`, or non-playable `expired`; a missing gameplay disposition is valid only while an active candidate review exists.
+4. [x] Add generation-credit accounting: three credits per trainer per day, one active generation job at a time, credit hold during generation, consume only when a christened candidate is shown.
+5. [x] Add a public/read schema for a Vibemon response that includes lifecycle, disposition, candidate-review state where relevant, ownership, identity, stats, colors, and fetchable asset URLs.
+6. [x] Wrap existing lifecycle functions rather than rewriting them.
+7. [x] Persist the resulting Vibemon, identity, moves, asset refs, trainer ownership, disposition, candidate review, and lifecycle state through existing ORM models/helpers.
+8. [x] Add fake-backed tests for service behavior.
 
 Acceptance criteria:
 
@@ -136,49 +138,49 @@ Acceptance criteria:
 
 ### 7.1 Domain and Persistence
 
-- [ ] Add a persisted Vibemon disposition field with values `owned`, `wild`, and non-playable `expired`.
-- [ ] Allow missing gameplay disposition only while an active candidate review exists.
-- [ ] Add candidate-review metadata for shown candidates: Vibemon id, reviewing trainer id, shown timestamp, status/resolution, and timeout deadline.
-- [ ] Keep `trainer_id` as ownership only; candidate review references the reviewing trainer separately.
-- [ ] Add generation-credit accounting for three credits per trainer per day.
-- [ ] Add generation-credit hold state so only one generation job can run for a trainer at a time.
-- [ ] Add history/event records for candidate shown, adopted, rejected, timed out, released, and expired.
-- [ ] Add trainer/Vibemon encounter adjustment storage for later encounter weighting, with initial support for rejection/timeout starting at `0.00x`.
+- [x] Add a persisted Vibemon disposition field with values `owned`, `wild`, and non-playable `expired`.
+- [x] Allow missing gameplay disposition only while an active candidate review exists.
+- [x] Add candidate-review metadata for shown candidates: Vibemon id, reviewing trainer id, shown timestamp, status/resolution, and timeout deadline.
+- [x] Keep `trainer_id` as ownership only; candidate review references the reviewing trainer separately.
+- [x] Add generation-credit accounting for three credits per trainer per day.
+- [x] Add generation-credit hold state so only one generation job can run for a trainer at a time.
+- [x] Add history/event records for candidate shown, adopted, rejected, timed out, released, and expired.
+- [x] Add trainer/Vibemon encounter adjustment storage for later encounter weighting, with initial support for rejection/timeout starting at `0.00x`.
 
 ### 7.2 Service Layer
 
-- [ ] Create `app/services/`.
-- [ ] Add `VibemonService` with injected provider, GenAI, asset/object-store, clock, and random dependencies.
-- [ ] Implement candidate generation: reserve credit, fetch/synthesize providers, birth, christen, persist candidate review, consume credit on shown success, release hold on failure.
-- [ ] Implement candidate adoption: reject timed-out candidates first, assign `owned`, set `trainer_id`, preserve assets, manifest if needed, and resolve review.
-- [ ] Implement candidate rejection: resolve review to `wild`, clear ownership, set wild-pool timing, and create trainer-specific encounter adjustment.
-- [ ] Implement review-timeout resolution: candidates older than 24 hours become `wild`; timeout is authoritative even if cleanup runs late.
+- [x] Create `app/services/`.
+- [x] Add `VibemonService` with injected provider, GenAI, asset/object-store, clock, and random dependencies.
+- [x] Implement candidate generation: reserve credit, fetch/synthesize providers, birth, christen, persist candidate review, consume credit on shown success, release hold on failure.
+- [x] Implement candidate adoption: reject timed-out candidates first, assign `owned`, set `trainer_id`, preserve assets, manifest if needed, and resolve review.
+- [x] Implement candidate rejection: resolve review to `wild`, clear ownership, set wild-pool timing, and create trainer-specific encounter adjustment.
+- [x] Implement review-timeout resolution: candidates older than 24 hours become `wild`; timeout is authoritative even if cleanup runs late.
 - [ ] Implement release: transition `owned` to `wild`, reset wild expiration baseline to release time, preserve progression, moves, history, and core assets.
 - [ ] Implement full-party adoption swap atomically: release selected party Vibemon, adopt new Vibemon, and assign freed battle slot in one transaction.
 
 ### 7.3 Read Models
 
-- [ ] Add a public Vibemon read model with identity, stats, lifecycle, disposition, ownership, party slot, colors, and asset URLs.
-- [ ] Include candidate-review state only where relevant to the reviewing trainer.
-- [ ] Return asset URLs as fetchable/signed values while persisting asset refs/object keys.
+- [x] Add a public Vibemon read model with identity, stats, lifecycle, disposition, ownership, party slot, colors, and asset URLs.
+- [x] Include candidate-review state only where relevant to the reviewing trainer.
+- [x] Return asset URLs as fetchable/signed values while persisting asset refs/object keys.
 - [ ] Exclude candidate-review and expired Vibemon from future wild-encounter read/query surfaces.
 
 ### 7.4 Lifecycle and Assets
 
-- [ ] Keep lifecycle as asset-realization state only: `born`, `christened`, `manifested`.
-- [ ] Keep existing lifecycle functions wrapped initially rather than rewritten wholesale.
+- [x] Keep lifecycle as asset-realization state only: `born`, `christened`, `manifested`.
+- [x] Keep existing lifecycle functions wrapped initially rather than rewritten wholesale.
 - [ ] Ensure lifecycle transitions advance only after required asset refs exist.
 - [ ] Ensure adoption and release do not regenerate or degrade existing core manifestation assets.
 - [ ] Defer wild prewarm, encounter preparation, and catch mechanics to later implementation slices.
 
 ### 7.5 Tests
 
-- [ ] Test successful candidate generation consumes one daily credit only after a christened candidate is shown.
-- [ ] Test failed candidate generation releases the hold and does not consume a credit.
+- [x] Test successful candidate generation consumes one daily credit only after a christened candidate is shown.
+- [x] Test failed candidate generation releases the hold and does not consume a credit.
 - [ ] Test one active generation job per trainer, while allowing multiple unresolved shown candidates up to available daily credits.
-- [ ] Test candidate adoption is free, resolves review, sets `owned`, assigns ownership, and manifests only when needed.
-- [ ] Test candidate rejection resolves to `wild` and creates a `0.00x` encounter adjustment.
-- [ ] Test candidate timeout after 24 hours from `shown_at` resolves to `wild` even if cleanup runs late.
+- [x] Test candidate adoption is free, resolves review, sets `owned`, assigns ownership, and manifests only when needed.
+- [x] Test candidate rejection resolves to `wild` and creates a `0.00x` encounter adjustment.
+- [x] Test candidate timeout after 24 hours from `shown_at` resolves to `wild` even if cleanup runs late.
 - [ ] Test adoption after timeout is rejected and first resolves the candidate to `wild`.
 - [ ] Test full-party adoption requires an atomic release/adopt slot swap.
 - [ ] Test release preserves level, XP, moves, history, and assets while resetting wild expiration baseline.
