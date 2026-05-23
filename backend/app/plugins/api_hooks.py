@@ -20,7 +20,7 @@ class LoggingHook(niquests.AsyncLifeCycleHook[HookValue]):
         super().__init__()
         self.provider = provider
 
-    async def pre_request(self, prepared_request: niquests.PreparedRequest, **kwargs: Any) -> None:
+    async def pre_request(self, prepared_request: niquests.PreparedRequest, **_kwargs: Any) -> None:
         """
         The prepared request just got built. You may alter it prior to be sent through HTTP.
 
@@ -34,7 +34,7 @@ class LoggingHook(niquests.AsyncLifeCycleHook[HookValue]):
             body=prepared_request.body,
         )
 
-    async def response(self, response: niquests.Response, **kwargs: Any) -> None:
+    async def response(self, response: niquests.Response, **_kwargs: Any) -> None:
         """
         The response generated from a Request. You may alter the response at will.
 
@@ -82,7 +82,7 @@ class RateLimiterHook(niquests.AsyncLifeCycleHook[HookValue]):
             rps = round(state.max_requests / state.window_seconds, 2)
             _LOGGER.debug(f"Rate limit for {provider}: {state.max_requests} reqs / {state.window_seconds}s ({rps} RPS)")
 
-    async def pre_request(self, prepared_request: niquests.PreparedRequest, **kwargs: Any) -> None:
+    async def pre_request(self, prepared_request: niquests.PreparedRequest, **_kwargs: Any) -> None:
         """
         The prepared request just got built. You may alter it prior to be sent through HTTP.
 

@@ -12,11 +12,14 @@ pytest.importorskip("aiosqlite")
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker, create_async_engine
 import sqlalchemy as sa
 
-from app import errors, models, schema, types
-from app.data_store import schema as ds_schema
-from app.data_store import types as ds_types
+from app import errors, models, types
+from app.domain.birth import BirthSeed
+from app.domain.move import Move
+from app.domain.vibemon import Aesthetic, Affinity, Identity, Vibemon
 from app.plugins.provider import VibeProvider
 from app.services import vibemon_service
+from app.storage import schema as ds_schema
+from app.storage import types as ds_types
 
 NOW = dt.datetime(2026, 5, 17, 12, 0, tzinfo=dt.UTC)
 
@@ -25,12 +28,12 @@ class FakeProvider(VibeProvider):
     name = "fake"
     exposed_elements: ClassVar = [(types.VibemonTypeT.FIRE, "test heat")]
 
-    async def fetch(self, seed: schema.BirthSeed) -> dict[str, object]:
+    async def fetch(self, seed: BirthSeed) -> dict[str, object]:
         return {"ok": True}
 
-    async def synthesize(self, seed: schema.BirthSeed, payload: dict[str, object]) -> schema.Affinity:
-        return schema.Affinity(
-            identity=schema.Identity(
+    async def synthesize(self, seed: BirthSeed, payload: dict[str, object]) -> Affinity:
+        return Affinity(
+            identity=Identity(
                 name="emberling",
                 elements=(types.VibemonTypeT.FIRE,),
                 base_hp=70,
@@ -45,7 +48,7 @@ class FakeProvider(VibeProvider):
             moves=self.moves(),
         )
 
-    def moves(self) -> tuple[schema.Move, ...]:
+    def moves(self) -> tuple[Move, ...]:
         return (
             self._move("Spark Tap", types.MoveCategoryT.PHYSICAL),
             self._move("Cinder Ping", types.MoveCategoryT.SPECIAL),
@@ -54,9 +57,9 @@ class FakeProvider(VibeProvider):
     async def teardown(self) -> None:
         return None
 
-    def _move(self, name: str, category: types.MoveCategoryT) -> schema.Move:
+    def _move(self, name: str, category: types.MoveCategoryT) -> Move:
         slug = name.casefold().replace(" ", "_")
-        return schema.Move(
+        return Move(
             id=f"fake.{slug}",
             name=name,
             flavor_text="A small testing hit.",
@@ -66,10 +69,10 @@ class FakeProvider(VibeProvider):
         )
 
 
-async def fake_christen(vibemon: schema.Vibemon) -> schema.Vibemon:
+async def fake_christen(vibemon: Vibemon) -> Vibemon:
     vibemon.identity.name = "Testmon"
     if vibemon.aesthetic is None:
-        vibemon.aesthetic = schema.Aesthetic.from_vibemon(vibemon)
+        vibemon.aesthetic = Aesthetic.from_vibemon(vibemon)
     vibemon.aesthetic.assets[ds_types.AssetKind.REFERENCE] = ds_schema.AssetRef(
         vibemon_id=vibemon.id,
         kind=ds_types.AssetKind.REFERENCE,
@@ -90,9 +93,9 @@ async def fake_christen(vibemon: schema.Vibemon) -> schema.Vibemon:
     return vibemon
 
 
-async def fake_manifest(vibemon: schema.Vibemon) -> schema.Vibemon:
+async def fake_manifest(vibemon: Vibemon) -> Vibemon:
     if vibemon.aesthetic is None:
-        vibemon.aesthetic = schema.Aesthetic.from_vibemon(vibemon)
+        vibemon.aesthetic = Aesthetic.from_vibemon(vibemon)
     vibemon.aesthetic.assets[ds_types.AssetKind.SHEET] = ds_schema.AssetRef(
         vibemon_id=vibemon.id,
         kind=ds_types.AssetKind.SHEET,
@@ -105,7 +108,7 @@ async def fake_manifest(vibemon: schema.Vibemon) -> schema.Vibemon:
     return vibemon
 
 
-async def failing_manifest(vibemon: schema.Vibemon) -> schema.Vibemon:
+async def failing_manifest(vibemon: Vibemon) -> Vibemon:
     raise RuntimeError("manifest failed")
 
 
@@ -136,8 +139,8 @@ def _service(now: dt.datetime = NOW) -> vibemon_service.VibemonService:
     )
 
 
-def _seed() -> schema.BirthSeed:
-    return schema.BirthSeed(timestamp=NOW, geo_coords=(41.0, -87.0), providers=[FakeProvider()])
+def _seed() -> BirthSeed:
+    return BirthSeed(timestamp=NOW, geo_coords=(41.0, -87.0), providers=[FakeProvider()])
 
 
 async def _trainer(sess: AsyncSession) -> uuid.UUID:
@@ -230,7 +233,7 @@ async def test_generate_wild_supply_creates_christened_wild_without_review(sess:
 async def test_failed_generation_releases_hold_without_consuming_credit(sess: AsyncSession) -> None:
     trainer_id = await _trainer(sess)
 
-    async def failing_christen(vibemon: schema.Vibemon) -> schema.Vibemon:
+    async def failing_christen(vibemon: Vibemon) -> Vibemon:
         raise RuntimeError("generation failed")
 
     service = vibemon_service.VibemonService(clock=lambda: NOW, christen_step=failing_christen)

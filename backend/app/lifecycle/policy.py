@@ -2,9 +2,10 @@
 
 from __future__ import annotations
 
-from app import schema, types
-from app.data_store import const as ds_const
-from app.data_store import types as ds_types
+from app import types
+from app.domain.vibemon import Vibemon
+from app.storage import const as ds_const
+from app.storage import types as ds_types
 
 ALLOWED_CHRISTEN_LIFECYCLES: frozenset[types.VibemonLifecycleT] = frozenset(
     {
@@ -22,23 +23,23 @@ ALLOWED_MANIFEST_LIFECYCLES: frozenset[types.VibemonLifecycleT] = frozenset(
 )
 
 
-def has_required_assets(vibemon: schema.Vibemon, required: frozenset[ds_types.AssetKind]) -> bool:
+def has_required_assets(vibemon: Vibemon, required: frozenset[ds_types.AssetKind]) -> bool:
     return vibemon.aesthetic is not None and required.issubset(vibemon.aesthetic.assets.keys())
 
 
-def can_skip_christen(vibemon: schema.Vibemon) -> bool:
+def can_skip_christen(vibemon: Vibemon) -> bool:
     return vibemon.lifecycle in (
         types.VibemonLifecycleT.CHRISTENED,
         types.VibemonLifecycleT.MANIFESTED,
     ) and has_required_assets(vibemon, ds_const.REQUIRED_CHRISTEN_ASSETS)
 
 
-def require_can_manifest(vibemon: schema.Vibemon) -> None:
+def require_can_manifest(vibemon: Vibemon) -> None:
     if vibemon.lifecycle not in ALLOWED_MANIFEST_LIFECYCLES:
         raise ValueError(f"Cannot manifest Vibemon {vibemon.id} from {vibemon.lifecycle}; must be CHRISTENED first.")
 
 
-def require_christen_assets(vibemon: schema.Vibemon) -> None:
+def require_christen_assets(vibemon: Vibemon) -> None:
     aesthetic = vibemon.aesthetic
     if aesthetic is None:
         raise ValueError(f"Vibemon {vibemon.id} missing christen refs: {sorted(ds_const.REQUIRED_CHRISTEN_ASSETS)}")

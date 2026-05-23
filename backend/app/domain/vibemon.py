@@ -13,11 +13,11 @@ import structlog
 
 from app import brand, const, types, utils
 from app.balance.formulas import apply_evo_seed_bst_bias, base_stat_level_scaling
-from app.data_store import monstore
-from app.data_store import schema as ds_schema
-from app.data_store import types as ds_types
 from app.domain.birth import BirthSeed, BirthSnapshot, FrozenSchema, Schema
 from app.domain.move import Move
+from app.storage import monstore
+from app.storage import schema as ds_schema
+from app.storage import types as ds_types
 
 _LOGGER = structlog.get_logger(__name__)
 

@@ -5,10 +5,19 @@ from __future__ import annotations
 from collections.abc import Awaitable, Callable
 import datetime as dt
 
-from app import const, models, schema, types
+from app import const, models, types
 from app.balance.element_chart import TYPE_AFFINITIES, get_element_effectiveness
-from app.data_store import types as ds_types
 from app.domain import read_models
+from app.domain.read_models import (
+    CandidateReviewRead,
+    PublicAsset,
+    PublicVibemon,
+    TypeCoverageSummary,
+    TypeDefenseSummary,
+    TypeMatchupSummary,
+)
+from app.domain.vibemon import Vibemon
+from app.storage import types as ds_types
 
 type AssetUrler = Callable[[str, dt.timedelta], Awaitable[str]]
 
@@ -19,7 +28,7 @@ class ReadModelAssembler:
     def __init__(
         self,
         *,
-        schema_loader: Callable[[models.Vibemon], Awaitable[schema.Vibemon]],
+        schema_loader: Callable[[models.Vibemon], Awaitable[Vibemon]],
         asset_urler: AssetUrler,
     ) -> None:
         self._schema_loader = schema_loader
@@ -30,12 +39,12 @@ class ReadModelAssembler:
         row: models.Vibemon,
         *,
         reviewing_trainer_id: types.TrainerIdT | None = None,
-    ) -> schema.PublicVibemon:
+    ) -> PublicVibemon:
         vibemon = await self._schema_loader(row)
         assets = await self._public_assets(row.assets)
         review = _visible_review(row.candidate_reviews, reviewing_trainer_id)
         aesthetic = vibemon.aesthetic
-        return schema.PublicVibemon(
+        return PublicVibemon(
             id=vibemon.id,
             nickname=vibemon.nickname,
             name=vibemon.name,
@@ -56,11 +65,11 @@ class ReadModelAssembler:
             type_matchup=_type_matchup(vibemon),
         )
 
-    async def _public_assets(self, assets: list[models.VibemonAsset]) -> tuple[schema.PublicAsset, ...]:
+    async def _public_assets(self, assets: list[models.VibemonAsset]) -> tuple[PublicAsset, ...]:
         public = []
         for asset in sorted(assets, key=lambda item: item.kind):
             public.append(
-                schema.PublicAsset(
+                PublicAsset(
                     kind=ds_types.AssetKind(asset.kind),
                     url=await self._asset_urler(asset.object_key, const.PUBLIC_ASSET_URL_TTL),
                     content_type=asset.content_type,
@@ -74,14 +83,14 @@ class ReadModelAssembler:
 def _visible_review(
     reviews: list[models.CandidateReview],
     reviewing_trainer_id: types.TrainerIdT | None,
-) -> schema.CandidateReviewRead | None:
+) -> CandidateReviewRead | None:
     if reviewing_trainer_id is None:
         return None
     for review in reviews:
         if review.trainer_id == reviewing_trainer_id:
             status = types.CandidateReviewStatusT(review.status)
             resolution = types.CandidateReviewStatusT(review.resolution) if review.resolution else None
-            return schema.CandidateReviewRead(
+            return CandidateReviewRead(
                 id=review.id,
                 trainer_id=review.trainer_id,
                 status=status,
@@ -95,7 +104,7 @@ def _visible_review(
     return None
 
 
-def _type_matchup(vibemon: schema.Vibemon) -> schema.TypeMatchupSummary:
+def _type_matchup(vibemon: Vibemon) -> TypeMatchupSummary:
     all_types = tuple(types.VibemonTypeT)
     weak_to: list[types.VibemonTypeT] = []
     resists: list[types.VibemonTypeT] = []
@@ -123,13 +132,13 @@ def _type_matchup(vibemon: schema.Vibemon) -> schema.TypeMatchupSummary:
         },
         key=lambda value: value.value,
     )
-    return schema.TypeMatchupSummary(
-        defense=schema.TypeDefenseSummary(
+    return TypeMatchupSummary(
+        defense=TypeDefenseSummary(
             weak_to=tuple(weak_to),
             resists=tuple(resists),
             immune_to=tuple(immune_to),
         ),
-        coverage=schema.TypeCoverageSummary(
+        coverage=TypeCoverageSummary(
             move_types=move_types,
             strong_against=tuple(strong_against),
             ineffective_against=tuple(ineffective_against),

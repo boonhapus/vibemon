@@ -37,7 +37,7 @@ Define trainer profile timezone as the authoritative source-of-truth for generat
 
 ## Implementation Tasks
 - [ ] Add trainer timezone field (IANA id) to [`backend/app/models.py`](/C:/projects/vibemon/backend/app/models.py).
-- [ ] Add/update migration/reset path for trainer timezone in local DB tooling under [`backend/scripts/`](/C:/projects/vibemon/backend/scripts).
+- [ ] Add/update migration/reset path for trainer timezone in local DB tooling under [`.scripts/`](/C:/projects/vibemon/.scripts).
 - [ ] Compute generation `credit_date` from trainer-local timezone in [`backend/app/services/vibemon_service.py`](/C:/projects/vibemon/backend/app/services/vibemon_service.py).
 - [ ] Add domain error for missing trainer timezone in [`backend/app/errors.py`](/C:/projects/vibemon/backend/app/errors.py) and enforce in service.
 - [ ] Add tests for midnight boundary and DST behavior in [`backend/tests/test_vibemon_service.py`](/C:/projects/vibemon/backend/tests/test_vibemon_service.py).

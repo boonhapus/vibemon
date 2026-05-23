@@ -3,8 +3,8 @@ from __future__ import annotations
 from typing import Protocol, TypeVar, cast
 import enum
 
-from app import schema
 from app.battle import events
+from app.domain.birth import FrozenSchema
 
 
 class HookPriority(enum.IntEnum):
@@ -15,7 +15,7 @@ class HookPriority(enum.IntEnum):
     LATE = 100
 
 
-class RegisteredHook(schema.FrozenSchema):
+class RegisteredHook(FrozenSchema):
     """A hook with explicit ordering metadata."""
 
     priority: int = HookPriority.NORMAL
@@ -43,7 +43,7 @@ class HookRegistry:
 class DamageModifierHook(Protocol):
     """Hook that contributes modifiers to one damage phase."""
 
-    def __call__(self, phase: str, ctx: object, use: object, target: object) -> tuple[events.DamageModifier, ...]: ...
+    def __call__(self, _phase: str, ctx: object, use: object, target: object) -> tuple[events.DamageModifier, ...]: ...
 
 
 class EndOfTurnHook(Protocol):

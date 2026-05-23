@@ -46,7 +46,7 @@ Adopt an explicit two-profile concurrency contract:
 
 ## Implementation Tasks
 - [x] Make review transition writes conditional on `pending` in [`backend/app/services/vibemon_service.py`](/C:/projects/vibemon/backend/app/services/vibemon_service.py).
-- [ ] Keep local cleanup default single-worker in [`backend/scripts/cleanup_holds.py`](/C:/projects/vibemon/backend/scripts/cleanup_holds.py).
+- [ ] Keep local cleanup default single-worker in [`.scripts/cleanup_holds.py`](/C:/projects/vibemon/.scripts/cleanup_holds.py).
 - [ ] Add explicit production-path timeout batching semantics (`FOR UPDATE SKIP LOCKED`) for Postgres in service/repository layer.
 - [x] Add SQLite functional race/invariant tests in [`backend/tests/test_vibemon_service.py`](/C:/projects/vibemon/backend/tests/test_vibemon_service.py), [`backend/tests/test_stale_holds.py`](/C:/projects/vibemon/backend/tests/test_stale_holds.py), and [`backend/tests/test_persistence_invariants.py`](/C:/projects/vibemon/backend/tests/test_persistence_invariants.py).
 - [ ] Add Postgres concurrency integration tests under `backend/tests/` (new test module).

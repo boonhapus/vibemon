@@ -2,7 +2,9 @@ from __future__ import annotations
 
 import pytest
 
-from app import schema, types
+from app import types
+from app.domain.move import Move
+from app.domain.vibemon import Aesthetic, Identity, Vibemon
 from app.genai import client
 
 
@@ -35,27 +37,27 @@ def test_genai_client_is_lazy() -> None:
 
 @pytest.mark.asyncio
 async def test_default_client_provider_can_be_injected(monkeypatch: pytest.MonkeyPatch) -> None:
-    vibemon = schema.Vibemon(
-        identity=schema.Identity(name="testmon", elements=(types.VibemonTypeT.FIRE,)),
+    vibemon = Vibemon(
+        identity=Identity(name="testmon", elements=(types.VibemonTypeT.FIRE,)),
     )
-    vibemon.aesthetic = schema.Aesthetic.from_vibemon(vibemon)
+    vibemon.aesthetic = Aesthetic.from_vibemon(vibemon)
 
     class FakeClient:
         async def generate_vibemon_name(
             self,
-            identity: schema.Identity,
-            moves: list[schema.Move],
+            identity: Identity,
+            moves: list[Move],
             visual_notes: str | None,
         ) -> str:
             return "InjectedName"
 
-        async def generate_sprite_reference(self, vibemon: schema.Vibemon) -> bytes:
+        async def generate_sprite_reference(self, vibemon: Vibemon) -> bytes:
             return b"ref"
 
-        async def generate_sprite_sheet(self, vibemon: schema.Vibemon, reference: bytes) -> bytes:
+        async def generate_sprite_sheet(self, vibemon: Vibemon, reference: bytes) -> bytes:
             return b"sheet"
 
-        async def generate_battle_cry(self, vibemon: schema.Vibemon) -> bytes:
+        async def generate_battle_cry(self, vibemon: Vibemon) -> bytes:
             return b"cry"
 
     monkeypatch.setattr(client, "get_default_client", lambda: FakeClient())

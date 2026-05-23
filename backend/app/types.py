@@ -120,15 +120,6 @@ class MoveCategoryT(enum.StrEnum):
     STATUS = "status"
 
 
-class ActionTypeT(enum.StrEnum):
-    """Actions a trainer can take during their turn."""
-
-    MOVE = "move"
-    SWITCH = "switch"
-    ITEM = "item"
-    RUN = "run"
-
-
 class WeatherT(enum.StrEnum):
     """Battle field weather."""
 

@@ -7,7 +7,10 @@ import uuid
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker, create_async_engine
 import pytest
 
-from app import models, schema, types
+from app import models, types
+from app.domain.birth import BirthSeed
+from app.domain.move import Move
+from app.domain.vibemon import Affinity, Identity, Vibemon
 from app.plugins.provider import VibeProvider
 from app.services import vibemon_service
 
@@ -18,12 +21,12 @@ class FakeProvider(VibeProvider):
     name = "fake"
     exposed_elements: ClassVar = [(types.VibemonTypeT.FIRE, "test heat")]
 
-    async def fetch(self, seed: schema.BirthSeed) -> dict[str, object]:
+    async def fetch(self, seed: BirthSeed) -> dict[str, object]:
         return {"ok": True}
 
-    async def synthesize(self, seed: schema.BirthSeed, payload: dict[str, object]) -> schema.Affinity:
-        return schema.Affinity(
-            identity=schema.Identity(
+    async def synthesize(self, seed: BirthSeed, payload: dict[str, object]) -> Affinity:
+        return Affinity(
+            identity=Identity(
                 name="emberling",
                 elements=(types.VibemonTypeT.FIRE,),
                 base_hp=70,
@@ -38,9 +41,9 @@ class FakeProvider(VibeProvider):
             moves=self.moves(),
         )
 
-    def moves(self) -> tuple[schema.Move, ...]:
+    def moves(self) -> tuple[Move, ...]:
         return (
-            schema.Move(
+            Move(
                 id="fake.m1",
                 name="m1",
                 flavor_text="f",
@@ -48,7 +51,7 @@ class FakeProvider(VibeProvider):
                 category=types.MoveCategoryT.PHYSICAL,
                 power=40,
             ),
-            schema.Move(
+            Move(
                 id="fake.m2",
                 name="m2",
                 flavor_text="f",
@@ -62,7 +65,7 @@ class FakeProvider(VibeProvider):
         pass
 
 
-async def fake_christen(vibemon: schema.Vibemon) -> schema.Vibemon:
+async def fake_christen(vibemon: Vibemon) -> Vibemon:
     vibemon.lifecycle = types.VibemonLifecycleT.CHRISTENED
     return vibemon
 
@@ -112,7 +115,7 @@ async def test_stale_hold_does_not_block_generation(sess: AsyncSession) -> None:
     result = await _service().generate_candidate(
         sess,
         trainer_id=trainer_id,
-        birth_seed=schema.BirthSeed(timestamp=NOW, geo_coords=(0, 0), providers=[FakeProvider()]),
+        birth_seed=BirthSeed(timestamp=NOW, geo_coords=(0, 0), providers=[FakeProvider()]),
     )
     assert result is not None
 

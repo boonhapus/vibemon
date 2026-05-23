@@ -1,6 +1,6 @@
 """Drop all local dev database files and clear generated monstore assets.
 
-Usage: uv run --project backend python scripts/reset_db.py
+Usage: uv run --project backend python .scripts/reset_db.py
 """
 
 from pathlib import Path

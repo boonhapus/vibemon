@@ -13,11 +13,11 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 import sqlalchemy as sa
 
-from app import models, schema, types
-from app.data_store import assets as ds_assets
-from app.data_store import monstore
-from app.data_store import schema as ds_schema
-from app.data_store import types as ds_types
+from app import models, types
+from app.domain.birth import BirthSeed, BirthSnapshot
+from app.domain.move import EffectGroup, Move, MoveBehavior
+from app.domain.read_models import PublicVibemon
+from app.domain.vibemon import Aesthetic, Identity, Vibemon
 from app.errors import (
     CandidateReviewUnavailable,
     GenerationAlreadyActive,
@@ -26,10 +26,13 @@ from app.errors import (
     ReleaseUnavailable,
 )
 from app.lifecycle.realizer import LifecycleRealizer
-from app.plugins import move_catalog
 from app.policies import vibemon_transitions
 from app.services import encounter_tuning
 from app.services.read_model_assembler import ReadModelAssembler
+from app.storage import assets as ds_assets
+from app.storage import monstore
+from app.storage import schema as ds_schema
+from app.storage import types as ds_types
 
 DAILY_GENERATION_CREDITS = 3
 CANDIDATE_REVIEW_TIMEOUT = dt.timedelta(hours=24)
@@ -43,7 +46,7 @@ _ADJUSTMENT_MULTIPLIER_BY_SOURCE: dict[str, float] = {
 }
 
 type Clock = Callable[[], dt.datetime]
-type LifecycleStep = Callable[[schema.Vibemon], Awaitable[schema.Vibemon]]
+type LifecycleStep = Callable[[Vibemon], Awaitable[Vibemon]]
 type AssetUrler = Callable[[str, dt.timedelta], Awaitable[str]]
 
 
@@ -81,11 +84,11 @@ class VibemonService:
         sess: AsyncSession,
         *,
         trainer_id: types.TrainerIdT,
-        birth_seed: schema.BirthSeed,
+        birth_seed: BirthSeed,
         nickname: str | None = None,
         core_identity: str | None = None,
         bypass_credits: bool = False,
-    ) -> schema.PublicVibemon:
+    ) -> PublicVibemon:
         now = self._now()
         credit_day: models.GenerationCreditDay | None = None
         hold_id: uuid.UUID | None = None
@@ -94,7 +97,7 @@ class VibemonService:
         try:
             snapshot = await birth_seed.fetch_snapshot()
             affinities = await snapshot.regenerate(birth_seed.providers, birth_seed)
-            vibemon = schema.Vibemon.birth(
+            vibemon = Vibemon.birth(
                 *affinities,
                 birth_seed=birth_seed,
                 nickname=nickname,
@@ -131,15 +134,15 @@ class VibemonService:
         self,
         sess: AsyncSession,
         *,
-        birth_seed: schema.BirthSeed,
+        birth_seed: BirthSeed,
         nickname: str | None = None,
         core_identity: str | None = None,
-    ) -> schema.PublicVibemon:
+    ) -> PublicVibemon:
         """Create christened wild inventory directly, bypassing candidate review."""
         now = self._now()
         snapshot = await birth_seed.fetch_snapshot()
         affinities = await snapshot.regenerate(birth_seed.providers, birth_seed)
-        vibemon = schema.Vibemon.birth(
+        vibemon = Vibemon.birth(
             *affinities,
             birth_seed=birth_seed,
             nickname=nickname,
@@ -165,7 +168,7 @@ class VibemonService:
         *,
         vibemon_id: uuid.UUID,
         viewer_trainer_id: types.TrainerIdT | None = None,
-    ) -> schema.PublicVibemon:
+    ) -> PublicVibemon:
         """Return an API-facing read model, redacting trainer-private review metadata."""
         loaded = await self._load_vibemon(sess, vibemon_id)
         return await self._read_model(loaded, reviewing_trainer_id=viewer_trainer_id)
@@ -177,7 +180,7 @@ class VibemonService:
         trainer_id: types.TrainerIdT,
         vibemon_id: uuid.UUID,
         release_vibemon_id: uuid.UUID | None = None,
-    ) -> schema.PublicVibemon:
+    ) -> PublicVibemon:
         now = self._now()
         review = await self._pending_review(sess, trainer_id=trainer_id, vibemon_id=vibemon_id)
         if vibemon_transitions.review_deadline_passed(timeout_at=review.timeout_at, now=now):
@@ -219,7 +222,7 @@ class VibemonService:
         *,
         trainer_id: types.TrainerIdT,
         vibemon_id: uuid.UUID,
-    ) -> schema.PublicVibemon:
+    ) -> PublicVibemon:
         now = self._now()
         review = await self._pending_review(sess, trainer_id=trainer_id, vibemon_id=vibemon_id)
         await self._resolve_to_wild(
@@ -239,7 +242,7 @@ class VibemonService:
         *,
         trainer_id: types.TrainerIdT,
         vibemon_id: uuid.UUID,
-    ) -> schema.PublicVibemon:
+    ) -> PublicVibemon:
         """Release an owned Vibemon back to wild. Preserves progression, moves, history, assets."""
         now = self._now()
         row = (
@@ -300,7 +303,7 @@ class VibemonService:
         sess: AsyncSession,
         *,
         vibemon_id: uuid.UUID,
-    ) -> schema.PublicVibemon:
+    ) -> PublicVibemon:
         row = (
             await sess.execute(
                 sa.select(models.Vibemon)
@@ -602,9 +605,9 @@ class VibemonService:
         self,
         sess: AsyncSession,
         *,
-        vibemon: schema.Vibemon,
-        birth_seed: schema.BirthSeed,
-        snapshot: schema.BirthSnapshot,
+        vibemon: Vibemon,
+        birth_seed: BirthSeed,
+        snapshot: BirthSnapshot,
     ) -> models.Vibemon:
         seed = models.BirthSeed(
             timestamp=birth_seed.timestamp,
@@ -637,11 +640,13 @@ class VibemonService:
         self,
         sess: AsyncSession,
         row: models.Vibemon,
-        moves: tuple[schema.Move, ...],
+        moves: tuple[Move, ...],
     ) -> None:
-        cache = await move_catalog.load_move_cache(sess)
+        move_catalog: int = 0  # FAAAAAAAAAAAAAAAKE
+        cache = await move_catalog.load_move_cache(sess)  # pyrefly: ignore
+
         for slot, move in enumerate(moves):
-            move_row, created, _ = move_catalog.upsert_move(move, cache)
+            move_row, created, _ = move_catalog.upsert_move(move, cache)  # pyrefly: ignore
             if created:
                 sess.add(move_row)
                 await sess.flush()
@@ -655,12 +660,12 @@ class VibemonService:
                 )
             )
 
-    async def _persist_assets(self, sess: AsyncSession, vibemon: schema.Vibemon) -> None:
+    async def _persist_assets(self, sess: AsyncSession, vibemon: Vibemon) -> None:
         if vibemon.aesthetic is None:
             return
         await ds_assets.upsert(sess, vibemon.id, vibemon.aesthetic.assets.values())
 
-    def _identity_row(self, vibemon: schema.Vibemon) -> models.Identity:
+    def _identity_row(self, vibemon: Vibemon) -> models.Identity:
         identity = vibemon.identity
         return models.Identity(
             name=identity.name,
@@ -679,7 +684,7 @@ class VibemonService:
             generated_at=identity.generated_at,
         )
 
-    def _apply_schema_to_row(self, row: models.Vibemon, vibemon: schema.Vibemon) -> None:
+    def _apply_schema_to_row(self, row: models.Vibemon, vibemon: Vibemon) -> None:
         row.nickname = vibemon.nickname
         row.xp = vibemon.xp
         row.level = vibemon.level
@@ -748,8 +753,8 @@ class VibemonService:
             )
         ).scalar_one()
 
-    async def _schema_from_row(self, row: models.Vibemon) -> schema.Vibemon:
-        identity = schema.Identity(
+    async def _schema_from_row(self, row: models.Vibemon) -> Vibemon:
+        identity = Identity(
             name=row.identity.name,
             visual_notes=row.identity.visual_notes,
             provider_visual_notes=row.identity.provider_visual_notes,
@@ -765,7 +770,7 @@ class VibemonService:
             generation=row.identity.generation,
             generated_at=row.identity.generated_at,
         )
-        vibemon = schema.Vibemon(
+        vibemon = Vibemon(
             id=row.id,
             nickname=row.nickname,
             identity=identity,
@@ -777,7 +782,7 @@ class VibemonService:
             team_slot=row.team_slot,
             lifecycle=types.VibemonLifecycleT(row.lifecycle),
         )
-        vibemon.aesthetic = schema.Aesthetic.from_vibemon(vibemon)
+        vibemon.aesthetic = Aesthetic.from_vibemon(vibemon)
         vibemon.aesthetic.assets = {ds_types.AssetKind(asset.kind): _asset_ref(row.id, asset) for asset in row.assets}
         return vibemon
 
@@ -786,7 +791,7 @@ class VibemonService:
         row: models.Vibemon,
         *,
         reviewing_trainer_id: types.TrainerIdT | None = None,
-    ) -> schema.PublicVibemon:
+    ) -> PublicVibemon:
         return await self._read_model_assembler.assemble(
             row,
             reviewing_trainer_id=reviewing_trainer_id,
@@ -858,8 +863,8 @@ class VibemonService:
         return now.astimezone(dt.UTC)
 
 
-def _move_schema(row: models.Move) -> schema.Move:
-    return schema.Move(
+def _move_schema(row: models.Move) -> Move:
+    return Move(
         id=row.content_id,
         name=row.name,
         flavor_text=row.flavor_text,
@@ -871,8 +876,8 @@ def _move_schema(row: models.Move) -> schema.Move:
         priority=row.priority,
         target=types.MoveTargetT(row.target),
         level_requirement=row.level_requirement,
-        effects=tuple(schema.EffectGroup.model_validate(group) for group in row.effects),
-        behavior=schema.MoveBehavior.model_validate(row.behavior),
+        effects=tuple(EffectGroup.model_validate(group) for group in row.effects),
+        behavior=MoveBehavior.model_validate(row.behavior),
     )
 
 

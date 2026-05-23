@@ -17,8 +17,9 @@ import uuid
 from obstore.store import ObjectStore, from_url
 import obstore
 
-from app.data_store import const, schema, types
 from app.settings import settings
+from app.storage import const, types
+from app.storage.schema import AssetRef
 
 
 @lru_cache(maxsize=1)
@@ -41,12 +42,12 @@ async def put(
     data: bytes,
     *,
     content_type: str | None = None,
-) -> schema.AssetRef:
+) -> AssetRef:
     """Persist asset bytes for one Vibemon slot; return the resulting ref."""
     key = asset_key(vibemon_id, kind)
     await obstore.put_async(_store(), key, data)
 
-    return schema.AssetRef(
+    return AssetRef(
         vibemon_id=vibemon_id,
         kind=kind,
         key=key,

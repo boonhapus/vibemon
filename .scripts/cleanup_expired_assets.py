@@ -1,6 +1,6 @@
 """Delete retained assets for expired Vibemon.
 
-Usage: uv run --project backend python scripts/cleanup_expired_assets.py [--db-path PATH] [--days N] [--limit N]
+Usage: uv run --project backend python .scripts/cleanup_expired_assets.py [--db-path PATH] [--days N] [--limit N]
 """
 
 from collections.abc import AsyncIterator

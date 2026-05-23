@@ -10,19 +10,21 @@ import uuid
 from PIL import Image
 import structlog
 
-from app import schema, types
+from app import types
 from app import utils as app_utils
-from app.data_store import const as ds_const
-from app.data_store import monstore
-from app.data_store import schema as ds_schema
-from app.data_store import types as ds_types
+from app.domain.move import Move
+from app.domain.vibemon import Aesthetic, Identity, Vibemon
 from app.genai import client as genai
 from app.lifecycle import policy
+from app.storage import const as ds_const
+from app.storage import monstore
+from app.storage import schema as ds_schema
+from app.storage import types as ds_types
 
-type NameGenerator = Callable[[schema.Identity, list[schema.Move], str | None], Coroutine[object, object, str]]
-type SpriteReferenceGenerator = Callable[[schema.Vibemon], Coroutine[object, object, bytes]]
-type BattleCryGenerator = Callable[[schema.Vibemon], Coroutine[object, object, bytes]]
-type SpriteSheetGenerator = Callable[[schema.Vibemon, bytes], Coroutine[object, object, bytes]]
+type NameGenerator = Callable[[Identity, list[Move], str | None], Coroutine[object, object, str]]
+type SpriteReferenceGenerator = Callable[[Vibemon], Coroutine[object, object, bytes]]
+type BattleCryGenerator = Callable[[Vibemon], Coroutine[object, object, bytes]]
+type SpriteSheetGenerator = Callable[[Vibemon, bytes], Coroutine[object, object, bytes]]
 type AssetPut = Callable[[uuid.UUID, ds_types.AssetKind, bytes], Coroutine[object, object, ds_schema.AssetRef]]
 
 _LOGGER = structlog.get_logger(__name__)
@@ -45,7 +47,7 @@ class LifecycleRealizer:
         self._generate_sprite_sheet = generate_sprite_sheet or client.generate_sprite_sheet
         self._put_asset = put_asset
 
-    async def christen(self, vibemon: schema.Vibemon) -> schema.Vibemon:
+    async def christen(self, vibemon: Vibemon) -> Vibemon:
         if policy.can_skip_christen(vibemon):
             return vibemon
 
@@ -85,7 +87,7 @@ class LifecycleRealizer:
         )
         return vibemon
 
-    async def manifest(self, vibemon: schema.Vibemon) -> schema.Vibemon:
+    async def manifest(self, vibemon: Vibemon) -> Vibemon:
         policy.require_can_manifest(vibemon)
 
         aesthetic = _ensure_aesthetic(vibemon)
@@ -120,15 +122,15 @@ class LifecycleRealizer:
         )
         return vibemon
 
-    async def adopt(self, vibemon: schema.Vibemon, trainer_id: types.TrainerIdT) -> schema.Vibemon:
+    async def adopt(self, vibemon: Vibemon, trainer_id: types.TrainerIdT) -> Vibemon:
         vibemon.trainer_id = trainer_id
         await self.manifest(vibemon)
         return vibemon
 
 
-def _ensure_aesthetic(vibemon: schema.Vibemon) -> schema.Aesthetic:
+def _ensure_aesthetic(vibemon: Vibemon) -> Aesthetic:
     if vibemon.aesthetic is None:
-        vibemon.aesthetic = schema.Aesthetic.from_vibemon(vibemon)
+        vibemon.aesthetic = Aesthetic.from_vibemon(vibemon)
     return vibemon.aesthetic
 
 

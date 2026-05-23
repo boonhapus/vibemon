@@ -4,17 +4,18 @@ from typing import Annotated, Literal
 
 import pydantic
 
-from app import schema, types
+from app import types
+from app.domain.birth import FrozenSchema
 
 
-class TargetRef(schema.FrozenSchema):
+class TargetRef(FrozenSchema):
     """A concrete active battle slot."""
 
     trainer: types.TrainerIdT
     slot: int = 0
 
 
-class MoveAction(schema.FrozenSchema):
+class MoveAction(FrozenSchema):
     """Use a move from an active slot."""
 
     kind: Literal["move"] = "move"
@@ -24,7 +25,7 @@ class MoveAction(schema.FrozenSchema):
     targets: tuple[TargetRef, ...] = ()
 
 
-class SwitchAction(schema.FrozenSchema):
+class SwitchAction(FrozenSchema):
     """Switch an active slot to a bench member."""
 
     kind: Literal["switch"] = "switch"
@@ -33,7 +34,7 @@ class SwitchAction(schema.FrozenSchema):
     bench_index: int
 
 
-class ItemAction(schema.FrozenSchema):
+class ItemAction(FrozenSchema):
     """Use a trainer item."""
 
     kind: Literal["item"] = "item"
@@ -42,7 +43,7 @@ class ItemAction(schema.FrozenSchema):
     target: TargetRef | None = None
 
 
-class RunAction(schema.FrozenSchema):
+class RunAction(FrozenSchema):
     """Attempt to run from battle."""
 
     kind: Literal["run"] = "run"

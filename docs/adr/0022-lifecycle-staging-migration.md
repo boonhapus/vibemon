@@ -41,9 +41,10 @@ Lifecycle remains an asset-realization state model, not ownership workflow state
 
 ## Implementation Tasks
 - [ ] Update lifecycle enum values in [`backend/app/types.py`](/C:/projects/vibemon/backend/app/types.py).
-- [ ] Add lifecycle required-asset constants for `christened`/`armed`/`awakened` in [`backend/app/data_store/const.py`](/C:/projects/vibemon/backend/app/data_store/const.py) or a new lifecycle policy constants module.
+- [ ] Add lifecycle required-asset constants for `christened`/`armed`/`awakened` in [`backend/app/storage/const.py`](/C:/projects/vibemon/backend/app/storage/const.py) or a new lifecycle policy constants module.
 - [ ] Split lifecycle guard/policy logic from realization I/O in [`backend/app/lifecycle/vibemon.py`](/C:/projects/vibemon/backend/app/lifecycle/vibemon.py).
 - [ ] Update service lifecycle expectations in [`backend/app/services/vibemon_service.py`](/C:/projects/vibemon/backend/app/services/vibemon_service.py).
 - [ ] Add compatibility adapter for legacy `manifested` reads and remove after backfill.
-- [ ] Add a backfill script to rewrite persisted lifecycle values under [`backend/scripts/`](/C:/projects/vibemon/backend/scripts).
+- [ ] Add a backfill script to rewrite persisted lifecycle values under [`.scripts/`](/C:/projects/vibemon/.scripts).
 - [ ] Update lifecycle/service tests in [`backend/tests/test_vibemon_service.py`](/C:/projects/vibemon/backend/tests/test_vibemon_service.py).
+

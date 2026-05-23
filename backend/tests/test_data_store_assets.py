@@ -10,9 +10,9 @@ from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker, create_asyn
 import sqlalchemy as sa
 
 from app import models
-from app.data_store import assets as ds_assets
-from app.data_store import schema as ds_schema
-from app.data_store import types as ds_types
+from app.storage import assets as ds_assets
+from app.storage import schema as ds_schema
+from app.storage import types as ds_types
 
 
 def _utcnow() -> dt.datetime:

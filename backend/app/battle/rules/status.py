@@ -2,13 +2,14 @@ from __future__ import annotations
 
 import pydantic
 
-from app import const, schema, types
+from app import const, types
 from app.battle import events as event_models
 from app.battle import schema as battle_schema
 from app.battle import turn
+from app.domain.birth import FrozenSchema
 
 
-class PreActionResult(schema.FrozenSchema):
+class PreActionResult(FrozenSchema):
     """Result of a pre-action check."""
 
     blocked: bool

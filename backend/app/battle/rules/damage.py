@@ -14,7 +14,6 @@ MOD_ONE = 4096
 MOD_HALF = 2048
 MOD_THREE_QUARTERS = 3072
 MOD_ONE_AND_HALF = 6144
-MOD_DOUBLE = 8192
 
 
 type RoundingModeT = Literal["floor", "round_half_down", "round_half_up"]

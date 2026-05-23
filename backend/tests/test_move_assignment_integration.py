@@ -1,7 +1,8 @@
 import random
 
-from app import schema, types
+from app import types
 from app.balance.element_chart import get_move_assignment_bonus
+from app.domain.move import Move
 from app.plugins.climate.provider import (
     _STARTER_WEIGHT_MAX,
     _STARTER_WEIGHT_MIN,
@@ -10,8 +11,8 @@ from app.plugins.climate.provider import (
 from app.utils import weighted_sample
 
 
-def _move(move_id: str, move_type: types.VibemonTypeT) -> schema.Move:
-    return schema.Move(
+def _move(move_id: str, move_type: types.VibemonTypeT) -> Move:
+    return Move(
         id=f"climate.{move_id}",
         name=move_id,
         flavor_text="test",

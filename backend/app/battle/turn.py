@@ -3,9 +3,10 @@ from __future__ import annotations
 from typing import Literal
 import random
 
-from app import schema, types
+from app import types
 from app.battle import actions, events
 from app.battle import schema as battle_schema
+from app.domain.birth import Schema
 
 type PipelinePhaseName = Literal[
     "turn_start", "action_sorting", "pre_action", "execute_stack", "end_of_turn", "turn_end"
@@ -13,7 +14,7 @@ type PipelinePhaseName = Literal[
 type ActorRef = tuple[types.TrainerIdT, int]
 
 
-class MoveUse(schema.Schema):
+class MoveUse(Schema):
     """Resolved use of a move by an active combatant."""
 
     user_trainer: types.TrainerIdT
@@ -23,7 +24,7 @@ class MoveUse(schema.Schema):
     action: actions.MoveAction
 
 
-class HitResult(schema.Schema):
+class HitResult(Schema):
     """Result of one move hit against one target."""
 
     use: MoveUse
@@ -33,7 +34,7 @@ class HitResult(schema.Schema):
     damage_result: events.DamageResult | None = None
 
 
-class StackEntry(schema.Schema):
+class StackEntry(Schema):
     """One action scheduled for execution."""
 
     trainer: types.TrainerIdT

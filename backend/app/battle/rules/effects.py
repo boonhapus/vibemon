@@ -1,13 +1,14 @@
 from __future__ import annotations
 
-from app import schema, types
+from app import types
 from app.battle import events, turn
 from app.battle import schema as battle_schema
 from app.battle.rules import stats
+from app.domain.move import Drain, EffectGroup, EffectTarget, Heal, Recoil, StatChange, StatusInflict, WeatherSet
 
 
 def _resolve_effect_target(
-    effect_target: schema.EffectTarget,
+    effect_target: EffectTarget,
     use: turn.MoveUse,
     target: battle_schema.BattleVibemon,
 ) -> tuple[battle_schema.BattleVibemon, ...]:
@@ -22,7 +23,7 @@ def apply_effect_group(
     ctx: turn.Turn,
     use: turn.MoveUse,
     target: battle_schema.BattleVibemon,
-    group: schema.EffectGroup,
+    group: EffectGroup,
     *,
     damage_dealt: int = 0,
 ) -> None:
@@ -32,7 +33,7 @@ def apply_effect_group(
 
     for effect in group.effects:
         match effect:
-            case schema.StatusInflict():
+            case StatusInflict():
                 for recipient in _resolve_effect_target(effect.target, use, target):
                     if recipient.status == types.StatusConditionT.NONE:
                         recipient.status = effect.status
@@ -41,7 +42,7 @@ def apply_effect_group(
                                 source=use.user.name, target=recipient.name, status=effect.status
                             )
                         )
-            case schema.StatChange():
+            case StatChange():
                 for recipient in _resolve_effect_target(effect.target, use, target):
                     applied: dict[types.StatStageNameT, int] = {}
                     for stat_name, change in effect.changes.items():
@@ -53,7 +54,7 @@ def apply_effect_group(
                         ctx.events.append(
                             events.StatChangeEvent(source=use.user.name, target=recipient.name, changes=applied)
                         )
-            case schema.Drain():
+            case Drain():
                 if damage_dealt > 0:
                     amount = max(1, int(damage_dealt * effect.ratio))
                     use.user.current_hp = min(use.user.max_hp, use.user.current_hp + amount)
@@ -62,7 +63,7 @@ def apply_effect_group(
                             source=use.user.name, target=use.user.name, amount=amount, hp_after=use.user.current_hp
                         )
                     )
-            case schema.Recoil():
+            case Recoil():
                 if damage_dealt > 0:
                     amount = max(1, int(damage_dealt * effect.ratio))
                     use.user.current_hp = max(0, use.user.current_hp - amount)
@@ -76,13 +77,13 @@ def apply_effect_group(
                             effectiveness=1.0,
                         )
                     )
-            case schema.WeatherSet():
+            case WeatherSet():
                 ctx.battle.field.weather.kind = effect.weather
                 ctx.battle.field.weather.turns_remaining = effect.turns
                 ctx.events.append(
                     events.WeatherSetEvent(source=use.user.name, weather=effect.weather, turns=effect.turns)
                 )
-            case schema.Heal():
+            case Heal():
                 for recipient in _resolve_effect_target(effect.target, use, target):
                     amount = max(1, int(recipient.max_hp * effect.ratio))
                     recipient.current_hp = min(recipient.max_hp, recipient.current_hp + amount)

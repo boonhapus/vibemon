@@ -4,16 +4,18 @@ import os
 import subprocess
 import sys
 
-from app import schema, types
+from app import types
+from app.domain.birth import BirthSeed
+from app.domain.vibemon import Identity
 
 
 def test_birth_seed_rng_seed_uses_canonical_material() -> None:
-    seed = schema.BirthSeed(
+    seed = BirthSeed(
         timestamp=dt.datetime(2026, 5, 9, 12, 34, 56, 789, tzinfo=dt.UTC),
         geo_coords=(41.8781, -87.6298),
         providers=[],
     )
-    same_in_central_time = schema.BirthSeed(
+    same_in_central_time = BirthSeed(
         timestamp=dt.datetime(
             2026,
             5,
@@ -33,7 +35,7 @@ def test_birth_seed_rng_seed_uses_canonical_material() -> None:
 
 
 def test_birth_seed_rng_namespaces_are_stable_and_isolated() -> None:
-    seed = schema.BirthSeed(
+    seed = BirthSeed(
         timestamp=dt.datetime(2026, 5, 9, 12, 34, 56, 789, tzinfo=dt.UTC),
         geo_coords=(41.8781, -87.6298),
         providers=[],
@@ -45,7 +47,7 @@ def test_birth_seed_rng_namespaces_are_stable_and_isolated() -> None:
 
 
 def test_identity_defaults_are_deterministic() -> None:
-    identity = schema.Identity(name="test", elements=(types.VibemonTypeT.FIRE,))
+    identity = Identity(name="test", elements=(types.VibemonTypeT.FIRE,))
 
     assert identity.evo_seed == types.EvolutionStageT.BASE
     assert identity.is_radiant is False
@@ -56,19 +58,21 @@ def test_affinity_merge_element_order_is_hash_seed_independent() -> None:
 import json
 import random
 
-from app import schema, types
+from app import types
+from app.domain.move import Move
+from app.domain.vibemon import Affinity, Identity
 
-m1 = schema.Move(
+m1 = Move(
     id="test.a",
     name="A", flavor_text="a", type=types.VibemonTypeT.FIRE, category=types.MoveCategoryT.PHYSICAL, power=40
 )
-m2 = schema.Move(
+m2 = Move(
     id="test.b",
     name="B", flavor_text="b", type=types.VibemonTypeT.WATER, category=types.MoveCategoryT.SPECIAL, power=40
 )
 
-a1 = schema.Affinity(
-    identity=schema.Identity(
+a1 = Affinity(
+    identity=Identity(
         name="x",
         elements=(types.VibemonTypeT.FIRE, types.VibemonTypeT.WATER),
         base_hp=70,
@@ -82,8 +86,8 @@ a1 = schema.Affinity(
     intensity=1,
     moves=[m1, m2],
 )
-a2 = schema.Affinity(
-    identity=schema.Identity(
+a2 = Affinity(
+    identity=Identity(
         name="y",
         elements=(types.VibemonTypeT.FIRE, types.VibemonTypeT.WATER),
         base_hp=70,
@@ -97,7 +101,7 @@ a2 = schema.Affinity(
     intensity=1,
     moves=[m1, m2],
 )
-merged = schema.Affinity.merge(a1, a2, rng=random.Random(5))
+merged = Affinity.merge(a1, a2, rng=random.Random(5))
 print(json.dumps(list(merged.identity.elements)))
 """
     outputs: list[list[str]] = []

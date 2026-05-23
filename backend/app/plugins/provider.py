@@ -1,13 +1,17 @@
-from typing import TYPE_CHECKING, Any, ClassVar
+from typing import TYPE_CHECKING, Any, ClassVar, cast
 import abc
+import json
+import pathlib
 
 import niquests
 import structlog
 
 from app import types
+from app.domain.move import Move
 
 if TYPE_CHECKING:
-    from app import schema
+    from app.domain.birth import BirthSeed
+    from app.domain.vibemon import Affinity
 
 _LOGGER = structlog.get_logger(__name__)
 
@@ -32,7 +36,7 @@ class VibeProvider(abc.ABC):
     1. Opening line — one evocative sentence stating the provider's thematic
        premise (e.g. "A Vibemon is born from the sky above its birthplace.").
     2. Preamble — one sentence naming the data source and noting that its
-       signals fold into a `schema.Affinity`.
+       signals fold into an `Affinity`.
     3. Stats line — one sentence mapping the six signals chosen for HP,
        Attack, Defense, Sp. Attack, Sp. Defense, and Speed.
     4. Closer — a short "the result is..." paragraph illustrating how
@@ -71,7 +75,7 @@ class VibeProvider(abc.ABC):
         raise exception
 
     @abc.abstractmethod
-    async def fetch(self, seed: schema.BirthSeed) -> dict[str, Any]:
+    async def fetch(self, seed: BirthSeed) -> dict[str, Any]:
         """
         Fetch and return a provider payload from upstream sources.
 
@@ -81,7 +85,7 @@ class VibeProvider(abc.ABC):
         """
 
     @abc.abstractmethod
-    async def synthesize(self, seed: schema.BirthSeed, payload: dict[str, Any]) -> schema.Affinity:
+    async def synthesize(self, seed: BirthSeed, payload: dict[str, Any]) -> Affinity:
         """
         Translate captured provider payload to Affinity components.
 
@@ -89,20 +93,17 @@ class VibeProvider(abc.ABC):
         Return a complete Affinity with identity, moves, intensity, and visual_notes.
         """
 
-    def moves(self) -> tuple[schema.Move, ...]:
+    def moves(self) -> tuple[Move, ...]:
         """Return provider-authored moves loaded from JSON content."""
-        try:
-            return self._moves_cache
-        except AttributeError:
-            pass
-        from app.content import CONTENT_DIR, load_provider_moves
+        if moves := getattr(self, "_moves", False):
+            return cast(tuple[Move], moves)
 
-        result = load_provider_moves(CONTENT_DIR / f"{self.name}.json")
-        if result.has_errors:
-            issues = "; ".join(i.message for i in result.issues[:5])
-            raise ValueError(f"Move content errors for {self.name}: {issues}")
-        self._moves_cache: tuple[schema.Move, ...] = result.moves
-        return self._moves_cache
+        path = pathlib.Path(__file__) / "moves.json"
+        text = path.read_text(encoding="utf-8")
+        data = json.loads(text)
+
+        self._moves = tuple(Move.model_validate(move_data) for move_data in data)
+        return self._moves
 
     @abc.abstractmethod
     async def teardown(self) -> None:

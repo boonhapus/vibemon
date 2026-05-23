@@ -13,8 +13,8 @@ import sqlalchemy as sa
 import structlog
 
 from app import models
-from app.data_store import monstore
-from app.data_store import schema as ds_schema
+from app.storage import monstore
+from app.storage import schema as ds_schema
 
 _LOGGER = structlog.get_logger(__name__)
 

@@ -4,25 +4,28 @@ from typing import Any, Self, cast
 
 import pydantic
 
-from app import schema, types
+from app import types
 from app.battle import actions as action_models
 from app.battle import events as event_models
+from app.domain.birth import Schema
+from app.domain.move import Move
+from app.domain.vibemon import Trainer, Vibemon
 
 
-class FieldWeather(schema.Schema):
+class FieldWeather(Schema):
     """Battle-scoped weather state."""
 
     kind: types.WeatherT = types.WeatherT.CLEAR
     turns_remaining: int = 0
 
 
-class FieldState(schema.Schema):
+class FieldState(Schema):
     """Battle field state."""
 
     weather: FieldWeather = pydantic.Field(default_factory=FieldWeather)
 
 
-class BattleMove(schema.Move, frozen=False, validate_assignment=True):
+class BattleMove(Move, frozen=False, validate_assignment=True):
     """Transient battle state layered on top of move content."""
 
     pp_current: int = -1
@@ -36,7 +39,7 @@ class BattleMove(schema.Move, frozen=False, validate_assignment=True):
         return self
 
 
-class StatStages(schema.Schema):
+class StatStages(Schema):
     """Stat stage modifiers accumulated during battle."""
 
     attack: int = 0
@@ -48,7 +51,7 @@ class StatStages(schema.Schema):
     evasion: int = 0
 
 
-class BattleVibemon(schema.Vibemon, frozen=False, validate_assignment=True):
+class BattleVibemon(Vibemon, frozen=False, validate_assignment=True):
     """Transient battle state layered on top of a Vibemon."""
 
     current_hp: int = 0
@@ -83,11 +86,11 @@ class BattleVibemon(schema.Vibemon, frozen=False, validate_assignment=True):
         return self.current_hp <= 0
 
 
-class BattleTrainer(schema.Trainer, frozen=False, validate_assignment=True):
+class BattleTrainer(Trainer, frozen=False, validate_assignment=True):
     """Transient battle state layered on top of a Trainer."""
 
     active_index: int = 0
-    team: list[schema.Vibemon] = pydantic.Field(default_factory=list)
+    team: list[Vibemon] = pydantic.Field(default_factory=list)
 
     @property
     def active_vibemon(self) -> BattleVibemon:
@@ -98,7 +101,7 @@ class BattleTrainer(schema.Trainer, frozen=False, validate_assignment=True):
         return any(not cast(BattleVibemon, p).is_fainted for p in self.team)
 
 
-class TurnRecord(schema.Schema):
+class TurnRecord(Schema):
     """A submitted turn and its emitted events."""
 
     turn_number: int
@@ -106,7 +109,7 @@ class TurnRecord(schema.Schema):
     events: list[event_models.TurnEvent] = pydantic.Field(default_factory=list)
 
 
-class Battle(schema.Schema):
+class Battle(Schema):
     """The persistent mutable state of a battle."""
 
     trainer_a: BattleTrainer

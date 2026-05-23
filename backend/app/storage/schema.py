@@ -4,7 +4,7 @@ import uuid
 
 import pydantic
 
-from app.data_store import const, types
+from app.storage import const, types
 
 
 class AssetRef(pydantic.BaseModel):

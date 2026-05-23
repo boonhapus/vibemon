@@ -4,10 +4,11 @@ from typing import Annotated, Literal
 
 import pydantic
 
-from app import schema, types
+from app import types
+from app.domain.birth import FrozenSchema
 
 
-class DamageModifier(schema.FrozenSchema):
+class DamageModifier(FrozenSchema):
     """A fixed-point damage modifier."""
 
     key: str
@@ -16,7 +17,7 @@ class DamageModifier(schema.FrozenSchema):
     source: str | None = None
 
 
-class DamageStep(schema.FrozenSchema):
+class DamageStep(FrozenSchema):
     """One ordered damage calculation step."""
 
     key: str
@@ -25,7 +26,7 @@ class DamageStep(schema.FrozenSchema):
     damage_after: int
 
 
-class DamageResult(schema.FrozenSchema):
+class DamageResult(FrozenSchema):
     """Auditable result of the damage pipeline."""
 
     damage: int
@@ -37,7 +38,7 @@ class DamageResult(schema.FrozenSchema):
     blocked_reason: Literal["type_immune", "ability_immune", "move_failed"] | None = None
 
 
-class MoveUsedEvent(schema.FrozenSchema):
+class MoveUsedEvent(FrozenSchema):
     """A move was used."""
 
     kind: Literal["move_used"] = "move_used"
@@ -46,7 +47,7 @@ class MoveUsedEvent(schema.FrozenSchema):
     targets: tuple[str, ...]
 
 
-class MoveMissedEvent(schema.FrozenSchema):
+class MoveMissedEvent(FrozenSchema):
     """A move missed a target."""
 
     kind: Literal["move_missed"] = "move_missed"
@@ -55,7 +56,7 @@ class MoveMissedEvent(schema.FrozenSchema):
     target: str
 
 
-class MoveFailedEvent(schema.FrozenSchema):
+class MoveFailedEvent(FrozenSchema):
     """A move failed before hitting."""
 
     kind: Literal["move_failed"] = "move_failed"
@@ -64,7 +65,7 @@ class MoveFailedEvent(schema.FrozenSchema):
     reason: str | None = None
 
 
-class DamageEvent(schema.FrozenSchema):
+class DamageEvent(FrozenSchema):
     """Damage was dealt."""
 
     kind: Literal["damage"] = "damage"
@@ -78,14 +79,14 @@ class DamageEvent(schema.FrozenSchema):
     modifiers: tuple[DamageModifier, ...] = ()
 
 
-class FaintEvent(schema.FrozenSchema):
+class FaintEvent(FrozenSchema):
     """A target fainted."""
 
     kind: Literal["faint"] = "faint"
     target: str
 
 
-class StatusInflictedEvent(schema.FrozenSchema):
+class StatusInflictedEvent(FrozenSchema):
     """A status condition was inflicted."""
 
     kind: Literal["status_inflicted"] = "status_inflicted"
@@ -94,7 +95,7 @@ class StatusInflictedEvent(schema.FrozenSchema):
     status: types.StatusConditionT
 
 
-class StatusDamageEvent(schema.FrozenSchema):
+class StatusDamageEvent(FrozenSchema):
     """Residual status damage was dealt."""
 
     kind: Literal["status_damage"] = "status_damage"
@@ -103,7 +104,7 @@ class StatusDamageEvent(schema.FrozenSchema):
     hp_after: int
 
 
-class StatusMessageEvent(schema.FrozenSchema):
+class StatusMessageEvent(FrozenSchema):
     """A status or volatile condition produced a message."""
 
     kind: Literal["status_message"] = "status_message"
@@ -111,7 +112,7 @@ class StatusMessageEvent(schema.FrozenSchema):
     message_key: str
 
 
-class StatChangeEvent(schema.FrozenSchema):
+class StatChangeEvent(FrozenSchema):
     """Stat stages changed."""
 
     kind: Literal["stat_change"] = "stat_change"
@@ -120,7 +121,7 @@ class StatChangeEvent(schema.FrozenSchema):
     changes: dict[types.StatStageNameT, int]
 
 
-class HealEvent(schema.FrozenSchema):
+class HealEvent(FrozenSchema):
     """HP was restored."""
 
     kind: Literal["heal"] = "heal"
@@ -130,7 +131,7 @@ class HealEvent(schema.FrozenSchema):
     hp_after: int
 
 
-class WeatherSetEvent(schema.FrozenSchema):
+class WeatherSetEvent(FrozenSchema):
     """Field weather changed."""
 
     kind: Literal["weather_set"] = "weather_set"

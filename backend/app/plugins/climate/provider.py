@@ -9,9 +9,12 @@ import statistics
 import niquests
 import structlog
 
-from app import schema, utils
+from app import utils
 from app.balance.element_chart import get_move_assignment_bonus
 from app.balance.formulas import base_stat_asymmetric_scaling, stat_ratio_from_grade
+from app.domain.birth import BirthSeed
+from app.domain.move import Move
+from app.domain.vibemon import Affinity, Identity
 from app.plugins.helpers import Signal, filter_element_types
 from app.plugins.provider import VibeProvider
 from app.types import VibemonTypeT
@@ -27,10 +30,10 @@ _STARTER_WEIGHT_MAX = 2.0
 
 def _starter_move_weights(
     *,
-    moves: tuple[schema.Move, ...],
+    moves: tuple[Move, ...],
     rankings: dict[VibemonTypeT, float],
     elements: tuple[VibemonTypeT, ...],
-) -> dict[schema.Move, float]:
+) -> dict[Move, float]:
     """Build bounded starter-move weights from element scores and assignment bonuses."""
     bonus_fx = ft.partial(get_move_assignment_bonus, vibemon_elements=elements)
     starters = [move for move in moves if move.level_requirement == 1]
@@ -49,7 +52,7 @@ class ClimateProvider(VibeProvider):
     A Vibemon is born from the sky above its birthplace.
 
     Open-Meteo's daily forecast at the trainer's coordinates becomes genetic
-    material, folding live weather signals into a `schema.Affinity`.
+    material, folding live weather signals into an `Affinity`.
 
     Six continuous signals route directly to base stats: temperature (HP),
     wind gusts (Attack), elevation (Defense), radiation (Sp. Attack),
@@ -358,7 +361,7 @@ class ClimateProvider(VibeProvider):
 
         return score
 
-    async def fetch(self, seed: schema.BirthSeed) -> dict[str, Any]:
+    async def fetch(self, seed: BirthSeed) -> dict[str, Any]:
         """Fetch and enrich climate payloads for a birth seed."""
         end_date = seed.datestamp
         start_date = seed.datestamp - dt.timedelta(days=1) - dt.timedelta(weeks=6)
@@ -410,7 +413,7 @@ class ClimateProvider(VibeProvider):
             "weather_augmented": d,
         }
 
-    async def synthesize(self, seed: schema.BirthSeed, payload: dict[str, Any]) -> schema.Affinity:
+    async def synthesize(self, seed: BirthSeed, payload: dict[str, Any]) -> Affinity:
         """Translate captured climate payload to Affinity components."""
         rng = seed.rng(f"provider.{self.name}.moves")
 
@@ -453,23 +456,19 @@ class ClimateProvider(VibeProvider):
         elements = filter_element_types(rankings)
         starters = _starter_move_weights(moves=self.moves(), rankings=rankings, elements=elements)
 
-        hp_signal = Signal.mix(
-            signals["tmp_hi"] * 0.5, signals["elevat"] * 0.5, mode="center"
-        )  # mass + altitude endurance
-        atk_signal = signals["windgu"].center  # gust impact
-        def_signal = Signal.mix(
-            signals["elevat"] * 0.6, signals["pressr"] * 0.4, mode="center"
-        )  # solidity + compression
-        spa_signal = Signal.mix(
-            signals["radiat"] * 0.5, signals["cape_m"] * 0.5, mode="center"
-        )  # solar + electric flux
+        # fmt: off
+        hp_signal = Signal.mix(signals["tmp_hi"] * 0.5, signals["elevat"] * 0.5, mode="center")   # mass + altitude endurance
+        atk_signal = signals["windgu"].center                                                     # gust impact
+        def_signal = Signal.mix(signals["elevat"] * 0.6, signals["pressr"] * 0.4, mode="center")  # solidity + compression
+        spa_signal = Signal.mix(signals["radiat"] * 0.5, signals["cape_m"] * 0.5, mode="center")  # solar + electric flux
         spd_signal = Signal.mix(signals["humdty"] * 0.5, signals["precip"] * 0.5, mode="center")  # cushion + dampening
-        spe_signal = signals["windsp"].center  # kinetic
+        spe_signal = signals["windsp"].center                                                     # kinetic
+        # fmt: on
 
         ratio = ft.partial(stat_ratio_from_grade, elements=elements)
 
-        affinity = schema.Affinity(
-            identity=schema.Identity(
+        affinity = Affinity(
+            identity=Identity(
                 name="__",
                 elements=elements,
                 base_hp=base_stat_asymmetric_scaling(ratio(hp_signal, stat="hp"), stat="hp"),

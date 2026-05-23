@@ -1,7 +1,7 @@
 """Static lookup tables for asset storage."""
 
 from app import types as app_types
-from app.data_store.types import AssetKind
+from app.storage.types import AssetKind
 
 ASSET_VERSION = "v1"
 """Static schema/layout version for asset key paths."""

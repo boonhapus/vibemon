@@ -2,23 +2,24 @@ from __future__ import annotations
 
 import pytest
 
-from app import schema, types
-from app.data_store import const as ds_const
-from app.data_store import schema as ds_schema
-from app.data_store import types as ds_types
+from app import types
+from app.domain.vibemon import Aesthetic, Identity, Vibemon
 from app.lifecycle import policy
+from app.storage import const as ds_const
+from app.storage import schema as ds_schema
+from app.storage import types as ds_types
 
 
-def _vibemon() -> schema.Vibemon:
-    return schema.Vibemon(
-        identity=schema.Identity(
+def _vibemon() -> Vibemon:
+    return Vibemon(
+        identity=Identity(
             name="testmon",
             elements=(types.VibemonTypeT.FIRE,),
         ),
     )
 
 
-def _asset_ref(vibemon: schema.Vibemon, kind: ds_types.AssetKind) -> ds_schema.AssetRef:
+def _asset_ref(vibemon: Vibemon, kind: ds_types.AssetKind) -> ds_schema.AssetRef:
     return ds_schema.AssetRef(
         vibemon_id=vibemon.id,
         kind=kind,
@@ -32,7 +33,7 @@ def _asset_ref(vibemon: schema.Vibemon, kind: ds_types.AssetKind) -> ds_schema.A
 def test_can_skip_christen_requires_lifecycle_and_assets() -> None:
     vibemon = _vibemon()
     vibemon.lifecycle = types.VibemonLifecycleT.CHRISTENED
-    vibemon.aesthetic = schema.Aesthetic.from_vibemon(vibemon)
+    vibemon.aesthetic = Aesthetic.from_vibemon(vibemon)
     assert not policy.can_skip_christen(vibemon)
 
     for kind in ds_const.REQUIRED_CHRISTEN_ASSETS:
@@ -50,6 +51,6 @@ def test_require_can_manifest_rejects_born() -> None:
 
 def test_require_christen_assets_reports_missing() -> None:
     vibemon = _vibemon()
-    vibemon.aesthetic = schema.Aesthetic.from_vibemon(vibemon)
+    vibemon.aesthetic = Aesthetic.from_vibemon(vibemon)
     with pytest.raises(ValueError, match="missing christen refs"):
         policy.require_christen_assets(vibemon)

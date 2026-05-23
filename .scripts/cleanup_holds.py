@@ -1,6 +1,6 @@
 """Resolve stale generation holds and candidate review timeouts.
 
-Usage: uv run --project backend python scripts/cleanup_holds.py [--db-path PATH]
+Usage: uv run --project backend python .scripts/cleanup_holds.py [--db-path PATH]
 """
 
 from collections.abc import AsyncIterator

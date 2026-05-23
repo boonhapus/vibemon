@@ -8,10 +8,10 @@ import uuid
 import pydantic
 
 from app import brand, types
-from app.data_store import types as ds_types
 from app.domain.birth import FrozenSchema
 from app.domain.move import Move
 from app.domain.vibemon import Identity
+from app.storage import types as ds_types
 
 
 class PublicAsset(FrozenSchema):

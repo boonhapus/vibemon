@@ -95,26 +95,6 @@ TYPE_COLORS: Final[dict[VibemonTypeT, Color]] = {
 }
 
 
-def status_color_for_hp(hp_fraction: float) -> Color:
-    """Return the status color appropriate for a given HP fraction."""
-    STATUS_HEALTHY: Final = Color("#6B9B5A", "Sage", "Full or near-full HP, OK state")
-    STATUS_CAUTION: Final = Color("#CC7A22", "Amber", "Mid-range HP, status conditions, warnings")
-    STATUS_CRITICAL: Final = Color("#A03020", "Brick", "Low HP, fainted, critical errors")
-
-    # HP fraction thresholds for status-color transitions (DESIGN.md §2.3).
-    # Crossing a threshold downward changes the bar color.
-    HP_THRESHOLD_CAUTION: Final[float] = 0.50  # ≤ 50% of max → CAUTION
-    HP_THRESHOLD_CRITICAL: Final[float] = 0.20  # ≤ 20% of max → CRITICAL
-
-    match hp_fraction:
-        case _ if hp_fraction <= HP_THRESHOLD_CRITICAL:
-            return STATUS_CRITICAL
-        case _ if hp_fraction <= HP_THRESHOLD_CAUTION:
-            return STATUS_CAUTION
-        case _:
-            return STATUS_HEALTHY
-
-
 # ============================================================================
 # Background color solver — picks a candidate background that maximizes the
 # minimum perceptual distance from a set of foreground colors, optimized for

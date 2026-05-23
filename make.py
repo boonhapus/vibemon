@@ -91,12 +91,12 @@ COMMANDS: dict[str, Command] = {
     "db-reset": Command(
         description="Delete local dev database and generated monstore assets.",
         documentation="https://github.com/anomalyco/vibemon/.plans/ROADMAP.md",
-        argv=["python", "backend/scripts/reset_db.py"],
+        argv=["python", ".scripts/reset_db.py"],
     ),
     "db-cleanup": Command(
         description="Resolve stale generation holds and candidate review timeouts.",
         documentation="https://github.com/anomalyco/vibemon/.plans/ROADMAP.md",
-        argv=["python", "backend/scripts/cleanup_holds.py"],
+        argv=["python", ".scripts/cleanup_holds.py"],
     ),
 }
 
