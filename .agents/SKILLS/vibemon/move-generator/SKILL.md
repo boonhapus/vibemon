@@ -2,25 +2,26 @@
 name: move-generator
 description: >
   Orchestrates creative Vibemon move generation in two phases. Default behavior is
-  concept generation and review (no code output, no file edits). Code rendering and
+  concept generation and review (no code output, no file edits). JSON rendering and
   file writes are allowed only after explicit user approval. Uses provider docstring,
   type quotas, and learnset constraints.
 metadata:
-  version: 1.4.0
+  version: 2.0.0
 ---
 
 # Vibemon Move Generator (Orchestrator-First)
 
-Default behavior is ideation orchestration, not code generation.
+Default behavior is ideation orchestration, not content generation.
 
 ## Core Contract
 
 1. **Phase A (default): orchestration only**
-   - Produce concepts, never Python.
-   - No code fences, no `schema.Move(...)`, no file edits.
+   - Produce concepts, never JSON or Python.
+   - No code fences, no move object literals, no file edits.
 2. **Phase B (gated): render + write**
    - Allowed only after exact trigger: `render code now`, `apply phase`, or `commit phase`.
    - Otherwise stay in Phase A.
+   - **Output format: JSON move content** (not Python). Moves are written to `backend/app/content/moves/<provider>.json`.
 
 ## Trigger Intent Routing
 
@@ -131,7 +132,7 @@ Suggested columns:
 
 ---
 
-## Phase B — Render approved concepts to code (explicit opt-in only)
+## Phase B — Render approved concepts to JSON (explicit opt-in only)
 
 Enter this phase only after:
 
@@ -140,26 +141,25 @@ Enter this phase only after:
 
 ### Step B1 — Ask write mode before edits
 
-For `backend/app/plugins/<provider>/moves.py`, ask: replace `MOVES`, merge, or cancel.
+For `backend/app/content/moves/<provider>.json`, ask: replace moves array, merge, or cancel.
 In merge mode, resolve collisions per move with user input.
 
 ### Step B2 — Render rules
 
-- **Generation banner (required on every `moves.py` write):** Immediately after the module imports and before `MOVES = (`, include a single full-line comment marking the batch. Format (fixed width, pad with `─` on the right to the line length used in existing files):
-  - `# ── AI GENERATED v<semver> @ YYYY/MM/DD ─────────────────...`
-  - Example: `# ── AI GENERATED v1.1.0 @ 2026/04/30 ──────────────────────────────────────────────────` (see `backend/app/plugins/climate/moves.py` line 3).
-  - Bump `<semver>` appropriately for the change (patch for small batches / fixes, minor for substantial moveset revisions). Use the **actual calendar date** of the write for `YYYY/MM/DD`.
-- Convert approved concepts into `schema.Move`.
-- Use `from app import schema, types` and enum members (no raw strings).
+- **Output format: JSON move content file** at `backend/app/content/moves/<provider>.json`.
+- JSON structure: `{ "version": 1, "provider": "<provider>", "moves": [...] }`.
+- Each move is a JSON object with fields matching the `Move` schema:
+  - Required: `id`, `name`, `flavor_text`, `type`, `category`.
+  - Optional (omit when default): `power` (null for STATUS), `accuracy` (default 1.0), `pp` (default 10), `priority` (default 0), `effects`, `behavior`, `target` (default "single"), `level_requirement` (default 1).
+- Move `id` format: `<provider>.<snake_case_slug>` (e.g., `climate.barometer_jab`).
+- Type and category values are lowercase enum strings (e.g., `"fire"`, `"physical"`).
+- Effects use typed discriminated objects with `kind` field: `"status"`, `"stat"`, `"drain"`, `"recoil"`, `"weather"`, `"heal"`.
+- Effects are wrapped in `EffectGroup` objects with `chance`, `trigger`, and `effects` array.
+- Behavior conditions use typed objects with `kind` field.
+- Do not add executable callbacks, third-party battle scripts, or raw function refs. `script_id` is backend-owned first-party mapping only.
 - Enforce `1 <= level_requirement <= 100`.
 - Enforce unique `Move.name` in batch and merged pool.
-- STATUS moves must use `power=None` and at least one `EffectGroup`.
-- Render effects as `Effects`: use `effects=(schema.EffectGroup(...),)` containing typed effects such as `schema.StatusInflict`, `schema.StatChange`, `schema.Heal`, `schema.WeatherSet`, `schema.Drain`, or `schema.Recoil`.
-- Use explicit `EffectTarget` (`"self"` / `"target"` / etc.).
-- Provider move files are content plugins only. Do not add executable callbacks, third-party battle scripts, or raw Python function refs. `MoveBehavior.script_id` is only for existing first-party engine scripts and requires explicit user approval.
-- Expose module-level `MOVES = (...,)`.
-- Final output must be fully inlined `schema.Move(...)` entries.
-- Never leave helper maps/tables, factory/build functions, loops/comprehensions, or generated assembly in the final `moves.py`.
+- STATUS moves must use `power: null` and at least one effect group.
 - Flavor text must be unique per move and thematic to that move's fantasy/effect; do not reuse sentence templates.
 - For every move, choose `power`, `accuracy`, `pp`, and `level_requirement` by consulting `references/move_balance_reference.md`.
 - Resolve dials in this order: type/theme -> category -> power tier -> accuracy/PP -> level band -> secondary effect chance.
@@ -167,23 +167,23 @@ In merge mode, resolve collisions per move with user input.
 - Enforce damaging-move rider budget from Phase A:
   - Let `D` be damaging moves in the rendered set; target `R = round(0.3 * D)` rider-bearing damaging moves.
   - Keep realized rider count within `R ± 1` (small-batch tolerance), preferring fewer riders when tied.
-  - For damaging moves outside the rider budget, render with `effect=None`.
+  - For damaging moves outside the rider budget, omit the `effects` field.
 - Enforce power-band distribution from Phase A: realized per-tier counts must respect §3.5 floors and ceiling. Re-tier a concept rather than dropping it from the band.
 - Enforce priority budget: realized count of `priority ≥1` moves must be `≤ round(0.07 * N)`. Respect the §3.6 sparsity ladder for `+2..+7`.
 - Enforce per-type L1 floor: each type's rendered L1 share within `±15pp` of the batch L1 ratio.
-- Enforce early accuracy/evasion guard: no move with `level_requirement < 15` may include `schema.StatChange` that raises `evasion` or lowers target `accuracy`.
+- Enforce early accuracy/evasion guard: no move with `level_requirement < 15` may include stat changes that raise `evasion` or lower target `accuracy`.
 - Quality is non-negotiable: never trade moveset quality for speed, token savings, or mechanical safety.
-- Never flatten effect design (for example: blanket `effect.chance=1.0` across most moves) unless the user explicitly requests a "safe baseline only" pass.
-- For effect-bearing moves, intentionally distribute reliability (`accuracy`, `pp`, `effect.chance`) so utility texture exists across the batch.
+- Never flatten effect design (for example: blanket `chance: 1.0` across most moves) unless the user explicitly requests a "safe baseline only" pass.
+- For effect-bearing moves, intentionally distribute reliability (`accuracy`, `pp`, effect `chance`) so utility texture exists across the batch.
 - Do not use "all status + guaranteed on-hit effect" as a default generation pattern.
 - If time-constrained, reduce scope (fewer moves) rather than lowering move quality.
-- Run `uv run ruff format backend/app/plugins/<provider>/moves.py` after rendering.
+- After writing JSON, validate with: `uv run python -c "from app.content.moves import load_provider_moves; r = load_provider_moves('backend/app/content/moves/<provider>.json'); print(f'{len(r.moves)} loaded, {len(r.issues)} issues'); [print(i) for i in r.issues]"` from `backend/`.
 
 ### Step B2.5 — Mandatory balance quality gate (BLOCKING)
 
-Every check below is **MUST-PASS**. Run `uv run .agents/SKILLS/vibemon/move-generator/scripts/audit_moves.py <provider>` to verify metrics — the script exits non-zero on any HARD gate fail and prints a `VERDICT: PASS|FAIL` line. On any failure, revise the rendered set and re-run the gate before presenting completion. Do not ship a partially-passing batch.
+Every check below is **MUST-PASS**. Run `uv run .agents/skills/vibemon/move-generator/scripts/audit_moves.py <provider>` to verify metrics — the script exits non-zero on any HARD gate fail and prints a `VERDICT: PASS|FAIL` line. On any failure, revise the rendered set and re-run the gate before presenting completion. Do not ship a partially-passing batch.
 
-- **Batch Size (HARD)**: `N <= 100` per generation run to maintain quota accuracy. When auditing a provider whose `MOVES` tuple aggregates several past runs, raise the cap with `--cap` (e.g. `uv run .../audit_moves.py climate --cap 300`); quota gates remain proportional.
+- **Batch Size (HARD)**: `N <= 100` per generation run to maintain quota accuracy. When auditing a provider whose move set aggregates several past runs, raise the cap with `--cap` (e.g. `uv run .../audit_moves.py climate --cap 300`); quota gates remain proportional.
 - **L1 ratio (HARD)**: `|L1/N - 0.7| ≤ 0.05`. If outside this window, REJECT and rebalance — do not negotiate.
 - **Per-type L1 floor (HARD)**: every type's L1 share within `±15pp` of the batch L1 ratio.
 - **Level density**: keep `56-80` sparse and `81-100` trace unless explicitly requested otherwise.
@@ -194,7 +194,7 @@ Every check below is **MUST-PASS**. Run `uv run .agents/SKILLS/vibemon/move-gene
 - **Early accuracy/evasion guard (HARD)**: no move below level 15 may raise `evasion` or lower target `accuracy`, including damaging riders.
 - **Dial sanity**: run anti-pattern checks from `references/move_balance_reference.md` §12.
 - **Effect texture**: meaningful variance in effect reliability; no single pattern dominates.
-- **Current effect schema**: rendered moves use `EffectGroup` and typed effects. No legacy `target_self`, callback field, or executable provider script refs.
+- **Current effect schema**: rendered moves use typed effect objects with `kind` discriminator. No legacy callbacks or provider battle scripts.
 - **Damaging-rider ratio (HARD)**: damaging moves at ~`70%` no rider / `~30%` rider-bearing (within Step B2 tolerance). STATUS moves are exempt from the ratio but should not be used to bypass the "Loaded" feel of a moveset.
 - **Type/category fit**: cross-category choices flavor-justified, not accidental.
 
@@ -202,7 +202,7 @@ After all checks pass, print the same batch summary block from Step A7 with real
 
 ### Step B3 — Chat output style
 
-- Do not dump full code unless asked.
+- Do not dump full JSON unless asked.
 - Report path, mode, count, and concise diff summary.
 
 ---
@@ -228,18 +228,17 @@ After all checks pass, print the same batch summary block from Step A7 with real
 - [ ] Intra-batch anti-repetition checks passed
 - [ ] Manual concept approval occurred before Phase B
 - [ ] Phase B edits happened only after explicit trigger and write-mode confirmation
-- [ ] `moves.py` opens with the AI GENERATED banner (semver + `YYYY/MM/DD`) after imports, before `MOVES`
-- [ ] Final `moves.py` uses only inlined `schema.Move(...)` entries (no helper maps/builders/generators/comprehensions)
-- [ ] Effects use `schema.EffectGroup` + typed effects; no legacy callbacks or provider battle scripts
+- [ ] Output is JSON at `backend/app/content/moves/<provider>.json` (not Python)
+- [ ] JSON passes content loader validation with zero issues
+- [ ] Effects use typed objects with `kind` discriminator; no legacy callbacks or provider battle scripts
 - [ ] Flavor text is unique and move-specific (not templated boilerplate)
 - [ ] `power`/`accuracy`/`pp`/`level_requirement` were selected by consulting `references/move_balance_reference.md`
 - [ ] Generation did not sacrifice quality for speed or simplicity
-- [ ] Effect reliability is intentionally varied (no blanket `chance=1.0` pattern unless explicitly requested)
+- [ ] Effect reliability is intentionally varied (no blanket `chance: 1.0` pattern unless explicitly requested)
 - [ ] Damaging moves respect rider budget: `~70%` no rider / `~30%` with riders (status moves excluded)
 - [ ] Batch passes mandatory balance quality gate (L1 ratio, level density, anti-patterns, effect texture, type/category fit)
-- [ ] Ruff format was run on `backend/app/plugins/<provider>/moves.py`
 
 ## Reference
 
 - `references/move_balance_reference.md` (single source of truth for balancing and level placement)
-- `scripts/audit_moves.py` — gate generated moves data against the Step B2.5 HARD checks; prints A7 batch summary + per-gate `[PASS]/[FAIL]` and exits non-zero on any failure (run with `uv run .agents/SKILLS/vibemon/move-generator/scripts/audit_moves.py [provider]`)
+- `scripts/audit_moves.py` — gate generated moves data against the Step B2.5 HARD checks; prints A7 batch summary + per-gate `[PASS]/[FAIL]` and exits non-zero on any failure (run with `uv run .agents/skills/vibemon/move-generator/scripts/audit_moves.py [provider]`)

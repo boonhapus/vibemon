@@ -1,0 +1,24 @@
+{
+  "version": 1,
+  "provider": "climate",
+  "moves": [
+    {
+      "id": "climate.spark_tap",
+      "name": "Spark Tap",
+      "flavor_text": "A test move.",
+      "type": "electric",
+      "category": "special",
+      "power": 40,
+      "accuracy": 0.95
+    },
+    {
+      "id": "climate.ember_snap",
+      "name": "Ember Snap",
+      "flavor_text": "A second test move.",
+      "type": "fire",
+      "category": "physical",
+      "power": 55,
+      "pp": 15
+    }
+  ]
+}

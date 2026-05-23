@@ -1,4 +1,3 @@
-from collections.abc import Iterable
 from typing import Any, ClassVar
 import collections
 import datetime as dt
@@ -17,7 +16,7 @@ from app.plugins.helpers import Signal, filter_element_types
 from app.plugins.provider import VibeProvider
 from app.types import VibemonTypeT
 
-from . import _weather, moves
+from . import _weather
 from .const import WeatherCode
 
 _LOGGER = structlog.get_logger(__name__)
@@ -431,7 +430,7 @@ class ClimateProvider(VibeProvider):
         rankings = self.determine_element_scores(signals=signals, weather_code=wmo_code)
         elements = filter_element_types(rankings)
         bonus_fx = ft.partial(get_move_assignment_bonus, vibemon_elements=elements)
-        starters = {m: rankings[m.type] * bonus_fx(m.type) for m in moves.MOVES if m.level_requirement == 1}
+        starters = {m: rankings[m.type] * bonus_fx(m.type) for m in self.moves() if m.level_requirement == 1}
 
         hp_signal = Signal.mix(
             signals["tmp_hi"] * 0.5, signals["elevat"] * 0.5, mode="center"
@@ -466,10 +465,6 @@ class ClimateProvider(VibeProvider):
         )
 
         return affinity
-
-    def moves(self) -> Iterable[schema.Move]:
-        """Expose the climate move catalog for deterministic DB seeding."""
-        return moves.MOVES
 
     async def teardown(self) -> None:
         """Release provider-owned resources. Override only when needed."""

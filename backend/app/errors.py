@@ -6,6 +6,8 @@ single base when they need to.
 
 from __future__ import annotations
 
+import enum
+
 
 class VibemonError(RuntimeError):
     """Base error for all Vibemon domain failures."""
@@ -33,3 +35,34 @@ class PartyFull(VibemonServiceError):
 
 class ReleaseUnavailable(VibemonServiceError):
     """Raised when a Vibemon cannot be released by the trainer."""
+
+
+class InterfaceErrorCode(enum.StrEnum):
+    """Stable API-facing error codes for typed service failures."""
+
+    GENERATION_CREDIT_UNAVAILABLE = "generation_credit_unavailable"
+    GENERATION_ALREADY_ACTIVE = "generation_already_active"
+    CANDIDATE_REVIEW_UNAVAILABLE = "candidate_review_unavailable"
+    PARTY_FULL = "party_full"
+    RELEASE_UNAVAILABLE = "release_unavailable"
+    INTERNAL_ERROR = "internal_error"
+
+
+_SERVICE_ERROR_CODES: dict[type[VibemonServiceError], InterfaceErrorCode] = {
+    GenerationCreditUnavailable: InterfaceErrorCode.GENERATION_CREDIT_UNAVAILABLE,
+    GenerationAlreadyActive: InterfaceErrorCode.GENERATION_ALREADY_ACTIVE,
+    CandidateReviewUnavailable: InterfaceErrorCode.CANDIDATE_REVIEW_UNAVAILABLE,
+    PartyFull: InterfaceErrorCode.PARTY_FULL,
+    ReleaseUnavailable: InterfaceErrorCode.RELEASE_UNAVAILABLE,
+}
+
+
+def interface_error_code(error: Exception) -> InterfaceErrorCode:
+    """Map a typed domain/service exception to a stable interface error code."""
+
+    if not isinstance(error, VibemonServiceError):
+        return InterfaceErrorCode.INTERNAL_ERROR
+    for error_type, code in _SERVICE_ERROR_CODES.items():
+        if isinstance(error, error_type):
+            return code
+    return InterfaceErrorCode.INTERNAL_ERROR

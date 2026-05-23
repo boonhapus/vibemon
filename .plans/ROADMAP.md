@@ -76,42 +76,42 @@
 
 ## 4) API/Frontend Readiness
 
-- [ ] Define service error mapping contract (typed domain exceptions -> interface error codes).
-- [ ] Expose API read models with trainer-private review metadata only to reviewer.
-- [ ] Implement timeout-facing fields/copy support (`Timed out`, resolved timestamp).
-- [ ] Keep API framework choice deferred until service seams stabilize.
+- [x] Define service error mapping contract (typed domain exceptions -> interface error codes).
+- [x] Expose API read models with trainer-private review metadata only to reviewer.
+- [x] Implement timeout-facing fields/copy support (`Timed out`, resolved timestamp).
+- [x] Keep API framework choice deferred until service seams stabilize.
 
 ## 5) Move Content Externalization (Deferred Build Track)
 
 ### 5.1 Schema + Identity Preparation
-- [ ] Add stable `Move.id` support in domain schema while keeping compatibility with current `name`/`flavor_text`.
-- [ ] Define move content contract for external files (JSON v1) and document required/optional fields.
-- [ ] Add validation rules for unique IDs and enum correctness across provider move sets.
+- [x] Add stable `Move.id` support in domain schema while keeping compatibility with current `name`/`flavor_text`.
+- [x] Define move content contract for external files (JSON v1) and document required/optional fields.
+- [x] Add validation rules for unique IDs and enum correctness across provider move sets.
 
 ### 5.2 Loader + Validation Layer
-- [ ] Add `backend/app/content/moves.py` loader that reads provider JSON and returns typed `Move` objects.
-- [ ] Enforce strict validation (reject unknown fields, invalid enums, malformed effects/conditions).
-- [ ] Add test fixtures for valid, invalid, and duplicate-id datasets.
-- [ ] Loader failure policy: reject invalid moves individually, continue loading valid moves, and emit actionable provider/developer fix reports.
+- [x] Add `backend/app/content/moves.py` loader that reads provider JSON and returns typed `Move` objects.
+- [x] Enforce strict validation (reject unknown fields, invalid enums, malformed effects/conditions).
+- [x] Add test fixtures for valid, invalid, and duplicate-id datasets.
+- [x] Loader failure policy: reject invalid moves individually, continue loading valid moves, and emit actionable provider/developer fix reports.
 
 ### 5.3 Full Adoption Migration
-- [ ] Convert all provider move sources from Python-defined moves to JSON content in the same migration wave.
-- [ ] Keep battle engine consumption typed (`Move`/`BattleMove`), with no engine-side raw JSON parsing.
-- [ ] Add compatibility bridge so existing Python move modules can coexist during migration.
+- [x] Convert all provider move sources from Python-defined moves to JSON content in the same migration wave.
+- [x] Keep battle engine consumption typed (`Move`/`BattleMove`), with no engine-side raw JSON parsing.
+- [x] Add compatibility bridge so existing Python move modules can coexist during migration.
 
 ### 5.4 Catalog + Tooling Integration
-- [ ] Ensure `MoveCatalogService` can serve moves loaded from JSON without behavior regressions.
-- [ ] Update move audit/balance tooling to read through the shared loader path.
-- [ ] Update generation/content tooling to emit JSON move definitions instead of Python source where applicable.
-- [ ] Update `.agents/skills/vibemon/move-generator` workflow/prompts so generated move outputs target the JSON move-content contract (not Python module emission).
-- [ ] Add/refresh tests or validation checks used by move-generator flows to verify generated JSON passes loader validation.
-- [ ] Testing scope (current phase): keep tests focused on isolated-change correctness for loader, schema validation, migration integrity, and catalog compatibility.
+- [x] Ensure `MoveCatalogService` can serve moves loaded from JSON without behavior regressions.
+- [x] Update move audit/balance tooling to read through the shared loader path.
+- [x] Update generation/content tooling to emit JSON move definitions instead of Python source where applicable.
+- [x] Update `.agents/skills/vibemon/move-generator` workflow/prompts so generated move outputs target the JSON move-content contract (not Python module emission).
+- [x] Add/refresh tests or validation checks used by move-generator flows to verify generated JSON passes loader validation.
+- [x] Testing scope (current phase): keep tests focused on isolated-change correctness for loader, schema validation, migration integrity, and catalog compatibility.
 - [ ] Testing scope (post-migration, pre-frontend): add a full-suite test initiative covering cross-provider catalog invariants, assignment distribution behavior, and end-to-end battle/type-system regressions.
 
 ### 5.5 Boundaries and Non-Goals (v1)
-- [ ] Do not add provider-authored executable callbacks.
-- [ ] Keep `script_id` as backend-owned first-party mapping only.
-- [ ] Defer localization infrastructure (`name_key`/`flavor_key`) until frontend i18n requirements are active.
+- [x] Do not add provider-authored executable callbacks.
+- [x] Keep `script_id` as backend-owned first-party mapping only.
+- [x] Defer localization infrastructure (`name_key`/`flavor_key`) until frontend i18n requirements are active.
 
 ## 6) Type System Expansion (Deferred Build Track)
 

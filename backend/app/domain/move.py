@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 from typing import Annotated, Literal
+import re
 
 import pydantic
 
@@ -10,6 +11,9 @@ from app import types, validators
 from app.domain.birth import FrozenSchema
 
 type EffectTarget = Literal["self", "target", "all_targets", "side", "opposing_side"]
+
+_MOVE_ID_PATTERN = re.compile(r"^[a-z0-9]+(?:_[a-z0-9]+)*\.[a-z0-9]+(?:_[a-z0-9]+)*$")
+_CANONICAL_NAME_TOKEN_PATTERN = re.compile(r"[0-9a-z]+")
 
 
 class StatusInflict(FrozenSchema):
@@ -101,6 +105,7 @@ class MoveBehavior(FrozenSchema):
 
 
 class Move(FrozenSchema):
+    id: str | None = None
     name: str
     flavor_text: str
     type: types.VibemonTypeT
@@ -114,10 +119,44 @@ class Move(FrozenSchema):
     target: types.MoveTargetT = types.MoveTargetT.SINGLE
     level_requirement: int = 1
 
+    @pydantic.model_validator(mode="after")
+    def _set_or_validate_id(self) -> Move:
+        move_id = self.id or f"legacy.{slugify_move_name(self.name)}"
+        validate_move_id(move_id)
+        if self.id is None:
+            object.__setattr__(self, "id", move_id)
+        return self
+
     def __hash__(self) -> int:
-        return hash(self.name)
+        return hash(self.id)
 
     def __eq__(self, other: object) -> bool:
         if not isinstance(other, Move):
             return NotImplemented
-        return self.name == other.name
+        return self.id == other.id
+
+    @property
+    def canonical_name(self) -> str:
+        return canonicalize_move_name(self.name)
+
+
+def validate_move_id(move_id: str) -> None:
+    """Require the canonical `<provider_slug>.<move_slug>` move identity format."""
+    if not _MOVE_ID_PATTERN.fullmatch(move_id):
+        raise ValueError("Move id must use '<provider_slug>.<move_slug>' with lowercase snake-case slugs.")
+
+
+def slugify_move_name(name: str) -> str:
+    """Create a deterministic slug for temporary Python-authored move definitions."""
+    slug = "_".join(_CANONICAL_NAME_TOKEN_PATTERN.findall(name.casefold()))
+    if not slug:
+        raise ValueError("Move name must contain at least one alphanumeric character.")
+    return slug
+
+
+def canonicalize_move_name(name: str) -> str:
+    """Normalize display names for global uniqueness checks."""
+    tokens = _CANONICAL_NAME_TOKEN_PATTERN.findall(name.strip().casefold())
+    if not tokens:
+        raise ValueError("Move name must contain at least one alphanumeric character.")
+    return " ".join(tokens)

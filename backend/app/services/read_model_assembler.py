@@ -7,6 +7,7 @@ import datetime as dt
 
 from app import const, models, schema, types
 from app.data_store import types as ds_types
+from app.domain import read_models
 
 type AssetUrler = Callable[[str, dt.timedelta], Awaitable[str]]
 
@@ -76,13 +77,17 @@ def _visible_review(
         return None
     for review in reviews:
         if review.trainer_id == reviewing_trainer_id:
+            status = types.CandidateReviewStatusT(review.status)
+            resolution = types.CandidateReviewStatusT(review.resolution) if review.resolution else None
             return schema.CandidateReviewRead(
                 id=review.id,
                 trainer_id=review.trainer_id,
-                status=types.CandidateReviewStatusT(review.status),
+                status=status,
                 shown_at=review.shown_at,
                 timeout_at=review.timeout_at,
                 resolved_at=review.resolved_at,
-                resolution=types.CandidateReviewStatusT(review.resolution) if review.resolution else None,
+                resolution=resolution,
+                status_label=read_models.candidate_review_status_label(status),
+                resolved_label=read_models.candidate_review_status_label(resolution) if resolution else None,
             )
     return None

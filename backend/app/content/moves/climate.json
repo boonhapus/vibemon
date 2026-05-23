@@ -1,0 +1,4507 @@
+{
+  "version": 1,
+  "provider": "climate",
+  "moves": [
+    {
+      "id": "climate.barometer_jab",
+      "name": "Barometer Jab",
+      "flavor_text": "A quick strike timed to a pressure swing in unstable skies.",
+      "type": "normal",
+      "category": "physical",
+      "power": 30,
+      "accuracy": 1.0,
+      "pp": 30
+    },
+    {
+      "id": "climate.dryline_feint",
+      "name": "Dryline Feint",
+      "flavor_text": "A deceptive hit that cuts across a shifting dryline.",
+      "type": "normal",
+      "category": "physical",
+      "power": 30,
+      "accuracy": 1.0,
+      "pp": 30,
+      "effects": [
+        {
+          "chance": 0.2,
+          "trigger": "on_hit",
+          "effects": [
+            {
+              "kind": "stat",
+              "target": "target",
+              "changes": {
+                "speed": -1
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "climate.cloud_count",
+      "name": "Cloud Count",
+      "flavor_text": "You read cloud pacing to sharpen your timing.",
+      "type": "normal",
+      "category": "status",
+      "accuracy": 1.0,
+      "pp": 20,
+      "effects": [
+        {
+          "chance": 1.0,
+          "trigger": "on_hit",
+          "effects": [
+            {
+              "kind": "stat",
+              "target": "self",
+              "changes": {
+                "accuracy": 1
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "climate.gale_knuckle",
+      "name": "Gale Knuckle",
+      "flavor_text": "A wind-backed body blow with clean follow-through.",
+      "type": "normal",
+      "category": "physical",
+      "power": 40,
+      "accuracy": 1.0,
+      "pp": 30,
+      "priority": 1
+    },
+    {
+      "id": "climate.frontline_clamp",
+      "name": "Frontline Clamp",
+      "flavor_text": "A cold-front shoulder check that controls the lane.",
+      "type": "normal",
+      "category": "physical",
+      "power": 30,
+      "accuracy": 1.0,
+      "pp": 30,
+      "effects": [
+        {
+          "chance": 0.2,
+          "trigger": "on_hit",
+          "effects": [
+            {
+              "kind": "stat",
+              "target": "target",
+              "changes": {
+                "defense": -1
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "climate.dewstill",
+      "name": "Dewstill",
+      "flavor_text": "You settle into dawn calm and recover battle composure.",
+      "type": "normal",
+      "category": "status",
+      "accuracy": 1.0,
+      "pp": 15,
+      "effects": [
+        {
+          "chance": 1.0,
+          "trigger": "on_hit",
+          "effects": [
+            {
+              "kind": "stat",
+              "target": "self",
+              "changes": {
+                "sp_defense": 1
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "climate.haze_breaker",
+      "name": "Haze Breaker",
+      "flavor_text": "A focused strike that punches through low haze.",
+      "type": "normal",
+      "category": "physical",
+      "power": 30,
+      "accuracy": 1.0,
+      "pp": 30
+    },
+    {
+      "id": "climate.shelter_slam",
+      "name": "Shelter Slam",
+      "flavor_text": "A bracing shoulder check delivered from a storm-shelter stance.",
+      "type": "normal",
+      "category": "physical",
+      "power": 30,
+      "accuracy": 1.0,
+      "pp": 30
+    },
+    {
+      "id": "climate.isobar_ram",
+      "name": "Isobar Ram",
+      "flavor_text": "A charge along pressure lanes that rattles footing.",
+      "type": "normal",
+      "category": "physical",
+      "power": 85,
+      "accuracy": 0.95,
+      "pp": 15,
+      "effects": [
+        {
+          "chance": 0.3,
+          "trigger": "on_hit",
+          "effects": [
+            {
+              "kind": "stat",
+              "target": "target",
+              "changes": {
+                "defense": -1
+              }
+            }
+          ]
+        }
+      ],
+      "level_requirement": 40
+    },
+    {
+      "id": "climate.mistline_sweep",
+      "name": "Mistline Sweep",
+      "flavor_text": "A wide sweep hidden in thin shoreline mist.",
+      "type": "normal",
+      "category": "physical",
+      "power": 45,
+      "accuracy": 1.0,
+      "pp": 25
+    },
+    {
+      "id": "climate.jetstream_drill",
+      "name": "Jetstream Drill",
+      "flavor_text": "A drilling rush riding upper-air momentum.",
+      "type": "normal",
+      "category": "physical",
+      "power": 95,
+      "accuracy": 0.95,
+      "level_requirement": 42
+    },
+    {
+      "id": "climate.pressure_ledger",
+      "name": "Pressure Ledger",
+      "flavor_text": "You track pressure shifts and blunt enemy offense.",
+      "type": "normal",
+      "category": "status",
+      "accuracy": 1.0,
+      "pp": 15,
+      "effects": [
+        {
+          "chance": 1.0,
+          "trigger": "on_hit",
+          "effects": [
+            {
+              "kind": "stat",
+              "target": "target",
+              "changes": {
+                "attack": -1
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "climate.monsoon_shoulder",
+      "name": "Monsoon Shoulder",
+      "flavor_text": "A heavy monsoon-force tackle that can stagger targets.",
+      "type": "normal",
+      "category": "physical",
+      "power": 105,
+      "accuracy": 0.9,
+      "effects": [
+        {
+          "chance": 0.2,
+          "trigger": "on_hit",
+          "effects": [
+            {
+              "kind": "stat",
+              "target": "target",
+              "changes": {
+                "attack": -1
+              }
+            }
+          ]
+        }
+      ],
+      "level_requirement": 56
+    },
+    {
+      "id": "climate.whiteout_charge",
+      "name": "Whiteout Charge",
+      "flavor_text": "A blind sprint through whiteout that lands a punishing impact.",
+      "type": "normal",
+      "category": "physical",
+      "power": 30,
+      "accuracy": 1.0,
+      "pp": 30
+    },
+    {
+      "id": "climate.stormglass_beam",
+      "name": "Stormglass Beam",
+      "flavor_text": "A blinding column of compressed sky-glass energy fires forward; the user must brace and recover after.",
+      "type": "normal",
+      "category": "special",
+      "power": 120,
+      "accuracy": 0.9,
+      "pp": 5,
+      "level_requirement": 74
+    },
+    {
+      "id": "climate.sungrit_spark",
+      "name": "Sungrit Spark",
+      "flavor_text": "Grit-heated sparks spit from sun-baked terrain.",
+      "type": "fire",
+      "category": "special",
+      "power": 30,
+      "accuracy": 1.0,
+      "pp": 30
+    },
+    {
+      "id": "climate.cinder_draft",
+      "name": "Cinder Draft",
+      "flavor_text": "A cinder gust climbs an updraft into the target.",
+      "type": "fire",
+      "category": "special",
+      "power": 30,
+      "accuracy": 1.0,
+      "pp": 30,
+      "effects": [
+        {
+          "chance": 0.2,
+          "trigger": "on_hit",
+          "effects": [
+            {
+              "kind": "status",
+              "target": "target",
+              "status": "burn"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "climate.heat_mirage",
+      "name": "Heat Mirage",
+      "flavor_text": "Shimmering heat saps the foe's focus.",
+      "type": "fire",
+      "category": "status",
+      "accuracy": 1.0,
+      "pp": 20,
+      "effects": [
+        {
+          "chance": 1.0,
+          "trigger": "on_hit",
+          "effects": [
+            {
+              "kind": "stat",
+              "target": "target",
+              "changes": {
+                "sp_attack": -1
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "climate.ashline_scour",
+      "name": "Ashline Scour",
+      "flavor_text": "An abrasive ash wave strips through the front line.",
+      "type": "fire",
+      "category": "special",
+      "power": 65,
+      "accuracy": 1.0,
+      "pp": 20,
+      "level_requirement": 36
+    },
+    {
+      "id": "climate.kiln_palm",
+      "name": "Kiln Palm",
+      "flavor_text": "A close-range palm strike like opening a kiln.",
+      "type": "fire",
+      "category": "physical",
+      "power": 70,
+      "accuracy": 1.0,
+      "pp": 15,
+      "level_requirement": 36
+    },
+    {
+      "id": "climate.ember_knuckle",
+      "name": "Ember Knuckle",
+      "flavor_text": "A glowing knuckle wreathed in embers cracks into the target.",
+      "type": "fire",
+      "category": "physical",
+      "power": 30,
+      "accuracy": 1.0,
+      "pp": 30
+    },
+    {
+      "id": "climate.solar_lash",
+      "name": "Solar Lash",
+      "flavor_text": "A noonlight whip of fire cracks across the field.",
+      "type": "fire",
+      "category": "special",
+      "power": 45,
+      "accuracy": 1.0,
+      "pp": 25,
+      "effects": [
+        {
+          "chance": 0.2,
+          "trigger": "on_hit",
+          "effects": [
+            {
+              "kind": "status",
+              "target": "target",
+              "status": "burn"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "climate.red_sky_oath",
+      "name": "Red Sky Oath",
+      "flavor_text": "A dusk oath that sharpens your fire output.",
+      "type": "fire",
+      "category": "status",
+      "accuracy": 1.0,
+      "pp": 15,
+      "effects": [
+        {
+          "chance": 1.0,
+          "trigger": "on_hit",
+          "effects": [
+            {
+              "kind": "stat",
+              "target": "self",
+              "changes": {
+                "sp_attack": 1
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "climate.furnace_spiral",
+      "name": "Furnace Spiral",
+      "flavor_text": "A spiraling plume that can leave lingering burns.",
+      "type": "fire",
+      "category": "special",
+      "power": 45,
+      "accuracy": 1.0,
+      "pp": 25,
+      "effects": [
+        {
+          "chance": 0.3,
+          "trigger": "on_hit",
+          "effects": [
+            {
+              "kind": "status",
+              "target": "target",
+              "status": "burn"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "climate.scaldwind_arc",
+      "name": "Scaldwind Arc",
+      "flavor_text": "A curved blast of steamfire with stable pressure.",
+      "type": "fire",
+      "category": "special",
+      "power": 45,
+      "accuracy": 1.0,
+      "pp": 25
+    },
+    {
+      "id": "climate.drought_cannon",
+      "name": "Drought Cannon",
+      "flavor_text": "Compressed dry heat released as a focused shot.",
+      "type": "fire",
+      "category": "special",
+      "power": 95,
+      "accuracy": 0.95,
+      "level_requirement": 44
+    },
+    {
+      "id": "climate.thermal_lift",
+      "name": "Thermal Lift",
+      "flavor_text": "Thermal columns surge and sharpen your pace.",
+      "type": "fire",
+      "category": "status",
+      "accuracy": 1.0,
+      "pp": 15,
+      "effects": [
+        {
+          "chance": 1.0,
+          "trigger": "on_hit",
+          "effects": [
+            {
+              "kind": "stat",
+              "target": "self",
+              "changes": {
+                "speed": 2
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "climate.pyroclast_drop",
+      "name": "Pyroclast Drop",
+      "flavor_text": "Volcanic fragments rain down and crack special guard.",
+      "type": "fire",
+      "category": "special",
+      "power": 105,
+      "accuracy": 0.9,
+      "effects": [
+        {
+          "chance": 0.2,
+          "trigger": "on_hit",
+          "effects": [
+            {
+              "kind": "stat",
+              "target": "target",
+              "changes": {
+                "sp_defense": -1
+              }
+            }
+          ]
+        }
+      ],
+      "level_requirement": 56
+    },
+    {
+      "id": "climate.ashfall_beam",
+      "name": "Ashfall Beam",
+      "flavor_text": "A scorching beam of compacted ash blasts the target with searing weight.",
+      "type": "fire",
+      "category": "special",
+      "power": 100,
+      "accuracy": 0.95,
+      "level_requirement": 68
+    },
+    {
+      "id": "climate.sunflare_verdict",
+      "name": "Sunflare Verdict",
+      "flavor_text": "A peak-sun beam used to finish weathered foes.",
+      "type": "fire",
+      "category": "special",
+      "power": 120,
+      "accuracy": 1.0,
+      "pp": 5,
+      "effects": [
+        {
+          "chance": 1.0,
+          "trigger": "on_hit",
+          "effects": [
+            {
+              "kind": "stat",
+              "target": "self",
+              "changes": {
+                "sp_attack": -2
+              }
+            }
+          ]
+        }
+      ],
+      "level_requirement": 76
+    },
+    {
+      "id": "climate.runoff_flick",
+      "name": "Runoff Flick",
+      "flavor_text": "A runoff snap that chips with clean hydric force.",
+      "type": "water",
+      "category": "special",
+      "power": 25,
+      "accuracy": 1.0,
+      "pp": 35
+    },
+    {
+      "id": "climate.rivulet_snap",
+      "name": "Rivulet Snap",
+      "flavor_text": "A narrow stream cracks like a whip.",
+      "type": "water",
+      "category": "special",
+      "power": 40,
+      "accuracy": 1.0,
+      "pp": 30,
+      "priority": 1
+    },
+    {
+      "id": "climate.fog_reservoir",
+      "name": "Fog Reservoir",
+      "flavor_text": "Condensed fog forms a reserve that steadies you.",
+      "type": "water",
+      "category": "status",
+      "accuracy": 1.0,
+      "pp": 20,
+      "effects": [
+        {
+          "chance": 1.0,
+          "trigger": "on_hit",
+          "effects": [
+            {
+              "kind": "stat",
+              "target": "self",
+              "changes": {
+                "sp_defense": 1
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "climate.tideknit_burst",
+      "name": "Tideknit Burst",
+      "flavor_text": "Scattered droplets knot into a tight impact.",
+      "type": "water",
+      "category": "special",
+      "power": 65,
+      "accuracy": 1.0,
+      "pp": 20,
+      "level_requirement": 36
+    },
+    {
+      "id": "climate.rainrail_strike",
+      "name": "Rainrail Strike",
+      "flavor_text": "A slanted rainline strike from a hard angle.",
+      "type": "water",
+      "category": "physical",
+      "power": 70,
+      "accuracy": 1.0,
+      "pp": 15,
+      "level_requirement": 36
+    },
+    {
+      "id": "climate.current_lance",
+      "name": "Current Lance",
+      "flavor_text": "A pressurized water-current spear lances along enemy movement lanes.",
+      "type": "water",
+      "category": "special",
+      "power": 30,
+      "accuracy": 1.0,
+      "pp": 30
+    },
+    {
+      "id": "climate.harbor_surge",
+      "name": "Harbor Surge",
+      "flavor_text": "A controlled harbor swell with reliable pressure.",
+      "type": "water",
+      "category": "special",
+      "power": 30,
+      "accuracy": 1.0,
+      "pp": 30
+    },
+    {
+      "id": "climate.condense_burst",
+      "name": "Condense Burst",
+      "flavor_text": "Thick moisture compresses then bursts in a heavy hydric crash.",
+      "type": "water",
+      "category": "special",
+      "power": 45,
+      "accuracy": 1.0,
+      "pp": 25
+    },
+    {
+      "id": "climate.undertow_pin",
+      "name": "Undertow Pin",
+      "flavor_text": "A hidden pull drags targets off rhythm.",
+      "type": "water",
+      "category": "physical",
+      "power": 85,
+      "accuracy": 0.95,
+      "pp": 15,
+      "effects": [
+        {
+          "chance": 0.3,
+          "trigger": "on_hit",
+          "effects": [
+            {
+              "kind": "stat",
+              "target": "target",
+              "changes": {
+                "speed": -1
+              }
+            }
+          ]
+        }
+      ],
+      "level_requirement": 40
+    },
+    {
+      "id": "climate.delta_break",
+      "name": "Delta Break",
+      "flavor_text": "River-delta force recombines into a heavy crash.",
+      "type": "water",
+      "category": "special",
+      "power": 45,
+      "accuracy": 1.0,
+      "pp": 25
+    },
+    {
+      "id": "climate.monsoon_lance",
+      "name": "Monsoon Lance",
+      "flavor_text": "A concentrated monsoon column fired downlane.",
+      "type": "water",
+      "category": "special",
+      "power": 95,
+      "accuracy": 0.95,
+      "level_requirement": 43
+    },
+    {
+      "id": "climate.floodplain_accord",
+      "name": "Floodplain Accord",
+      "flavor_text": "A teamward flow that accelerates your side.",
+      "type": "water",
+      "category": "status",
+      "accuracy": 1.0,
+      "pp": 15,
+      "effects": [
+        {
+          "chance": 1.0,
+          "trigger": "on_hit",
+          "effects": [
+            {
+              "kind": "stat",
+              "target": "self",
+              "changes": {
+                "speed": 1
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "climate.rip_current_vault",
+      "name": "Rip Current Vault",
+      "flavor_text": "A vaulting strike that can disrupt tempo.",
+      "type": "water",
+      "category": "physical",
+      "power": 105,
+      "accuracy": 0.9,
+      "effects": [
+        {
+          "chance": 0.2,
+          "trigger": "on_hit",
+          "effects": [
+            {
+              "kind": "stat",
+              "target": "target",
+              "changes": {
+                "speed": -1
+              }
+            }
+          ]
+        }
+      ],
+      "level_requirement": 56
+    },
+    {
+      "id": "climate.blackwater_veil",
+      "name": "Blackwater Veil",
+      "flavor_text": "A dark flood haze drags the foe's rhythm underwater.",
+      "type": "water",
+      "category": "status",
+      "accuracy": 0.9,
+      "effects": [
+        {
+          "chance": 1.0,
+          "trigger": "on_hit",
+          "effects": [
+            {
+              "kind": "stat",
+              "target": "target",
+              "changes": {
+                "speed": -1
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "climate.cyclone_siphon",
+      "name": "Cyclone Siphon",
+      "flavor_text": "A rotating cyclone core drains momentum from foes.",
+      "type": "water",
+      "category": "special",
+      "power": 120,
+      "accuracy": 1.0,
+      "pp": 5,
+      "effects": [
+        {
+          "chance": 1.0,
+          "trigger": "on_hit",
+          "effects": [
+            {
+              "kind": "stat",
+              "target": "self",
+              "changes": {
+                "sp_attack": -2
+              }
+            }
+          ]
+        }
+      ],
+      "level_requirement": 75
+    },
+    {
+      "id": "climate.static_stitch",
+      "name": "Static Stitch",
+      "flavor_text": "Needling arcs stitch through humid air.",
+      "type": "electric",
+      "category": "special",
+      "power": 30,
+      "accuracy": 1.0,
+      "pp": 30
+    },
+    {
+      "id": "climate.wireflash_tap",
+      "name": "Wireflash Tap",
+      "flavor_text": "A quick conductive tap through rainfilm.",
+      "type": "electric",
+      "category": "physical",
+      "power": 30,
+      "accuracy": 1.0,
+      "pp": 30
+    },
+    {
+      "id": "climate.ion_read",
+      "name": "Ion Read",
+      "flavor_text": "You read charge gradients to line up clean hits.",
+      "type": "electric",
+      "category": "status",
+      "accuracy": 1.0,
+      "pp": 20,
+      "effects": [
+        {
+          "chance": 1.0,
+          "trigger": "on_hit",
+          "effects": [
+            {
+              "kind": "stat",
+              "target": "self",
+              "changes": {
+                "accuracy": 1
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "climate.stormclick",
+      "name": "Stormclick",
+      "flavor_text": "A sharp thunderhead snap with dependable timing.",
+      "type": "electric",
+      "category": "special",
+      "power": 40,
+      "accuracy": 1.0,
+      "pp": 30,
+      "priority": 1
+    },
+    {
+      "id": "climate.radar_jolt",
+      "name": "Radar Jolt",
+      "flavor_text": "A radar-like pulse tracks and shocks.",
+      "type": "electric",
+      "category": "special",
+      "power": 70,
+      "accuracy": 1.0,
+      "pp": 15,
+      "level_requirement": 36
+    },
+    {
+      "id": "climate.surge_lash",
+      "name": "Surge Lash",
+      "flavor_text": "A whip of insulated charge cracks down the conductive air.",
+      "type": "electric",
+      "category": "physical",
+      "power": 70,
+      "accuracy": 1.0,
+      "pp": 15,
+      "level_requirement": 36
+    },
+    {
+      "id": "climate.arc_ladder",
+      "name": "Arc Ladder",
+      "flavor_text": "Stepwise current leaps through damp air columns.",
+      "type": "electric",
+      "category": "special",
+      "power": 75,
+      "accuracy": 1.0,
+      "pp": 15,
+      "level_requirement": 36
+    },
+    {
+      "id": "climate.thunder_verdict",
+      "name": "Thunder Verdict",
+      "flavor_text": "A judging arc of stormlight slams down on the foe with shocking force.",
+      "type": "electric",
+      "category": "special",
+      "power": 45,
+      "accuracy": 1.0,
+      "pp": 25
+    },
+    {
+      "id": "climate.cloudbank_bolt",
+      "name": "Cloudbank Bolt",
+      "flavor_text": "A charged cloudbank edge discharges with paralysis risk.",
+      "type": "electric",
+      "category": "special",
+      "power": 45,
+      "accuracy": 1.0,
+      "pp": 25,
+      "effects": [
+        {
+          "chance": 0.2,
+          "trigger": "on_hit",
+          "effects": [
+            {
+              "kind": "status",
+              "target": "target",
+              "status": "paralysis"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "climate.neon_squall",
+      "name": "Neon Squall",
+      "flavor_text": "A fluorescent stormsheet sweeps in one pass.",
+      "type": "electric",
+      "category": "special",
+      "power": 45,
+      "accuracy": 1.0,
+      "pp": 25
+    },
+    {
+      "id": "climate.peak_discharge",
+      "name": "Peak Discharge",
+      "flavor_text": "Summit charge released as a high-output blast.",
+      "type": "electric",
+      "category": "special",
+      "power": 95,
+      "accuracy": 0.95,
+      "level_requirement": 45
+    },
+    {
+      "id": "climate.grid_overclock",
+      "name": "Grid Overclock",
+      "flavor_text": "You overclock your storm grid for rapid action.",
+      "type": "electric",
+      "category": "status",
+      "accuracy": 1.0,
+      "pp": 15,
+      "effects": [
+        {
+          "chance": 1.0,
+          "trigger": "on_hit",
+          "effects": [
+            {
+              "kind": "stat",
+              "target": "self",
+              "changes": {
+                "speed": 2
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "climate.lightning_shear",
+      "name": "Lightning Shear",
+      "flavor_text": "A compressed bolt front that shears special guard.",
+      "type": "electric",
+      "category": "special",
+      "power": 105,
+      "accuracy": 0.9,
+      "effects": [
+        {
+          "chance": 0.2,
+          "trigger": "on_hit",
+          "effects": [
+            {
+              "kind": "stat",
+              "target": "target",
+              "changes": {
+                "sp_defense": -1
+              }
+            }
+          ]
+        }
+      ],
+      "level_requirement": 56
+    },
+    {
+      "id": "climate.calm_before",
+      "name": "Calm Before",
+      "flavor_text": "A pre-storm hush that sharply cuts enemy drive.",
+      "type": "electric",
+      "category": "status",
+      "accuracy": 1.0,
+      "effects": [
+        {
+          "chance": 1.0,
+          "trigger": "on_hit",
+          "effects": [
+            {
+              "kind": "stat",
+              "target": "target",
+              "changes": {
+                "attack": -2
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "climate.skybreaker_pulse",
+      "name": "Skybreaker Pulse",
+      "flavor_text": "A full-column pulse used as a storm finisher.",
+      "type": "electric",
+      "category": "special",
+      "power": 120,
+      "accuracy": 1.0,
+      "pp": 5,
+      "effects": [
+        {
+          "chance": 1.0,
+          "trigger": "on_hit",
+          "effects": [
+            {
+              "kind": "stat",
+              "target": "self",
+              "changes": {
+                "sp_attack": -2
+              }
+            }
+          ]
+        }
+      ],
+      "level_requirement": 77
+    },
+    {
+      "id": "climate.dew_lash",
+      "name": "Dew Lash",
+      "flavor_text": "A dew-heavy lash cracks across the foe.",
+      "type": "grass",
+      "category": "physical",
+      "power": 25,
+      "accuracy": 1.0,
+      "pp": 35
+    },
+    {
+      "id": "climate.rootline_jab",
+      "name": "Rootline Jab",
+      "flavor_text": "A root pop-up strike that disrupts stance.",
+      "type": "grass",
+      "category": "physical",
+      "power": 30,
+      "accuracy": 1.0,
+      "pp": 30
+    },
+    {
+      "id": "climate.canopy_listen",
+      "name": "Canopy Listen",
+      "flavor_text": "You read leaf-rustle patterns and brace into cover.",
+      "type": "grass",
+      "category": "status",
+      "accuracy": 1.0,
+      "pp": 20,
+      "effects": [
+        {
+          "chance": 1.0,
+          "trigger": "on_hit",
+          "effects": [
+            {
+              "kind": "stat",
+              "target": "self",
+              "changes": {
+                "defense": 1
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "climate.mossrush",
+      "name": "Mossrush",
+      "flavor_text": "A slick moss surge slides into a body check.",
+      "type": "grass",
+      "category": "physical",
+      "power": 65,
+      "accuracy": 1.0,
+      "pp": 20,
+      "level_requirement": 36
+    },
+    {
+      "id": "climate.pollen_arc",
+      "name": "Pollen Arc",
+      "flavor_text": "Charged pollen arcs forward in humid wind.",
+      "type": "grass",
+      "category": "special",
+      "power": 70,
+      "accuracy": 1.0,
+      "pp": 15,
+      "level_requirement": 36
+    },
+    {
+      "id": "climate.rainroot_slam",
+      "name": "Rainroot Slam",
+      "flavor_text": "Rain-fed roots erupt under the target and slam them upward.",
+      "type": "grass",
+      "category": "physical",
+      "power": 70,
+      "accuracy": 1.0,
+      "pp": 15,
+      "level_requirement": 36
+    },
+    {
+      "id": "climate.vine_current",
+      "name": "Vine Current",
+      "flavor_text": "Vines ride moisture currents for a clean strike.",
+      "type": "grass",
+      "category": "physical",
+      "power": 45,
+      "accuracy": 1.0,
+      "pp": 25
+    },
+    {
+      "id": "climate.sporeburst_beam",
+      "name": "Sporeburst Beam",
+      "flavor_text": "Drifting spores ignite into a focused jet of pollen-fire that dazes the foe.",
+      "type": "grass",
+      "category": "special",
+      "power": 45,
+      "accuracy": 1.0,
+      "pp": 25,
+      "effects": [
+        {
+          "chance": 0.1,
+          "trigger": "on_hit",
+          "effects": [
+            {
+              "kind": "status",
+              "target": "target",
+              "status": "sleep"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "climate.boggrip_slam",
+      "name": "Boggrip Slam",
+      "flavor_text": "A bog drag transitions into a heavy slam.",
+      "type": "grass",
+      "category": "physical",
+      "power": 45,
+      "accuracy": 1.0,
+      "pp": 25,
+      "effects": [
+        {
+          "chance": 0.3,
+          "trigger": "on_hit",
+          "effects": [
+            {
+              "kind": "stat",
+              "target": "target",
+              "changes": {
+                "speed": -1
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "climate.hedgeburst",
+      "name": "Hedgeburst",
+      "flavor_text": "Compressed hedge-thorns burst in a dense cone.",
+      "type": "grass",
+      "category": "special",
+      "power": 45,
+      "accuracy": 1.0,
+      "pp": 25
+    },
+    {
+      "id": "climate.monsoon_bloom",
+      "name": "Monsoon Bloom",
+      "flavor_text": "A sudden humid bloom detonates concentrated force.",
+      "type": "grass",
+      "category": "special",
+      "power": 95,
+      "accuracy": 0.95,
+      "level_requirement": 46
+    },
+    {
+      "id": "climate.greenhouse_pressure",
+      "name": "Greenhouse Pressure",
+      "flavor_text": "Trapped heat and moisture supercharge your growth.",
+      "type": "grass",
+      "category": "status",
+      "accuracy": 1.0,
+      "pp": 15,
+      "effects": [
+        {
+          "chance": 1.0,
+          "trigger": "on_hit",
+          "effects": [
+            {
+              "kind": "stat",
+              "target": "self",
+              "changes": {
+                "sp_attack": 2
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "climate.bramble_surge",
+      "name": "Bramble Surge",
+      "flavor_text": "Flooded brambles surge and crack open defenses.",
+      "type": "grass",
+      "category": "physical",
+      "power": 105,
+      "accuracy": 0.9,
+      "effects": [
+        {
+          "chance": 0.2,
+          "trigger": "on_hit",
+          "effects": [
+            {
+              "kind": "stat",
+              "target": "target",
+              "changes": {
+                "defense": -1
+              }
+            }
+          ]
+        }
+      ],
+      "level_requirement": 56
+    },
+    {
+      "id": "climate.fog_orchard",
+      "name": "Fog Orchard",
+      "flavor_text": "An orchard-thick fog nourishes your whole side.",
+      "type": "grass",
+      "category": "status",
+      "accuracy": 1.0,
+      "effects": [
+        {
+          "chance": 1.0,
+          "trigger": "on_hit",
+          "effects": [
+            {
+              "kind": "stat",
+              "target": "self",
+              "changes": {
+                "sp_defense": 1
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "climate.canopy_collapse",
+      "name": "Canopy Collapse",
+      "flavor_text": "A storm-soaked canopy drops with finality.",
+      "type": "grass",
+      "category": "physical",
+      "power": 120,
+      "accuracy": 0.85,
+      "pp": 5,
+      "effects": [
+        {
+          "chance": 0.1,
+          "trigger": "on_hit",
+          "effects": [
+            {
+              "kind": "stat",
+              "target": "target",
+              "changes": {
+                "defense": -1
+              }
+            }
+          ]
+        }
+      ],
+      "level_requirement": 78
+    },
+    {
+      "id": "climate.glaze_knuckle",
+      "name": "Glaze Knuckle",
+      "flavor_text": "A frost-armored punch that leaves rime on stone.",
+      "type": "ice",
+      "category": "physical",
+      "power": 45,
+      "accuracy": 1.0,
+      "pp": 25
+    },
+    {
+      "id": "climate.sleet_rake",
+      "name": "Sleet Rake",
+      "flavor_text": "Razor sleet combs across the field in a shallow arc.",
+      "type": "ice",
+      "category": "special",
+      "power": 40,
+      "accuracy": 1.0,
+      "pp": 30,
+      "priority": 1
+    },
+    {
+      "id": "climate.whitecap_ram",
+      "name": "Whitecap Ram",
+      "flavor_text": "A cresting hail-wave slams in with cold force.",
+      "type": "ice",
+      "category": "physical",
+      "power": 65,
+      "accuracy": 1.0,
+      "pp": 20,
+      "level_requirement": 36
+    },
+    {
+      "id": "climate.permafrost_spoke",
+      "name": "Permafrost Spoke",
+      "flavor_text": "A spinning shard lances forward from frozen earth.",
+      "type": "ice",
+      "category": "special",
+      "power": 75,
+      "accuracy": 0.95,
+      "pp": 15,
+      "effects": [
+        {
+          "chance": 0.15,
+          "trigger": "on_hit",
+          "effects": [
+            {
+              "kind": "status",
+              "target": "target",
+              "status": "freeze"
+            }
+          ]
+        }
+      ],
+      "level_requirement": 36
+    },
+    {
+      "id": "climate.hoarfang_volley",
+      "name": "Hoarfang Volley",
+      "flavor_text": "Needle-ice bursts from a hunter spirit's jaws.",
+      "type": "ice",
+      "category": "special",
+      "power": 45,
+      "accuracy": 1.0,
+      "pp": 25,
+      "effects": [
+        {
+          "chance": 0.3,
+          "trigger": "on_hit",
+          "effects": [
+            {
+              "kind": "stat",
+              "target": "target",
+              "changes": {
+                "sp_defense": -1
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "climate.ruin_icicle",
+      "name": "Ruin Icicle",
+      "flavor_text": "A heavy icicle drops from a circling cold front.",
+      "type": "ice",
+      "category": "physical",
+      "power": 45,
+      "accuracy": 1.0,
+      "pp": 25,
+      "effects": [
+        {
+          "chance": 0.15,
+          "trigger": "on_hit",
+          "effects": [
+            {
+              "kind": "status",
+              "target": "target",
+              "status": "freeze"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "climate.crystal_driftblade",
+      "name": "Crystal Driftblade",
+      "flavor_text": "A glittering crystal blade rides frost haze and slashes the foe, leaving treacherous footing behind.",
+      "type": "ice",
+      "category": "physical",
+      "power": 45,
+      "accuracy": 1.0,
+      "pp": 25,
+      "effects": [
+        {
+          "chance": 0.3,
+          "trigger": "on_hit",
+          "effects": [
+            {
+              "kind": "stat",
+              "target": "target",
+              "changes": {
+                "speed": -1
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "climate.blue_hour_wave",
+      "name": "Blue Hour Wave",
+      "flavor_text": "Twilight-cold breath rolls forward as a wide wave of frigid pressure.",
+      "type": "ice",
+      "category": "special",
+      "power": 45,
+      "accuracy": 1.0,
+      "pp": 25
+    },
+    {
+      "id": "climate.snowblind_oath",
+      "name": "Snowblind Oath",
+      "flavor_text": "A vow in blizzard silence hardens survival instinct.",
+      "type": "ice",
+      "category": "status",
+      "accuracy": 1.0,
+      "pp": 15,
+      "effects": [
+        {
+          "chance": 1.0,
+          "trigger": "on_hit",
+          "effects": [
+            {
+              "kind": "stat",
+              "target": "self",
+              "changes": {
+                "sp_defense": 1
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "climate.meltwatch",
+      "name": "Meltwatch",
+      "flavor_text": "You redirect thaw currents to keep cold advantage.",
+      "type": "ice",
+      "category": "status",
+      "accuracy": 1.0,
+      "pp": 15,
+      "effects": [
+        {
+          "chance": 1.0,
+          "trigger": "on_hit",
+          "effects": [
+            {
+              "kind": "stat",
+              "target": "self",
+              "changes": {
+                "sp_attack": 1
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "climate.avalanche_psalm",
+      "name": "Avalanche Psalm",
+      "flavor_text": "A hymn calls down layered snow slabs.",
+      "type": "ice",
+      "category": "special",
+      "power": 95,
+      "accuracy": 0.95,
+      "level_requirement": 42
+    },
+    {
+      "id": "climate.polar_undertow",
+      "name": "Polar Undertow",
+      "flavor_text": "Subzero current drags ankles and battle rhythm.",
+      "type": "ice",
+      "category": "special",
+      "power": 105,
+      "accuracy": 0.9,
+      "effects": [
+        {
+          "chance": 0.2,
+          "trigger": "on_hit",
+          "effects": [
+            {
+              "kind": "stat",
+              "target": "target",
+              "changes": {
+                "speed": -1
+              }
+            }
+          ]
+        }
+      ],
+      "level_requirement": 56
+    },
+    {
+      "id": "climate.mirrorfjord_edge",
+      "name": "Mirrorfjord Edge",
+      "flavor_text": "A mirrored fjord line cleaves with glassy calm.",
+      "type": "ice",
+      "category": "physical",
+      "power": 100,
+      "accuracy": 0.95,
+      "level_requirement": 56
+    },
+    {
+      "id": "climate.crown_of_rime",
+      "name": "Crown of Rime",
+      "flavor_text": "Frost-crown sigils orbit the user like winter stars.",
+      "type": "ice",
+      "category": "status",
+      "accuracy": 1.0,
+      "effects": [
+        {
+          "chance": 1.0,
+          "trigger": "on_hit",
+          "effects": [
+            {
+              "kind": "stat",
+              "target": "self",
+              "changes": {
+                "defense": 1,
+                "sp_defense": 1
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "climate.zero_lantern",
+      "name": "Zero Lantern",
+      "flavor_text": "A pale arctic beacon flashes then detonates cold.",
+      "type": "ice",
+      "category": "special",
+      "power": 120,
+      "accuracy": 0.85,
+      "pp": 5,
+      "effects": [
+        {
+          "chance": 0.1,
+          "trigger": "on_hit",
+          "effects": [
+            {
+              "kind": "status",
+              "target": "target",
+              "status": "freeze"
+            }
+          ]
+        }
+      ],
+      "level_requirement": 76
+    },
+    {
+      "id": "climate.hearthbreaker_jab",
+      "name": "Hearthbreaker Jab",
+      "flavor_text": "A forge-hot straight punch cracks guard rhythm.",
+      "type": "fighting",
+      "category": "physical",
+      "power": 30,
+      "accuracy": 1.0,
+      "pp": 30
+    },
+    {
+      "id": "climate.banner_rush",
+      "name": "Banner Rush",
+      "flavor_text": "A charge under a war-banner gust.",
+      "type": "fighting",
+      "category": "physical",
+      "power": 40,
+      "accuracy": 1.0,
+      "pp": 30,
+      "priority": 1
+    },
+    {
+      "id": "climate.knuckle_monsoon",
+      "name": "Knuckle Monsoon",
+      "flavor_text": "A rainfast flurry lands like a summer squall.",
+      "type": "fighting",
+      "category": "physical",
+      "power": 70,
+      "accuracy": 1.0,
+      "pp": 15,
+      "effects": [
+        {
+          "chance": 0.3,
+          "trigger": "on_hit",
+          "effects": [
+            {
+              "kind": "stat",
+              "target": "target",
+              "changes": {
+                "accuracy": -1
+              }
+            }
+          ]
+        }
+      ],
+      "level_requirement": 36
+    },
+    {
+      "id": "climate.temple_feint",
+      "name": "Temple Feint",
+      "flavor_text": "A deceptive shoulder turn hides a sudden strike.",
+      "type": "fighting",
+      "category": "physical",
+      "power": 45,
+      "accuracy": 1.0,
+      "pp": 25
+    },
+    {
+      "id": "climate.gale_clinch",
+      "name": "Gale Clinch",
+      "flavor_text": "Wind-assisted grapple slams with cyclone torque.",
+      "type": "fighting",
+      "category": "physical",
+      "power": 45,
+      "accuracy": 1.0,
+      "pp": 25
+    },
+    {
+      "id": "climate.stone_dojo_kick",
+      "name": "Stone Dojo Kick",
+      "flavor_text": "Disciplined kick anchored like mountain training.",
+      "type": "fighting",
+      "category": "physical",
+      "power": 45,
+      "accuracy": 1.0,
+      "pp": 25
+    },
+    {
+      "id": "climate.stance_of_four_seasons",
+      "name": "Stance of Four Seasons",
+      "flavor_text": "Seasonal stances rotate offense and composure.",
+      "type": "fighting",
+      "category": "status",
+      "accuracy": 1.0,
+      "pp": 15,
+      "effects": [
+        {
+          "chance": 1.0,
+          "trigger": "on_hit",
+          "effects": [
+            {
+              "kind": "stat",
+              "target": "self",
+              "changes": {
+                "attack": 1,
+                "sp_defense": 1
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "climate.crowd_roar_kick",
+      "name": "Crowd Roar Kick",
+      "flavor_text": "Borne up by arena roar, the user lands a snapping front kick.",
+      "type": "fighting",
+      "category": "physical",
+      "power": 45,
+      "accuracy": 1.0,
+      "pp": 25
+    },
+    {
+      "id": "climate.dustline_strike",
+      "name": "Dustline Strike",
+      "flavor_text": "A line drawn in dust becomes the path of an arcing combat strike.",
+      "type": "fighting",
+      "category": "physical",
+      "power": 45,
+      "accuracy": 1.0,
+      "pp": 25
+    },
+    {
+      "id": "climate.iron_breath_count",
+      "name": "Iron Breath Count",
+      "flavor_text": "Controlled breath between blows restores grit.",
+      "type": "fighting",
+      "category": "status",
+      "accuracy": 1.0,
+      "pp": 15,
+      "effects": [
+        {
+          "chance": 1.0,
+          "trigger": "on_hit",
+          "effects": [
+            {
+              "kind": "stat",
+              "target": "self",
+              "changes": {
+                "defense": 1
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "climate.cyclone_backfist",
+      "name": "Cyclone Backfist",
+      "flavor_text": "A spinning backfist rides compressed crosswinds.",
+      "type": "fighting",
+      "category": "physical",
+      "power": 95,
+      "accuracy": 0.95,
+      "level_requirement": 44
+    },
+    {
+      "id": "climate.war_drum_heel",
+      "name": "War Drum Heel",
+      "flavor_text": "Heel drop lands on the beat of thunder drums.",
+      "type": "fighting",
+      "category": "physical",
+      "power": 105,
+      "accuracy": 0.9,
+      "effects": [
+        {
+          "chance": 0.2,
+          "trigger": "on_hit",
+          "effects": [
+            {
+              "kind": "stat",
+              "target": "target",
+              "changes": {
+                "attack": -1
+              }
+            }
+          ]
+        }
+      ],
+      "level_requirement": 56
+    },
+    {
+      "id": "climate.aura_bell_sphere",
+      "name": "Aura Bell Sphere",
+      "flavor_text": "A bell-toned sphere of focused fighting aura projects forward and detonates.",
+      "type": "fighting",
+      "category": "special",
+      "power": 110,
+      "accuracy": 0.85,
+      "pp": 5,
+      "level_requirement": 56
+    },
+    {
+      "id": "climate.monastery_updraft",
+      "name": "Monastery Updraft",
+      "flavor_text": "Ascetic wind discipline lifts allies over hazards.",
+      "type": "fighting",
+      "category": "status",
+      "accuracy": 1.0,
+      "effects": [
+        {
+          "chance": 1.0,
+          "trigger": "on_hit",
+          "effects": [
+            {
+              "kind": "stat",
+              "target": "self",
+              "changes": {
+                "speed": 1
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "climate.last_ember_roundhouse",
+      "name": "Last Ember Roundhouse",
+      "flavor_text": "A final incandescent roundhouse at dusk.",
+      "type": "fighting",
+      "category": "physical",
+      "power": 115,
+      "accuracy": 0.8,
+      "pp": 5,
+      "effects": [
+        {
+          "chance": 0.1,
+          "trigger": "on_hit",
+          "effects": [
+            {
+              "kind": "status",
+              "target": "target",
+              "status": "burn"
+            }
+          ]
+        }
+      ],
+      "level_requirement": 77
+    },
+    {
+      "id": "climate.venom_wick",
+      "name": "Venom Wick",
+      "flavor_text": "Toxic flame-wick lashes and leaves stinging smoke.",
+      "type": "poison",
+      "category": "special",
+      "power": 25,
+      "accuracy": 1.0,
+      "pp": 35
+    },
+    {
+      "id": "climate.bog_needle",
+      "name": "Bog Needle",
+      "flavor_text": "A reed-thin toxin dart fired from marsh reeds.",
+      "type": "poison",
+      "category": "physical",
+      "power": 40,
+      "accuracy": 1.0,
+      "pp": 30,
+      "priority": 1
+    },
+    {
+      "id": "climate.rotpetal_flick",
+      "name": "Rotpetal Flick",
+      "flavor_text": "Corrupt petals spin from a carrion blossom.",
+      "type": "poison",
+      "category": "special",
+      "power": 65,
+      "accuracy": 1.0,
+      "pp": 15,
+      "effects": [
+        {
+          "chance": 0.3,
+          "trigger": "on_hit",
+          "effects": [
+            {
+              "kind": "status",
+              "target": "target",
+              "status": "poison"
+            },
+            {
+              "kind": "stat",
+              "target": "target",
+              "changes": {
+                "defense": -1
+              }
+            }
+          ]
+        }
+      ],
+      "level_requirement": 36
+    },
+    {
+      "id": "climate.mireglass_bite",
+      "name": "Mireglass Bite",
+      "flavor_text": "Glassy swamp fangs clamp and release venom mist.",
+      "type": "poison",
+      "category": "physical",
+      "power": 65,
+      "accuracy": 1.0,
+      "pp": 20,
+      "level_requirement": 36
+    },
+    {
+      "id": "climate.caustic_thread",
+      "name": "Caustic Thread",
+      "flavor_text": "Acidic filaments tether and slice on recoil.",
+      "type": "poison",
+      "category": "special",
+      "power": 45,
+      "accuracy": 1.0,
+      "pp": 25,
+      "effects": [
+        {
+          "chance": 0.1,
+          "trigger": "on_hit",
+          "effects": [
+            {
+              "kind": "status",
+              "target": "target",
+              "status": "bad_poison"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "climate.pestilent_knell",
+      "name": "Pestilent Knell",
+      "flavor_text": "A funeral bell pulse carries spores through cracks.",
+      "type": "poison",
+      "category": "special",
+      "power": 45,
+      "accuracy": 1.0,
+      "pp": 25,
+      "effects": [
+        {
+          "chance": 0.2,
+          "trigger": "on_hit",
+          "effects": [
+            {
+              "kind": "status",
+              "target": "target",
+              "status": "poison"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "climate.fume_reliquary",
+      "name": "Fume Reliquary",
+      "flavor_text": "An antique vial leaks sacred miasma.",
+      "type": "poison",
+      "category": "status",
+      "accuracy": 1.0,
+      "pp": 20,
+      "effects": [
+        {
+          "chance": 1.0,
+          "trigger": "on_hit",
+          "effects": [
+            {
+              "kind": "stat",
+              "target": "target",
+              "changes": {
+                "sp_defense": -1
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "climate.sump_bite",
+      "name": "Sump Bite",
+      "flavor_text": "The user lunges from marsh sump and clamps poisoned fangs on the foe.",
+      "type": "poison",
+      "category": "physical",
+      "power": 45,
+      "accuracy": 1.0,
+      "pp": 25
+    },
+    {
+      "id": "climate.antidote_spit",
+      "name": "Antidote Spit",
+      "flavor_text": "A bitter caustic spit burns through the foe's reserve flasks.",
+      "type": "poison",
+      "category": "special",
+      "power": 45,
+      "accuracy": 1.0,
+      "pp": 25
+    },
+    {
+      "id": "climate.noxious_almanac",
+      "name": "Noxious Almanac",
+      "flavor_text": "Plague omens help you predict and punish.",
+      "type": "poison",
+      "category": "status",
+      "accuracy": 1.0,
+      "pp": 15,
+      "effects": [
+        {
+          "chance": 1.0,
+          "trigger": "on_hit",
+          "effects": [
+            {
+              "kind": "stat",
+              "target": "self",
+              "changes": {
+                "sp_attack": 1
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "climate.tar_eclipse",
+      "name": "Tar Eclipse",
+      "flavor_text": "Blackened eclipse tar splashes then hardens.",
+      "type": "poison",
+      "category": "special",
+      "power": 95,
+      "accuracy": 0.95,
+      "level_requirement": 45
+    },
+    {
+      "id": "climate.labyrinth_toxin",
+      "name": "Labyrinth Toxin",
+      "flavor_text": "Hallucinogenic venom makes paths feel endless.",
+      "type": "poison",
+      "category": "special",
+      "power": 105,
+      "accuracy": 0.9,
+      "effects": [
+        {
+          "chance": 0.2,
+          "trigger": "on_hit",
+          "effects": [
+            {
+              "kind": "stat",
+              "target": "target",
+              "changes": {
+                "accuracy": -1
+              }
+            }
+          ]
+        }
+      ],
+      "level_requirement": 56
+    },
+    {
+      "id": "climate.hemlock_torrent",
+      "name": "Hemlock Torrent",
+      "flavor_text": "A torrent of bitter toxin crashes forward.",
+      "type": "poison",
+      "category": "special",
+      "power": 45,
+      "accuracy": 1.0,
+      "pp": 25
+    },
+    {
+      "id": "climate.plague_weather",
+      "name": "Plague Weather",
+      "flavor_text": "Sickly drizzle empowers corruption.",
+      "type": "poison",
+      "category": "status",
+      "accuracy": 1.0,
+      "effects": [
+        {
+          "chance": 1.0,
+          "trigger": "on_hit",
+          "effects": [
+            {
+              "kind": "stat",
+              "target": "target",
+              "changes": {
+                "defense": -1
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "climate.crown_of_ichor",
+      "name": "Crown of Ichor",
+      "flavor_text": "A regal arc of viscous venom crowns then collapses.",
+      "type": "poison",
+      "category": "special",
+      "power": 115,
+      "accuracy": 0.8,
+      "pp": 5,
+      "effects": [
+        {
+          "chance": 0.1,
+          "trigger": "on_hit",
+          "effects": [
+            {
+              "kind": "status",
+              "target": "target",
+              "status": "bad_poison"
+            }
+          ]
+        }
+      ],
+      "level_requirement": 78
+    },
+    {
+      "id": "climate.fault_tap",
+      "name": "Fault Tap",
+      "flavor_text": "A toe-stomp sends a cracking line through dirt.",
+      "type": "ground",
+      "category": "physical",
+      "power": 30,
+      "accuracy": 1.0,
+      "pp": 30
+    },
+    {
+      "id": "climate.gravel_oath",
+      "name": "Gravel Oath",
+      "flavor_text": "An oathbound pebble volley from canyon stone.",
+      "type": "ground",
+      "category": "physical",
+      "power": 65,
+      "accuracy": 1.0,
+      "pp": 20,
+      "level_requirement": 36
+    },
+    {
+      "id": "climate.ridgebreaker_palm",
+      "name": "Ridgebreaker Palm",
+      "flavor_text": "Palm strike pops a stone ridge upward.",
+      "type": "ground",
+      "category": "physical",
+      "power": 45,
+      "accuracy": 1.0,
+      "pp": 25
+    },
+    {
+      "id": "climate.loam_cannon",
+      "name": "Loam Cannon",
+      "flavor_text": "Compressed loam slug fired like a siege round.",
+      "type": "ground",
+      "category": "special",
+      "power": 45,
+      "accuracy": 1.0,
+      "pp": 25
+    },
+    {
+      "id": "climate.dry_season_ward",
+      "name": "Dry Season Ward",
+      "flavor_text": "Heat drawn from soil hardens your footing.",
+      "type": "ground",
+      "category": "status",
+      "accuracy": 1.0,
+      "pp": 20,
+      "effects": [
+        {
+          "chance": 1.0,
+          "trigger": "on_hit",
+          "effects": [
+            {
+              "kind": "stat",
+              "target": "self",
+              "changes": {
+                "sp_defense": 1
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "climate.tremor_reading",
+      "name": "Tremor Reading",
+      "flavor_text": "Micro-vibrations reveal where to set a firmer stance.",
+      "type": "ground",
+      "category": "status",
+      "accuracy": 1.0,
+      "pp": 15,
+      "effects": [
+        {
+          "chance": 1.0,
+          "trigger": "on_hit",
+          "effects": [
+            {
+              "kind": "stat",
+              "target": "self",
+              "changes": {
+                "defense": 1
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "climate.cairn_quake",
+      "name": "Cairn Quake",
+      "flavor_text": "Ancestral cairn stones rumble awake and erupt under the target, cracking their guard.",
+      "type": "ground",
+      "category": "special",
+      "power": 45,
+      "accuracy": 1.0,
+      "pp": 25,
+      "effects": [
+        {
+          "chance": 0.2,
+          "trigger": "on_hit",
+          "effects": [
+            {
+              "kind": "stat",
+              "target": "target",
+              "changes": {
+                "defense": -1
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "climate.basin_collapse",
+      "name": "Basin Collapse",
+      "flavor_text": "A basin lip caves inward with a roar.",
+      "type": "ground",
+      "category": "physical",
+      "power": 95,
+      "accuracy": 0.95,
+      "level_requirement": 44
+    },
+    {
+      "id": "climate.crosswind_peck",
+      "name": "Crosswind Peck",
+      "flavor_text": "A sharp peck riding a sidewind lane.",
+      "type": "flying",
+      "category": "physical",
+      "power": 30,
+      "accuracy": 1.0,
+      "pp": 35
+    },
+    {
+      "id": "climate.thermal_clip",
+      "name": "Thermal Clip",
+      "flavor_text": "A wing-edge cut along a rising thermal.",
+      "type": "flying",
+      "category": "physical",
+      "power": 30,
+      "accuracy": 1.0,
+      "pp": 30
+    },
+    {
+      "id": "climate.skylark_dart",
+      "name": "Skylark Dart",
+      "flavor_text": "A songbird-fast dive that pricks and retreats.",
+      "type": "flying",
+      "category": "physical",
+      "power": 40,
+      "accuracy": 1.0,
+      "pp": 30,
+      "priority": 1
+    },
+    {
+      "id": "climate.feather_squall",
+      "name": "Feather Squall",
+      "flavor_text": "Knife-feathers swirl in a compact storm.",
+      "type": "flying",
+      "category": "special",
+      "power": 70,
+      "accuracy": 1.0,
+      "pp": 15,
+      "effects": [
+        {
+          "chance": 0.3,
+          "trigger": "on_hit",
+          "effects": [
+            {
+              "kind": "stat",
+              "target": "target",
+              "changes": {
+                "accuracy": -1
+              }
+            }
+          ]
+        }
+      ],
+      "level_requirement": 36
+    },
+    {
+      "id": "climate.cloudhook_talon",
+      "name": "Cloudhook Talon",
+      "flavor_text": "Talons hook through cloudbanks and yank trajectory.",
+      "type": "flying",
+      "category": "physical",
+      "power": 30,
+      "accuracy": 1.0,
+      "pp": 30
+    },
+    {
+      "id": "climate.roostline_strike",
+      "name": "Roostline Strike",
+      "flavor_text": "A disciplined aerial lane attack from high perch.",
+      "type": "flying",
+      "category": "physical",
+      "power": 45,
+      "accuracy": 1.0,
+      "pp": 25
+    },
+    {
+      "id": "climate.tailwind_canticle",
+      "name": "Tailwind Canticle",
+      "flavor_text": "A wind hymn lifts ally footwork.",
+      "type": "flying",
+      "category": "status",
+      "accuracy": 1.0,
+      "pp": 20,
+      "effects": [
+        {
+          "chance": 1.0,
+          "trigger": "on_hit",
+          "effects": [
+            {
+              "kind": "stat",
+              "target": "self",
+              "changes": {
+                "speed": 1
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "climate.downdraft_denial",
+      "name": "Downdraft Denial",
+      "flavor_text": "A sudden downdraft ruins jumps and lunges.",
+      "type": "flying",
+      "category": "status",
+      "accuracy": 1.0,
+      "pp": 20,
+      "effects": [
+        {
+          "chance": 1.0,
+          "trigger": "on_hit",
+          "effects": [
+            {
+              "kind": "stat",
+              "target": "target",
+              "changes": {
+                "attack": -1
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "climate.murmuration_strike",
+      "name": "Murmuration Strike",
+      "flavor_text": "A phantom flock condenses into a single battering aerial blow that disrupts enemy footing.",
+      "type": "flying",
+      "category": "special",
+      "power": 45,
+      "accuracy": 1.0,
+      "pp": 25,
+      "effects": [
+        {
+          "chance": 0.3,
+          "trigger": "on_hit",
+          "effects": [
+            {
+              "kind": "stat",
+              "target": "target",
+              "changes": {
+                "speed": -1
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "climate.jetstream_talons",
+      "name": "Jetstream Talons",
+      "flavor_text": "The user blurs along a high-altitude lane and rakes the foe with talons.",
+      "type": "flying",
+      "category": "physical",
+      "power": 45,
+      "accuracy": 1.0,
+      "pp": 25
+    },
+    {
+      "id": "climate.cyclone_sickle",
+      "name": "Cyclone Sickle",
+      "flavor_text": "A crescent gale shears through cover.",
+      "type": "flying",
+      "category": "special",
+      "power": 95,
+      "accuracy": 0.95,
+      "level_requirement": 45
+    },
+    {
+      "id": "climate.skyvault_drop",
+      "name": "Skyvault Drop",
+      "flavor_text": "You vault skyward then plummet like a falcon stone.",
+      "type": "flying",
+      "category": "physical",
+      "power": 105,
+      "accuracy": 0.9,
+      "effects": [
+        {
+          "chance": 0.2,
+          "trigger": "on_hit",
+          "effects": [
+            {
+              "kind": "stat",
+              "target": "target",
+              "changes": {
+                "speed": -1
+              }
+            }
+          ]
+        }
+      ],
+      "level_requirement": 56
+    },
+    {
+      "id": "climate.stratos_lash",
+      "name": "Stratos Lash",
+      "flavor_text": "Thin-air whip cracks with high-altitude force.",
+      "type": "flying",
+      "category": "special",
+      "power": 100,
+      "accuracy": 0.95,
+      "level_requirement": 56
+    },
+    {
+      "id": "climate.hurricane_benediction",
+      "name": "Hurricane Benediction",
+      "flavor_text": "A sacred spiral summons favorable winds.",
+      "type": "flying",
+      "category": "status",
+      "accuracy": 1.0,
+      "effects": [
+        {
+          "chance": 1.0,
+          "trigger": "on_hit",
+          "effects": [
+            {
+              "kind": "stat",
+              "target": "self",
+              "changes": {
+                "sp_attack": 1
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "climate.aurora_dive",
+      "name": "Aurora Dive",
+      "flavor_text": "A polar-light dive explodes in color and force.",
+      "type": "flying",
+      "category": "physical",
+      "power": 120,
+      "accuracy": 0.85,
+      "pp": 5,
+      "effects": [
+        {
+          "chance": 0.1,
+          "trigger": "on_hit",
+          "effects": [
+            {
+              "kind": "stat",
+              "target": "target",
+              "changes": {
+                "sp_defense": -1
+              }
+            }
+          ]
+        }
+      ],
+      "level_requirement": 78
+    },
+    {
+      "id": "climate.mist_oracle",
+      "name": "Mist Oracle",
+      "flavor_text": "A pale weather halo sharpens foresight into a focused strike.",
+      "type": "psychic",
+      "category": "special",
+      "power": 25,
+      "accuracy": 1.0,
+      "pp": 35
+    },
+    {
+      "id": "climate.solstice_lance",
+      "name": "Solstice Lance",
+      "flavor_text": "A clean spear of noonlight mind-energy pierces through calm air.",
+      "type": "psychic",
+      "category": "special",
+      "power": 45,
+      "accuracy": 1.0,
+      "pp": 25
+    },
+    {
+      "id": "climate.aurora_crash",
+      "name": "Aurora Crash",
+      "flavor_text": "The user wraps itself in aurora ribbons before crashing into the foe.",
+      "type": "psychic",
+      "category": "physical",
+      "power": 45,
+      "accuracy": 1.0,
+      "pp": 25
+    },
+    {
+      "id": "climate.cyclone_omen",
+      "name": "Cyclone Omen",
+      "flavor_text": "A prophetic vortex slams down with catastrophic mental pressure.",
+      "type": "psychic",
+      "category": "special",
+      "power": 118,
+      "accuracy": 0.8,
+      "pp": 5,
+      "effects": [
+        {
+          "chance": 0.1,
+          "trigger": "on_hit",
+          "effects": [
+            {
+              "kind": "stat",
+              "target": "target",
+              "changes": {
+                "speed": -1
+              }
+            }
+          ]
+        }
+      ],
+      "level_requirement": 56
+    },
+    {
+      "id": "climate.pressure_knot",
+      "name": "Pressure Knot",
+      "flavor_text": "Invisible thought-currents tie the air into a compact psychic blow.",
+      "type": "psychic",
+      "category": "special",
+      "power": 30,
+      "accuracy": 1.0,
+      "pp": 30
+    },
+    {
+      "id": "climate.thermic_feint",
+      "name": "Thermic Feint",
+      "flavor_text": "Heat mirage footwork masks a sudden close-range psychic strike.",
+      "type": "psychic",
+      "category": "physical",
+      "power": 45,
+      "accuracy": 1.0,
+      "pp": 25
+    },
+    {
+      "id": "climate.forecast_focus",
+      "name": "Forecast Focus",
+      "flavor_text": "By syncing with tomorrow's weather, the user sharpens psychic output.",
+      "type": "psychic",
+      "category": "status",
+      "accuracy": 1.0,
+      "pp": 20,
+      "effects": [
+        {
+          "chance": 1.0,
+          "trigger": "on_hit",
+          "effects": [
+            {
+              "kind": "stat",
+              "target": "self",
+              "changes": {
+                "sp_attack": 1
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "climate.mind_shelter",
+      "name": "Mind Shelter",
+      "flavor_text": "A dome of clear thought and dry air cushions incoming force.",
+      "type": "psychic",
+      "category": "status",
+      "accuracy": 1.0,
+      "pp": 15,
+      "effects": [
+        {
+          "chance": 1.0,
+          "trigger": "on_hit",
+          "effects": [
+            {
+              "kind": "stat",
+              "target": "self",
+              "changes": {
+                "sp_defense": 1
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "climate.equinox_ward",
+      "name": "Equinox Ward",
+      "flavor_text": "Day and night balance in the user's aura, fortifying mind and control.",
+      "type": "psychic",
+      "category": "status",
+      "accuracy": 1.0,
+      "effects": [
+        {
+          "chance": 1.0,
+          "trigger": "on_hit",
+          "effects": [
+            {
+              "kind": "stat",
+              "target": "self",
+              "changes": {
+                "sp_attack": 1,
+                "sp_defense": 1
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "climate.climate_verdict",
+      "name": "Climate Verdict",
+      "flavor_text": "The user predicts every gust and the world snaps shut on the foe in a binding strike.",
+      "type": "psychic",
+      "category": "special",
+      "power": 95,
+      "accuracy": 0.9,
+      "level_requirement": 72
+    },
+    {
+      "id": "climate.dewdrone_jab",
+      "name": "Dewdrone Jab",
+      "flavor_text": "A needle-like rush through wet grass lands a quick puncture.",
+      "type": "bug",
+      "category": "physical",
+      "power": 30,
+      "accuracy": 1.0,
+      "pp": 35
+    },
+    {
+      "id": "climate.pollen_drift",
+      "name": "Pollen Drift",
+      "flavor_text": "Golden pollen rides a breeze and bursts on contact.",
+      "type": "bug",
+      "category": "special",
+      "power": 45,
+      "accuracy": 1.0,
+      "pp": 20
+    },
+    {
+      "id": "climate.thunder_midge",
+      "name": "Thunder Midge",
+      "flavor_text": "Charged gnats swarm around storm clouds and shock the target.",
+      "type": "bug",
+      "category": "special",
+      "power": 70,
+      "accuracy": 0.95,
+      "pp": 15,
+      "effects": [
+        {
+          "chance": 0.3,
+          "trigger": "on_hit",
+          "effects": [
+            {
+              "kind": "status",
+              "target": "target",
+              "status": "poison"
+            }
+          ]
+        }
+      ],
+      "level_requirement": 36
+    },
+    {
+      "id": "climate.cicada_shear",
+      "name": "Cicada Shear",
+      "flavor_text": "A razor-wing pass cuts cleanly through humid air.",
+      "type": "bug",
+      "category": "physical",
+      "power": 45,
+      "accuracy": 1.0,
+      "pp": 25
+    },
+    {
+      "id": "climate.swarm_sundart",
+      "name": "Swarm Sundart",
+      "flavor_text": "A pack of sunlit insects dive in a coordinated piercing rush.",
+      "type": "bug",
+      "category": "physical",
+      "power": 45,
+      "accuracy": 1.0,
+      "pp": 25
+    },
+    {
+      "id": "climate.raincarver_horn",
+      "name": "Raincarver Horn",
+      "flavor_text": "The user spears forward like a beetle through heavy rainfall.",
+      "type": "bug",
+      "category": "physical",
+      "power": 45,
+      "accuracy": 1.0,
+      "pp": 25
+    },
+    {
+      "id": "climate.humid_husk",
+      "name": "Humid Husk",
+      "flavor_text": "A sodden shell slam crushes stance and loosens the target's guard.",
+      "type": "bug",
+      "category": "physical",
+      "power": 95,
+      "accuracy": 0.9,
+      "effects": [
+        {
+          "chance": 0.2,
+          "trigger": "on_hit",
+          "effects": [
+            {
+              "kind": "stat",
+              "target": "target",
+              "changes": {
+                "defense": -1
+              }
+            }
+          ]
+        }
+      ],
+      "level_requirement": 50
+    },
+    {
+      "id": "climate.monsoon_mandible",
+      "name": "Monsoon Mandible",
+      "flavor_text": "Flood-born mandibles clamp down with toxic runoff.",
+      "type": "bug",
+      "category": "physical",
+      "power": 112,
+      "accuracy": 0.85,
+      "pp": 5,
+      "effects": [
+        {
+          "chance": 0.1,
+          "trigger": "on_hit",
+          "effects": [
+            {
+              "kind": "status",
+              "target": "target",
+              "status": "poison"
+            }
+          ]
+        }
+      ],
+      "level_requirement": 56
+    },
+    {
+      "id": "climate.gnatline_burst",
+      "name": "Gnatline Burst",
+      "flavor_text": "A snapping line of insects detonates in the windstream.",
+      "type": "bug",
+      "category": "special",
+      "power": 40,
+      "accuracy": 1.0,
+      "pp": 30,
+      "priority": 1
+    },
+    {
+      "id": "climate.cloudchitin_slam",
+      "name": "Cloudchitin Slam",
+      "flavor_text": "The user drops from storm cover in a dense chitinous body blow.",
+      "type": "bug",
+      "category": "physical",
+      "power": 90,
+      "accuracy": 0.9,
+      "level_requirement": 57
+    },
+    {
+      "id": "climate.hatch_mist",
+      "name": "Hatch Mist",
+      "flavor_text": "Morning mist around the brood accelerates the user's movement.",
+      "type": "bug",
+      "category": "status",
+      "accuracy": 1.0,
+      "pp": 20,
+      "effects": [
+        {
+          "chance": 1.0,
+          "trigger": "on_hit",
+          "effects": [
+            {
+              "kind": "stat",
+              "target": "self",
+              "changes": {
+                "speed": 1
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "climate.spore_barrage",
+      "name": "Spore Barrage",
+      "flavor_text": "A drumming wave of pressurized spores hammers the target with sleep-laced powder.",
+      "type": "bug",
+      "category": "special",
+      "power": 70,
+      "accuracy": 0.95,
+      "pp": 15,
+      "effects": [
+        {
+          "chance": 0.2,
+          "trigger": "on_hit",
+          "effects": [
+            {
+              "kind": "status",
+              "target": "target",
+              "status": "sleep"
+            }
+          ]
+        }
+      ],
+      "level_requirement": 36
+    },
+    {
+      "id": "climate.silk_tangle_slam",
+      "name": "Silk Tangle Slam",
+      "flavor_text": "Sticky weather-thread wraps the target then yanks them into a heavy slam.",
+      "type": "bug",
+      "category": "physical",
+      "power": 45,
+      "accuracy": 1.0,
+      "pp": 25
+    },
+    {
+      "id": "climate.brood_pressure",
+      "name": "Brood Pressure",
+      "flavor_text": "Rising swarm pressure hardens instinct and boosts attack rhythm.",
+      "type": "bug",
+      "category": "status",
+      "accuracy": 1.0,
+      "effects": [
+        {
+          "chance": 1.0,
+          "trigger": "on_hit",
+          "effects": [
+            {
+              "kind": "stat",
+              "target": "self",
+              "changes": {
+                "attack": 1,
+                "speed": 1
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "climate.locust_eclipse",
+      "name": "Locust Eclipse",
+      "flavor_text": "A sun-blotting cloud of wings strips away the target's defenses.",
+      "type": "bug",
+      "category": "status",
+      "accuracy": 0.9,
+      "effects": [
+        {
+          "chance": 1.0,
+          "trigger": "on_hit",
+          "effects": [
+            {
+              "kind": "stat",
+              "target": "target",
+              "changes": {
+                "defense": -1,
+                "sp_defense": -1
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "climate.pebble_drizzle",
+      "name": "Pebble Drizzle",
+      "flavor_text": "A quick shower of pebbles pelts the target from above.",
+      "type": "rock",
+      "category": "physical",
+      "power": 25,
+      "accuracy": 1.0,
+      "pp": 35
+    },
+    {
+      "id": "climate.shale_gust",
+      "name": "Shale Gust",
+      "flavor_text": "Wind scours loose shale into a slicing burst.",
+      "type": "rock",
+      "category": "special",
+      "power": 40,
+      "accuracy": 1.0,
+      "pp": 30,
+      "priority": 1
+    },
+    {
+      "id": "climate.hailstone_maul",
+      "name": "Hailstone Maul",
+      "flavor_text": "Packed ice-rock chunks hammer down and slow the foe's steps.",
+      "type": "rock",
+      "category": "physical",
+      "power": 72,
+      "accuracy": 0.95,
+      "pp": 15,
+      "effects": [
+        {
+          "chance": 0.3,
+          "trigger": "on_hit",
+          "effects": [
+            {
+              "kind": "stat",
+              "target": "target",
+              "changes": {
+                "speed": -1
+              }
+            }
+          ]
+        }
+      ],
+      "level_requirement": 36
+    },
+    {
+      "id": "climate.cairn_breaker",
+      "name": "Cairn Breaker",
+      "flavor_text": "The user drives forward like a collapsing stone marker.",
+      "type": "rock",
+      "category": "physical",
+      "power": 45,
+      "accuracy": 1.0,
+      "pp": 25
+    },
+    {
+      "id": "climate.basalt_squall",
+      "name": "Basalt Squall",
+      "flavor_text": "A rotating wall of basalt shards batters everything in front.",
+      "type": "rock",
+      "category": "physical",
+      "power": 45,
+      "accuracy": 1.0,
+      "pp": 25
+    },
+    {
+      "id": "climate.gravel_wake",
+      "name": "Gravel Wake",
+      "flavor_text": "A sliding wake of loose gravel crashes into the foe.",
+      "type": "rock",
+      "category": "physical",
+      "power": 65,
+      "accuracy": 1.0,
+      "pp": 20,
+      "level_requirement": 36
+    },
+    {
+      "id": "climate.dustfront_ram",
+      "name": "Dustfront Ram",
+      "flavor_text": "A dust-front charge strikes with the weight of a sandstorm wall.",
+      "type": "rock",
+      "category": "physical",
+      "power": 45,
+      "accuracy": 1.0,
+      "pp": 25
+    },
+    {
+      "id": "climate.monolith_tempest",
+      "name": "Monolith Tempest",
+      "flavor_text": "A towering stone gale descends with relentless force.",
+      "type": "rock",
+      "category": "physical",
+      "power": 45,
+      "accuracy": 1.0,
+      "pp": 25
+    },
+    {
+      "id": "climate.strata_thunder",
+      "name": "Strata Thunder",
+      "flavor_text": "Cracking strata release static shocks through each impact.",
+      "type": "rock",
+      "category": "special",
+      "power": 104,
+      "accuracy": 0.85,
+      "effects": [
+        {
+          "chance": 0.2,
+          "trigger": "on_hit",
+          "effects": [
+            {
+              "kind": "status",
+              "target": "target",
+              "status": "paralysis"
+            }
+          ]
+        }
+      ],
+      "level_requirement": 56
+    },
+    {
+      "id": "climate.cataclysm_crag",
+      "name": "Cataclysm Crag",
+      "flavor_text": "An ancient crag bursts apart in a ruinous avalanche strike.",
+      "type": "rock",
+      "category": "physical",
+      "power": 120,
+      "accuracy": 0.8,
+      "pp": 5,
+      "effects": [
+        {
+          "chance": 0.1,
+          "trigger": "on_hit",
+          "effects": [
+            {
+              "kind": "stat",
+              "target": "target",
+              "changes": {
+                "defense": -1
+              }
+            }
+          ]
+        }
+      ],
+      "level_requirement": 62
+    },
+    {
+      "id": "climate.sandbar_screen",
+      "name": "Sandbar Screen",
+      "flavor_text": "A dense ridge of wind-packed grit rises to shield the user.",
+      "type": "rock",
+      "category": "status",
+      "accuracy": 1.0,
+      "pp": 20,
+      "effects": [
+        {
+          "chance": 1.0,
+          "trigger": "on_hit",
+          "effects": [
+            {
+              "kind": "stat",
+              "target": "self",
+              "changes": {
+                "defense": 1
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "climate.pressure_cairn_slam",
+      "name": "Pressure Cairn Slam",
+      "flavor_text": "A looming stone totem topples forward and crushes the foe under its weight.",
+      "type": "rock",
+      "category": "physical",
+      "power": 45,
+      "accuracy": 1.0,
+      "pp": 25
+    },
+    {
+      "id": "climate.scree_veil",
+      "name": "Scree Veil",
+      "flavor_text": "A curtain of tumbling scree reinforces the user's stance.",
+      "type": "rock",
+      "category": "status",
+      "accuracy": 1.0,
+      "pp": 15,
+      "effects": [
+        {
+          "chance": 1.0,
+          "trigger": "on_hit",
+          "effects": [
+            {
+              "kind": "stat",
+              "target": "self",
+              "changes": {
+                "defense": 1
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "climate.tectonic_poise",
+      "name": "Tectonic Poise",
+      "flavor_text": "The user grounds itself like bedrock, gaining striking stability.",
+      "type": "rock",
+      "category": "status",
+      "accuracy": 1.0,
+      "effects": [
+        {
+          "chance": 1.0,
+          "trigger": "on_hit",
+          "effects": [
+            {
+              "kind": "stat",
+              "target": "self",
+              "changes": {
+                "attack": 1,
+                "defense": 1
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "climate.avalanche_crush",
+      "name": "Avalanche Crush",
+      "flavor_text": "A solemn rumble breaks loose into a debris avalanche that crashes down, miring the foe in rubble.",
+      "type": "rock",
+      "category": "special",
+      "power": 95,
+      "accuracy": 0.9,
+      "effects": [
+        {
+          "chance": 0.2,
+          "trigger": "on_hit",
+          "effects": [
+            {
+              "kind": "stat",
+              "target": "target",
+              "changes": {
+                "speed": -1
+              }
+            }
+          ]
+        }
+      ],
+      "level_requirement": 70
+    },
+    {
+      "id": "climate.fogfinger_swipe",
+      "name": "Fogfinger Swipe",
+      "flavor_text": "Spectral fingers slash out from dawn fog.",
+      "type": "ghost",
+      "category": "physical",
+      "power": 25,
+      "accuracy": 1.0,
+      "pp": 35
+    },
+    {
+      "id": "climate.lantern_chill",
+      "name": "Lantern Chill",
+      "flavor_text": "A wandering marsh-light fires a cold ghostly blast.",
+      "type": "ghost",
+      "category": "special",
+      "power": 40,
+      "accuracy": 1.0,
+      "pp": 30,
+      "priority": 1
+    },
+    {
+      "id": "climate.haunt_monsoon",
+      "name": "Haunt Monsoon",
+      "flavor_text": "Phantom rain drums on the foe and numbs their limbs.",
+      "type": "ghost",
+      "category": "special",
+      "power": 70,
+      "accuracy": 0.95,
+      "pp": 15,
+      "effects": [
+        {
+          "chance": 0.3,
+          "trigger": "on_hit",
+          "effects": [
+            {
+              "kind": "status",
+              "target": "target",
+              "status": "sleep"
+            }
+          ]
+        }
+      ],
+      "level_requirement": 36
+    },
+    {
+      "id": "climate.wraith_current",
+      "name": "Wraith Current",
+      "flavor_text": "A river of spirits rushes forward in one cutting surge.",
+      "type": "ghost",
+      "category": "special",
+      "power": 45,
+      "accuracy": 1.0,
+      "pp": 25
+    },
+    {
+      "id": "climate.phantom_sleet",
+      "name": "Phantom Sleet",
+      "flavor_text": "Invisible sleetstones strike with relentless spectral weight.",
+      "type": "ghost",
+      "category": "special",
+      "power": 45,
+      "accuracy": 1.0,
+      "pp": 25
+    },
+    {
+      "id": "climate.murk_draft",
+      "name": "Murk Draft",
+      "flavor_text": "A draft from the under-sky clips the foe with chill force.",
+      "type": "ghost",
+      "category": "special",
+      "power": 45,
+      "accuracy": 1.0,
+      "pp": 25
+    },
+    {
+      "id": "climate.grave_mist",
+      "name": "Grave Mist",
+      "flavor_text": "Cemetery mist condenses into a hard spectral impact.",
+      "type": "ghost",
+      "category": "special",
+      "power": 45,
+      "accuracy": 1.0,
+      "pp": 25
+    },
+    {
+      "id": "climate.eclipse_dirge",
+      "name": "Eclipse Dirge",
+      "flavor_text": "A darkened sky choir unleashes a solemn burst of haunting force.",
+      "type": "ghost",
+      "category": "special",
+      "power": 45,
+      "accuracy": 1.0,
+      "pp": 25
+    },
+    {
+      "id": "climate.soul_typhoon",
+      "name": "Soul Typhoon",
+      "flavor_text": "A screaming spiral of souls tears at the target's inner guard.",
+      "type": "ghost",
+      "category": "special",
+      "power": 104,
+      "accuracy": 0.85,
+      "effects": [
+        {
+          "chance": 0.2,
+          "trigger": "on_hit",
+          "effects": [
+            {
+              "kind": "stat",
+              "target": "target",
+              "changes": {
+                "sp_defense": -1
+              }
+            }
+          ]
+        }
+      ],
+      "level_requirement": 56
+    },
+    {
+      "id": "climate.nether_cyclone",
+      "name": "Nether Cyclone",
+      "flavor_text": "A black cyclone from the void bites with deathly cold.",
+      "type": "ghost",
+      "category": "special",
+      "power": 118,
+      "accuracy": 0.8,
+      "pp": 5,
+      "effects": [
+        {
+          "chance": 0.1,
+          "trigger": "on_hit",
+          "effects": [
+            {
+              "kind": "status",
+              "target": "target",
+              "status": "freeze"
+            }
+          ]
+        }
+      ],
+      "level_requirement": 64
+    },
+    {
+      "id": "climate.shade_shelter",
+      "name": "Shade Shelter",
+      "flavor_text": "Shadows thicken into a cloak that hardens the user's spirit.",
+      "type": "ghost",
+      "category": "status",
+      "accuracy": 1.0,
+      "pp": 20,
+      "effects": [
+        {
+          "chance": 1.0,
+          "trigger": "on_hit",
+          "effects": [
+            {
+              "kind": "stat",
+              "target": "self",
+              "changes": {
+                "sp_defense": 1
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "climate.cold_whisper",
+      "name": "Cold Whisper",
+      "flavor_text": "A winter whisper from behind saps the foe's will to strike.",
+      "type": "ghost",
+      "category": "status",
+      "accuracy": 1.0,
+      "pp": 20,
+      "effects": [
+        {
+          "chance": 1.0,
+          "trigger": "on_hit",
+          "effects": [
+            {
+              "kind": "stat",
+              "target": "target",
+              "changes": {
+                "attack": -1
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "climate.veil_of_drizzle",
+      "name": "Veil of Drizzle",
+      "flavor_text": "A fine spectral drizzle quiets the user's outline and steadies its guard.",
+      "type": "ghost",
+      "category": "status",
+      "accuracy": 1.0,
+      "pp": 15,
+      "effects": [
+        {
+          "chance": 1.0,
+          "trigger": "on_hit",
+          "effects": [
+            {
+              "kind": "stat",
+              "target": "self",
+              "changes": {
+                "sp_defense": 1
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "climate.grief_barrage",
+      "name": "Grief Barrage",
+      "flavor_text": "A crushing emotional front pours down as a wave of mournful spectral force.",
+      "type": "ghost",
+      "category": "special",
+      "power": 85,
+      "accuracy": 0.95,
+      "level_requirement": 47
+    },
+    {
+      "id": "climate.midnight_knell",
+      "name": "Midnight Knell",
+      "flavor_text": "A bell-cold midnight peal washes out the foe with dreaming dread.",
+      "type": "ghost",
+      "category": "special",
+      "power": 90,
+      "accuracy": 0.95,
+      "effects": [
+        {
+          "chance": 0.2,
+          "trigger": "on_hit",
+          "effects": [
+            {
+              "kind": "status",
+              "target": "target",
+              "status": "sleep"
+            }
+          ]
+        }
+      ],
+      "level_requirement": 73
+    },
+    {
+      "id": "climate.mistwyrm_claw",
+      "name": "Mistwyrm Claw",
+      "flavor_text": "A dragon claw flashes out from coastal mist.",
+      "type": "dragon",
+      "category": "physical",
+      "power": 45,
+      "accuracy": 1.0,
+      "pp": 25
+    },
+    {
+      "id": "climate.stormscale_bolt",
+      "name": "Stormscale Bolt",
+      "flavor_text": "Charged scales fire forward like rain-hardened darts.",
+      "type": "dragon",
+      "category": "special",
+      "power": 30,
+      "accuracy": 1.0,
+      "pp": 30
+    },
+    {
+      "id": "climate.thunder_roost_dive",
+      "name": "Thunder Roost Dive",
+      "flavor_text": "The user drops from thundercloud cover with a jolting impact.",
+      "type": "dragon",
+      "category": "physical",
+      "power": 78,
+      "accuracy": 0.95,
+      "pp": 15,
+      "effects": [
+        {
+          "chance": 0.3,
+          "trigger": "on_hit",
+          "effects": [
+            {
+              "kind": "status",
+              "target": "target",
+              "status": "paralysis"
+            }
+          ]
+        }
+      ],
+      "level_requirement": 36
+    },
+    {
+      "id": "climate.monsoon_fang",
+      "name": "Monsoon Fang",
+      "flavor_text": "A rain-laced bite tears through the target's guard.",
+      "type": "dragon",
+      "category": "physical",
+      "power": 45,
+      "accuracy": 1.0,
+      "pp": 25
+    },
+    {
+      "id": "climate.skycoil_crush",
+      "name": "Skycoil Crush",
+      "flavor_text": "The dragon coils through cloudbanks and slams down hard.",
+      "type": "dragon",
+      "category": "physical",
+      "power": 45,
+      "accuracy": 1.0,
+      "pp": 25
+    },
+    {
+      "id": "climate.drake_dew_slash",
+      "name": "Drake Dew Slash",
+      "flavor_text": "A dew-slick tailblade cuts in one clean arc.",
+      "type": "dragon",
+      "category": "physical",
+      "power": 68,
+      "accuracy": 1.0,
+      "pp": 20,
+      "level_requirement": 36
+    },
+    {
+      "id": "climate.tempest_tail",
+      "name": "Tempest Tail",
+      "flavor_text": "A whipping storm-tail blow strikes with rolling pressure.",
+      "type": "dragon",
+      "category": "physical",
+      "power": 45,
+      "accuracy": 1.0,
+      "pp": 25
+    },
+    {
+      "id": "climate.frontline_roar",
+      "name": "Frontline Roar",
+      "flavor_text": "A battle roar condenses into a driving draconic shockwave.",
+      "type": "dragon",
+      "category": "special",
+      "power": 45,
+      "accuracy": 1.0,
+      "pp": 25
+    },
+    {
+      "id": "climate.pressure_comet",
+      "name": "Pressure Comet",
+      "flavor_text": "A blazing comet-breath fractures the target's mystical guard.",
+      "type": "dragon",
+      "category": "special",
+      "power": 108,
+      "accuracy": 0.85,
+      "effects": [
+        {
+          "chance": 0.2,
+          "trigger": "on_hit",
+          "effects": [
+            {
+              "kind": "stat",
+              "target": "target",
+              "changes": {
+                "sp_defense": -1
+              }
+            }
+          ]
+        }
+      ],
+      "level_requirement": 56
+    },
+    {
+      "id": "climate.apex_hurricane",
+      "name": "Apex Hurricane",
+      "flavor_text": "The elder storm is summoned into a devastating draconic blast.",
+      "type": "dragon",
+      "category": "special",
+      "power": 120,
+      "accuracy": 0.75,
+      "pp": 5,
+      "effects": [
+        {
+          "chance": 0.1,
+          "trigger": "on_hit",
+          "effects": [
+            {
+              "kind": "stat",
+              "target": "target",
+              "changes": {
+                "attack": -1
+              }
+            }
+          ]
+        }
+      ],
+      "level_requirement": 66
+    },
+    {
+      "id": "climate.scale_updraft",
+      "name": "Scale Updraft",
+      "flavor_text": "Warm rising air under the scales boosts swift movement.",
+      "type": "dragon",
+      "category": "status",
+      "accuracy": 1.0,
+      "pp": 20,
+      "effects": [
+        {
+          "chance": 1.0,
+          "trigger": "on_hit",
+          "effects": [
+            {
+              "kind": "stat",
+              "target": "self",
+              "changes": {
+                "speed": 1
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "climate.nimbus_crush",
+      "name": "Nimbus Crush",
+      "flavor_text": "Cloud armor condenses around the user's wing then whips down in a crushing blow.",
+      "type": "dragon",
+      "category": "physical",
+      "power": 45,
+      "accuracy": 1.0,
+      "pp": 25
+    },
+    {
+      "id": "climate.wyrm_focus",
+      "name": "Wyrm Focus",
+      "flavor_text": "The user narrows its predatory intent beneath still skies.",
+      "type": "dragon",
+      "category": "status",
+      "accuracy": 1.0,
+      "pp": 15,
+      "effects": [
+        {
+          "chance": 1.0,
+          "trigger": "on_hit",
+          "effects": [
+            {
+              "kind": "stat",
+              "target": "self",
+              "changes": {
+                "attack": 1
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "climate.eye_of_squall",
+      "name": "Eye of Squall",
+      "flavor_text": "Within the storm's calm center, the user hones power and pace.",
+      "type": "dragon",
+      "category": "status",
+      "accuracy": 1.0,
+      "effects": [
+        {
+          "chance": 1.0,
+          "trigger": "on_hit",
+          "effects": [
+            {
+              "kind": "stat",
+              "target": "self",
+              "changes": {
+                "attack": 1,
+                "speed": 1
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "climate.ancient_monsoon_wave",
+      "name": "Ancient Monsoon Wave",
+      "flavor_text": "A primordial rain-chant breaks open the sky in a wave of layered draconic force.",
+      "type": "dragon",
+      "category": "special",
+      "power": 95,
+      "accuracy": 0.9,
+      "level_requirement": 71
+    },
+    {
+      "id": "climate.umbra_drizzle",
+      "name": "Umbra Drizzle",
+      "flavor_text": "A veil of black rain lashes the foe from a moonless squall.",
+      "type": "dark",
+      "category": "special",
+      "power": 25,
+      "accuracy": 1.0,
+      "pp": 35
+    },
+    {
+      "id": "climate.gloom_front",
+      "name": "Gloom Front",
+      "flavor_text": "A cold shadow front rolls in and slams the target.",
+      "type": "dark",
+      "category": "physical",
+      "power": 45,
+      "accuracy": 1.0,
+      "pp": 30
+    },
+    {
+      "id": "climate.night_barometer",
+      "name": "Night Barometer",
+      "flavor_text": "The user reads the pressure of dusk and sharpens its strike timing.",
+      "type": "dark",
+      "category": "status",
+      "accuracy": 1.0,
+      "pp": 20,
+      "effects": [
+        {
+          "chance": 1.0,
+          "trigger": "on_hit",
+          "effects": [
+            {
+              "kind": "stat",
+              "target": "self",
+              "changes": {
+                "attack": 1
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "climate.eclipse_gust",
+      "name": "Eclipse Gust",
+      "flavor_text": "A crescent gale clips the foe with cutting dark wind.",
+      "type": "dark",
+      "category": "special",
+      "power": 40,
+      "accuracy": 1.0,
+      "pp": 30,
+      "priority": 1
+    },
+    {
+      "id": "climate.midnight_squall",
+      "name": "Midnight Squall",
+      "flavor_text": "The user dashes through storm-dark spray and strikes hard.",
+      "type": "dark",
+      "category": "physical",
+      "power": 65,
+      "accuracy": 0.9,
+      "pp": 20,
+      "level_requirement": 36
+    },
+    {
+      "id": "climate.tarcloud_burst",
+      "name": "Tarcloud Burst",
+      "flavor_text": "A burst of tar-thick cloud detonates and leaves the foe sluggish.",
+      "type": "dark",
+      "category": "special",
+      "power": 45,
+      "accuracy": 1.0,
+      "pp": 25,
+      "effects": [
+        {
+          "chance": 0.3,
+          "trigger": "on_hit",
+          "effects": [
+            {
+              "kind": "stat",
+              "target": "target",
+              "changes": {
+                "speed": -1
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "climate.dusk_inversion",
+      "name": "Dusk Inversion",
+      "flavor_text": "Twilight pressure flips around the user to thicken its guard.",
+      "type": "dark",
+      "category": "status",
+      "accuracy": 1.0,
+      "pp": 20,
+      "effects": [
+        {
+          "chance": 1.0,
+          "trigger": "on_hit",
+          "effects": [
+            {
+              "kind": "stat",
+              "target": "self",
+              "changes": {
+                "defense": 1
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "climate.smogfang_drive",
+      "name": "Smogfang Drive",
+      "flavor_text": "The user bites through oily smog with brutal momentum.",
+      "type": "dark",
+      "category": "physical",
+      "power": 45,
+      "accuracy": 1.0,
+      "pp": 25
+    },
+    {
+      "id": "climate.moonless_torrent",
+      "name": "Moonless Torrent",
+      "flavor_text": "A torrent without moonlight crashes down in heavy sheets.",
+      "type": "dark",
+      "category": "special",
+      "power": 45,
+      "accuracy": 1.0,
+      "pp": 25
+    },
+    {
+      "id": "climate.raven_strike",
+      "name": "Raven Strike",
+      "flavor_text": "A grim omen swoops in as a tearing dark-feathered dive.",
+      "type": "dark",
+      "category": "special",
+      "power": 45,
+      "accuracy": 1.0,
+      "pp": 25
+    },
+    {
+      "id": "climate.black_ice_shear",
+      "name": "Black Ice Shear",
+      "flavor_text": "The user skates on black frost and carves a cruel line.",
+      "type": "dark",
+      "category": "physical",
+      "power": 80,
+      "accuracy": 0.85,
+      "pp": 15,
+      "level_requirement": 40
+    },
+    {
+      "id": "climate.void_monsoon",
+      "name": "Void Monsoon",
+      "flavor_text": "A void-tinted monsoon batters the foe and clouds its aim.",
+      "type": "dark",
+      "category": "special",
+      "power": 85,
+      "accuracy": 0.85,
+      "effects": [
+        {
+          "chance": 0.2,
+          "trigger": "on_hit",
+          "effects": [
+            {
+              "kind": "stat",
+              "target": "target",
+              "changes": {
+                "accuracy": -1
+              }
+            }
+          ]
+        }
+      ],
+      "level_requirement": 46
+    },
+    {
+      "id": "climate.stormblind_cloak",
+      "name": "Stormblind Cloak",
+      "flavor_text": "Dense night rain steadies the user under pressure.",
+      "type": "dark",
+      "category": "status",
+      "accuracy": 1.0,
+      "pp": 15,
+      "effects": [
+        {
+          "chance": 1.0,
+          "trigger": "on_hit",
+          "effects": [
+            {
+              "kind": "stat",
+              "target": "self",
+              "changes": {
+                "speed": 1
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "climate.nocturne_drop",
+      "name": "Nocturne Drop",
+      "flavor_text": "The user plummets out of storm-night cover and smashes the foe in a single descent.",
+      "type": "dark",
+      "category": "physical",
+      "power": 90,
+      "accuracy": 0.9,
+      "level_requirement": 60
+    },
+    {
+      "id": "climate.cataclysm_shadefall",
+      "name": "Cataclysm Shadefall",
+      "flavor_text": "The sky turns ink-black and collapses onto the target.",
+      "type": "dark",
+      "category": "special",
+      "power": 95,
+      "accuracy": 0.8,
+      "level_requirement": 72
+    },
+    {
+      "id": "climate.tinmist_jab",
+      "name": "Tinmist Jab",
+      "flavor_text": "A thin metallic mist hardens into a quick piercing jab.",
+      "type": "steel",
+      "category": "physical",
+      "power": 30,
+      "accuracy": 1.0,
+      "pp": 30
+    },
+    {
+      "id": "climate.alloy_sleet",
+      "name": "Alloy Sleet",
+      "flavor_text": "Needles of alloy sleet rattle across the foe.",
+      "type": "steel",
+      "category": "special",
+      "power": 45,
+      "accuracy": 1.0,
+      "pp": 30
+    },
+    {
+      "id": "climate.pressure_anneal",
+      "name": "Pressure Anneal",
+      "flavor_text": "The user tempers itself under storm pressure to reinforce armor.",
+      "type": "steel",
+      "category": "status",
+      "accuracy": 1.0,
+      "pp": 20,
+      "effects": [
+        {
+          "chance": 1.0,
+          "trigger": "on_hit",
+          "effects": [
+            {
+              "kind": "stat",
+              "target": "self",
+              "changes": {
+                "defense": 1
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "climate.chromedraft_slash",
+      "name": "Chromedraft Slash",
+      "flavor_text": "A chrome-laced updraft lifts and hurls a razor slash.",
+      "type": "steel",
+      "category": "physical",
+      "power": 30,
+      "accuracy": 1.0,
+      "pp": 30
+    },
+    {
+      "id": "climate.ferrous_squall",
+      "name": "Ferrous Squall",
+      "flavor_text": "A spinning squall of iron grit grinds into the target.",
+      "type": "steel",
+      "category": "special",
+      "power": 65,
+      "accuracy": 0.9,
+      "pp": 20,
+      "level_requirement": 36
+    },
+    {
+      "id": "climate.rivetrain_impact",
+      "name": "Rivetrain Impact",
+      "flavor_text": "Rivet-heavy rain hammers down and can dent the foe's guard.",
+      "type": "steel",
+      "category": "physical",
+      "power": 45,
+      "accuracy": 1.0,
+      "pp": 25,
+      "effects": [
+        {
+          "chance": 0.3,
+          "trigger": "on_hit",
+          "effects": [
+            {
+              "kind": "stat",
+              "target": "target",
+              "changes": {
+                "defense": -1
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "climate.cloudforge_stance",
+      "name": "Cloudforge Stance",
+      "flavor_text": "The user braces in a forge-cloud and raises battle posture.",
+      "type": "steel",
+      "category": "status",
+      "accuracy": 1.0,
+      "pp": 20,
+      "effects": [
+        {
+          "chance": 1.0,
+          "trigger": "on_hit",
+          "effects": [
+            {
+              "kind": "stat",
+              "target": "self",
+              "changes": {
+                "attack": 1
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "climate.mercury_gale",
+      "name": "Mercury Gale",
+      "flavor_text": "A silver gale whips around the target with cutting force.",
+      "type": "steel",
+      "category": "special",
+      "power": 45,
+      "accuracy": 1.0,
+      "pp": 25
+    },
+    {
+      "id": "climate.ironfront_lunge",
+      "name": "Ironfront Lunge",
+      "flavor_text": "The user surges like an iron cold front into its foe.",
+      "type": "steel",
+      "category": "physical",
+      "power": 45,
+      "accuracy": 1.0,
+      "pp": 25
+    },
+    {
+      "id": "climate.magnet_strike",
+      "name": "Magnet Strike",
+      "flavor_text": "Charged storm-lines drag the user's blow magnetically into the foe.",
+      "type": "steel",
+      "category": "physical",
+      "power": 45,
+      "accuracy": 1.0,
+      "pp": 25
+    },
+    {
+      "id": "climate.monsoon_smelter",
+      "name": "Monsoon Smelter",
+      "flavor_text": "A smelter-hot monsoon blast crashes through defenses.",
+      "type": "steel",
+      "category": "special",
+      "power": 80,
+      "accuracy": 0.85,
+      "pp": 15,
+      "level_requirement": 40
+    },
+    {
+      "id": "climate.cyclone_press",
+      "name": "Cyclone Press",
+      "flavor_text": "A crushing cyclone of steel plates can pin and slow the foe.",
+      "type": "steel",
+      "category": "physical",
+      "power": 85,
+      "accuracy": 0.85,
+      "effects": [
+        {
+          "chance": 0.2,
+          "trigger": "on_hit",
+          "effects": [
+            {
+              "kind": "stat",
+              "target": "target",
+              "changes": {
+                "speed": -1
+              }
+            }
+          ]
+        }
+      ],
+      "level_requirement": 46
+    },
+    {
+      "id": "climate.jetstream_buffer",
+      "name": "Jetstream Buffer",
+      "flavor_text": "Rapid jetstream friction whets a polished steel beam that fires through the foe.",
+      "type": "steel",
+      "category": "special",
+      "power": 85,
+      "accuracy": 0.95,
+      "level_requirement": 52
+    },
+    {
+      "id": "climate.aegis_isobar",
+      "name": "Aegis Isobar",
+      "flavor_text": "A heavy isobar dome settles and fortifies the user's special bulk.",
+      "type": "steel",
+      "category": "status",
+      "accuracy": 1.0,
+      "effects": [
+        {
+          "chance": 1.0,
+          "trigger": "on_hit",
+          "effects": [
+            {
+              "kind": "stat",
+              "target": "self",
+              "changes": {
+                "sp_defense": 2
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "climate.tempest_crucible",
+      "name": "Tempest Crucible",
+      "flavor_text": "A colossal crucible storm engulfs the foe in searing metal rain.",
+      "type": "steel",
+      "category": "special",
+      "power": 95,
+      "accuracy": 0.8,
+      "effects": [
+        {
+          "chance": 0.1,
+          "trigger": "on_hit",
+          "effects": [
+            {
+              "kind": "status",
+              "target": "target",
+              "status": "burn"
+            }
+          ]
+        }
+      ],
+      "level_requirement": 72
+    },
+    {
+      "id": "climate.petal_drizzle",
+      "name": "Petal Drizzle",
+      "flavor_text": "Soft luminous petals drift in rain and strike with gentle force.",
+      "type": "fairy",
+      "category": "special",
+      "power": 25,
+      "accuracy": 1.0,
+      "pp": 35
+    },
+    {
+      "id": "climate.moondew_flick",
+      "name": "Moondew Flick",
+      "flavor_text": "A quick flick of moondew arcs into the foe.",
+      "type": "fairy",
+      "category": "physical",
+      "power": 45,
+      "accuracy": 1.0,
+      "pp": 30
+    },
+    {
+      "id": "climate.lullaby_pulse",
+      "name": "Lullaby Pulse",
+      "flavor_text": "A wind-borne lullaby coalesces into a heavy fey pulse that crashes into the foe.",
+      "type": "fairy",
+      "category": "special",
+      "power": 70,
+      "accuracy": 1.0,
+      "pp": 15,
+      "level_requirement": 36
+    },
+    {
+      "id": "climate.prism_breeze",
+      "name": "Prism Breeze",
+      "flavor_text": "A prismatic breeze spirals out and sparkles against the target.",
+      "type": "fairy",
+      "category": "special",
+      "power": 30,
+      "accuracy": 1.0,
+      "pp": 30
+    },
+    {
+      "id": "climate.thistledown_rush",
+      "name": "Thistledown Rush",
+      "flavor_text": "The user darts on thistledown gusts and bumps the foe aside.",
+      "type": "fairy",
+      "category": "physical",
+      "power": 40,
+      "accuracy": 1.0,
+      "pp": 30,
+      "priority": 1
+    },
+    {
+      "id": "climate.mirth_mist",
+      "name": "Mirth Mist",
+      "flavor_text": "A playful mist bursts and can make the foe lose focus.",
+      "type": "fairy",
+      "category": "special",
+      "power": 45,
+      "accuracy": 1.0,
+      "pp": 25,
+      "effects": [
+        {
+          "chance": 0.3,
+          "trigger": "on_hit",
+          "effects": [
+            {
+              "kind": "stat",
+              "target": "target",
+              "changes": {
+                "sp_attack": -1
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "climate.sunshower_ward",
+      "name": "Sunshower Ward",
+      "flavor_text": "A warm sunshower ring shields the user with radiant poise.",
+      "type": "fairy",
+      "category": "status",
+      "accuracy": 1.0,
+      "pp": 20,
+      "effects": [
+        {
+          "chance": 1.0,
+          "trigger": "on_hit",
+          "effects": [
+            {
+              "kind": "stat",
+              "target": "self",
+              "changes": {
+                "sp_defense": 1
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "climate.rainbow_draft",
+      "name": "Rainbow Draft",
+      "flavor_text": "A rainbow current sweeps through and lashes the opponent.",
+      "type": "fairy",
+      "category": "special",
+      "power": 70,
+      "accuracy": 0.9,
+      "pp": 20,
+      "level_requirement": 36
+    },
+    {
+      "id": "climate.cumulus_pirouette",
+      "name": "Cumulus Pirouette",
+      "flavor_text": "The user twirls atop a cloudstep and lands a dancing strike.",
+      "type": "fairy",
+      "category": "physical",
+      "power": 45,
+      "accuracy": 1.0,
+      "pp": 25
+    },
+    {
+      "id": "climate.dawn_veil_slash",
+      "name": "Dawn Veil Slash",
+      "flavor_text": "A pastel dawn ribbon snaps taut and slices the foe with luminous edge.",
+      "type": "fairy",
+      "category": "physical",
+      "power": 45,
+      "accuracy": 1.0,
+      "pp": 25
+    },
+    {
+      "id": "climate.aurora_prong",
+      "name": "Aurora Prong",
+      "flavor_text": "An aurora-forged lance thrusts forward with radiant edge.",
+      "type": "fairy",
+      "category": "physical",
+      "power": 80,
+      "accuracy": 0.85,
+      "pp": 15,
+      "level_requirement": 40
+    },
+    {
+      "id": "climate.halo_storm",
+      "name": "Halo Storm",
+      "flavor_text": "A halo storm crashes down and can leave the foe dazed.",
+      "type": "fairy",
+      "category": "special",
+      "power": 85,
+      "accuracy": 0.85,
+      "effects": [
+        {
+          "chance": 0.2,
+          "trigger": "on_hit",
+          "effects": [
+            {
+              "kind": "status",
+              "target": "target",
+              "status": "sleep"
+            }
+          ]
+        }
+      ],
+      "level_requirement": 46
+    },
+    {
+      "id": "climate.wishbarometer",
+      "name": "Wishbarometer",
+      "flavor_text": "The user reads hopeful pressure lines to steady its guard.",
+      "type": "fairy",
+      "category": "status",
+      "accuracy": 1.0,
+      "pp": 15,
+      "effects": [
+        {
+          "chance": 1.0,
+          "trigger": "on_hit",
+          "effects": [
+            {
+              "kind": "stat",
+              "target": "self",
+              "changes": {
+                "sp_defense": 1
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "climate.celestial_upwash",
+      "name": "Celestial Upwash",
+      "flavor_text": "A sacred upwash of starlit rain lifts the user's spirit and speed.",
+      "type": "fairy",
+      "category": "status",
+      "accuracy": 1.0,
+      "effects": [
+        {
+          "chance": 1.0,
+          "trigger": "on_hit",
+          "effects": [
+            {
+              "kind": "stat",
+              "target": "self",
+              "changes": {
+                "speed": 2
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "climate.mythic_weathering",
+      "name": "Mythic Weathering",
+      "flavor_text": "Ancient fey weather descends in a brilliant, overwhelming deluge.",
+      "type": "fairy",
+      "category": "special",
+      "power": 95,
+      "accuracy": 0.8,
+      "effects": [
+        {
+          "chance": 0.1,
+          "trigger": "on_hit",
+          "effects": [
+            {
+              "kind": "status",
+              "target": "target",
+              "status": "sleep"
+            }
+          ]
+        }
+      ],
+      "level_requirement": 72
+    },
+    {
+      "id": "climate.loess_veer",
+      "name": "Loess Veer",
+      "flavor_text": "A sideways sheet of wind-laid silt cuts across the target's feet.",
+      "type": "ground",
+      "category": "special",
+      "power": 40,
+      "accuracy": 1.0,
+      "pp": 25,
+      "effects": [
+        {
+          "chance": 0.3,
+          "trigger": "on_hit",
+          "effects": [
+            {
+              "kind": "stat",
+              "target": "target",
+              "changes": {
+                "speed": -1
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "climate.saltflat_jab",
+      "name": "Saltflat Jab",
+      "flavor_text": "A cracked white pan spits a quick mineral sting upward.",
+      "type": "ground",
+      "category": "physical",
+      "power": 30,
+      "accuracy": 1.0,
+      "pp": 30,
+      "priority": 1
+    },
+    {
+      "id": "climate.feldspar_flick",
+      "name": "Feldspar Flick",
+      "flavor_text": "A bright mineral click clips the target as the user darts ahead.",
+      "type": "ground",
+      "category": "physical",
+      "power": 35,
+      "accuracy": 1.0,
+      "pp": 25,
+      "effects": [
+        {
+          "chance": 0.3,
+          "trigger": "on_hit",
+          "effects": [
+            {
+              "kind": "stat",
+              "target": "self",
+              "changes": {
+                "speed": 1
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "climate.topsoil_scalp",
+      "name": "Topsoil Scalp",
+      "flavor_text": "The surface layer peels off in a hard abrasive swipe.",
+      "type": "ground",
+      "category": "physical",
+      "power": 70,
+      "accuracy": 1.0,
+      "pp": 15,
+      "effects": [
+        {
+          "chance": 0.3,
+          "trigger": "on_hit",
+          "effects": [
+            {
+              "kind": "stat",
+              "target": "target",
+              "changes": {
+                "defense": -1
+              }
+            }
+          ]
+        }
+      ],
+      "level_requirement": 22
+    },
+    {
+      "id": "climate.dry_crust_break",
+      "name": "Dry Crust Break",
+      "flavor_text": "A brittle ground plate bursts under the target with reliable force.",
+      "type": "ground",
+      "category": "physical",
+      "power": 85,
+      "accuracy": 1.0,
+      "level_requirement": 38
+    },
+    {
+      "id": "climate.laterite_hammer",
+      "name": "Laterite Hammer",
+      "flavor_text": "Rust-red subsoil hardens around a brutal fired-earth blow.",
+      "type": "ground",
+      "category": "physical",
+      "power": 120,
+      "accuracy": 0.85,
+      "pp": 5,
+      "effects": [
+        {
+          "chance": 1.0,
+          "trigger": "after_damage",
+          "effects": [
+            {
+              "kind": "recoil",
+              "ratio": 0.25
+            }
+          ]
+        }
+      ],
+      "level_requirement": 72
+    },
+    {
+      "id": "climate.dust_loading",
+      "name": "Dust Loading",
+      "flavor_text": "Mineral haze thickens until the whole field carries dry pressure.",
+      "type": "ground",
+      "category": "status",
+      "accuracy": 1.0,
+      "effects": [
+        {
+          "chance": 1.0,
+          "trigger": "on_use",
+          "effects": [
+            {
+              "kind": "weather",
+              "weather": "sandstorm",
+              "turns": 5
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "climate.frontline_twitch",
+      "name": "Frontline Twitch",
+      "flavor_text": "The user catches a boundary shift and lands a thought before the target moves.",
+      "type": "psychic",
+      "category": "special",
+      "power": 40,
+      "accuracy": 1.0,
+      "pp": 20,
+      "priority": 1
+    },
+    {
+      "id": "climate.ceiling_drop",
+      "name": "Ceiling Drop",
+      "flavor_text": "The sky seems to lower, pressing force out of the target's thoughts.",
+      "type": "psychic",
+      "category": "status",
+      "accuracy": 1.0,
+      "pp": 20,
+      "effects": [
+        {
+          "chance": 1.0,
+          "trigger": "on_hit",
+          "effects": [
+            {
+              "kind": "stat",
+              "target": "target",
+              "changes": {
+                "sp_attack": -1
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "climate.isallobar_glance",
+      "name": "Isallobar Glance",
+      "flavor_text": "Pressure-change contours flash in the user's eyes before the hit lands.",
+      "type": "psychic",
+      "category": "special",
+      "power": 70,
+      "accuracy": 1.0,
+      "pp": 15,
+      "effects": [
+        {
+          "chance": 0.3,
+          "trigger": "on_hit",
+          "effects": [
+            {
+              "kind": "stat",
+              "target": "target",
+              "changes": {
+                "sp_defense": -1
+              }
+            }
+          ]
+        }
+      ],
+      "level_requirement": 18
+    },
+    {
+      "id": "climate.pressure_range",
+      "name": "Pressure Range",
+      "flavor_text": "A wide daily pressure swing collapses into one clean mental wave.",
+      "type": "psychic",
+      "category": "special",
+      "power": 85,
+      "accuracy": 1.0,
+      "level_requirement": 38
+    },
+    {
+      "id": "climate.mercury_twitch",
+      "name": "Mercury Twitch",
+      "flavor_text": "A quick instrument-like jump rattles the target's sense of timing.",
+      "type": "psychic",
+      "category": "special",
+      "power": 85,
+      "accuracy": 0.95,
+      "effects": [
+        {
+          "chance": 0.1,
+          "trigger": "on_hit",
+          "effects": [
+            {
+              "kind": "stat",
+              "target": "target",
+              "changes": {
+                "speed": -1
+              }
+            }
+          ]
+        }
+      ],
+      "level_requirement": 40
+    }
+  ]
+}

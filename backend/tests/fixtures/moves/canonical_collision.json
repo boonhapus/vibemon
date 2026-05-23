@@ -1,0 +1,20 @@
+{
+  "version": 1,
+  "provider": "climate",
+  "moves": [
+    {
+      "id": "climate.spark_tap",
+      "name": "Spark-Tap",
+      "flavor_text": "first",
+      "type": "electric",
+      "category": "special"
+    },
+    {
+      "id": "climate.spark_tap_alt",
+      "name": "spark tap!",
+      "flavor_text": "canonical collision",
+      "type": "electric",
+      "category": "special"
+    }
+  ]
+}

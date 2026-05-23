@@ -1,4 +1,3 @@
-from collections.abc import Iterable
 from typing import TYPE_CHECKING, Any, ClassVar
 import abc
 
@@ -90,9 +89,20 @@ class VibeProvider(abc.ABC):
         Return a complete Affinity with identity, moves, intensity, and visual_notes.
         """
 
-    @abc.abstractmethod
-    def moves(self) -> Iterable[schema.Move]:
-        """Return provider-authored moves for catalog seeding/sync."""
+    def moves(self) -> tuple[schema.Move, ...]:
+        """Return provider-authored moves loaded from JSON content."""
+        try:
+            return self._moves_cache
+        except AttributeError:
+            pass
+        from app.content import CONTENT_DIR, load_provider_moves
+
+        result = load_provider_moves(CONTENT_DIR / f"{self.name}.json")
+        if result.has_errors:
+            issues = "; ".join(i.message for i in result.issues[:5])
+            raise ValueError(f"Move content errors for {self.name}: {issues}")
+        self._moves_cache: tuple[schema.Move, ...] = result.moves
+        return self._moves_cache
 
     @abc.abstractmethod
     async def teardown(self) -> None:

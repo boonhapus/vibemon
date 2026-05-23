@@ -5,6 +5,8 @@ from __future__ import annotations
 import datetime as dt
 import uuid
 
+import pydantic
+
 from app import brand, types
 from app.data_store import types as ds_types
 from app.domain.birth import FrozenSchema
@@ -28,6 +30,31 @@ class CandidateReviewRead(FrozenSchema):
     timeout_at: dt.datetime
     resolved_at: dt.datetime | None = None
     resolution: types.CandidateReviewStatusT | None = None
+    status_label: str
+    resolved_label: str | None = None
+
+    @pydantic.field_validator("shown_at", "timeout_at", "resolved_at")
+    @classmethod
+    def _normalize_to_utc(cls, value: dt.datetime | None) -> dt.datetime | None:
+        if value is None:
+            return None
+        if value.tzinfo is None:
+            return value.replace(tzinfo=dt.UTC)
+        return value.astimezone(dt.UTC)
+
+
+_CANDIDATE_REVIEW_STATUS_LABELS: dict[types.CandidateReviewStatusT, str] = {
+    types.CandidateReviewStatusT.PENDING: "Pending",
+    types.CandidateReviewStatusT.ADOPTED: "Adopted",
+    types.CandidateReviewStatusT.REJECTED: "Rejected",
+    types.CandidateReviewStatusT.TIMED_OUT: "Timed out",
+}
+
+
+def candidate_review_status_label(status: types.CandidateReviewStatusT) -> str:
+    """Return stable player-facing copy for candidate-review status."""
+
+    return _CANDIDATE_REVIEW_STATUS_LABELS[status]
 
 
 class PublicVibemon(FrozenSchema):

@@ -28,7 +28,7 @@ from app.balance import element_chart
 from app.battle import actions
 from app.battle import schema as battle_schema
 from app.battle.engine import GameEngine
-from app.plugins.climate import moves as climate_moves
+from app.content import CONTENT_DIR, load_provider_moves
 from app.plugins.climate.const import WeatherCode
 from app.plugins.climate.provider import ClimateProvider
 
@@ -611,7 +611,7 @@ def _counter_values(counter: Counter) -> dict[str, int]:
 
 
 def analyze_move_catalog() -> MoveCatalogReport:
-    moves = tuple(climate_moves.MOVES)
+    moves = load_provider_moves(CONTENT_DIR / "climate.json").moves
     by_type = Counter(move.type.value for move in moves)
     by_category = Counter(move.category.value for move in moves)
     by_level = Counter(str(move.level_requirement) for move in moves)

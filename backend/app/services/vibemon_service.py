@@ -159,6 +159,17 @@ class VibemonService:
         loaded = await self._load_vibemon(sess, row.id)
         return await self._read_model(loaded)
 
+    async def get_vibemon(
+        self,
+        sess: AsyncSession,
+        *,
+        vibemon_id: uuid.UUID,
+        viewer_trainer_id: types.TrainerIdT | None = None,
+    ) -> schema.PublicVibemon:
+        """Return an API-facing read model, redacting trainer-private review metadata."""
+        loaded = await self._load_vibemon(sess, vibemon_id)
+        return await self._read_model(loaded, reviewing_trainer_id=viewer_trainer_id)
+
     async def adopt_candidate(
         self,
         sess: AsyncSession,
@@ -849,6 +860,7 @@ class VibemonService:
 
 def _move_schema(row: models.Move) -> schema.Move:
     return schema.Move(
+        id=row.content_id,
         name=row.name,
         flavor_text=row.flavor_text,
         type=types.VibemonTypeT(row.type),

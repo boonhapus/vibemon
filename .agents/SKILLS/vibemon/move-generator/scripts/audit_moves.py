@@ -22,12 +22,12 @@ Example:
 import argparse
 import sys
 from collections import Counter
-from importlib import import_module
 from statistics import mean, median, stdev
 
 from app import types
 from app import schema
 from app.schema import Move
+from app.content import CONTENT_DIR, load_provider_moves
 
 
 # ── Tier definitions (§3.5) ────────────────────────────────────────────────────
@@ -55,8 +55,11 @@ STRONG_STATUS = {
 
 
 def load_moves(provider: str) -> tuple[Move, ...]:
-    moves_mod = import_module(f"app.plugins.{provider}.moves")
-    return moves_mod.MOVES
+    result = load_provider_moves(CONTENT_DIR / f"{provider}.json")
+    if result.has_errors:
+        issues = "; ".join(i.message for i in result.issues[:5])
+        raise SystemExit(f"Move content errors for {provider}: {issues}")
+    return result.moves
 
 
 def tier_of(power: int) -> str:

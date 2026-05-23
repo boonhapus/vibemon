@@ -22,6 +22,9 @@ from app.domain.move import (
     StatChange,
     StatusInflict,
     WeatherSet,
+    canonicalize_move_name,
+    slugify_move_name,
+    validate_move_id,
 )
 from app.domain.read_models import CandidateReviewRead, PublicAsset, PublicVibemon
 from app.domain.vibemon import Aesthetic, Affinity, BirthOutcome, Identity, Trainer, Vibemon
@@ -57,4 +60,7 @@ __all__ = [
     "Trainer",
     "Vibemon",
     "WeatherSet",
+    "canonicalize_move_name",
+    "slugify_move_name",
+    "validate_move_id",
 ]

@@ -163,6 +163,22 @@ async def test_generate_candidate_consumes_credit_and_opens_review(sess: AsyncSe
 
 
 @pytest.mark.asyncio
+async def test_get_vibemon_exposes_review_metadata_only_to_reviewer(sess: AsyncSession) -> None:
+    reviewer = await _trainer(sess)
+    stranger = await _trainer(sess)
+    generated = await _service().generate_candidate(sess, trainer_id=reviewer, birth_seed=_seed())
+
+    reviewer_view = await _service().get_vibemon(sess, vibemon_id=generated.id, viewer_trainer_id=reviewer)
+    stranger_view = await _service().get_vibemon(sess, vibemon_id=generated.id, viewer_trainer_id=stranger)
+    public_view = await _service().get_vibemon(sess, vibemon_id=generated.id)
+
+    assert reviewer_view.candidate_review is not None
+    assert reviewer_view.candidate_review.trainer_id == reviewer
+    assert stranger_view.candidate_review is None
+    assert public_view.candidate_review is None
+
+
+@pytest.mark.asyncio
 async def test_generate_wild_supply_creates_christened_wild_without_review(sess: AsyncSession) -> None:
     result = await _service().generate_wild_supply(sess, birth_seed=_seed())
 
@@ -425,6 +441,12 @@ async def test_timeout_resolution_moves_candidate_to_wild(sess: AsyncSession) ->
     assert review.status == types.CandidateReviewStatusT.TIMED_OUT.value
     assert vibemon is not None
     assert vibemon.disposition == types.VibemonDispositionT.WILD.value
+
+    read_model = await _service(later).get_vibemon(sess, vibemon_id=generated.id, viewer_trainer_id=trainer_id)
+    assert read_model.candidate_review is not None
+    assert read_model.candidate_review.status_label == "Timed out"
+    assert read_model.candidate_review.resolved_label == "Timed out"
+    assert read_model.candidate_review.resolved_at == later
 
 
 @pytest.mark.asyncio

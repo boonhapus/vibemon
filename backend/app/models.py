@@ -193,6 +193,7 @@ class Move(Base):
     __tablename__ = "move"
 
     id: Mapped[uuid.UUID] = mapped_column(primary_key=True, default=uuid.uuid7)
+    content_id: Mapped[str] = mapped_column(unique=True)
     name: Mapped[str] = mapped_column(unique=True)
     flavor_text: Mapped[str]
     type: Mapped[str]
