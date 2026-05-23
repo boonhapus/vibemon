@@ -214,9 +214,7 @@ class VibemonMove(Base):
     __tablename__ = "vibemon_move"
 
     vibemon_id: Mapped[uuid.UUID] = mapped_column(primary_key=True)
-    move_id: Mapped[uuid.UUID] = mapped_column(primary_key=True)
-    learned_at_level: Mapped[int]
-    learned_at_ts: Mapped[dt.datetime]
+    move_content_id: Mapped[str] = mapped_column(primary_key=True)
     active_slot: Mapped[int | None]
 
     __table_args__ = (
@@ -227,8 +225,8 @@ class VibemonMove(Base):
             ondelete="CASCADE",
         ),
         ForeignKeyConstraint(
-            ["move_id"],
-            ["move.id"],
+            ["move_content_id"],
+            ["move.content_id"],
             name="fk_vibemon_move_move",
             ondelete="RESTRICT",
         ),

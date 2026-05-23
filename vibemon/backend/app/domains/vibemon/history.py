@@ -10,6 +10,7 @@ class VibemonHistoryEventT(enum.StrEnum):
     CANDIDATE_ADOPTED = "candidate_adopted"
     CANDIDATE_REJECTED = "candidate_rejected"
     CANDIDATE_TIMED_OUT = "candidate_timed_out"
+    MOVE_LEARNED = "move_learned"
     RELEASED = "released"
     WILD_ENCOUNTER_STARTED = "wild_encounter_started"
     WILD_ENCOUNTER_COMPLETED = "wild_encounter_completed"

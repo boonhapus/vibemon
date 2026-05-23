@@ -9,43 +9,19 @@ import statistics
 import niquests
 import structlog
 
-from app.core.math import clamp, weighted_sample
+from app.core.math import clamp
 from app.domains.generation.affinity import Affinity
 from app.domains.generation.seed import BirthSeed
-from app.domains.move.catalog import get_move_assignment_bonus
-from app.domains.move.entity import Move
 from app.domains.move.types import VibemonTypeT
 from app.domains.vibemon.identity import Identity
 from app.domains.vibemon.strength_formulas import base_stat_asymmetric_scaling, stat_ratio_from_grade
 from app.providers.base import VibeProvider
-from app.providers.helpers import Signal, filter_element_types
+from app.providers.helpers import Signal, filter_element_types, pick_starter_moves
 
 from . import api as _weather
 from .const import WeatherCode
 
 _LOGGER = structlog.get_logger(__name__)
-
-_STARTER_WEIGHT_MIN = 0.05
-_STARTER_WEIGHT_MAX = 2.0
-
-
-def _starter_move_weights(
-    *,
-    moves: tuple[Move, ...],
-    rankings: dict[VibemonTypeT, float],
-    elements: tuple[VibemonTypeT, ...],
-) -> dict[Move, float]:
-    """Build bounded starter-move weights from element scores and assignment bonuses."""
-    bonus_fx = ft.partial(get_move_assignment_bonus, vibemon_elements=elements)
-    starters = [move for move in moves if move.level_requirement == 1]
-    return {
-        move: clamp(
-            rankings.get(move.type, 0.0) * bonus_fx(move.type),
-            minimum=_STARTER_WEIGHT_MIN,
-            maximum=_STARTER_WEIGHT_MAX,
-        )
-        for move in starters
-    }
 
 
 class ClimateProvider(VibeProvider):
@@ -73,12 +49,10 @@ class ClimateProvider(VibeProvider):
         (VibemonTypeT.GRASS, "evapotranspiration or humid dew points"),
         (VibemonTypeT.ICE, "sub-freezing temperatures or snowfall"),
         (VibemonTypeT.FLYING, "sustained winds (15+ km/h)"),
-        (VibemonTypeT.FIGHTING, "violent wind gusts (35+ km/h)"),
+        (VibemonTypeT.FIGHTING, "violent gust spikes and impact weather"),
         (VibemonTypeT.GROUND, "mineral dust or dry exposed topsoil"),
-        (VibemonTypeT.STEEL, "high atmospheric pressure systems"),
         (VibemonTypeT.FAIRY, "UV radiation exposure"),
         (VibemonTypeT.POISON, "air pollution concentration"),
-        (VibemonTypeT.PSYCHIC, "barometric pressure swings"),
         (VibemonTypeT.DARK, "low visibility or heavy overcast"),
         (VibemonTypeT.GHOST, "fog or low visibility under low-UV conditions"),
         (VibemonTypeT.BUG, "humid tropical heat"),
@@ -181,12 +155,16 @@ class ClimateProvider(VibeProvider):
         clear_sky_factor = 1.0 - 0.3 * signals["clouds"].ramp("N", thresh=0.70, reach=0.30)
         score[VibemonTypeT.FLYING] += min(1.0, wind_score * altitude_factor * clear_sky_factor)
 
-        # FIGHTING — rocky quarries (the only weather-resolvable habitat in the set).
-        # Quarry profile = strong gusts AND airborne dust. Dojos/gyms/stadiums are
-        # man-made, weatherless — no signal for those. sqrt() requires both.
-        gust_score = signals["windgu"].ramp("R", thresh=30.0, reach=55.0)
-        quarry_dust_score = signals["dust_m"].ramp("R", thresh=20.0, reach=130.0)
-        score[VibemonTypeT.FIGHTING] += math.sqrt(gust_score * quarry_dust_score)
+        # FIGHTING — violent kinetic weather, not ordinary wind.
+        # Gust excess separates sudden impact force from FLYING's sustained wind profile.
+        gust_score = signals["windgu"].ramp("R", thresh=50.0, reach=70.0)
+        gust_excess = max(0.0, signals["windgu"].raw - signals["windsp"].raw)
+        gust_spike_score = clamp(gust_excess / 45.0, minimum=0.0, maximum=1.0)
+        abrasive_air_score = signals["dust_m"].ramp("R", thresh=25.0, reach=150.0)
+        low_visibility_impact = signals["visibl"].ramp("R", thresh=9000.0, reach=7000.0, invert=True)
+        heavy_precip_impact = signals["precip"].ramp("R", thresh=20.0, reach=40.0)
+        impact_score = max(abrasive_air_score, low_visibility_impact, heavy_precip_impact)
+        score[VibemonTypeT.FIGHTING] += math.sqrt(gust_score * gust_spike_score * impact_score)
 
         # POISON — swamps, marshes, industrial zones, sewers.
         # Sole owner of pollution signal. Alt path: stagnant warm wetland (swamp).
@@ -197,22 +175,13 @@ class ClimateProvider(VibeProvider):
         swamp_score = swamp_humidity * swamp_warmth * still_air_factor
         score[VibemonTypeT.POISON] += max(pollution_score, swamp_score)
 
-        # GROUND — deserts, canyons, muddy terrain.
-        # Three faces of bare earth: airborne dust, dry exposed topsoil, OR saturated mud.
-        dust_score = signals["dust_m"].ramp("R", thresh=20.0, reach=130.0)
-        dry_topsoil_score = signals["soilmt"].ramp("R", thresh=0.18, reach=0.18, invert=True)
+        # GROUND — deserts, dust flats, exposed dry earth.
+        # Keep GROUND tied to mineral dust and dry topsoil; wet mud belongs to WATER/GRASS ecology.
+        dust_score = signals["dust_m"].ramp("R", thresh=25.0, reach=150.0)
+        dry_topsoil_score = signals["soilmt"].ramp("R", thresh=0.14, reach=0.14, invert=True)
         dry_weather_gate = 1.0 - signals["precip"].ramp("R", thresh=1.0, reach=9.0)
-        scorching_heat_attenuator = 1.0 - 0.5 * signals["tmp_hi"].ramp("R", thresh=32.0, reach=20.0)
-        exposed_ground_score = dry_topsoil_score * dry_weather_gate * scorching_heat_attenuator
-        wet_soil = signals["soilmt"].ramp("R", thresh=0.40, reach=0.15)
-        mud_score = wet_soil * dry_weather_gate
-        score[VibemonTypeT.GROUND] += max(dust_score, exposed_ground_score, mud_score)
-
-        # PSYCHIC — libraries, hospitals, mystical ruins at night.
-        # All three habitats are man-made interiors — no real weather signal exists.
-        # Pressure volatility is the most associative proxy (atmospheric flux ~ mental flux).
-        # Known semantic gap; rarely fires from continuous signal alone.
-        score[VibemonTypeT.PSYCHIC] += signals["prange"].ramp("R", thresh=8.0, reach=22.0)
+        exposed_ground_score = dry_topsoil_score * dry_weather_gate
+        score[VibemonTypeT.GROUND] += max(dust_score, exposed_ground_score)
 
         # BUG — woods, tall grass, farm land.
         # Verdant warm humidity AND moist soil — all three required. Cube root preserves
@@ -241,14 +210,6 @@ class ClimateProvider(VibeProvider):
         cape_score = signals["cape_m"].ramp("N", thresh=0.30, reach=0.70)
         altitude_score = signals["elevat"].ramp("R", thresh=2000.0, reach=3000.0)
         score[VibemonTypeT.DRAGON] += math.sqrt(cape_score * altitude_score)
-
-        # STEEL — construction sites, factories, metal-rich caves.
-        # Factory-under-stable-air signature: anticyclone AND dry AND arid air. All three
-        # multiplicative so STEEL is selective — pollution belongs to POISON now.
-        pressure_score = signals["pressr"].ramp("N", thresh=0.64, reach=0.36)
-        steel_dry_factor = signals["precip"].ramp("R", thresh=0.5, reach=2.0, invert=True)
-        steel_arid_factor = signals["humdty"].ramp("R", thresh=50.0, reach=30.0, invert=True)
-        score[VibemonTypeT.STEEL] += pressure_score * steel_dry_factor * steel_arid_factor
 
         # ELECTRIC — power plants, urban centers, stormy plains.
         # Storms (CAPE) only — urban-grid path dropped to keep pollution exclusive to POISON.
@@ -281,10 +242,10 @@ class ClimateProvider(VibeProvider):
         score[VibemonTypeT.NORMAL] += 0.3 * (1.0 - max(score.values(), default=0.0))  # maybe 0.4
 
         # General Tier structure:
-        # - 0.2: LIGHT
+        # - 0.5: RARE
         # - 0.3: MODERATE
         # - 0.4: HEAVY
-        # - 0.5: RARE
+        # - 0.2: LIGHT
         match weather_code:
             # Clear skies: unobstructed sun confirms high UV for FAIRY's continuous
             # block. FAIRY's clean_air gate prevents false positives in smoggy areas.
@@ -322,6 +283,7 @@ class ClimateProvider(VibeProvider):
                 score[VibemonTypeT.ELECTRIC] += 0.5
                 score[VibemonTypeT.ICE] += 0.3
                 score[VibemonTypeT.ROCK] += 0.3
+                score[VibemonTypeT.FIGHTING] += 0.2
 
             # Fog/rime confirm spectral conditions (rare event)
             case WeatherCode.FOG | WeatherCode.DEPOSITING_RIME_FOG:
@@ -335,9 +297,14 @@ class ClimateProvider(VibeProvider):
             case WeatherCode.DRIZZLE_DENSE | WeatherCode.RAIN_MODERATE | WeatherCode.RAIN_SHOWERS_MODERATE:
                 score[VibemonTypeT.WATER] += 0.4
 
-            # Heavy precipitation (intense, strong signal)
-            case WeatherCode.RAIN_HEAVY | WeatherCode.RAIN_SHOWERS_VIOLENT:
+            # Heavy precipitation
+            case WeatherCode.RAIN_HEAVY:
                 score[VibemonTypeT.WATER] += 0.5
+
+            # Heavy precipitation (intense, strong signal)
+            case WeatherCode.RAIN_SHOWERS_VIOLENT:
+                score[VibemonTypeT.WATER] += 0.5
+                score[VibemonTypeT.FIGHTING] += 0.2
 
             # Freezing rain/drizzle split affinity between water (liquid) and ice (freezing)
             case WeatherCode.FREEZING_RAIN_LIGHT | WeatherCode.FREEZING_DRIZZLE_LIGHT | WeatherCode.FREEZING_DRIZZLE_DENSE:  # fmt: skip
@@ -359,6 +326,10 @@ class ClimateProvider(VibeProvider):
             # Heavy snow (intense, strong signal)
             case WeatherCode.SNOW_SHOWERS_HEAVY | WeatherCode.SNOW_FALL_HEAVY:
                 score[VibemonTypeT.ICE] += 0.5
+                score[VibemonTypeT.FIGHTING] += 0.1
+
+            case _:
+                _LOGGER.warning("missing_mapped_weather_code", code=weather_code)
 
         return score
 
@@ -437,7 +408,6 @@ class ClimateProvider(VibeProvider):
                 Signal(name="pollut", attr="pm2_5_mean",                 raw=s["pm2_5_mean"][i],                  min=   0.00, med=    25.00, max=   500.00),
                 Signal(name="precip", attr="precipitation_sum",          raw=s["precipitation_sum"][i],           min=   0.00, med=     1.50, max=   500.00),
                 Signal(name="pressr", attr="pressure_msl_mean",          raw=s["pressure_msl_mean"][i],           min= 970.00, med=  1013.20, max=  1050.00),
-                Signal(name="prange", attr="pressure_msl_range",         raw=s["pressure_msl_max"][i] - s["pressure_msl_min"][i], min= 0.00, med= 8.00, max= 60.00),
                 Signal(name="humdty", attr="relative_humidity_2m_mean",  raw=s["relative_humidity_2m_mean"][i],   min=   5.00, med=    65.00, max=   100.00),
                 Signal(name="radiat", attr="shortwave_radiation_sum",    raw=s["shortwave_radiation_sum"][i],     min=   0.00, med=    15.00, max=    35.00),
                 Signal(name="snowfl", attr="snowfall_sum",               raw=s["snowfall_sum"][i],                min=   0.00, med=     0.10, max=   100.00),
@@ -455,10 +425,9 @@ class ClimateProvider(VibeProvider):
         wmo_code = WeatherCode(s["weather_code"][i])
         rankings = self.determine_element_scores(signals=signals, weather_code=wmo_code)
         elements = filter_element_types(rankings)
-        starters = _starter_move_weights(moves=self.moves(), rankings=rankings, elements=elements)
 
         # fmt: off
-        hp_signal = Signal.mix(signals["tmp_hi"] * 0.5, signals["elevat"] * 0.5, mode="center")   # mass + altitude endurance
+        hp_signal  = Signal.mix(signals["tmp_hi"] * 0.5, signals["elevat"] * 0.5, mode="center")  # mass + altitude endurance
         atk_signal = signals["windgu"].center                                                     # gust impact
         def_signal = Signal.mix(signals["elevat"] * 0.6, signals["pressr"] * 0.4, mode="center")  # solidity + compression
         spa_signal = Signal.mix(signals["radiat"] * 0.5, signals["cape_m"] * 0.5, mode="center")  # solar + electric flux
@@ -482,7 +451,9 @@ class ClimateProvider(VibeProvider):
             visual_notes=wmo_code.description,
             intensity=self.calculate_intensity(s, index=i),
             provider_id=self.name,
-            moves=weighted_sample(starters.keys(), starters.values(), k=10, rng=rng),
+            moves=pick_starter_moves(
+                moves=self.selectable_moves(), rankings=rankings, elements=elements, k=10, rng=rng
+            ),
         )
 
         return affinity

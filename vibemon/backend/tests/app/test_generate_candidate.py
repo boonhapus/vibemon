@@ -109,7 +109,13 @@ async def test_generate_candidate_persists_review_and_consumes_credit(
         )
     ).scalar_one()
     history = (
-        (await sess.execute(sa.select(models.VibemonHistory).where(models.VibemonHistory.vibemon_id == result.id)))
+        (
+            await sess.execute(
+                sa.select(models.VibemonHistory)
+                .where(models.VibemonHistory.vibemon_id == result.id)
+                .order_by(models.VibemonHistory.occurred_at, models.VibemonHistory.id)
+            )
+        )
         .scalars()
         .all()
     )
@@ -120,4 +126,10 @@ async def test_generate_candidate_persists_review_and_consumes_credit(
     assert review.status == "pending"
     assert credit_day.credits_consumed == 1
     assert credit_day.active_hold_id is None
-    assert [event.event_type for event in history] == [VibemonHistoryEventT.CANDIDATE_SHOWN.value]
+    assert [event.event_type for event in history] == [
+        VibemonHistoryEventT.MOVE_LEARNED.value,
+        VibemonHistoryEventT.MOVE_LEARNED.value,
+        VibemonHistoryEventT.CANDIDATE_SHOWN.value,
+    ]
+    assert {event.payload["move_content_id"] for event in history[:2]} == {"test.ember", "test.flare"}
+    assert {event.payload["source"] for event in history[:2]} == {"birth"}

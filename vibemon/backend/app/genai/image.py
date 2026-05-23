@@ -1,4 +1,3 @@
-# app/genai/image.py
 from collections.abc import Sequence
 from typing import Any, Protocol, cast
 import base64 as b64

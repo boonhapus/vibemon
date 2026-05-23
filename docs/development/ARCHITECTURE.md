@@ -99,11 +99,10 @@ vibemon/backend/app/
       const.py
 
   genai/
-    client.py
-    sprites.py
-    structured_output.py
-    utils.py
-    _image.py
+    audio.py
+    image.py
+    prompts.py
+    vibemon_assets.py
     prompts/
 
   core/
@@ -139,7 +138,7 @@ vibemon/scripts/
 
 `providers/api_hooks.py` holds HTTP client middleware (logging, rate limiting) used by provider API clients. It is infrastructure for providers, not domain translation.
 
-`genai/` owns AI client adapters and prompt rendering utilities. `genai/utils.py` handles prompt template loading; `genai/_image.py` wraps low-level image generation APIs.
+`genai/` owns AI adapters and prompt rendering. `genai/vibemon_assets.py` is the Vibemon-facing AI adapter for generated names, reference images, sprite-sheet images, and battle cries; `genai/prompts.py` handles prompt template loading and metadata; `genai/image.py` and `genai/audio.py` wrap provider-specific media APIs. Sprite matte normalization, sheet validation, and pose extraction belong to workflow asset realization, not to `genai/`.
 
 `vibemon/scripts/` is the near-term frontend surface. Scripts should parse CLI arguments, call exactly one workflow or script-owned lifecycle realization operation, and print useful output.
 The subprocess contract for frontend/dev tooling lives in `docs/development/SCRIPT_FRONTEND_CONTRACT.md`.

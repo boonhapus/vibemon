@@ -1,19 +1,20 @@
 from typing import Literal
+import random
 
 import pydantic
 import structlog
 
-from app.core.math import clamp
+from app.core.math import clamp, weighted_sample
 from app.core.types import UnitIntervalT
+from app.domains.move.catalog import get_move_assignment_bonus
+from app.domains.move.entity import Move
 from app.domains.move.types import VibemonTypeT
 
 _LOGGER = structlog.get_logger(__name__)
 
 
 class Signal(pydantic.BaseModel):
-    """
-    Apply binding to raw data.
-    """
+    """Apply binding to raw data."""
 
     name: str
     attr: str
@@ -237,3 +238,47 @@ def filter_element_types(
     # VALID SINGLE TYPING
     else:
         return tuple(candidates[:1])
+
+
+def pick_starter_moves(
+    *,
+    moves: tuple[Move, ...],
+    rankings: dict[VibemonTypeT, float],
+    elements: tuple[VibemonTypeT, ...],
+    k: int,
+    rng: random.Random,
+) -> list[Move]:
+    """
+    Select exactly `k` starter moves from a provider's eligible move catalog.
+
+    Sampling is weighted and without replacement.
+
+    Candidate moves are level-1 moves. Each candidate receives a relative
+    sampling weight:
+
+        provider score for the move's type * assignment bonus for the Vibemon's elements
+
+    The provider score comes from `rankings`, so moves matching the strongest provider
+    signals are more likely. The assignment bonus favors same-type and useful coverage
+    moves for the already-selected Vibemon `elements`. The final value is clamped
+    between 0.05 and 2.0, which keeps low-scoring moves possible while preventing one
+    dominant type from crowding out the rest of the starter pool.
+    """
+    if k <= 0:
+        raise ValueError(f"k must be greater than 0, got {k}")
+
+    candidates = tuple(move for move in moves if move.level_requirement == 1)
+
+    if len(candidates) < k:
+        raise ValueError(f"Cannot select {k} starter moves from {len(candidates)} eligible starter moves")
+
+    weights = [
+        clamp(
+            rankings.get(move.type, 0.0) * get_move_assignment_bonus(move.type, vibemon_elements=elements),
+            minimum=0.05,
+            maximum=2.0,
+        )
+        for move in candidates
+    ]
+
+    return weighted_sample(candidates, weights, k=k, rng=rng)

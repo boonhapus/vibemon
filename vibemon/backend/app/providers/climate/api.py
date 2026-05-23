@@ -1,4 +1,4 @@
-from typing import Any, Literal, cast
+from typing import Any, Literal
 import datetime as dt
 
 import niquests
@@ -35,10 +35,9 @@ class OpenMeteoAPIClient(niquests.AsyncSession):
             raise_on_status=False,
             respect_retry_after_header=True,
         )
-        hooks = cast(Any, LoggingHook(provider=OpenMeteoAPIClient.provider_name) + RATE_LIMITER)
         super().__init__(
             base_url="https://api.open-meteo.com/",
-            hooks=hooks,
+            hooks=LoggingHook(provider=OpenMeteoAPIClient.provider_name) + RATE_LIMITER,  # pyrefly: ignore
             retries=RETRY_POLICY,
             **session_opts,
         )
@@ -51,7 +50,7 @@ class OpenMeteoAPIClient(niquests.AsyncSession):
             }
         )
 
-    def fetch_subdomain(self, domain_key: Literal["__weather__", "__air_quality__"]) -> str:
+    def subdomain(self, domain_key: Literal["__weather__", "__air_quality__"]) -> str:
         """OpenMeteo keeps their APIs on different subdomains."""
         _mapping = {"__weather__": "api", "__air_quality__": "air-quality-api"}
         return _mapping[domain_key]
@@ -87,11 +86,8 @@ class OpenMeteoAPIClient(niquests.AsyncSession):
                     "relative_humidity_2m_mean",
                     "temperature_2m_max",
                     "temperature_2m_min",
-                    "apparent_temperature_mean",
                     "visibility_mean",
                     "pressure_msl_mean",
-                    "pressure_msl_max",
-                    "pressure_msl_min",
                     "cloud_cover_mean",
                     "precipitation_sum",
                     "et0_fao_evapotranspiration",
@@ -108,7 +104,7 @@ class OpenMeteoAPIClient(niquests.AsyncSession):
             "end_date": end_date.isoformat(),
         }
 
-        r = await self.get(f"https://{self.fetch_subdomain('__weather__')}/v1/forecast", params=p)
+        r = await self.get(f"https://{self.subdomain('__weather__')}.open-meteo.com//v1/forecast", params=p)
 
         return r
 
@@ -140,6 +136,6 @@ class OpenMeteoAPIClient(niquests.AsyncSession):
             "end_date": end_date.isoformat(),
         }
 
-        r = await self.get(f"https://{self.fetch_subdomain('__air_quality__')}/v1/air-quality", params=p)
+        r = await self.get(f"https://{self.subdomain('__air_quality__')}.open-meteo.com//v1/air-quality", params=p)
 
         return r

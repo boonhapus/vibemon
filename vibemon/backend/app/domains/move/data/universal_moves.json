@@ -1,0 +1,23 @@
+[
+  {
+    "id": "universal.tackle",
+    "name": "Tackle",
+    "flavor_text": "A basic physical strike that any Vibemon can perform.",
+    "type": "normal",
+    "category": "physical",
+    "power": 40,
+    "accuracy": 1.0,
+    "pp": 35
+  },
+  {
+    "id": "universal.snap_strike",
+    "name": "Snap Strike",
+    "flavor_text": "A reflexive opening hit that lands before heavier attacks can start.",
+    "type": "normal",
+    "category": "physical",
+    "power": 40,
+    "accuracy": 1.0,
+    "pp": 30,
+    "priority": 1
+  }
+]

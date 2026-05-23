@@ -1,13 +1,22 @@
-from typing import Any
 import functools as ft
 import pathlib
 
 import jinja2
+import pydantic
 import structlog
 import yaml
 
 _LOGGER = structlog.get_logger(__name__)
 _PROMPT_DIR = pathlib.Path(__file__).parent.joinpath("prompts")
+
+
+class RenderedPrompt(pydantic.BaseModel):
+    model_config = pydantic.ConfigDict(frozen=True)
+
+    text: str
+    name: str
+    version: str | None
+    path: str
 
 
 @ft.cache
@@ -21,9 +30,9 @@ def _env_for(loader_root: pathlib.Path) -> jinja2.Environment:
     )
 
 
-def load_prompt(template_path: str, **variables: Any) -> str:
+def render(template_path: str, **variables: object) -> RenderedPrompt:
     """
-    Load a prompt from the prompts directory.
+    Render a prompt from the prompts directory.
 
     If the path is in a subdirectory, that directory becomes the Jinja
     loader root so includes resolve relative to it.
@@ -50,4 +59,9 @@ def load_prompt(template_path: str, **variables: Any) -> str:
         prompt_version=metadata.get("version"),
     )
 
-    return env.from_string(body.strip()).render(**variables)
+    return RenderedPrompt(
+        text=env.from_string(body.strip()).render(**variables),
+        name=str(metadata.get("name") or path.stem),
+        version=metadata.get("version"),
+        path=template_path,
+    )

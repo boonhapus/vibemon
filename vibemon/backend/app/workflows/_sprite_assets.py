@@ -1,4 +1,5 @@
 from collections.abc import Iterable
+from typing import TYPE_CHECKING
 import io
 
 from PIL import Image
@@ -7,6 +8,31 @@ import numpy as np
 
 from app.domains.vibemon.brand import Color
 from app.domains.vibemon.types import PoseT
+
+if TYPE_CHECKING:
+    from app.domains.vibemon.entity import Vibemon
+
+
+def normalize_reference_image(image: bytes | Image.Image, vibemon: Vibemon) -> bytes:
+    if vibemon.aesthetic is None:
+        raise ValueError("Vibemon aesthetic is required to normalize reference assets")
+    return normalize_sprite_matte(
+        image,
+        bg_color=vibemon.aesthetic.background_color,
+        rows=1,
+        cols=1,
+    )
+
+
+def normalize_sheet_image(image: bytes | Image.Image, vibemon: Vibemon) -> bytes:
+    if vibemon.aesthetic is None:
+        raise ValueError("Vibemon aesthetic is required to normalize sprite sheets")
+    return normalize_sprite_matte(image, bg_color=vibemon.aesthetic.background_color)
+
+
+def require_valid_sheet(image: bytes | Image.Image) -> None:
+    if issues := validate_sprite_sheet(image):
+        raise RuntimeError(f"Generated sprite sheet failed validation: {'; '.join(issues)}")
 
 
 def _hue_distance(hue: np.ndarray, center: float) -> np.ndarray:

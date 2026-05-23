@@ -105,17 +105,13 @@ async def test_vibemon_from_row_maps_identity_moves_and_assets() -> None:
     row.moves = [
         models.VibemonMove(
             vibemon_id=vibemon_id,
-            move_id=gust.id,
-            learned_at_level=4,
-            learned_at_ts=generated_at,
+            move_content_id=gust.content_id,
             active_slot=1,
             move=gust,
         ),
         models.VibemonMove(
             vibemon_id=vibemon_id,
-            move_id=ember.id,
-            learned_at_level=1,
-            learned_at_ts=generated_at,
+            move_content_id=ember.content_id,
             active_slot=0,
             move=ember,
         ),

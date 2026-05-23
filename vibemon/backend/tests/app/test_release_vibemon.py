@@ -116,7 +116,13 @@ async def test_release_vibemon_returns_owned_member_to_wild_supply(
 
     row = (await sess.execute(sa.select(models.Vibemon).where(models.Vibemon.id == candidate.id))).scalar_one()
     history = (
-        (await sess.execute(sa.select(models.VibemonHistory).where(models.VibemonHistory.vibemon_id == candidate.id)))
+        (
+            await sess.execute(
+                sa.select(models.VibemonHistory)
+                .where(models.VibemonHistory.vibemon_id == candidate.id)
+                .order_by(models.VibemonHistory.occurred_at, models.VibemonHistory.id)
+            )
+        )
         .scalars()
         .all()
     )
@@ -131,6 +137,8 @@ async def test_release_vibemon_returns_owned_member_to_wild_supply(
     assert row.wild_entered_at == released_at
     assert row.last_encountered_at == released_at
     assert [event.event_type for event in history] == [
+        VibemonHistoryEventT.MOVE_LEARNED.value,
+        VibemonHistoryEventT.MOVE_LEARNED.value,
         VibemonHistoryEventT.CANDIDATE_SHOWN.value,
         VibemonHistoryEventT.CANDIDATE_ADOPTED.value,
         VibemonHistoryEventT.RELEASED.value,

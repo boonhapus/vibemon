@@ -79,11 +79,21 @@ async def persist_moves(
         sess.add(
             models.VibemonMove(
                 vibemon_id=row.id,
-                move_id=move_row.id,
-                learned_at_level=row.level,
-                learned_at_ts=now,
+                move_content_id=move_row.content_id,
                 active_slot=slot,
             )
+        )
+        add_history(
+            sess,
+            row.id,
+            VibemonHistoryEventT.MOVE_LEARNED,
+            now,
+            {
+                "level": str(row.level),
+                "move_content_id": move_row.content_id,
+                "slot": str(slot),
+                "source": "birth",
+            },
         )
 
 

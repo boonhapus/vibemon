@@ -7,6 +7,7 @@ import sys
 import niquests
 import structlog
 
+from app.domains.move import universal
 from app.domains.move.entity import Move
 from app.domains.move.types import VibemonTypeT
 
@@ -108,4 +109,9 @@ class VibeProvider(abc.ABC):
         data = json.loads(text)
 
         self._moves = tuple(Move.model_validate(move_data) for move_data in data)
+
         return self._moves
+
+    def selectable_moves(self) -> tuple[Move, ...]:
+        """Return shared universal moves plus provider-authored moves."""
+        return (*universal.moves(), *self.moves())
