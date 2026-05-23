@@ -7,7 +7,9 @@ import pydantic
 
 from app.domains.battle import actions, entity, events, turn
 from app.domains.battle.mechanics import accuracy, damage, effects, status, targeting, turn_order
-from app.domains.move.types import MoveCategoryT, MoveTargetT
+from app.domains.move.types import MoveCategoryT, MoveTargetT, VibemonTypeT
+
+_BREAKING_POINT_ID = "universal.breaking_point"
 
 
 class GameEngine:
@@ -76,6 +78,13 @@ class GameEngine:
                 break
 
     def _execute_move_use(self, ctx: turn.Turn, use: turn.MoveUse) -> None:
+        if use.move.pp_current <= 0:
+            if all(move.pp_current <= 0 for move in use.user.battle_moves):
+                use = use.model_copy(update={"move": _breaking_point_move()})
+            else:
+                ctx.events.append(events.MoveFailedEvent(user=use.user.name, move=use.move.name, reason="no_pp"))
+                return
+
         use.move.pp_current -= 1
         targets = targeting.resolve_targets(ctx, use)
         ctx.events.append(
@@ -170,3 +179,28 @@ def determine_winner(battle: entity.Battle) -> entity.BattleTrainer | None:
     if battle.trainer_b.active_vibemon.is_fainted:
         return battle.trainer_a
     return None
+
+
+def _breaking_point_move() -> entity.BattleMove:
+    return entity.BattleMove(
+        id=_BREAKING_POINT_ID,
+        name="Breaking Point",
+        flavor_text="A desperate all-out strike used when no moves have PP remaining; the user takes minor recoil.",
+        type=VibemonTypeT.NORMAL,
+        category=MoveCategoryT.PHYSICAL,
+        power=50,
+        accuracy=1.0,
+        pp=1,
+        effects=(
+            {
+                "chance": 1.0,
+                "trigger": "after_damage",
+                "effects": (
+                    {
+                        "kind": "recoil",
+                        "ratio": 0.25,
+                    },
+                ),
+            },
+        ),
+    )
