@@ -59,9 +59,11 @@ import random
 from app import schema, types
 
 m1 = schema.Move(
+    id="test.a",
     name="A", flavor_text="a", type=types.VibemonTypeT.FIRE, category=types.MoveCategoryT.PHYSICAL, power=40
 )
 m2 = schema.Move(
+    id="test.b",
     name="B", flavor_text="b", type=types.VibemonTypeT.WATER, category=types.MoveCategoryT.SPECIAL, power=40
 )
 

@@ -55,7 +55,9 @@ class FakeProvider(VibeProvider):
         return None
 
     def _move(self, name: str, category: types.MoveCategoryT) -> schema.Move:
+        slug = name.casefold().replace(" ", "_")
         return schema.Move(
+            id=f"fake.{slug}",
             name=name,
             flavor_text="A small testing hit.",
             type=types.VibemonTypeT.FIRE,
@@ -176,6 +178,41 @@ async def test_get_vibemon_exposes_review_metadata_only_to_reviewer(sess: AsyncS
     assert reviewer_view.candidate_review.trainer_id == reviewer
     assert stranger_view.candidate_review is None
     assert public_view.candidate_review is None
+
+
+@pytest.mark.asyncio
+async def test_get_vibemon_includes_type_matchup_summary(sess: AsyncSession) -> None:
+    trainer_id = await _trainer(sess)
+    generated = await _service().generate_candidate(sess, trainer_id=trainer_id, birth_seed=_seed())
+
+    read_model = await _service().get_vibemon(sess, vibemon_id=generated.id, viewer_trainer_id=trainer_id)
+
+    assert read_model.type_matchup.coverage.move_types == (types.VibemonTypeT.FIRE,)
+    assert set(read_model.type_matchup.defense.weak_to) == {
+        types.VibemonTypeT.WATER,
+        types.VibemonTypeT.GROUND,
+        types.VibemonTypeT.ROCK,
+    }
+    assert set(read_model.type_matchup.defense.resists) == {
+        types.VibemonTypeT.FIRE,
+        types.VibemonTypeT.GRASS,
+        types.VibemonTypeT.ICE,
+        types.VibemonTypeT.BUG,
+        types.VibemonTypeT.STEEL,
+        types.VibemonTypeT.FAIRY,
+    }
+    assert read_model.type_matchup.defense.immune_to == ()
+    assert set(read_model.type_matchup.coverage.strong_against) == {
+        types.VibemonTypeT.GRASS,
+        types.VibemonTypeT.ICE,
+        types.VibemonTypeT.BUG,
+    }
+    assert set(read_model.type_matchup.coverage.ineffective_against) == {
+        types.VibemonTypeT.FIRE,
+        types.VibemonTypeT.WATER,
+        types.VibemonTypeT.ROCK,
+        types.VibemonTypeT.DRAGON,
+    }
 
 
 @pytest.mark.asyncio

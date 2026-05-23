@@ -57,6 +57,23 @@ def candidate_review_status_label(status: types.CandidateReviewStatusT) -> str:
     return _CANDIDATE_REVIEW_STATUS_LABELS[status]
 
 
+class TypeDefenseSummary(FrozenSchema):
+    weak_to: tuple[types.VibemonTypeT, ...]
+    resists: tuple[types.VibemonTypeT, ...]
+    immune_to: tuple[types.VibemonTypeT, ...]
+
+
+class TypeCoverageSummary(FrozenSchema):
+    move_types: tuple[types.VibemonTypeT, ...]
+    strong_against: tuple[types.VibemonTypeT, ...]
+    ineffective_against: tuple[types.VibemonTypeT, ...]
+
+
+class TypeMatchupSummary(FrozenSchema):
+    defense: TypeDefenseSummary
+    coverage: TypeCoverageSummary
+
+
 class PublicVibemon(FrozenSchema):
     id: uuid.UUID
     nickname: str | None = None
@@ -75,3 +92,4 @@ class PublicVibemon(FrozenSchema):
     background_color: brand.Color | None = None
     assets: tuple[PublicAsset, ...] = ()
     candidate_review: CandidateReviewRead | None = None
+    type_matchup: TypeMatchupSummary

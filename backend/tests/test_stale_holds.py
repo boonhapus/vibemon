@@ -41,6 +41,7 @@ class FakeProvider(VibeProvider):
     def moves(self) -> tuple[schema.Move, ...]:
         return (
             schema.Move(
+                id="fake.m1",
                 name="m1",
                 flavor_text="f",
                 type=types.VibemonTypeT.FIRE,
@@ -48,6 +49,7 @@ class FakeProvider(VibeProvider):
                 power=40,
             ),
             schema.Move(
+                id="fake.m2",
                 name="m2",
                 flavor_text="f",
                 type=types.VibemonTypeT.FIRE,

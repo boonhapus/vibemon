@@ -1,4 +1,5 @@
 from collections.abc import Sequence
+from dataclasses import dataclass
 from typing import Literal
 
 from app import types
@@ -282,6 +283,55 @@ ELEMENT_CHART: dict[tuple[types.VibemonTypeT, types.VibemonTypeT], float] = {
 }
 
 
+@dataclass(frozen=True, slots=True)
+class TypeAffinity:
+    covers: frozenset[types.VibemonTypeT]
+    weak_to: frozenset[types.VibemonTypeT]
+    resists: frozenset[types.VibemonTypeT]
+
+
+def _derive_type_affinities(
+    element_chart: dict[tuple[types.VibemonTypeT, types.VibemonTypeT], float],
+) -> dict[types.VibemonTypeT, TypeAffinity]:
+    all_types = tuple(types.VibemonTypeT)
+    covers_by_attack_type: dict[types.VibemonTypeT, set[types.VibemonTypeT]] = {
+        attack_type: set() for attack_type in all_types
+    }
+    weak_to_by_defender_type: dict[types.VibemonTypeT, set[types.VibemonTypeT]] = {
+        defender_type: set() for defender_type in all_types
+    }
+    resists_by_defender_type: dict[types.VibemonTypeT, set[types.VibemonTypeT]] = {
+        defender_type: set() for defender_type in all_types
+    }
+
+    for attack_type in all_types:
+        for defender_type in all_types:
+            modifier = element_chart.get((attack_type, defender_type), 1.0)
+            if modifier > 1.0:
+                covers_by_attack_type[attack_type].add(defender_type)
+                weak_to_by_defender_type[defender_type].add(attack_type)
+            elif 0.0 < modifier < 1.0:
+                resists_by_defender_type[defender_type].add(attack_type)
+
+    return {
+        element_type: TypeAffinity(
+            covers=frozenset(covers_by_attack_type[element_type]),
+            weak_to=frozenset(weak_to_by_defender_type[element_type]),
+            resists=frozenset(resists_by_defender_type[element_type]),
+        )
+        for element_type in all_types
+    }
+
+
+TYPE_AFFINITIES: dict[types.VibemonTypeT, TypeAffinity] = _derive_type_affinities(ELEMENT_CHART)
+
+# Centralized move-assignment tuning constants.
+MOVE_ASSIGNMENT_SAME_TYPE_BONUS = 2.0
+MOVE_ASSIGNMENT_NORMAL_BONUS = 1.0
+MOVE_ASSIGNMENT_ANTAGONISTIC_BONUS = 0.5
+MOVE_ASSIGNMENT_COVERAGE_BONUS = 1.5
+
+
 def get_element_effectiveness(
     attack_type: types.VibemonTypeT, defender_elements: Sequence[types.VibemonTypeT]
 ) -> float:
@@ -310,14 +360,20 @@ def get_move_assignment_bonus(
     Bonus multiplier for assigning a move to a vibemon.
 
     Same type:  2.0x (thematic fit)
+    Coverage:   1.5x (fills defensive gaps)
     Normal:     1.0x (utility, no bonus/penalty)
     Other:      0.5x (antagonistic)
-
-    TODO: When implementing TYPE_AFFINITIES, this will consider coverage
-    bonuses (1.5x for moves that cover defensive gaps).
     """
     if move_type in vibemon_elements:
-        return 2.0
+        return MOVE_ASSIGNMENT_SAME_TYPE_BONUS
+
+    defensive_gaps = {
+        attacker for vibemon_element in vibemon_elements for attacker in TYPE_AFFINITIES[vibemon_element].weak_to
+    }
+    move_coverage = TYPE_AFFINITIES[move_type].covers
+    if defensive_gaps & move_coverage:
+        return MOVE_ASSIGNMENT_COVERAGE_BONUS
+
     if move_type == types.VibemonTypeT.NORMAL:
-        return 1.0
-    return 0.5
+        return MOVE_ASSIGNMENT_NORMAL_BONUS
+    return MOVE_ASSIGNMENT_ANTAGONISTIC_BONUS

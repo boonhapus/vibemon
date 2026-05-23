@@ -23,10 +23,16 @@ from app.domain.move import (
     StatusInflict,
     WeatherSet,
     canonicalize_move_name,
-    slugify_move_name,
     validate_move_id,
 )
-from app.domain.read_models import CandidateReviewRead, PublicAsset, PublicVibemon
+from app.domain.read_models import (
+    CandidateReviewRead,
+    PublicAsset,
+    PublicVibemon,
+    TypeCoverageSummary,
+    TypeDefenseSummary,
+    TypeMatchupSummary,
+)
 from app.domain.vibemon import Aesthetic, Affinity, BirthOutcome, Identity, Trainer, Vibemon
 
 __all__ = [
@@ -58,9 +64,11 @@ __all__ = [
     "StatChange",
     "StatusInflict",
     "Trainer",
+    "TypeCoverageSummary",
+    "TypeDefenseSummary",
+    "TypeMatchupSummary",
     "Vibemon",
     "WeatherSet",
     "canonicalize_move_name",
-    "slugify_move_name",
     "validate_move_id",
 ]

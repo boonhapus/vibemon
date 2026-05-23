@@ -106,7 +106,7 @@
 - [x] Update `.agents/skills/vibemon/move-generator` workflow/prompts so generated move outputs target the JSON move-content contract (not Python module emission).
 - [x] Add/refresh tests or validation checks used by move-generator flows to verify generated JSON passes loader validation.
 - [x] Testing scope (current phase): keep tests focused on isolated-change correctness for loader, schema validation, migration integrity, and catalog compatibility.
-- [ ] Testing scope (post-migration, pre-frontend): add a full-suite test initiative covering cross-provider catalog invariants, assignment distribution behavior, and end-to-end battle/type-system regressions.
+- [x] Testing scope (post-migration, pre-frontend): add a full-suite test initiative covering cross-provider catalog invariants, assignment distribution behavior, and end-to-end battle/type-system regressions.
 
 ### 5.5 Boundaries and Non-Goals (v1)
 - [x] Do not add provider-authored executable callbacks.
@@ -116,29 +116,29 @@
 ## 6) Type System Expansion (Deferred Build Track)
 
 ### 6.1 Move Assignment Integration
-- [ ] Wire existing type bonus logic into move assignment path.
-- [ ] Add tests proving same-type preference and antagonistic penalty behavior.
-- [ ] Verify assignment outputs remain bounded/diverse after weighting changes.
+- [x] Wire existing type bonus logic into move assignment path.
+- [x] Add tests proving same-type preference and antagonistic penalty behavior.
+- [x] Verify assignment outputs remain bounded/diverse after weighting changes.
 
 ### 6.2 Derived Type-Affinity Data
-- [ ] Build derived type-affinity structures from `ELEMENT_CHART` (covers, weak_to, resists).
-- [ ] Keep derivation code centralized under balance/domain utilities.
-- [ ] Add invariants/tests for chart reversals and derived consistency.
+- [x] Build derived type-affinity structures from `ELEMENT_CHART` (covers, weak_to, resists).
+- [x] Keep derivation code centralized under balance/domain utilities.
+- [x] Add invariants/tests for chart reversals and derived consistency.
 
 ### 6.3 Coverage-Aware Assignment
-- [ ] Add coverage bonuses so assignments can fill defensive gaps, not only same-type preference.
-- [ ] Tune weighting constants behind centralized balance constants.
-- [ ] Add regression tests against over-concentration and antagonistic move rates.
-- [ ] Apply sweeping type-system changes in one coordinated rollout (assignment + battle logic), with isolated-change tests during implementation and full-suite hardening scheduled post-migration/pre-frontend.
-- [ ] Treat type-system rearchitecture as game-wide domain behavior (not move-local only), and align assignment, battle, and downstream balance surfaces together.
-- [ ] After type-system rearchitecture, regenerate the full move corpus so no legacy-generated move artifacts remain before validation/test runs.
-- [ ] Replace approved move catalog all-at-once after regeneration (no mixed old/new generation batches).
+- [x] Add coverage bonuses so assignments can fill defensive gaps, not only same-type preference.
+- [x] Tune weighting constants behind centralized balance constants.
+- [x] Add regression tests against over-concentration and antagonistic move rates.
+- [x] Apply sweeping type-system changes in one coordinated rollout (assignment + battle logic), with isolated-change tests during implementation and full-suite hardening scheduled post-migration/pre-frontend.
+- [x] Treat type-system rearchitecture as game-wide domain behavior (not move-local only), and align assignment, battle, and downstream balance surfaces together.
+- [x] After type-system rearchitecture, regenerate the full move corpus so no legacy-generated move artifacts remain before validation/test runs.
+- [x] Replace approved move catalog all-at-once after regeneration (no mixed old/new generation batches).
 
 ### 6.4 Read Model + UX Surface (Later Slice)
-- [ ] Define backend read-model fields needed for weakness/coverage UI.
-- [ ] Expose matchup summaries in API-facing shapes without coupling to frontend framework choices.
-- [ ] Keep initial UI scope to explanatory coverage/weakness display only.
-- [ ] Keep current type-system rearchitecture pass backend-only; defer trainer-facing UX/screens until post-migration pre-frontend full-suite phase.
+- [x] Define backend read-model fields needed for weakness/coverage UI.
+- [x] Expose matchup summaries in API-facing shapes without coupling to frontend framework choices.
+- [x] Keep initial UI scope to explanatory coverage/weakness display only.
+- [x] Keep current type-system rearchitecture pass backend-only; defer trainer-facing UX/screens until post-migration pre-frontend full-suite phase.
 
 ### 6.5 Later Coupling (Explicitly Not v1)
 - [ ] Defer progression/evolution coupling to type-system signals.
@@ -156,7 +156,3 @@
 - `docs/adr/`
 - `.plans/emote-animation-plan.md`
 - `.ideas/async-candidate-generation-redis-docket.md`
-
-
-
-

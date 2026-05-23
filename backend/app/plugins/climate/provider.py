@@ -21,6 +21,28 @@ from .const import WeatherCode
 
 _LOGGER = structlog.get_logger(__name__)
 
+_STARTER_WEIGHT_MIN = 0.05
+_STARTER_WEIGHT_MAX = 2.0
+
+
+def _starter_move_weights(
+    *,
+    moves: tuple[schema.Move, ...],
+    rankings: dict[VibemonTypeT, float],
+    elements: tuple[VibemonTypeT, ...],
+) -> dict[schema.Move, float]:
+    """Build bounded starter-move weights from element scores and assignment bonuses."""
+    bonus_fx = ft.partial(get_move_assignment_bonus, vibemon_elements=elements)
+    starters = [move for move in moves if move.level_requirement == 1]
+    return {
+        move: utils.clamp(
+            rankings.get(move.type, 0.0) * bonus_fx(move.type),
+            minimum=_STARTER_WEIGHT_MIN,
+            maximum=_STARTER_WEIGHT_MAX,
+        )
+        for move in starters
+    }
+
 
 class ClimateProvider(VibeProvider):
     """
@@ -429,8 +451,7 @@ class ClimateProvider(VibeProvider):
         wmo_code = WeatherCode(s["weather_code"][i])
         rankings = self.determine_element_scores(signals=signals, weather_code=wmo_code)
         elements = filter_element_types(rankings)
-        bonus_fx = ft.partial(get_move_assignment_bonus, vibemon_elements=elements)
-        starters = {m: rankings[m.type] * bonus_fx(m.type) for m in self.moves() if m.level_requirement == 1}
+        starters = _starter_move_weights(moves=self.moves(), rankings=rankings, elements=elements)
 
         hp_signal = Signal.mix(
             signals["tmp_hi"] * 0.5, signals["elevat"] * 0.5, mode="center"

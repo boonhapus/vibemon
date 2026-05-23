@@ -105,7 +105,7 @@ class MoveBehavior(FrozenSchema):
 
 
 class Move(FrozenSchema):
-    id: str | None = None
+    id: str
     name: str
     flavor_text: str
     type: types.VibemonTypeT
@@ -121,10 +121,7 @@ class Move(FrozenSchema):
 
     @pydantic.model_validator(mode="after")
     def _set_or_validate_id(self) -> Move:
-        move_id = self.id or f"legacy.{slugify_move_name(self.name)}"
-        validate_move_id(move_id)
-        if self.id is None:
-            object.__setattr__(self, "id", move_id)
+        validate_move_id(self.id)
         return self
 
     def __hash__(self) -> int:
@@ -144,14 +141,6 @@ def validate_move_id(move_id: str) -> None:
     """Require the canonical `<provider_slug>.<move_slug>` move identity format."""
     if not _MOVE_ID_PATTERN.fullmatch(move_id):
         raise ValueError("Move id must use '<provider_slug>.<move_slug>' with lowercase snake-case slugs.")
-
-
-def slugify_move_name(name: str) -> str:
-    """Create a deterministic slug for temporary Python-authored move definitions."""
-    slug = "_".join(_CANONICAL_NAME_TOKEN_PATTERN.findall(name.casefold()))
-    if not slug:
-        raise ValueError("Move name must contain at least one alphanumeric character.")
-    return slug
 
 
 def canonicalize_move_name(name: str) -> str:

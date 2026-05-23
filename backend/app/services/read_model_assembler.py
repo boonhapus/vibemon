@@ -6,6 +6,7 @@ from collections.abc import Awaitable, Callable
 import datetime as dt
 
 from app import const, models, schema, types
+from app.balance.element_chart import TYPE_AFFINITIES, get_element_effectiveness
 from app.data_store import types as ds_types
 from app.domain import read_models
 
@@ -52,6 +53,7 @@ class ReadModelAssembler:
             background_color=aesthetic.background_color if aesthetic else None,
             assets=assets,
             candidate_review=review,
+            type_matchup=_type_matchup(vibemon),
         )
 
     async def _public_assets(self, assets: list[models.VibemonAsset]) -> tuple[schema.PublicAsset, ...]:
@@ -91,3 +93,45 @@ def _visible_review(
                 resolved_label=read_models.candidate_review_status_label(resolution) if resolution else None,
             )
     return None
+
+
+def _type_matchup(vibemon: schema.Vibemon) -> schema.TypeMatchupSummary:
+    all_types = tuple(types.VibemonTypeT)
+    weak_to: list[types.VibemonTypeT] = []
+    resists: list[types.VibemonTypeT] = []
+    immune_to: list[types.VibemonTypeT] = []
+    for attack_type in all_types:
+        modifier = get_element_effectiveness(attack_type, vibemon.elements)
+        if modifier == 0.0:
+            immune_to.append(attack_type)
+        elif modifier > 1.0:
+            weak_to.append(attack_type)
+        elif 0.0 < modifier < 1.0:
+            resists.append(attack_type)
+
+    move_types = tuple(dict.fromkeys(move.type for move in vibemon.moves))
+    strong_against = sorted(
+        {covered for move_type in move_types for covered in TYPE_AFFINITIES[move_type].covers},
+        key=lambda value: value.value,
+    )
+    ineffective_against = sorted(
+        {
+            defender_type
+            for defender_type in all_types
+            if move_types
+            and all(get_element_effectiveness(move_type, (defender_type,)) < 1.0 for move_type in move_types)
+        },
+        key=lambda value: value.value,
+    )
+    return schema.TypeMatchupSummary(
+        defense=schema.TypeDefenseSummary(
+            weak_to=tuple(weak_to),
+            resists=tuple(resists),
+            immune_to=tuple(immune_to),
+        ),
+        coverage=schema.TypeCoverageSummary(
+            move_types=move_types,
+            strong_against=tuple(strong_against),
+            ineffective_against=tuple(ineffective_against),
+        ),
+    )

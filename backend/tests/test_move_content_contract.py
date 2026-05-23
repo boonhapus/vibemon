@@ -1,5 +1,6 @@
 from typing import ClassVar
 
+import pydantic
 import pytest
 
 pytest.importorskip("sqlalchemy")
@@ -53,18 +54,17 @@ def test_move_requires_stable_provider_scoped_id_format() -> None:
         _move("Bad Id", "Bad Move")
 
 
-def test_move_keeps_current_name_fields_and_derives_temporary_id() -> None:
-    move = schema.Move(
-        name="Spark Tap!",
-        flavor_text="A test move.",
-        type=types.VibemonTypeT.ELECTRIC,
-        category=types.MoveCategoryT.SPECIAL,
-        power=30,
-    )
-
-    assert move.id == "legacy.spark_tap"
-    assert move.name == "Spark Tap!"
-    assert move.flavor_text == "A test move."
+def test_move_requires_explicit_stable_id() -> None:
+    with pytest.raises(pydantic.ValidationError, match="id"):
+        schema.Move.model_validate(
+            {
+                "name": "Spark Tap!",
+                "flavor_text": "A test move.",
+                "type": types.VibemonTypeT.ELECTRIC,
+                "category": types.MoveCategoryT.SPECIAL,
+                "power": 30,
+            }
+        )
 
 
 def test_validate_move_catalog_rejects_duplicate_ids() -> None:
