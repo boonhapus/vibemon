@@ -1,259 +1,383 @@
-# Spotify / Sound Provider Plan (Draft)
+# Spotify / Sound Provider Plan
 
 ## Goal
-Add third `VibeProvider` deriving `Affinity` from the **soundtrack** of birth — what the trainer's account is listening to (or, lacking auth, what the trainer's market is listening to) at `seed.timestamp`. Runs alongside `ClimateProvider` and the planned `GeographyProvider`. Never replaces them.
 
-## Why a separate provider, not a climate/geography extension
+Add a `VibeProvider` that derives a Vibemon's `Affinity` from the **soundtrack of birth** — the trainer's actual Spotify listening data at `seed.timestamp`. Sits alongside `ClimateProvider` and the planned `GeographyProvider` as a peer, opt-in per birth.
+
+## Why a separate provider
+
 - Climate signals are *atmospheric* (sky). Geography signals are *physical place* (ground). Sound signals are *cultural/personal* (taste).
-- A trainer in Reykjavík streaming Norwegian black metal and one streaming Icelandic ambient at the same coordinate, same hour, should produce visibly different creatures. Neither climate nor geography can express that.
-- Spotify's genre vocabulary maps cleanly onto element flavor — metal→STEEL, classical→PSYCHIC, folk→GRASS, hip-hop→FIGHTING — closing flavor gaps that climate/geography fudge with proxies.
+- Two trainers at the same coordinate and second listening to wildly different music should produce wildly different creatures. Neither climate nor geography can express that.
+- Spotify's genre vocabulary maps cleanly onto element flavor; ReccoBeats' rebuilt audio analysis gives clean energy/tempo/valence numbers that map cleanly onto stats.
 - Keeps single-source-of-truth per provider for replay and rate limiting.
 
 ## Scope
+
 - In scope:
   - New `app/providers/sound/` package mirroring `app/providers/climate/`.
   - One concrete `SoundProvider(VibeProvider)`.
-  - One thin async Spotify Web API client (`SpotifyAPIClient(niquests.AsyncSession)`) with OAuth (Client Credentials + optional Authorization Code), `LoggingHook`, `RateLimiterHook`.
-  - `data/moves.json` of sound-flavored moves.
-  - Element scoring + stat mapping + intensity formula tuned for music, not weather or place.
-  - Settings additions: `SPOTIFY_CLIENT_ID`, `SPOTIFY_CLIENT_SECRET`, `SPOTIFY_PROVIDER_ENABLED`, optional `SPOTIFY_REFRESH_TOKEN` per trainer.
-  - Tests under `vibemon/backend/tests/app/providers/sound/` using captured fixture payloads.
-- Out of scope (v1):
-  - Any reliance on the **2024-deprecated** endpoints. See "Deprecation Wall" below.
-  - Full OAuth Authorization Code redirect server. v1 ships **client-credentials** path (anonymous market data) as default and **bring-your-own refresh-token** as opt-in.
-  - Track-level audio analysis (deprecated). No tempo/key/loudness/danceability/energy/valence.
-  - Caching layer (genre catalog is stable; defer until measured).
-  - Cross-provider deconfliction beyond existing `filter_element_types`.
+  - Two thin async clients: `SpotifyAPIClient` and `ReccoBeatsAPIClient`, both `niquests.AsyncSession` subclasses with `LoggingHook` + `RateLimiterHook`.
+  - `data/genre_anchors.json` (hand-curated flavor source of truth) and `data/genre_families.json` (script-generated lookup table).
+  - `data/moves.json` of sound-flavored moves (15 per element × 18 elements = 270), authored via `.agents/skills/vibemon/move-generator`.
+  - One-off bootstrap script `vibemon/backend/scripts/build_sound_genre_families.py`.
+  - Settings additions: `SPOTIFY_CLIENT_ID`, `SPOTIFY_CLIENT_SECRET`.
+  - Tests under `vibemon/backend/tests/app/providers/sound/`.
+- Out of scope (this plan):
+  - **OAuth / Trainer-Spotify linking infrastructure.** Captured in a separate plan: `docs/development/plans/trainer-spotify-linking-plan.md`. This plan declares `trainer.spotify_refresh_token` as a precondition.
+  - **`BirthSeed.trainer_id` addition.** Captured in `docs/development/adr/0001-birth-seed-gains-trainer-id.md`.
+  - **Provider-picker UX** (the trainer-facing surface for selecting providers per birth) — separate work.
+  - Any reliance on the **2024-deprecated** Spotify endpoints (see "Deprecation Wall").
+  - Last.fm, ListenBrainz, MusicBrainz at runtime (MB is used by the bootstrap script only — see below — and only optionally).
+  - Caching layer (defer until measured).
 
-## The Deprecation Wall — what is dead vs alive (2024-11)
+## The Deprecation Wall
 
-Spotify removed access for new apps to a broad set of endpoints in Nov 2024. Plan **must not depend** on these.
+Spotify removed access for new apps to a broad set of endpoints in November 2024. Plan **must not depend** on these.
 
 | Endpoint | Status | v1 use |
 |---|---|---|
-| `GET /audio-features/{id}` | **dead** for new apps | none |
+| `GET /audio-features/{id}` | **dead** for new apps | none — fields sourced from ReccoBeats |
 | `GET /audio-analysis/{id}` | **dead** | none |
 | `GET /recommendations` | **dead** | none |
 | `GET /artists/{id}/related-artists` | **dead** | none |
 | `GET /browse/featured-playlists` | **dead** | none |
 | `GET /browse/categories` and category playlists | **dead** | none |
+| `GET /recommendations/available-genre-seeds` | **dead** | none — genre vocab sourced from Every Noise at Once |
 | 30-second preview URLs on track objects | **dead** (null) | none |
-| `GET /search` (track/artist/album/playlist) | **alive** | core |
-| `GET /artists/{id}` (genres, followers, popularity) | **alive** | core |
-| `GET /artists/{id}/top-tracks` | **alive** | core |
-| `GET /tracks/{id}` (popularity, markets, explicit, release date) | **alive** | core |
-| `GET /albums/{id}` | **alive** | flavor |
-| `GET /markets` | **alive** | utility |
-| `GET /me/top/{type}` (user auth) | **alive** | opt-in personal |
-| `GET /me/player/recently-played` (user auth) | **alive** | opt-in personal |
-| `GET /me/player/currently-playing` (user auth) | **alive** | opt-in personal |
-| `GET /playlists/{playlist_id}` (specific ID known to caller) | **alive** | flavor |
-| `GET /users/{user_id}/playlists` | **alive** | opt-in personal |
+| `GET /me/top/tracks?time_range=short_term` | **alive** | core listening fingerprint |
+| `GET /me/player/recently-played` | **alive** | blended into stat computation, drives intensity z-score |
+| `GET /tracks/{id}` (name, explicit, release date, duration, ISRC) | **alive** | track metadata |
+| `GET /artists/{id}` (name, genres) | **alive** | genre → element scoring |
 
-**Consequence**: the provider cannot read "energy" or "valence" off a track. Element scoring must be built from **genres + popularity + release-year + market breadth + explicit flag + follower count**. These are the surviving continuous + categorical signals.
+**Consequence**: the canonical audio-features stat mapping (energy/danceability/valence/tempo/etc.) is unrecoverable from Spotify itself. ReccoBeats provides a community-rebuilt equivalent keyed by ISRC and Spotify track ID, MIT-licensed, free. Coverage is partial (~70-90% for typical catalogs) — fallback policy below.
 
-## Locked Product Decisions (proposed — open for review)
-1. Sound is a **peer** of climate and geography, default-enabled when `SPOTIFY_CLIENT_ID` is configured. If credentials absent, provider is skipped (not failed) for that birth — climate/geography still produce an `Affinity`.
-2. `name = "sound"`. Persisted in `Affinity.provider_id`. Provider package directory is `sound/` (not `spotify/`) so future sources — Last.fm scrobbles, Apple Music, ListenBrainz — can fold in under the same provider without rename.
-3. **Replay determinism**: `fetch()` snapshots the full Spotify JSON (track list, artist list with genres, popularities) so `synthesize()` is pure against the captured set.
-4. Async like climate. `niquests.AsyncSession` subclass. Multiple parallel fetches via `asyncio.gather` (we are not paywalled by Spotify rate limits the way climate is by Open-Meteo).
-5. **Two input modes**, selected at runtime by what's configured on the seed:
-   - **Personal mode** (preferred when refresh token present): `me/top/tracks` (medium_term) + `me/player/recently-played` since `seed.timestamp - 6 weeks`. Mirrors climate's 6-week window for parity.
-   - **Market mode** (default fallback): search for a deterministic "ambient catalog" query (e.g. top tracks in trainer's ISO-3166 market via `search?type=track&market=XX` sorted by popularity) keyed off `seed.geo_coords → market`.
-6. Six continuous sound signals route to base stats. **Stat mapping must not duplicate climate or geography mappings.**
-7. Provider owns its own move pool. Move IDs prefixed `sound.*`. `universal.tackle` + `universal.breaking_point` reused via base class loader.
-8. Intensity for sound = "how unusual is this listening fingerprint" — high when genres are narrow + niche (low average artist popularity); low when broad mainstream pop. Sigmoid like climate.
+## Locked Decisions
 
-## Genre → Element Mapping (proposed)
-
-Spotify exposes a flat list of genre tags per artist (e.g. `["black metal", "norwegian metal"]`). Element scoring is a *substring/tag-prefix* match against a curated `GenreFamily` lookup, accumulated across all artists in the listening window, weighted by track count.
-
-| Element | Genre prefixes (illustrative; final list TBD) |
-|---|---|
-| NORMAL | `pop`, `dance pop`, `adult contemporary` |
-| FIRE | `metalcore`, `flamenco`, `mariachi`, `latin heat` |
-| WATER | `ambient`, `chillwave`, `lo-fi`, `surf` |
-| GRASS | `folk`, `bluegrass`, `americana`, `acoustic` |
-| ICE | `cold wave`, `nordic ambient`, `minimal techno`, `iceland` regional |
-| FLYING | `synthwave`, `dream pop`, `shoegaze`, `post-rock` |
-| FIGHTING | `hardcore hip-hop`, `drill`, `trap`, `aggressive` |
-| GROUND | `desert blues`, `stoner rock`, `dub` |
-| STEEL | `industrial`, `metal`, `death metal`, `djent` |
-| FAIRY | `j-pop`, `kawaii`, `hyperpop`, `bubblegum` |
-| POISON | `noise`, `power electronics`, `harsh` |
-| PSYCHIC | `classical`, `modern classical`, `minimalism`, `ambient academia` |
-| DARK | `darkwave`, `gothic`, `black metal`, `doom` |
-| GHOST | `dungeon synth`, `funeral doom`, `dark ambient`, `witch house` |
-| BUG | `psytrance`, `idm`, `glitch`, `drum and bass` |
-| ROCK | `classic rock`, `hard rock`, `grunge`, `punk` |
-| DRAGON | `progressive metal`, `symphonic metal`, `epic` |
-| ELECTRIC | `edm`, `electro`, `techno`, `house` |
-
-Curated dict lives in `const.py` as `_GENRE_FAMILIES: dict[VibemonTypeT, tuple[str, ...]]`. Scoring is `prefix-match` on each artist's genre list, weighted by that artist's track count in the listening window.
-
-**Six chosen continuous signals routed to stats** (must not duplicate climate or geography):
-
-| Stat | Sound signal | Rationale |
-|---|---|---|
-| HP | total minutes listened in window (log-scaled) | endurance of taste |
-| Attack | mean track popularity (0–100) | cultural mass / impact |
-| Defense | genre cohesion (1 − genre entropy) | how locked-in the taste is |
-| Sp. Attack | distinct-artist count (log-scaled) | informational breadth |
-| Sp. Defense | mean artist follower count (log-scaled) | scene insulation |
-| Speed | release-year recency (mean release year, normalized) | how current the listening is |
-
-Climate maps temperature/wind/elevation/radiation/precipitation/wind. Geography maps population density / road density / building density / amenity diversity / green ratio / transport reach. Sound's six are orthogonal to both.
+1. **Sound is a peer provider, per-birth trainer opt-in.** Not auto-enabled; trainer explicitly selects sound as one of the providers for a given birth. If sound is not selected, it does not run; the BirthSeed simply doesn't include it.
+2. **Personal mode only — no market mode.** Sound requires a linked Spotify account. A trainer without `trainer.spotify_refresh_token` cannot opt sound into a birth (precondition fails at birth-request validation, before `BirthSeed` is constructed).
+3. **`name = "sound"`**, persisted in `Affinity.provider_id`. Package directory is `sound/` (not `spotify/`) — leaves room for ListenBrainz / Apple Music / Last.fm folding in under the same provider later without a rename.
+4. **Replay determinism for dev tuning, not historical fidelity.** `fetch()` reduces upstream payloads to only the fields `synthesize()` consumes. The reduced payload is what `BirthSnapshot` persists. Re-running `synthesize()` against the captured snapshot remains the dev-tuning surface; reconstructing the original Spotify state is not a goal.
+5. **Async like climate.** `niquests.AsyncSession` subclasses. `asyncio.gather` for parallel fetches.
+6. **Listening window:** `top_tracks?time_range=short_term` (~4w) as primary, `recently-played` (last 50 items, time-bucketed by day) blended at low weight for "what you were listening to today" influence.
+7. **Genre → Element scoring via static dict lookup at runtime.** Dict generated offline by the bootstrap script; runtime does no genre-resolution HTTP.
+8. **Stats from ReccoBeats audio analysis** (energy, acousticness, liveness, valence, danceability, tempo) joined to Spotify tracks via ISRC.
+9. **Intensity = climate-style z-score** of per-day `sqrt(volume_norm × diversity_norm)` against the listening-window distribution, sigmoid-mapped. No floor.
+10. **Payload retention** under Spotify ToS: store only the reduced payload; **never store popularity, follower count, or any other unused Spotify Content fields**. Acknowledged as "loose reading" of ToS — acceptable for pre-launch hobby project; revisit before any public launch.
+11. **Move pool: 15 moves per element × 18 elements = 270 total**, authored via `.agents/skills/vibemon/move-generator`. Move IDs prefixed `sound.*`. `universal.tackle` and `universal.breaking_point` reused via base class loader.
+12. **ReccoBeats coverage fallback:** tracks not in ReccoBeats contribute **zero** to stat computation; they still contribute to element scoring via their Spotify genres. Bias: stats reflect the well-catalogued slice of listening; elements reflect the full slice.
+13. **`rebalance_existing_vibemons` and related code are dev-only tooling.** Banner this clearly in module docstrings and `vibemon/backend/scripts/README.md` so future engineers don't mistake it for a production workflow. Provider balance is tuned **before** release per `VibeProvider`; post-launch rebalancing is fallback, not primary.
 
 ## Architecture Overview
-1. `BirthSeed` (already carries lat/lon, timestamp, trainer id) is passed to provider.
-2. `SoundProvider.fetch(seed)`:
-   - Resolve `market` from `seed.geo_coords` via reverse-lookup (reuse geography provider's reverse-geocode if landed; otherwise fall back to `GET /markets` membership table).
-   - If `seed.trainer.spotify_refresh_token` is set → **personal mode**:
-     - `asyncio.gather` of: `me/top/artists?time_range=medium_term`, `me/top/tracks?time_range=medium_term`, `me/player/recently-played?after={seed.timestamp - 6w}`.
-   - Else → **market mode**:
-     - `asyncio.gather` of: `search?q=year:{Y}&type=track&market={M}&limit=50` (popularity-sorted), then for top-N tracks fetch `artists/{ids}` (batched, max 50 per call) to harvest genres.
-   - Snapshot full JSON into payload dict.
-3. `SoundProvider.synthesize(seed, payload)`:
-   - Reduce to canonical lists: `tracks`, `artists` (deduped, with genres + popularity + followers).
-   - Build `Signal` objects via `app.providers.helpers.Signal`. Min/med/max per signal calibrated against a captured corpus of 50+ diverse seeds (see Tuning section).
-   - Two-stage element scoring: continuous block (genre-weighted) + categorical bonuses (explicit flag → DARK, single-genre lock → matching element bonus).
-   - Pick starter moves via reused `_starter_move_weights` + `_pick_starter_moves` helpers — extracted to `app.providers.helpers` if not already shared.
-   - Build `Affinity` with `provider_id="sound"`.
-4. Wire into `rebalance_vibemon` defaults: `providers=(ClimateProvider(), GeographyProvider(), SoundProvider())`.
+
+```
+BirthSeed (gains trainer_id, see ADR-0001)
+    │
+    ├── trainer opted in to sound?
+    │   └── trainer.spotify_refresh_token must exist (precondition)
+    │
+SoundProvider.fetch(seed)
+    │
+    ├── SpotifyAPIClient
+    │   ├── _ensure_token() ← refresh-token grant
+    │   ├── me_top_tracks(short_term)         ┐
+    │   ├── me_recently_played()              ├── asyncio.gather
+    │   └── artists(unique_artist_ids)        ┘
+    │
+    ├── ReccoBeatsAPIClient
+    │   └── audio_analysis(isrcs OR spotify_track_ids)  (batched, parallel)
+    │
+    └── reduce → SoundPayload (the snapshot)
+            ├── tracks: [(id, isrc, name, explicit, release_date, duration_ms, played_at?)]
+            ├── artists: [(id, name, genres[])]
+            ├── audio: {isrc: {energy, acousticness, liveness, valence, danceability, tempo}}
+            └── window_meta: {day_buckets: {date: track_count}}
+
+SoundProvider.synthesize(seed, payload)
+    │
+    ├── element scoring (genres → GENRE_FAMILIES dict → element scores)
+    │       (categorical bonuses: explicit-majority → DARK, etc.)
+    ├── stat signals from ReccoBeats audio means (uncovered tracks dropped)
+    ├── intensity = sigmoid(z_score(today_signal, window_signal_distribution))
+    └── starter moves via _starter_move_weights + _pick_starter_moves helpers
+    │
+    └── Affinity(provider_id="sound", ...)
+```
 
 ## File Layout
 
 ```
 vibemon/backend/app/providers/sound/
 ├── __init__.py
-├── api.py             # SpotifyAPIClient(niquests.AsyncSession), token mgr
-├── const.py           # GenreFamily mapping, market lookup, tier thresholds
-├── provider.py        # SoundProvider(VibeProvider)
-└── data/moves.json    # sound-flavored move catalog
+├── api.py                  # SpotifyAPIClient, ReccoBeatsAPIClient, token mgr
+├── const.py                # GENRE_FAMILIES loaded from data/, tier thresholds
+├── provider.py             # SoundProvider(VibeProvider)
+└── data/
+    ├── genre_anchors.json  # hand-curated flavor source of truth (~10/element)
+    ├── genre_families.json # generated by build_sound_genre_families.py
+    ├── genre_families.report.md  # diff-friendly stats from last bootstrap run
+    └── moves.json          # 270 moves from move-generator skill
+
+vibemon/backend/scripts/
+└── build_sound_genre_families.py  # one-off bootstrap script (PEP 723, uv-runnable)
 ```
 
-Mirrors climate exactly.
+## Stat Mapping (locked)
 
-## Thin Spotify Client — Sketch
+All six stats sourced from **ReccoBeats audio analysis**, averaged across tracks in the listening window (uncovered tracks dropped per decision 12).
+
+| Stat | Signal | Source |
+|---|---|---|
+| HP | mean track duration (log-scaled) | Spotify (alive) |
+| Attack | mean energy | ReccoBeats |
+| Defense | mean (acousticness + liveness) / 2 | ReccoBeats |
+| Sp. Attack | mean valence | ReccoBeats |
+| Sp. Defense | mean danceability | ReccoBeats |
+| Speed | mean tempo (BPM, normalized via Signal) | ReccoBeats |
+
+**Why this maps cleanly:**
+- Spotify's canonical audio-features mapping was designed for exactly this kind of derivation. ReccoBeats re-implements it free; the thematic fit is preserved.
+- Fully orthogonal to climate (temp/wind/elevation/radiation/precipitation/wind) and geography (population/road/building/amenity/green/transport) stat axes.
+- Fully orthogonal to the intensity formula's data axis (Spotify listening volume × diversity). The "double-dip" concern from the Spotify-only draft is structurally resolved — stats and intensity now draw from completely separate raw data.
+
+## Element Scoring (genre-driven, flavor-only)
+
+For each artist in the window, look up their genre tags in `GENRE_FAMILIES: dict[str, VibemonTypeT]` (the bootstrap-generated table). Accumulate per-element scores weighted by that artist's track count in the window. Then a small categorical bonus pass:
+
+- `explicit_ratio > 0.5` → `+0.2 DARK`
+- `single_genre_lock` (one genre tag accounts for >70% of weighted score) → `+0.2` to that element
+- `pure NORMAL fallback` (no genre tags matched anything) → `+0.3 NORMAL` safety net (mirrors climate's NORMAL backstop)
+
+**Why the quality bar on `GENRE_FAMILIES` is relaxed:** under the ReccoBeats stat architecture, the genre table drives *only* element selection — never stats. A misclassified tag affects which elements show up, not the creature's stat block. Bootstrap script can ship a coarser k-NN propagation than originally planned without stat-block consequences.
+
+## Intensity Formula
+
+Following the climate pattern (`app/providers/climate/provider.py:125-162`):
+
+```python
+def calculate_intensity(per_day_signals: list[float], *, today_index: int = -1) -> float:
+    """
+    Per-day signal = sqrt(volume_norm × diversity_norm) for that day.
+    volume_norm: log-scaled minutes-listened-that-day mapped to [0,1].
+    diversity_norm: log-scaled distinct-artists-that-day mapped to [0,1].
+
+    Intensity = sigmoid of z-score of today's signal against the window distribution.
+    """
+    if len(per_day_signals) < 2 or not (stdev := statistics.stdev(per_day_signals)):
+        return 0.5  # climate-style fallback for thin windows
+    z = (per_day_signals[today_index] - statistics.mean(per_day_signals)) / stdev
+    return 1.0 / (1.0 + math.exp(-z))
+```
+
+**Per-day signal source:** `recently-played` time-bucketed by day. The 50-item cap means window coverage varies per trainer (heavy listener: hours; light listener: weeks). When the window collapses to a single day, intensity falls back to 0.5 (climate uses the same fallback for empty-stdev cases).
+
+**No floor.** Sound is a precondition-gated provider; trainers without listening data can't opt in, so the all-zero case can't reach `Affinity.merge()`.
+
+## Genre-Family Bootstrap (script) vs Runtime Lookup (library)
+
+### Bootstrap (script — dev-time only)
+
+**Location:** `vibemon/backend/scripts/build_sound_genre_families.py`
+**Invocation:** `uv run vibemon/backend/scripts/build_sound_genre_families.py` (PEP 723 inline metadata)
+**Runs:** ad-hoc — on first build, then quarterly refresh, plus any time the unmatched-tag log shows pressure.
+
+**Responsibilities:**
+- Reads anchors from `app/providers/sound/data/genre_anchors.json` (the hand-curated `{element: [canonical_genres]}` source of truth, ~10 per element).
+- Fetches Every Noise at Once's full genre dataset (community CSV mirror or scrape; treated as untrusted external input — fail loudly on schema drift).
+- Runs k-NN propagation from anchors across Every Noise's similarity space to assign every Spotify genre tag to an element.
+- Writes two artifacts, both committed to the repo:
+  - `app/providers/sound/data/genre_families.json` — the dict (`tag → element`) consumed at runtime.
+  - `app/providers/sound/data/genre_families.report.md` — diff-friendly stats: total tag count, per-element breakdown, orphan list, anchor-distance histogram, top-50 "surprising" assignments for human review.
+- Idempotent: same anchors + same Every Noise snapshot → byte-identical output.
+
+**MusicBrainz parent-walk fallback:** **not needed in v1.** Under the relaxed quality bar (genre table is flavor-only), unmatched tags safely contribute zero to element scoring. Add MB later only if the unmatched-tag log shows persistent pressure.
+
+**Allowed dependencies:** anything (HTTP, scrapers, pandas). This is a dev tool, never in the runtime path.
+
+### Runtime (library — per-birth)
+
+**Location:** `vibemon/backend/app/providers/sound/`
+**Loads:** `data/genre_families.json` at import time into an immutable `Mapping[str, VibemonTypeT]`.
+
+**Responsibilities:**
+- `const.py` exposes `GENRE_FAMILIES`. No HTTP. No I/O at request time beyond the import.
+- `provider.py` does plain dict lookup per artist tag during `synthesize()`. Unmatched tags → emit a structured log (`provider="sound", event="genre.unmatched", tag=...`) and contribute zero score.
+
+**Forbidden:** no MusicBrainz, no Every Noise, no Last.fm — no network calls of any kind for genre resolution at runtime. The bootstrap script is the only path data enters the table.
+
+### Maintenance loop
+
+1. Runtime accumulates `genre.unmatched` log events.
+2. Dev queries those logs periodically.
+3. If a tag shows up at meaningful volume → add to `genre_anchors.json` if it deserves explicit flavor intent, or just re-run the script with refreshed Every Noise data.
+4. Commit updated `genre_families.json` + `genre_families.report.md`. The report's diff is the PR's review surface.
+
+## Thin API Clients
+
+Both clients mirror `OpenMeteoAPIClient` shape exactly. Only Spotify diverges (token refresh).
 
 ```python
 class SpotifyAPIClient(niquests.AsyncSession):
     """
     Fetches listening + catalog data from Spotify Web API.
 
-    Built only against the post-2024-deprecation surface. No audio-features,
+    Built only against the post-2024-deprecation surface — no audio-features,
     no recommendations, no related-artists.
 
     Further reading:
       https://developer.spotify.com/documentation/web-api
     """
-
     provider_name = "spotify.web_api"
 
     def __init__(self, client_id: str, client_secret: str, **session_opts):
         RATE_LIMITER = RateLimiterHook(
-            # Spotify enforces a rolling 30s window; documented ceiling ~180 req/min.
+            # Rolling 30s window; documented ceiling ~180 req/min.
             (180, dt.timedelta(minutes=1)),
             provider=SpotifyAPIClient.provider_name,
         )
         RETRY_POLICY = niquests.RetryConfiguration(
-            total=5,
-            backoff_factor=2,
+            total=5, backoff_factor=2,
             status_forcelist=[429, 500, 502, 503],
-            allowed_methods=["GET"],
-            raise_on_status=False,
+            allowed_methods=["GET"], raise_on_status=False,
             respect_retry_after_header=True,
         )
         hooks = cast(Any, LoggingHook(provider=...) + RATE_LIMITER)
         super().__init__(
-            base_url="https://api.spotify.com/",
-            hooks=hooks, retries=RETRY_POLICY,
+            base_url="https://api.spotify.com/", hooks=hooks, retries=RETRY_POLICY,
             **session_opts,
         )
-        self._client_id = client_id
-        self._client_secret = client_secret
-        self._token: _BearerToken | None = None
-        self._user_refresh_token: str | None = None
+        # token state set externally via configure_for_trainer()
+        self._access_token: str | None = None
+        self._refresh_token: str | None = None
+        self._token_expires_at: dt.datetime | None = None
 
-    async def _ensure_token(self) -> None:
-        """Client-credentials flow OR refresh-token flow, cached until expiry."""
+    def configure_for_trainer(self, refresh_token: str) -> None: ...
+    async def _ensure_token(self) -> None: ...  # called from pre_request hook
+    async def me_top_tracks(self, *, time_range: str = "short_term", limit: int = 50): ...
+    async def me_recently_played(self): ...
+    async def artists(self, ids: list[str]): ...  # batched, 50 max
 
-    async def search_tracks(self, q: str, market: str, limit: int = 50) -> niquests.Response: ...
-    async def artists(self, ids: list[str]) -> niquests.Response: ...   # batched, 50 max
-    async def me_top(self, kind: Literal["artists", "tracks"], time_range: str) -> niquests.Response: ...
-    async def me_recently_played(self, after_ms: int) -> niquests.Response: ...
+
+class ReccoBeatsAPIClient(niquests.AsyncSession):
+    """
+    Fetches audio analysis (energy, danceability, valence, tempo, etc.)
+    keyed by ISRC or Spotify track ID.
+
+    Community rebuild of Spotify's deprecated audio-features.
+    Free, MIT-licensed dataset.
+
+    Further reading:
+      https://reccobeats.com
+    """
+    provider_name = "reccobeats.audio_analysis"
+
+    def __init__(self, **session_opts):
+        RATE_LIMITER = RateLimiterHook(
+            # No documented hard limit; self-throttle conservatively.
+            (300, dt.timedelta(minutes=1)),
+            provider=ReccoBeatsAPIClient.provider_name,
+        )
+        # ... same RETRY_POLICY + hooks shape as Spotify
+
+    async def audio_analysis(self, *, isrcs: list[str] | None = None,
+                             spotify_track_ids: list[str] | None = None): ...
 ```
 
-Token refresh is the only thing that diverges from climate's client. Encapsulate in `_ensure_token` called from a `pre_request` hook so the public methods stay flat.
-
 ## Data Model
-- `Affinity.provider_id` already exists; `BirthSnapshot` already stores per-provider payloads. **No schema change** for the snapshot.
-- New `app.settings.SETTINGS` keys: `SPOTIFY_CLIENT_ID: SecretStr | None`, `SPOTIFY_CLIENT_SECRET: SecretStr | None`, `SPOTIFY_PROVIDER_ENABLED: bool = False`.
-- Optional `Trainer.spotify_refresh_token: SecretStr | None` if/when personal mode is wired. v1 may ship market-mode only and defer trainer-level token storage.
 
-## Move Catalog Sketch
-~30 moves, themed by element. Examples (final list TBD):
-- `sound.bass_drop` (ELECTRIC, level 1)
-- `sound.feedback_wail` (STEEL, level 5)
-- `sound.requiem` (GHOST, level 10)
-- `sound.power_chord` (ROCK, level 1)
-- `sound.fugue` (PSYCHIC, level 10)
-- `sound.kick_drum` (FIGHTING, level 5)
-- `sound.lullaby` (FAIRY, level 1)
-- `sound.dissonance` (POISON, level 5)
+**No domain schema changes** beyond the cross-cutting `BirthSeed.trainer_id` (ADR-0001).
+
+`Affinity.provider_id` already exists. `BirthSnapshot.provider_payloads` already stores per-provider payloads.
+
+**New `app/settings.py` keys:**
+- `SPOTIFY_CLIENT_ID: SecretStr | None`
+- `SPOTIFY_CLIENT_SECRET: SecretStr | None`
+
+**Trainer-token storage** (`trainer.spotify_refresh_token: SecretStr | None`) is covered in the linking plan, not here.
 
 ## Testing Plan
+
 ### Unit
-- `SpotifyAPIClient` token cache: refreshes when expired, reuses while valid.
+- `SpotifyAPIClient` token cache: refreshes when expired, reuses while valid; bubbles 401 once for retry.
+- `ReccoBeatsAPIClient` batched ISRC lookup: empty input → no HTTP; partial coverage → returns subset.
 - Genre-family resolver: `["norwegian black metal", "bergen metal"]` → DARK + STEEL with correct weights.
 - `determine_element_scores` against fixture payloads:
-  - all-metal listener → STEEL primary, DARK secondary
-  - all-classical listener → PSYCHIC primary
-  - empty payload (new user, no listening history) → NORMAL fallback
-  - explicit-flag majority → DARK bonus fires
-- `calculate_intensity` produces high score for narrow-niche listener, ~0.5 for mainstream pop.
-- Signal mapping covers all six stats with no division-by-zero on empty artist list.
+  - all-metal listener → STEEL primary, DARK secondary.
+  - all-classical listener → PSYCHIC primary.
+  - empty payload (cannot occur in practice due to precondition gate, but tested as defense in depth) → NORMAL fallback.
+  - explicit-flag majority → DARK bonus fires.
+- `calculate_intensity` produces:
+  - high score for trainer with concentrated recent listening relative to window.
+  - 0.5 fallback for single-day window (stdev undefined).
+- Stat mapping correctly drops uncovered ReccoBeats tracks without crashing.
 
 ### Integration
-- Provider runs end-to-end against captured Spotify response fixtures (market mode + personal mode).
-- `BirthSeed.fetch_snapshot` with `(ClimateProvider(), GeographyProvider(), SoundProvider())` resolves all three Affinities and persists all three `provider_id`s.
+- Provider runs end-to-end against captured Spotify + ReccoBeats response fixtures.
+- `BirthSeed.fetch_snapshot` with `(ClimateProvider(), SoundProvider())` resolves both Affinities; both `provider_id`s persist.
 - Replay determinism: same seed + same captured payload yields byte-identical Affinity.
-- Provider gracefully skips birth when credentials missing — climate/geography still succeed.
+- Precondition gate: birth request with `sound` in providers but no `trainer.spotify_refresh_token` fails validation before fetch is called.
 
 ### Regression
-- Existing climate-only and climate+geography birth tests pass unchanged.
-- `rebalance_vibemon` tests pass with all three providers wired in.
+- Existing climate-only birth tests pass unchanged.
+- `rebalance_existing_vibemons` tests pass with sound wired in.
 
 ## Observability
+
 - Reuse `LoggingHook`, `RateLimiterHook`.
-- Spotify rate limit: rolling 30s window, documented ~180 req/min ceiling. Log 429 + `Retry-After` header captures; existing retry policy honors it.
-- Log per-fetch: mode (personal/market), market code, track count, artist count, genre count, fetched-from-cache flag (when caching added).
-- Tag log lines with `provider="sound"` to match climate/geography.
+- Spotify rate limit: ~180 req/min rolling. Existing retry policy honors `Retry-After` on 429.
+- ReccoBeats rate limit: no documented hard limit; self-throttle at 300/min.
+- Per-fetch log fields: trainer_id (hashed), track_count, artist_count, reccobeats_coverage_ratio, unmatched_genre_count, window_days_in_recently_played.
+- Tag all log lines with `provider="sound"`.
+
+## Payload Retention (Spotify ToS posture)
+
+Per locked decision 10:
+- Reduced payload only — `name, explicit, release_date, duration_ms, isrc, played_at` per track; `name, genres` per artist; six ReccoBeats floats per covered track.
+- **Popularity, follower count, and any other unused Spotify Content fields are never fetched, never stored, never derived.**
+- Loose ToS reading acknowledged; revisit before any public launch.
+- No automatic TTL deletion in v1. If a stricter posture becomes necessary post-launch, add a scheduled job that nulls Spotify-sourced fields >30 days old (derived signals remain intact).
+
+## Preconditions / Dependencies
+
+This plan **depends on** the following work landing first:
+
+1. **ADR-0001: `BirthSeed` gains `trainer_id`.**
+   Location: `docs/development/adr/0001-birth-seed-gains-trainer-id.md`.
+   Adds `trainer_id` to `BirthSeed` and folds it into `_rng_seed_material`. Required for personal-only sound auth and as a latent bonus, fixes the dupe-birth risk where two trainers at the same coord+second would collide.
+
+2. **Trainer-Spotify linking plan.**
+   Location: `docs/development/plans/trainer-spotify-linking-plan.md`.
+   OAuth Authorization Code redirect flow, `trainer.spotify_refresh_token` storage, token refresh helpers. Sound provider assumes `trainer.spotify_refresh_token` exists.
+
+3. **Provider-picker UX** (mentioned but out of scope).
+   Per-birth trainer selection of which providers to invoke. Without this, sound has no production invocation path. Sound provider code itself doesn't gate on the UX — it just expects to appear in `BirthSeed.providers` when invoked.
 
 ## Rollout
-1. Land package + move catalog behind `SETTINGS.SPOTIFY_PROVIDER_ENABLED`, default off.
-2. Ship **market mode only** in v1. Personal mode behind separate `SPOTIFY_PERSONAL_MODE_ENABLED` flag.
-3. Add tests, fixtures, fakes (record-and-replay against a test Spotify app).
-4. Shadow birth in dev: all three providers fetch, only climate+geography persist, sound's `Affinity` is logged for inspection.
-5. Tune genre-family table + signal min/med/max against 50+ varied seeds (mix of markets, listening fingerprints).
-6. Flip flag in staging; verify replay parity.
-7. Production rollout with flag.
-8. Personal mode wired in v2 with trainer-token storage + OAuth redirect endpoint.
-9. Document provider in `CONTEXT.md` vocabulary section.
+
+1. ADR-0001 lands (trainer_id in BirthSeed).
+2. Trainer-Spotify linking plan lands (OAuth + token storage).
+3. Bootstrap script + initial `genre_anchors.json` + `genre_families.json` ship as a separate PR for review of the genre→element flavor decisions in isolation.
+4. Sound provider package lands. All tests pass against fixtures.
+5. Dev shadow-birth: opt sound into a test trainer's births; inspect Affinity output across varied listening fingerprints.
+6. Balance tuning pass: use `rebalance_existing_vibemons` against shadow births to tune ramp thresholds, intensity sigmoid steepness, NORMAL fallback weight.
+7. Provider-picker UX lands.
+8. Open sound provider to all linked trainers.
+9. Document provider in `CONTEXT.md` if any new domain terms surface (none anticipated; provider fits inside existing `Provider`/`Signal`/`Affinity`/`Birth Seed` definitions).
 
 ## Open Questions
-1. **Market mode signal quality**: "what's popular in market X right now" is *very* coarse. Two trainers in the same country get nearly identical birth fingerprints in market mode. Acceptable v1 cost, or block on personal mode?
-2. **Genre-family table maintenance**: Spotify mints new genre tags constantly (~6000 today, growing). Static curated dict will drift. Strategy — quarterly manual refresh, automated tag-clustering, or LLM-assisted classification on first sighting?
-3. **Time range parity with climate**: climate uses 6 weeks. Spotify's `me/top` exposes `short_term` (4w), `medium_term` (6m), `long_term` (~years). Pick `medium_term` for richer signal, or `short_term` for tighter parity?
-4. **Listening window for `recently-played`**: API caps at 50 most recent items regardless of `after` cursor. Plan B if 50 isn't enough for a representative window — page back? accept the cap?
-5. **Trainer-token storage**: SecretStr in DB plus refresh on use. Worth a separate ADR before personal mode lands?
-6. **Provider order in `rebalance_vibemon`**: deterministic order matters for replay. Climate, then geography, then sound? Document the ordering invariant.
-7. **Intensity composition across three providers**: `Affinity.intensity` is a single field — same open question as geography plan, now sharper. Per-provider intensity, max, or blend?
-8. **Spotify ToS**: caching responses, persisting genre data, redistributing — re-read terms before storing payload snapshots long-term.
+
+Most original open questions are resolved. Remaining:
+
+1. **ReccoBeats coverage in practice.** Documented as ~70-90% for typical catalogs but unverified for niche/non-English listeners. If coverage is materially worse (<50%) for a real user, the stat block could be dominated by a small biased subset. Mitigation: log coverage ratio per birth; alert if median falls below threshold during shadow.
+2. **Recently-played blend weight.** Plan suggests ~20% influence on stats vs ~80% from top_tracks. With ReccoBeats giving recently-played tracks real audio-feature impact, this weight may want to tune *up*. Defer to balance tuning pass.
+3. **Spotify app extended-quota approval.** Default app registration in 2026 might not even permit `me/top` and `me/player/recently-played` without extended quota review. Confirm before building.
+4. **ReccoBeats project longevity.** Newer community project, single point of dependency. If it disappears, the entire stat-mapping architecture loses its data source. Acceptable v1 risk; document a fallback path (frozen AcousticBrainz, or self-host ReccoBeats dataset snapshot).
+5. **Genre anchor curation.** ~180 hand-anchored decisions (10 per element × 18 elements) is a real flavor design exercise. Worth a focused PR with the bootstrap script's output for review before lock.
 
 ## Notes for Future Expansion
-- Last.fm scrobble enrichment under the same `sound/` provider — gives play-count history Spotify won't expose for non-personal mode.
-- ListenBrainz as open-data fallback when Spotify credentials absent (community scrobble database, no auth).
-- Track-level vibes via **MusicBrainz + AcousticBrainz** (community successor to dead audio-features), keyed by ISRC.
-- Cache by `(market, ISO-week)` for market mode — listening trends change weekly, not by-the-second.
-- Self-host genre-family classifier (small embedding model over genre tag corpus) to remove static dict drift.
+
+- ListenBrainz support folded into same `sound/` provider for users who prefer open-source scrobbling.
+- Last.fm scrobble enrichment as supplementary listening-history source for trainers with longer histories than Spotify exposes.
+- Mood-tag enrichment via Last.fm folksonomy → element-scoring bonuses.
+- AcousticBrainz frozen snapshot as fallback layer if ReccoBeats coverage proves insufficient for pre-2022 catalog.
+- Self-host ReccoBeats dataset mirror once coverage stabilizes (removes external dependency).
+- Cache by `(trainer_id, ISO-day)` — listening fingerprint is stable within a day. Defer until birth-rate per trainer justifies it.
