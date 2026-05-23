@@ -48,31 +48,31 @@
 ## 3) Wild Encounter Slice (Build After 2.x)
 
 ### 3.1 Wild Eligibility + Geography
-- [ ] Implement wild query eligibility filter: exclude under-review and expired.
-- [ ] Implement geohash precision-5 bucket scoping.
-- [ ] Add sparse expansion: local -> ring-1 (8 neighbors) -> ring-2.
+- [x] Implement wild query eligibility filter: exclude under-review and expired.
+- [x] Implement geohash precision-5 bucket scoping.
+- [x] Add sparse expansion: local -> ring-1 (8 neighbors) -> ring-2.
 
 ### 3.2 Supply + Selection
-- [ ] Generate christened wild supply when eligible pool is below threshold.
-- [ ] Revalidate disposition before final encounter selection.
-- [ ] Implement v1 selector: bucket priority -> strength band -> adjustment multiplier -> uniform pick.
+- [x] Generate christened wild supply when eligible pool is below threshold.
+- [x] Revalidate disposition before final encounter selection.
+- [x] Implement v1 selector: bucket priority -> strength band -> adjustment multiplier -> uniform pick.
 
 ### 3.3 Manifest Latency Hiding
-- [ ] Support lazy manifest for wild candidates during prewarm/preparation.
-- [ ] Add encounter-reveal hook to hide cold manifest latency.
+- [x] Support lazy manifest for wild candidates during prewarm/preparation.
+- [x] Add encounter-reveal hook to hide cold manifest latency.
 
 ### 3.4 Wild Expiration
-- [ ] Add expiration job: mark wild vibemon `expired` after 30 days since last actual encounter.
-- [ ] Reset expiration clock on battle start/completion encounters.
-- [ ] Keep asset cleanup as separate retention workflow.
+- [x] Add expiration job: mark wild vibemon `expired` after 30 days since last actual encounter.
+- [x] Reset expiration clock on battle start/completion encounters.
+- [x] Keep asset cleanup as separate retention workflow.
 
 ### 3.5 Encounter Adjustment + Strength Matching
-- [ ] Implement trainer-specific encounter multipliers with decay window (1-3 days).
-- [ ] Wire outcome multipliers: reject/timeout `0.00x`, run `0.30x`, defeat `0.50x`, win-no-adopt `0.75x`.
-- [ ] Centralize strength constants and implement:
-- [ ] Member strength = actual level-scaled stat total.
-- [ ] Party strength = avg + 25% max + 10% total.
-- [ ] Wild target = 45% of party strength, acceptance band 70%-140%.
+- [x] Implement trainer-specific encounter multipliers with decay window (1-3 days).
+- [x] Wire outcome multipliers: reject/timeout `0.00x`, run `0.30x`, defeat `0.50x`, win-no-adopt `0.75x`.
+- [x] Centralize strength constants and implement:
+- [x] Member strength = actual level-scaled stat total.
+- [x] Party strength = avg + 25% max + 10% total.
+- [x] Wild target = 45% of party strength, acceptance band 70%-140%.
 
 ## 4) API/Frontend Readiness
 

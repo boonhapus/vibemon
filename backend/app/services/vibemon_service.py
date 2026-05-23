@@ -28,14 +28,19 @@ from app.errors import (
 from app.lifecycle.realizer import LifecycleRealizer
 from app.plugins import move_catalog
 from app.policies import vibemon_transitions
+from app.services import encounter_tuning
 from app.services.read_model_assembler import ReadModelAssembler
 
 DAILY_GENERATION_CREDITS = 3
 CANDIDATE_REVIEW_TIMEOUT = dt.timedelta(hours=24)
 GENERATION_HOLD_TIMEOUT = dt.timedelta(minutes=10)
-REJECTION_ENCOUNTER_MULTIPLIER = 0.0
-REJECTION_COOLDOWN_MIN = dt.timedelta(days=1)
-REJECTION_COOLDOWN_MAX = dt.timedelta(days=3)
+_ADJUSTMENT_MULTIPLIER_BY_SOURCE: dict[str, float] = {
+    types.CandidateReviewStatusT.REJECTED.value: encounter_tuning.ADJUSTMENT_MULTIPLIER_REJECTED,
+    types.CandidateReviewStatusT.TIMED_OUT.value: encounter_tuning.ADJUSTMENT_MULTIPLIER_TIMED_OUT,
+    types.WildEncounterOutcomeT.RUN.value: encounter_tuning.ADJUSTMENT_MULTIPLIER_RUN,
+    types.WildEncounterOutcomeT.DEFEAT.value: encounter_tuning.ADJUSTMENT_MULTIPLIER_DEFEAT,
+    types.WildEncounterOutcomeT.WIN_NO_ADOPT.value: encounter_tuning.ADJUSTMENT_MULTIPLIER_WIN_NO_ADOPT,
+}
 
 type Clock = Callable[[], dt.datetime]
 type LifecycleStep = Callable[[schema.Vibemon], Awaitable[schema.Vibemon]]
@@ -121,6 +126,38 @@ class VibemonService:
                 await self._release_credit(sess, credit_day, hold_id)
             await sess.flush()
             raise
+
+    async def generate_wild_supply(
+        self,
+        sess: AsyncSession,
+        *,
+        birth_seed: schema.BirthSeed,
+        nickname: str | None = None,
+        core_identity: str | None = None,
+    ) -> schema.PublicVibemon:
+        """Create christened wild inventory directly, bypassing candidate review."""
+        now = self._now()
+        snapshot = await birth_seed.fetch_snapshot()
+        affinities = await snapshot.regenerate(birth_seed.providers, birth_seed)
+        vibemon = schema.Vibemon.birth(
+            *affinities,
+            birth_seed=birth_seed,
+            nickname=nickname,
+            core_identity=core_identity,
+        )
+        vibemon = await self._christen(vibemon)
+        row = await self._persist_new_vibemon(
+            sess,
+            vibemon=vibemon,
+            birth_seed=birth_seed,
+            snapshot=snapshot,
+        )
+        row.disposition = types.VibemonDispositionT.WILD.value
+        row.wild_entered_at = now
+        row.last_encountered_at = now
+        await sess.flush()
+        loaded = await self._load_vibemon(sess, row.id)
+        return await self._read_model(loaded)
 
     async def adopt_candidate(
         self,
@@ -246,6 +283,154 @@ class VibemonService:
             await self._timeout_review(sess, review, now)
         await sess.flush()
         return len(reviews)
+
+    async def prepare_wild_encounter_reveal(
+        self,
+        sess: AsyncSession,
+        *,
+        vibemon_id: uuid.UUID,
+    ) -> schema.PublicVibemon:
+        row = (
+            await sess.execute(
+                sa.select(models.Vibemon)
+                .options(
+                    selectinload(models.Vibemon.identity),
+                    selectinload(models.Vibemon.moves).selectinload(models.VibemonMove.move),
+                    selectinload(models.Vibemon.assets),
+                    selectinload(models.Vibemon.candidate_reviews),
+                )
+                .where(
+                    models.Vibemon.id == vibemon_id,
+                    models.Vibemon.disposition == types.VibemonDispositionT.WILD.value,
+                    models.Vibemon.expired_at.is_(None),
+                )
+                .with_for_update()
+            )
+        ).scalar_one_or_none()
+        if row is None:
+            raise CandidateReviewUnavailable("Wild Vibemon is unavailable for encounter reveal.")
+        vibemon = await self._schema_from_row(row)
+        if vibemon.lifecycle is not types.VibemonLifecycleT.MANIFESTED:
+            vibemon = await self._manifest(vibemon)
+            self._apply_schema_to_row(row, vibemon)
+            await self._persist_assets(sess, vibemon)
+        await sess.flush()
+        loaded = await self._load_vibemon(sess, vibemon_id)
+        return await self._read_model(loaded)
+
+    async def record_actual_wild_encounter(
+        self,
+        sess: AsyncSession,
+        *,
+        vibemon_id: uuid.UUID,
+        event: types.VibemonHistoryEventT,
+    ) -> None:
+        now = self._now()
+        row = (
+            await sess.execute(
+                sa.select(models.Vibemon)
+                .where(
+                    models.Vibemon.id == vibemon_id,
+                    models.Vibemon.disposition == types.VibemonDispositionT.WILD.value,
+                    models.Vibemon.expired_at.is_(None),
+                )
+                .with_for_update()
+            )
+        ).scalar_one_or_none()
+        if row is None:
+            raise CandidateReviewUnavailable("Wild Vibemon is unavailable for encounter.")
+        row.last_encountered_at = now
+        self._history(sess, vibemon_id, event, now, {})
+        await sess.flush()
+
+    async def record_wild_encounter_outcome(
+        self,
+        sess: AsyncSession,
+        *,
+        trainer_id: types.TrainerIdT,
+        vibemon_id: uuid.UUID,
+        outcome: types.WildEncounterOutcomeT,
+    ) -> None:
+        now = self._now()
+        row = (
+            await sess.execute(
+                sa.select(models.Vibemon)
+                .where(
+                    models.Vibemon.id == vibemon_id,
+                    models.Vibemon.disposition == types.VibemonDispositionT.WILD.value,
+                    models.Vibemon.expired_at.is_(None),
+                )
+                .with_for_update()
+            )
+        ).scalar_one_or_none()
+        if row is None:
+            raise CandidateReviewUnavailable("Wild Vibemon is unavailable for encounter outcome.")
+        row.last_encountered_at = now
+        await self._upsert_encounter_adjustment(sess, trainer_id, vibemon_id, outcome.value, now)
+        self._history(
+            sess,
+            vibemon_id,
+            types.VibemonHistoryEventT.WILD_ENCOUNTER_COMPLETED,
+            now,
+            {"trainer_id": str(trainer_id), "outcome": outcome.value},
+        )
+        await sess.flush()
+
+    async def expire_stale_wild(self, sess: AsyncSession) -> int:
+        now = self._now()
+        threshold = now - encounter_tuning.WILD_EXPIRATION_WINDOW
+        rows = (
+            (
+                await sess.execute(
+                    sa.select(models.Vibemon)
+                    .where(
+                        models.Vibemon.disposition == types.VibemonDispositionT.WILD.value,
+                        models.Vibemon.expired_at.is_(None),
+                        sa.func.coalesce(
+                            models.Vibemon.last_encountered_at,
+                            models.Vibemon.wild_entered_at,
+                        )
+                        <= threshold,
+                    )
+                    .with_for_update()
+                )
+            )
+            .scalars()
+            .all()
+        )
+        for row in rows:
+            row.disposition = types.VibemonDispositionT.EXPIRED.value
+            row.expired_at = now
+            self._history(sess, row.id, types.VibemonHistoryEventT.EXPIRED, now, {})
+        await sess.flush()
+        return len(rows)
+
+    async def prune_expired_assets(
+        self,
+        sess: AsyncSession,
+        *,
+        older_than: dt.timedelta = dt.timedelta(0),
+        limit: int | None = None,
+    ) -> int:
+        """Delete persisted asset rows/blobs for expired Vibemon via retention workflow."""
+        now = self._now()
+        cutoff = now - older_than
+        stmt = (
+            sa.select(models.Vibemon.id)
+            .where(
+                models.Vibemon.disposition == types.VibemonDispositionT.EXPIRED.value,
+                models.Vibemon.expired_at.is_not(None),
+                models.Vibemon.expired_at <= cutoff,
+            )
+            .order_by(models.Vibemon.expired_at.asc())
+        )
+        if limit is not None:
+            stmt = stmt.limit(limit)
+        vibemon_ids = (await sess.execute(stmt)).scalars().all()
+        deleted_rows = 0
+        for vibemon_id in vibemon_ids:
+            deleted_rows += await ds_assets.delete_for_vibemon(sess, vibemon_id)
+        return deleted_rows
 
     async def resolve_stale_holds(
         self,
@@ -604,6 +789,9 @@ class VibemonService:
         source: str,
         now: dt.datetime,
     ) -> None:
+        multiplier = _ADJUSTMENT_MULTIPLIER_BY_SOURCE.get(source)
+        if multiplier is None:
+            raise ValueError(f"Unknown encounter adjustment source: {source}")
         ends_at = now + self._cooldown_duration()
         adjustment = (
             await sess.execute(
@@ -620,20 +808,21 @@ class VibemonService:
                 trainer_id=trainer_id,
                 vibemon_id=vibemon_id,
                 source=source,
-                initial_multiplier=REJECTION_ENCOUNTER_MULTIPLIER,
+                initial_multiplier=multiplier,
                 starts_at=now,
                 ends_at=ends_at,
             )
             sess.add(adjustment)
             return
         adjustment.source = source
-        adjustment.initial_multiplier = REJECTION_ENCOUNTER_MULTIPLIER
+        adjustment.initial_multiplier = multiplier
         adjustment.starts_at = now
         adjustment.ends_at = ends_at
 
     def _cooldown_duration(self) -> dt.timedelta:
-        span = REJECTION_COOLDOWN_MAX - REJECTION_COOLDOWN_MIN
-        return REJECTION_COOLDOWN_MIN + dt.timedelta(seconds=self._rng.random() * span.total_seconds())
+        span = encounter_tuning.ADJUSTMENT_COOLDOWN_MAX - encounter_tuning.ADJUSTMENT_COOLDOWN_MIN
+        random_seconds = self._rng.random() * span.total_seconds()
+        return encounter_tuning.ADJUSTMENT_COOLDOWN_MIN + dt.timedelta(seconds=random_seconds)
 
     def _history(
         self,

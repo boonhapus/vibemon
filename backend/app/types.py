@@ -206,4 +206,14 @@ class VibemonHistoryEventT(enum.StrEnum):
     CANDIDATE_REJECTED = "candidate_rejected"
     CANDIDATE_TIMED_OUT = "candidate_timed_out"
     RELEASED = "released"
+    WILD_ENCOUNTER_STARTED = "wild_encounter_started"
+    WILD_ENCOUNTER_COMPLETED = "wild_encounter_completed"
     EXPIRED = "expired"
+
+
+class WildEncounterOutcomeT(enum.StrEnum):
+    """Outcomes that apply trainer-specific encounter adjustments."""
+
+    RUN = "run"
+    DEFEAT = "defeat"
+    WIN_NO_ADOPT = "win_no_adopt"

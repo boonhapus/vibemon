@@ -1,0 +1,20 @@
+"""Centralized tuning constants for wild encounter matching and weighting."""
+
+from __future__ import annotations
+
+import datetime as dt
+
+WILD_TARGET_RATIO = 0.45
+WILD_STRENGTH_BAND_MIN = 0.70
+WILD_STRENGTH_BAND_MAX = 1.40
+
+ADJUSTMENT_MULTIPLIER_REJECTED = 0.00
+ADJUSTMENT_MULTIPLIER_TIMED_OUT = 0.00
+ADJUSTMENT_MULTIPLIER_RUN = 0.30
+ADJUSTMENT_MULTIPLIER_DEFEAT = 0.50
+ADJUSTMENT_MULTIPLIER_WIN_NO_ADOPT = 0.75
+
+ADJUSTMENT_COOLDOWN_MIN = dt.timedelta(days=1)
+ADJUSTMENT_COOLDOWN_MAX = dt.timedelta(days=3)
+
+WILD_EXPIRATION_WINDOW = dt.timedelta(days=30)

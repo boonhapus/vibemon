@@ -163,6 +163,17 @@ async def test_generate_candidate_consumes_credit_and_opens_review(sess: AsyncSe
 
 
 @pytest.mark.asyncio
+async def test_generate_wild_supply_creates_christened_wild_without_review(sess: AsyncSession) -> None:
+    result = await _service().generate_wild_supply(sess, birth_seed=_seed())
+
+    assert result.lifecycle == types.VibemonLifecycleT.CHRISTENED
+    assert result.disposition == types.VibemonDispositionT.WILD
+    assert result.candidate_review is None
+    assert result.trainer_id is None
+    assert result.team_slot is None
+
+
+@pytest.mark.asyncio
 async def test_failed_generation_releases_hold_without_consuming_credit(sess: AsyncSession) -> None:
     trainer_id = await _trainer(sess)
 
@@ -191,6 +202,23 @@ async def test_reject_candidate_resolves_to_wild_with_encounter_adjustment(sess:
     assert result.candidate_review.status == types.CandidateReviewStatusT.REJECTED
     adjustment = (await sess.execute(sa.select(models.EncounterAdjustment))).scalar_one()
     assert adjustment.initial_multiplier == 0.0
+
+
+@pytest.mark.asyncio
+async def test_record_wild_encounter_outcome_sets_expected_multiplier(sess: AsyncSession) -> None:
+    trainer_id = await _trainer(sess)
+    generated = await _service().generate_candidate(sess, trainer_id=trainer_id, birth_seed=_seed())
+    await _service().reject_candidate(sess, trainer_id=trainer_id, vibemon_id=generated.id)
+
+    await _service().record_wild_encounter_outcome(
+        sess,
+        trainer_id=trainer_id,
+        vibemon_id=generated.id,
+        outcome=types.WildEncounterOutcomeT.RUN,
+    )
+    adjustment = (await sess.execute(sa.select(models.EncounterAdjustment))).scalar_one()
+    assert adjustment.source == types.WildEncounterOutcomeT.RUN.value
+    assert adjustment.initial_multiplier == 0.3
 
 
 @pytest.mark.asyncio
@@ -397,6 +425,90 @@ async def test_timeout_resolution_moves_candidate_to_wild(sess: AsyncSession) ->
     assert review.status == types.CandidateReviewStatusT.TIMED_OUT.value
     assert vibemon is not None
     assert vibemon.disposition == types.VibemonDispositionT.WILD.value
+
+
+@pytest.mark.asyncio
+async def test_prepare_wild_encounter_reveal_manifests_lazy_wild(sess: AsyncSession) -> None:
+    generated = await _service().generate_wild_supply(sess, birth_seed=_seed())
+    assert generated.lifecycle == types.VibemonLifecycleT.CHRISTENED
+
+    prepared = await _service().prepare_wild_encounter_reveal(sess, vibemon_id=generated.id)
+    assert prepared.lifecycle == types.VibemonLifecycleT.MANIFESTED
+    assert len(prepared.assets) == 3
+
+
+@pytest.mark.asyncio
+async def test_record_actual_wild_encounter_resets_expiration_clock(sess: AsyncSession) -> None:
+    generated = await _service().generate_wild_supply(sess, birth_seed=_seed())
+    later = NOW + dt.timedelta(days=31)
+    result = await _service(later).expire_stale_wild(sess)
+    assert result == 1
+
+    row = await sess.get(models.Vibemon, generated.id)
+    assert row is not None
+    row.disposition = types.VibemonDispositionT.WILD.value
+    row.expired_at = None
+    row.last_encountered_at = NOW - dt.timedelta(days=29)
+    await sess.flush()
+
+    await _service().record_actual_wild_encounter(
+        sess,
+        vibemon_id=generated.id,
+        event=types.VibemonHistoryEventT.WILD_ENCOUNTER_STARTED,
+    )
+    refreshed = await sess.get(models.Vibemon, generated.id)
+    assert refreshed is not None
+    assert refreshed.last_encountered_at is not None
+    assert refreshed.disposition == types.VibemonDispositionT.WILD.value
+
+
+@pytest.mark.asyncio
+async def test_expire_stale_wild_marks_terminal_disposition(sess: AsyncSession) -> None:
+    generated = await _service().generate_wild_supply(sess, birth_seed=_seed())
+    later = NOW + dt.timedelta(days=31)
+
+    expired = await _service(later).expire_stale_wild(sess)
+    assert expired == 1
+    row = await sess.get(models.Vibemon, generated.id)
+    assert row is not None
+    assert row.disposition == types.VibemonDispositionT.EXPIRED.value
+    assert row.expired_at is not None
+
+
+@pytest.mark.asyncio
+async def test_expire_stale_wild_does_not_delete_assets(sess: AsyncSession) -> None:
+    generated = await _service().generate_wild_supply(sess, birth_seed=_seed())
+    later = NOW + dt.timedelta(days=31)
+    await _service(later).expire_stale_wild(sess)
+
+    assets = (
+        (await sess.execute(sa.select(models.VibemonAsset).where(models.VibemonAsset.vibemon_id == generated.id)))
+        .scalars()
+        .all()
+    )
+    assert len(assets) == 2
+
+
+@pytest.mark.asyncio
+async def test_prune_expired_assets_runs_as_separate_retention_workflow(
+    sess: AsyncSession,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    generated = await _service().generate_wild_supply(sess, birth_seed=_seed())
+    later = NOW + dt.timedelta(days=31)
+    await _service(later).expire_stale_wild(sess)
+
+    deleted_ids: list[uuid.UUID] = []
+
+    async def fake_delete_for_vibemon(_sess: AsyncSession, vibemon_id: uuid.UUID) -> int:
+        deleted_ids.append(vibemon_id)
+        return 2
+
+    monkeypatch.setattr(vibemon_service.ds_assets, "delete_for_vibemon", fake_delete_for_vibemon)
+
+    deleted = await _service(later).prune_expired_assets(sess)
+    assert deleted == 2
+    assert deleted_ids == [generated.id]
 
 
 @pytest.mark.asyncio
