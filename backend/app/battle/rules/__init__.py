@@ -1,1 +1,0 @@
-"""Battle rule helpers."""

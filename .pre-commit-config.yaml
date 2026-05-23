@@ -3,7 +3,7 @@ repos:
     hooks:
       - id: make-quality
         name: make quality
-        entry: uv run --project backend make.py quality
+        entry: uv run --project vibemon/backend make.py quality
         language: system
         files: ^
         pass_filenames: false

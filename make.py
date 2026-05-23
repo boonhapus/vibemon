@@ -59,44 +59,34 @@ COMMANDS: dict[str, Command] = {
     "lint": Command(
         description="Run ruff linter with auto-fix.",
         documentation="https://docs.astral.sh/ruff/linter/",
-        argv=["ruff", "check", "--fix", "backend"],
-        ci_argv=["ruff", "check", "backend"],
+        argv=["ruff", "check", "--fix", "vibemon/backend"],
+        ci_argv=["ruff", "check", "vibemon/backend"],
     ),
     "format": Command(
         description="Run ruff formatter.",
         documentation="https://docs.astral.sh/ruff/formatter/",
-        argv=["ruff", "format", "backend"],
-        ci_argv=["ruff", "format", "--check", "backend"],
+        argv=["ruff", "format", "vibemon/backend"],
+        ci_argv=["ruff", "format", "--check", "vibemon/backend"],
     ),
     "typecheck": Command(
         description="Run pyrefly type checker.",
         documentation="https://pyrefly.org/en/docs/",
-        argv=["pyrefly", "check", "backend"],
+        argv=["pyrefly", "check", "vibemon/backend"],
     ),
     "deadcode": Command(
         description="Run skylos for security issues (--danger), api keys (--secrets), code (--quality), and scan CVEs (--sca).",  # noqa: E501
         documentation="https://github.com/jendrikseipp/vulture",
-        argv=["skylos", "backend", "--all", "--tree"],
+        argv=["skylos", "vibemon/backend", "--all", "--tree"],
     ),
     "deps": Command(
         description="Run deptry unused dependency check.",
         documentation="https://deptry.com/",
-        argv=["deptry", "backend"],
+        argv=["deptry", "vibemon/backend"],
     ),
     "test": Command(
         description="Run pytest.",
         documentation="https://docs.pytest.org/",
-        argv=["pytest", "backend/tests", "-v"],
-    ),
-    "db-reset": Command(
-        description="Delete local dev database and generated monstore assets.",
-        documentation="https://github.com/anomalyco/vibemon/.plans/ROADMAP.md",
-        argv=["python", ".scripts/reset_db.py"],
-    ),
-    "db-cleanup": Command(
-        description="Resolve stale generation holds and candidate review timeouts.",
-        documentation="https://github.com/anomalyco/vibemon/.plans/ROADMAP.md",
-        argv=["python", ".scripts/cleanup_holds.py"],
+        argv=["pytest", "vibemon/backend/tests", "-v"],
     ),
 }
 

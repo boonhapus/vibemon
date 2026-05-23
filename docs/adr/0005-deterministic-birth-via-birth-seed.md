@@ -1,3 +1,0 @@
-# Birth entropy is fully derived from BirthSeed
-
-All randomized choices during Birth (element selection, move selection, evo paths, stat rolls) draw from namespaced RNGs derived from a `BirthSeed` of `(timestamp, geo_coords)`. Same seed plus same provider snapshot reproduces the same Vibemon byte-for-byte, which is the foundation that lineage, debugging, and dispute resolution rely on. The trade-off is real: birth cannot consult any ambient entropy (process RNG, wall clock at call time, machine state), and every new stochastic subsystem must claim its own namespace rather than calling `random` directly. See `app/schema.py` (`BirthSeed`).

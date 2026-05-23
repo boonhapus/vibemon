@@ -1,3 +1,0 @@
-# Move behavior is declarative effects plus a narrow script escape hatch
-
-Moves declare behavior as typed `EffectGroup`s (`StatusInflict`, `StatChange`, `Drain`, `Recoil`, `WeatherSet`, `Heal`, …) bound to triggers (`on_use`, `on_hit`, `after_damage`). Exotic moves that genuinely cannot be expressed declaratively opt into a first-party `MoveScript` keyed by `MoveBehavior.script_id`; provider-authored Python callbacks were rejected to keep externally-contributed move content sandboxed. The hybrid keeps the common case data-shaped (validatable, diffable, persistable) while refusing to grow a turing-complete in-tree DSL just to cover the long tail. See `app/schema.py` (`MoveBehavior`, `EffectGroup`), `app/battle/rules/effects.py`, `app/battle/scripts.py`.

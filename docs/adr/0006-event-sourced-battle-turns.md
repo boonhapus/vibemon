@@ -1,3 +1,0 @@
-# Battle turns are event streams, not mutations of a battle object
-
-The battle engine consumes submitted actions and emits a typed event stream; turn state is a fold over those events into a `TurnRecord`, not a side effect on a mutable battle object. This makes turns replayable, spectator-friendly, and auditable for balance and dispute work, at the cost of more upfront ceremony than direct mutation would require. Frontend narration and state-change feeds consume the same event stream the engine already produces, so the channel is not extra surface area. See `app/battle/engine.py` and `app/battle/events.py`.

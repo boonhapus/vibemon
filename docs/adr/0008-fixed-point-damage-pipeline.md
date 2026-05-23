@@ -1,3 +1,0 @@
-# Damage math runs on fixed-point modifiers, not floats
-
-Damage modifiers compose as integers around `MOD_ONE = 4096` with explicit `round_half_up` / `round_half_down` rules, mirroring mainline Pokémon's documented rounding behavior. This is deliberately not "naive float multiply then round at the end": chained multiplicative modifiers in float arithmetic drift in ways that would break test expectations and competitive parity with the canon players already know. Cost: every new modifier must pick a rounding rule and slot into the chain — code that looks fussy until you remember why. See `app/battle/rules/damage.py:13`.
