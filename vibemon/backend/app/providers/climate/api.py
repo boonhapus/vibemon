@@ -98,7 +98,6 @@ class OpenMeteoAPIClient(niquests.AsyncSession):
                     "snowfall_sum",
                 ]
             ),
-            "hourly": "soil_moisture_0_to_1cm",
             "timezone": "GMT",
             "start_date": start_date.isoformat(),
             "end_date": end_date.isoformat(),

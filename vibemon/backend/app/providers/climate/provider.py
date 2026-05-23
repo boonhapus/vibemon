@@ -50,7 +50,7 @@ class ClimateProvider(VibeProvider):
         (VibemonTypeT.ICE, "sub-freezing temperatures or snowfall"),
         (VibemonTypeT.FLYING, "sustained winds (15+ km/h)"),
         (VibemonTypeT.FIGHTING, "violent gust spikes and impact weather"),
-        (VibemonTypeT.GROUND, "mineral dust or dry exposed topsoil"),
+        (VibemonTypeT.GROUND, "mineral dust or arid exposed earth"),
         (VibemonTypeT.FAIRY, "UV radiation exposure"),
         (VibemonTypeT.POISON, "air pollution concentration"),
         (VibemonTypeT.DARK, "low visibility or heavy overcast"),
@@ -122,7 +122,7 @@ class ClimateProvider(VibeProvider):
         # FIRE — volcanic, dry deserts, hot springs.
         # Heat spine; radiation and heat-on-arid (desert) are alternate triggers.
         solar_radiation_score = signals["radiat"].ramp("N", thresh=0.65, reach=0.35)
-        heat_temperature_score = signals["tmp_hi"].ramp("R", thresh=32.0, reach=20.0)
+        heat_temperature_score = signals["tmp_hi"].ramp("R", thresh=28.0, reach=20.0)
         fire_arid_factor = signals["humdty"].ramp("R", thresh=40.0, reach=30.0, invert=True)
         score[VibemonTypeT.FIRE] += max(
             solar_radiation_score, heat_temperature_score, heat_temperature_score * fire_arid_factor
@@ -131,15 +131,13 @@ class ClimateProvider(VibeProvider):
         # WATER — oceans, lakes, rivers, beaches, harbors.
         # Open-Meteo has no proximity-to-water field, so coastal/lakeside cannot be detected.
         # Falls back to direct precipitation only — known semantic gap.
-        score[VibemonTypeT.WATER] += signals["precip"].ramp("R", thresh=1.0, reach=49.0)
+        score[VibemonTypeT.WATER] += signals["precip"].ramp("R", thresh=0.5, reach=20.0)
 
         # GRASS — forests, meadows, parks, gardens.
-        # Active transpiration, humid air, OR moist topsoil — any one indicates a
-        # hydrated growing environment.
+        # Active transpiration or humid air — hydrated growing environment.
         plant_evapotrans_score = signals["transp"].ramp("N", thresh=0.30, reach=0.70)
         humid_saturation_score = signals["dew_pt"].ramp("N", thresh=0.75, reach=0.25)
-        moist_soil_score = signals["soilmt"].ramp("R", thresh=0.25, reach=0.25)
-        score[VibemonTypeT.GRASS] += max(plant_evapotrans_score, humid_saturation_score, moist_soil_score)
+        score[VibemonTypeT.GRASS] += max(plant_evapotrans_score, humid_saturation_score)
 
         # ICE — glaciers, snowy mountains, frozen caves.
         # Cold OR snow alone qualifies; elevation amplifies the mountain-ice profile.
@@ -150,7 +148,7 @@ class ClimateProvider(VibeProvider):
 
         # FLYING — high-altitude peaks, trees, open skies.
         # Wind is core; elevation and clear sky compound the sky-domain feel.
-        wind_score = signals["windsp"].ramp("R", thresh=10.0, reach=40.0)
+        wind_score = signals["windsp"].ramp("R", thresh=13.0, reach=40.0)
         altitude_factor = 1.0 + 0.5 * signals["elevat"].ramp("R", thresh=800.0, reach=2000.0)
         clear_sky_factor = 1.0 - 0.3 * signals["clouds"].ramp("N", thresh=0.70, reach=0.30)
         score[VibemonTypeT.FLYING] += min(1.0, wind_score * altitude_factor * clear_sky_factor)
@@ -176,26 +174,30 @@ class ClimateProvider(VibeProvider):
         score[VibemonTypeT.POISON] += max(pollution_score, swamp_score)
 
         # GROUND — deserts, dust flats, exposed dry earth.
-        # Keep GROUND tied to mineral dust and dry topsoil; wet mud belongs to WATER/GRASS ecology.
         dust_score = signals["dust_m"].ramp("R", thresh=25.0, reach=150.0)
-        dry_topsoil_score = signals["soilmt"].ramp("R", thresh=0.14, reach=0.14, invert=True)
         dry_weather_gate = 1.0 - signals["precip"].ramp("R", thresh=1.0, reach=9.0)
-        exposed_ground_score = dry_topsoil_score * dry_weather_gate
+        ground_arid_factor = signals["humdty"].ramp("R", thresh=70.0, reach=45.0, invert=True)
+        exposed_ground_score = 0.60 * dry_weather_gate * ground_arid_factor
         score[VibemonTypeT.GROUND] += max(dust_score, exposed_ground_score)
 
         # BUG — woods, tall grass, farm land.
-        # Verdant warm humidity AND moist soil — all three required. Cube root preserves
-        # multiplicative gating without crushing legitimate forest/farm conditions.
-        humid_stress_factor = signals["humdty"].ramp("R", thresh=70.0, reach=30.0)
-        heat_stress_factor = signals["tmp_hi"].ramp("R", thresh=25.0, reach=25.0)
-        farm_soil_factor = signals["soilmt"].ramp("R", thresh=0.20, reach=0.30)
-        score[VibemonTypeT.BUG] += (humid_stress_factor * heat_stress_factor * farm_soil_factor) ** (1 / 3)
+        # Warm humid air OR active crop transpiration — heat required, distinct from GRASS dew paths.
+        tropical_humid = signals["humdty"].ramp("R", thresh=62.0, reach=25.0) * signals["tmp_hi"].ramp(
+            "R", thresh=21.0, reach=15.0
+        )
+        farm_buzz = signals["transp"].ramp("N", thresh=0.30, reach=0.50) * signals["tmp_hi"].ramp(
+            "R", thresh=18.0, reach=14.0
+        )
+        score[VibemonTypeT.BUG] += max(tropical_humid, farm_buzz)
 
         # ROCK — caves, mountains, cliffsides, mines.
-        # Elevation primary; arid air sharpens exposed-stone profile (vs. lush mountain).
-        elevation_score = signals["elevat"].ramp("R", thresh=600.0, reach=4500.0)
-        arid_rock_factor = 1.0 + 0.3 * signals["humdty"].ramp("R", thresh=50.0, reach=40.0, invert=True)
-        score[VibemonTypeT.ROCK] += min(1.0, elevation_score * arid_rock_factor)
+        # Elevated exposed stone; cold or snowy days defer to ICE instead.
+        elevation_score = signals["elevat"].ramp("R", thresh=400.0, reach=2400.0)
+        cold_rock_veto = max(
+            signals["tmp_lo"].ramp("R", thresh=5.0, reach=25.0, invert=True),
+            signals["snowfl"].ramp("R", thresh=0.1, reach=1.5),
+        )
+        score[VibemonTypeT.ROCK] += min(1.0, elevation_score * (1.0 - cold_rock_veto))
 
         # GHOST — graveyards, abandoned buildings, dark alleys.
         # Fog/low visibility under low UV (dawn/dusk/overcast); cold still air seals it.
@@ -218,8 +220,8 @@ class ClimateProvider(VibeProvider):
         # DARK — shadows, cemeteries, urban areas at night.
         # At least two of three: low UV (shadow/night), heavy overcast, urban smog.
         # Pairwise sqrt — single-signal cities (just cloudy, just smoggy) no longer qualify.
-        low_uv_score = signals["uv_idx"].ramp("N", thresh=0.30, reach=0.30, invert=True)
-        overcast_score = signals["clouds"].ramp("N", thresh=0.75, reach=0.25)
+        low_uv_score = signals["uv_idx"].ramp("N", thresh=0.26, reach=0.30, invert=True)
+        overcast_score = signals["clouds"].ramp("N", thresh=0.80, reach=0.20)
         smog_score = signals["pollut"].ramp("N", thresh=0.15, reach=0.30)
         score[VibemonTypeT.DARK] += max(
             math.sqrt(low_uv_score * overcast_score),
@@ -228,18 +230,19 @@ class ClimateProvider(VibeProvider):
         )
 
         # FAIRY — flower beds, enchanted forests, lakesides.
-        # Pristine sun on damp clean air: UV * clean_air * humidity. Multiplicative —
-        # smog or dryness vetoes the enchanted feel.
-        uv_score = signals["uv_idx"].ramp("N", thresh=0.30, reach=0.65)
-        clean_air_factor = 1.0 - signals["pollut"].ramp("N", thresh=0.05, reach=0.20)
-        moisture_factor = 0.5 + 0.5 * signals["humdty"].ramp("R", thresh=50.0, reach=30.0)
-        score[VibemonTypeT.FAIRY] += uv_score * clean_air_factor * moisture_factor
+        # Bright clean sun OR humid sunlit haze; smog vetoes both paths.
+        clean_air = 1.0 - signals["pollut"].ramp("N", thresh=0.05, reach=0.20)
+        clear_sun = signals["uv_idx"].ramp("N", thresh=0.38, reach=0.52)
+        misty_sun = signals["uv_idx"].ramp("N", thresh=0.28, reach=0.45) * signals["humdty"].ramp(
+            "R", thresh=55.0, reach=30.0
+        )
+        score[VibemonTypeT.FAIRY] += clean_air * max(clear_sun, misty_sun)
 
         # NORMAL — fields, suburbs, residential baseline.
         # The "average day" is the absence of extremes, not a positive signal. Attentuated
         # at 0.3x so a moderate continuous signal (~0.25) competes evenly instead of being
         # buried by NORMAL at ~0.75. Still acts as safety net when nothing fires.
-        score[VibemonTypeT.NORMAL] += 0.3 * (1.0 - max(score.values(), default=0.0))  # maybe 0.4
+        score[VibemonTypeT.NORMAL] += 0.3 * (1.0 - max(score.values(), default=0.0))
 
         # General Tier structure:
         # - 0.5: RARE
@@ -256,14 +259,12 @@ class ClimateProvider(VibeProvider):
             # wind-based continuous signal. Offsets the cloud-cover penalty that
             # FLYING's clear_sky_factor applies to its own score.
             case WeatherCode.PARTLY_CLOUDY:
-                score[VibemonTypeT.FLYING] += 0.2
+                score[VibemonTypeT.FLYING] += 0.15
 
             # Heavy overcast confirms dark, cloudy conditions.
-            # DARK bonus raised 0.2 → 0.3 to compensate for stricter 2-of-3 continuous gate
-            # (pure overcast no longer fires DARK from continuous signals alone).
             case WeatherCode.OVERCAST:
                 score[VibemonTypeT.NORMAL] += 0.3
-                score[VibemonTypeT.DARK] += 0.3
+                score[VibemonTypeT.DARK] += 0.2
 
             # All thunderstorm variants confirm electrical activity (rare event).
             # DRAGON bonus dropped — DRAGON now requires sqrt(cape * altitude); a lowland
@@ -372,12 +373,10 @@ class ClimateProvider(VibeProvider):
 
         pm25_by_day = daily_means(a["hourly"]["time"], a["hourly"]["pm2_5"])
         dust_by_day = daily_means(a["hourly"]["time"], a["hourly"]["dust"])
-        soil_moisture_by_day = daily_means(d["hourly"]["time"], d["hourly"]["soil_moisture_0_to_1cm"])
 
         # Inject hourly-derived aggregates onto the daily weather frame so replay is deterministic.
         s["pm2_5_mean"] = [pm25_by_day.get(day, 0.0) for day in s["time"]]
         s["dust_mean"] = [dust_by_day.get(day, 0.0) for day in s["time"]]
-        s["soil_moisture_0_to_1cm_mean"] = [soil_moisture_by_day.get(day, 0.18) for day in s["time"]]
 
         return {
             "start_date": start_date.isoformat(),
@@ -411,7 +410,6 @@ class ClimateProvider(VibeProvider):
                 Signal(name="humdty", attr="relative_humidity_2m_mean",  raw=s["relative_humidity_2m_mean"][i],   min=   5.00, med=    65.00, max=   100.00),
                 Signal(name="radiat", attr="shortwave_radiation_sum",    raw=s["shortwave_radiation_sum"][i],     min=   0.00, med=    15.00, max=    35.00),
                 Signal(name="snowfl", attr="snowfall_sum",               raw=s["snowfall_sum"][i],                min=   0.00, med=     0.10, max=   100.00),
-                Signal(name="soilmt", attr="soil_moisture_0_to_1cm_mean",raw=s["soil_moisture_0_to_1cm_mean"][i], min=   0.00, med=     0.25, max=     0.55),
                 Signal(name="tmp_hi", attr="temperature_2m_max",         raw=s["temperature_2m_max"][i],          min= -40.00, med=    20.00, max=    55.00),
                 Signal(name="tmp_lo", attr="temperature_2m_min",         raw=s["temperature_2m_min"][i],          min= -60.00, med=     8.00, max=    35.00),
                 Signal(name="uv_idx", attr="uv_index_max",               raw=s["uv_index_max"][i],                min=   0.00, med=     6.00, max=    18.00),
