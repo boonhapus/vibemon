@@ -16,34 +16,34 @@
 ## 2) Architecture Hardening (Do Next)
 
 ### 2.1 Transition Policy Extraction
-- [ ] Add `app/policies/vibemon_transitions.py`.
-- [ ] Move command guard logic out of `VibemonService` into explicit transition checks.
-- [ ] Add focused tests for legal/illegal transition matrix.
+- [x] Add `app/policies/vibemon_transitions.py`.
+- [x] Move command guard logic out of `VibemonService` into explicit transition checks.
+- [x] Add focused tests for legal/illegal transition matrix.
 
 ### 2.2 Lifecycle Policy/IO Split
-- [ ] Add `app/lifecycle/policy.py` for required-assets and allowed-lifecycle transitions.
-- [ ] Add `app/lifecycle/realizer.py` for IO (genai/storage) behind injected adapters.
-- [ ] Keep `VibemonService` as facade while delegating implementation.
+- [x] Add `app/lifecycle/policy.py` for required-assets and allowed-lifecycle transitions.
+- [x] Add `app/lifecycle/realizer.py` for IO (genai/storage) behind injected adapters.
+- [x] Keep `VibemonService` as facade while delegating implementation.
 
 ### 2.3 Remove Import-Time Runtime Construction
-- [ ] Remove import-time global GenAI client construction.
-- [ ] Pass runtime dependencies/config via constructors/factories.
-- [ ] Add startup wiring tests proving injectability with fakes.
+- [x] Remove import-time global GenAI client construction.
+- [x] Pass runtime dependencies/config via constructors/factories.
+- [x] Add startup wiring tests proving injectability with fakes.
 
 ### 2.4 Domain Module Split
-- [ ] Split `app/schema.py` into `app/domain/{birth,vibemon,move,read_models}.py`.
-- [ ] Keep temporary `app/schema.py` re-export shim for migration safety.
-- [ ] Update imports incrementally with no behavior changes.
+- [x] Split `app/schema.py` into `app/domain/{birth,vibemon,move,read_models}.py`.
+- [x] Keep temporary `app/schema.py` re-export shim for migration safety.
+- [x] Update imports incrementally with no behavior changes.
 
 ### 2.5 Read Model Assembler + Config
-- [ ] Add service-internal read-model assembler seam.
-- [ ] Move signed URL TTL into centralized config constant (default 15m).
-- [ ] Add tests for signed URL policy behavior.
+- [x] Add service-internal read-model assembler seam.
+- [x] Move signed URL TTL into centralized config constant (default 15m).
+- [x] Add tests for signed URL policy behavior.
 
 ### 2.6 Persistence/Concurrency Contract
-- [ ] Enforce candidate-review/disposition invariants with SQLite-safe constraints now.
-- [ ] Document SQLite vs Postgres concurrency guarantees in code/docs.
-- [ ] Add Postgres follow-up checklist for lock/race semantics hardening.
+- [x] Enforce candidate-review/disposition invariants with SQLite-safe constraints now.
+- [x] Document SQLite vs Postgres concurrency guarantees in code/docs.
+- [x] Add Postgres follow-up checklist for lock/race semantics hardening.
 
 ## 3) Wild Encounter Slice (Build After 2.x)
 

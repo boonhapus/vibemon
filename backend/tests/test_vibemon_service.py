@@ -397,3 +397,25 @@ async def test_timeout_resolution_moves_candidate_to_wild(sess: AsyncSession) ->
     assert review.status == types.CandidateReviewStatusT.TIMED_OUT.value
     assert vibemon is not None
     assert vibemon.disposition == types.VibemonDispositionT.WILD.value
+
+
+@pytest.mark.asyncio
+async def test_public_asset_url_ttl_is_centralized(sess: AsyncSession) -> None:
+    trainer_id = await _trainer(sess)
+    observed: list[dt.timedelta] = []
+
+    async def capture_asset_url(key: str, expires_in: dt.timedelta) -> str:
+        observed.append(expires_in)
+        return f"asset://{key}"
+
+    service = vibemon_service.VibemonService(
+        clock=lambda: NOW,
+        rng=random.Random(1),
+        christen_step=fake_christen,
+        manifest_step=fake_manifest,
+        asset_urler=capture_asset_url,
+    )
+    result = await service.generate_candidate(sess, trainer_id=trainer_id, birth_seed=_seed())
+    assert len(result.assets) == 2
+    assert observed
+    assert set(observed) == {dt.timedelta(minutes=15)}

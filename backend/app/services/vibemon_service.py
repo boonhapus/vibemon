@@ -13,7 +13,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 import sqlalchemy as sa
 
-from app import lifecycle, models, schema, types
+from app import models, schema, types
 from app.data_store import assets as ds_assets
 from app.data_store import monstore
 from app.data_store import schema as ds_schema
@@ -25,7 +25,10 @@ from app.errors import (
     PartyFull,
     ReleaseUnavailable,
 )
+from app.lifecycle.realizer import LifecycleRealizer
 from app.plugins import move_catalog
+from app.policies import vibemon_transitions
+from app.services.read_model_assembler import ReadModelAssembler
 
 DAILY_GENERATION_CREDITS = 3
 CANDIDATE_REVIEW_TIMEOUT = dt.timedelta(hours=24)
@@ -53,15 +56,20 @@ class VibemonService:
         *,
         clock: Clock | None = None,
         rng: random.Random | None = None,
-        christen_step: LifecycleStep = lifecycle.christen,
-        manifest_step: LifecycleStep = lifecycle.manifest,
+        christen_step: LifecycleStep | None = None,
+        manifest_step: LifecycleStep | None = None,
         asset_urler: AssetUrler | None = None,
     ) -> None:
+        realizer = LifecycleRealizer()
         self._clock = clock or (lambda: dt.datetime.now(tz=dt.UTC))
         self._rng = rng or random.Random()
-        self._christen = christen_step
-        self._manifest = manifest_step
+        self._christen = christen_step or realizer.christen
+        self._manifest = manifest_step or realizer.manifest
         self._asset_urler = asset_urler or _monstore_url
+        self._read_model_assembler = ReadModelAssembler(
+            schema_loader=self._schema_from_row,
+            asset_urler=self._asset_urler,
+        )
 
     async def generate_candidate(
         self,
@@ -124,7 +132,7 @@ class VibemonService:
     ) -> schema.PublicVibemon:
         now = self._now()
         review = await self._pending_review(sess, trainer_id=trainer_id, vibemon_id=vibemon_id)
-        if self._deadline_passed(review, now):
+        if vibemon_transitions.review_deadline_passed(timeout_at=review.timeout_at, now=now):
             await self._timeout_review(sess, review, now)
             await sess.flush()
             raise CandidateReviewUnavailable("Candidate review has timed out.")
@@ -310,14 +318,16 @@ class VibemonService:
             .all()
         )
         used = {row.team_slot for row in rows if row.team_slot is not None}
-        if len(rows) < 6:
-            return _AdoptionPlan(slot=next(slot for slot in range(6) if slot not in used), release=None)
-        if release_vibemon_id is None:
-            raise PartyFull("Adoption requires releasing one party Vibemon.")
-        release = next((row for row in rows if row.id == release_vibemon_id), None)
-        if release is None or release.team_slot is None:
+        release = next((row for row in rows if row.id == release_vibemon_id), None) if release_vibemon_id else None
+        release_slot = release.team_slot if release is not None else None
+        slot = vibemon_transitions.select_adoption_slot(
+            owned_count=len(rows),
+            used_slots=used,
+            release_slot=release_slot,
+        )
+        if len(rows) >= 6 and release is None:
             raise PartyFull("Release Vibemon is not owned by this trainer.")
-        return _AdoptionPlan(slot=release.team_slot, release=release)
+        return _AdoptionPlan(slot=slot, release=release if len(rows) >= 6 else None)
 
     async def _reserve_credit(
         self,
@@ -524,6 +534,7 @@ class VibemonService:
         ).scalar_one_or_none()
         if review is None:
             raise CandidateReviewUnavailable("No pending candidate review exists for this trainer and Vibemon.")
+        vibemon_transitions.require_pending_review_status(review.status)
         return review
 
     async def _load_vibemon(self, sess: AsyncSession, vibemon_id: uuid.UUID) -> models.Vibemon:
@@ -580,43 +591,10 @@ class VibemonService:
         *,
         reviewing_trainer_id: types.TrainerIdT | None = None,
     ) -> schema.PublicVibemon:
-        vibemon = await self._schema_from_row(row)
-        assets = await self._public_assets(row.assets)
-        review = _visible_review(row.candidate_reviews, reviewing_trainer_id)
-        aesthetic = vibemon.aesthetic
-        return schema.PublicVibemon(
-            id=vibemon.id,
-            nickname=vibemon.nickname,
-            name=vibemon.name,
-            identity=vibemon.identity,
-            moves=vibemon.moves,
-            level=vibemon.level,
-            xp=vibemon.xp,
-            evo_stage=vibemon.evo_stage,
-            lifecycle=vibemon.lifecycle,
-            disposition=types.VibemonDispositionT(row.disposition) if row.disposition else None,
-            trainer_id=row.trainer_id,
-            team_slot=row.team_slot,
-            primary_color=aesthetic.primary_color if aesthetic else None,
-            secondary_color=aesthetic.secondary_color if aesthetic else None,
-            background_color=aesthetic.background_color if aesthetic else None,
-            assets=assets,
-            candidate_review=review,
+        return await self._read_model_assembler.assemble(
+            row,
+            reviewing_trainer_id=reviewing_trainer_id,
         )
-
-    async def _public_assets(self, assets: list[models.VibemonAsset]) -> tuple[schema.PublicAsset, ...]:
-        public = []
-        for asset in sorted(assets, key=lambda item: item.kind):
-            public.append(
-                schema.PublicAsset(
-                    kind=ds_types.AssetKind(asset.kind),
-                    url=await self._asset_urler(asset.object_key, dt.timedelta(hours=1)),
-                    content_type=asset.content_type,
-                    byte_size=asset.byte_size,
-                    sha256=asset.sha256,
-                )
-            )
-        return tuple(public)
 
     async def _upsert_encounter_adjustment(
         self,
@@ -679,12 +657,6 @@ class VibemonService:
             return now.replace(tzinfo=dt.UTC)
         return now.astimezone(dt.UTC)
 
-    def _deadline_passed(self, review: models.CandidateReview, now: dt.datetime) -> bool:
-        timeout_at = review.timeout_at
-        if timeout_at.tzinfo is None:
-            timeout_at = timeout_at.replace(tzinfo=dt.UTC)
-        return timeout_at <= now
-
 
 def _move_schema(row: models.Move) -> schema.Move:
     return schema.Move(
@@ -716,26 +688,6 @@ def _asset_ref(vibemon_id: uuid.UUID, row: models.VibemonAsset) -> ds_schema.Ass
         byte_size=row.byte_size,
         sha256=row.sha256,
     )
-
-
-def _visible_review(
-    reviews: list[models.CandidateReview],
-    reviewing_trainer_id: types.TrainerIdT | None,
-) -> schema.CandidateReviewRead | None:
-    if reviewing_trainer_id is None:
-        return None
-    for review in reviews:
-        if review.trainer_id == reviewing_trainer_id:
-            return schema.CandidateReviewRead(
-                id=review.id,
-                trainer_id=review.trainer_id,
-                status=types.CandidateReviewStatusT(review.status),
-                shown_at=review.shown_at,
-                timeout_at=review.timeout_at,
-                resolved_at=review.resolved_at,
-                resolution=types.CandidateReviewStatusT(review.resolution) if review.resolution else None,
-            )
-    return None
 
 
 async def _monstore_url(key: str, expires_in: dt.timedelta) -> str:

@@ -103,6 +103,21 @@ class Vibemon(Base):
             "team_slot IS NULL OR (team_slot >= 0 AND team_slot <= 5)",
             name="ck_vibemon_team_slot",
         ),
+        CheckConstraint(
+            "("
+            "disposition IS NULL AND trainer_id IS NULL AND team_slot IS NULL"
+            ") OR ("
+            "COALESCE(disposition = 'owned', 0) AND trainer_id IS NOT NULL AND team_slot IS NOT NULL"
+            ") OR ("
+            "COALESCE(disposition = 'wild', 0) AND trainer_id IS NULL AND team_slot IS NULL"
+            ") OR ("
+            "COALESCE(disposition = 'expired', 0) "
+            "AND trainer_id IS NULL "
+            "AND team_slot IS NULL "
+            "AND expired_at IS NOT NULL"
+            ")",
+            name="ck_vibemon_disposition_shape",
+        ),
         Index(
             "uq_vibemon_team_slot",
             "trainer_id",
@@ -305,6 +320,14 @@ class CandidateReview(Base):
             ["trainer.id"],
             name="fk_candidate_review_trainer",
             ondelete="CASCADE",
+        ),
+        CheckConstraint(
+            "("
+            "status = 'pending' AND resolved_at IS NULL AND resolution IS NULL"
+            ") OR ("
+            "status != 'pending' AND resolved_at IS NOT NULL AND resolution = status"
+            ")",
+            name="ck_candidate_review_resolution_state",
         ),
         Index("ix_candidate_review_trainer_status", "trainer_id", "status"),
     )

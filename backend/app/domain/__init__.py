@@ -1,7 +1,4 @@
-"""Compatibility re-export shim for domain schemas.
-
-Prefer importing from `app.domain.*` for new code.
-"""
+"""Vibemon domain modules."""
 
 from app.domain.birth import BirthSeed, BirthSnapshot, FrozenSchema, Schema
 from app.domain.move import (

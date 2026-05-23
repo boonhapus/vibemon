@@ -24,6 +24,9 @@ Adopt an explicit two-profile concurrency contract:
 1. Validate invariant correctness and transition policy behavior.
 2. Do not claim lock-order or worker-concurrency guarantees from SQLite behavior.
 3. Run single-worker cleanup by default in local scripts.
+4. Enforce persistence invariants directly with SQLite-safe `CHECK`/unique constraints:
+   - Vibemon disposition/trainer/team-slot shape.
+   - Candidate-review status/resolution coherence.
 
 ## Postgres profile (production target)
 1. Use row-level lock semantics for transition commands.
@@ -42,9 +45,16 @@ Adopt an explicit two-profile concurrency contract:
 - Lower risk of roadmap claims drifting from actual runtime guarantees.
 
 ## Implementation Tasks
-- [ ] Make review transition writes conditional on `pending` in [`backend/app/services/vibemon_service.py`](/C:/projects/vibemon/backend/app/services/vibemon_service.py).
+- [x] Make review transition writes conditional on `pending` in [`backend/app/services/vibemon_service.py`](/C:/projects/vibemon/backend/app/services/vibemon_service.py).
 - [ ] Keep local cleanup default single-worker in [`backend/scripts/cleanup_holds.py`](/C:/projects/vibemon/backend/scripts/cleanup_holds.py).
 - [ ] Add explicit production-path timeout batching semantics (`FOR UPDATE SKIP LOCKED`) for Postgres in service/repository layer.
-- [ ] Add SQLite functional race/invariant tests in [`backend/tests/test_vibemon_service.py`](/C:/projects/vibemon/backend/tests/test_vibemon_service.py) and [`backend/tests/test_stale_holds.py`](/C:/projects/vibemon/backend/tests/test_stale_holds.py).
+- [x] Add SQLite functional race/invariant tests in [`backend/tests/test_vibemon_service.py`](/C:/projects/vibemon/backend/tests/test_vibemon_service.py), [`backend/tests/test_stale_holds.py`](/C:/projects/vibemon/backend/tests/test_stale_holds.py), and [`backend/tests/test_persistence_invariants.py`](/C:/projects/vibemon/backend/tests/test_persistence_invariants.py).
 - [ ] Add Postgres concurrency integration tests under `backend/tests/` (new test module).
 - [ ] Document release gate requiring Postgres race test pass before multi-worker cleanup enablement.
+
+## Postgres hardening checklist (follow-up)
+- [ ] Add `FOR UPDATE SKIP LOCKED` timeout-batch path.
+- [ ] Add transition-update predicates that no-op if status is no longer `pending`.
+- [ ] Add concurrent adopt/reject/timeout integration tests on Postgres.
+- [ ] Add concurrent cleanup worker integration tests on Postgres.
+- [ ] Keep multi-worker cleanup disabled until Postgres tests pass in CI.

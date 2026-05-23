@@ -3,6 +3,8 @@
 Use this module for constants that do not carry runtime state or perform I/O.
 """
 
+import datetime as dt
+
 # ── Status Chance Constants ───────────────────────────────────────────────────────────
 
 FREEZE_THAW_CHANCE = 0.2
@@ -100,3 +102,7 @@ STARTING_MOVE_COUNT = 2
 
 RADIANT_ODDS = 4096
 """A rare, alternative style that differs from its peer identities' appearance."""
+
+
+PUBLIC_ASSET_URL_TTL = dt.timedelta(minutes=15)
+"""Signed URL lifetime for public read-model asset links."""
