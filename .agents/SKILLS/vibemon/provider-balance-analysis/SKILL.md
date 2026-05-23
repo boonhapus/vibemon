@@ -1,6 +1,6 @@
 ---
 name: provider-balance-analysis
-description: Rerun and interpret Vibemon provider balance analysis after changes to backend/app/plugins/provider.py, backend/app/plugins/climate, backend/app/plugins/helpers.py, backend/app/balance, or backend/app/battle. Use when assessing dominant or underperforming climate scenarios, provider contract health, generated type/stat/move ecology, or whether climate provider tuning is needed.
+description: Rerun and interpret Vibemon provider balance analysis after changes to vibemon/backend/app/providers, vibemon/backend/app/domains/move, vibemon/backend/app/domains/vibemon, vibemon/backend/app/domains/battle, or database persistence shape. Use when assessing dominant or underperforming climate scenarios, provider contract health, generated type/stat/move ecology, or whether climate provider tuning is needed.
 ---
 
 # Provider Balance Analysis
@@ -32,7 +32,7 @@ uv run .agents/skills/vibemon/provider-balance-analysis/scripts/provider_analysi
 The bundled analyzer creates synthetic climate payloads and checks:
 
 - provider contract behavior: exposed elements, replay determinism, `synthesize()` purity, persisted provenance columns,
-- climate move catalog: type/category/level distribution, effects, status access, priority, script and condition usage,
+- climate move catalog: type/category/level distribution, effects, status access, priority, and condition usage,
 - generated affinities: element frequency, dual-type rate, BST, battle roles, stat spread, move-set quality,
 - battle impact: fixed-seed 1v1 simulations using `best_damage`, `stab_first`, `status_aware`, and `random` policies,
 - Pokemon benchmark gaps: four-move limit, abilities/items/weather/conditional mechanics, and provider-generated species differences.
@@ -42,14 +42,14 @@ The script is offline: it uses synthetic provider payloads and should not call O
 ## Interpreting Findings
 
 - Treat `dominant` and `weak` scenarios as investigation leads, not automatic balance bugs.
-- Before editing `backend/app/plugins/climate`, identify whether the cause is provider mapping, move catalog, battle engine behavior, or simulator assumptions.
+- Before editing `vibemon/backend/app/providers/climate`, identify whether the cause is provider mapping, move catalog, battle engine behavior, or simulator assumptions.
 - A scenario matters most when it is both severe and prevalent. Synthetic edge cases with rare real-world frequency may be acceptable.
 - Check whether a result is caused by missing battle mechanics before tuning provider data. Weather moves, first-party scripts, and conditional priority may be intentionally unimplemented or not wired yet.
 - Compare reports before and after a tweak using the JSON output. Look for changes in win rates, role concentration, type frequency, STAB counts, and top findings.
 
 ## When To Tune Climate
 
-Consider updating `backend/app/plugins/climate` only if:
+Consider updating `vibemon/backend/app/providers/climate` only if:
 
 - the scenario is likely common in realistic births or too extreme when it occurs,
 - the issue remains after accounting for BST, move count, type matchup, and policy choice,
@@ -62,7 +62,7 @@ Prefer battle-system fixes when the finding points to inert mechanics, such as c
 After changing the skill script, run:
 
 ```powershell
-uv run --with ruff --with-editable ./backend --with sqlalchemy ruff check .agents/skills/vibemon/provider-balance-analysis
+uv run --with ruff --with-editable ./vibemon/backend --with sqlalchemy ruff check .agents/skills/vibemon/provider-balance-analysis
 uv run .agents/skills/vibemon/provider-balance-analysis/scripts/provider_analysis.py --scenario-limit 4 --battle-rounds 1 --policies best_damage --format json
 ```
 

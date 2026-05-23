@@ -3,7 +3,7 @@
 # dependencies = ["vibemon-backend", "sqlalchemy"]
 #
 # [tool.uv.sources]
-# vibemon-backend = { path = "../../../../../backend" , editable = true }
+# vibemon-backend = { path = "../../../../../vibemon/backend" , editable = true }
 # ///
 
 from __future__ import annotations
@@ -23,19 +23,24 @@ import uuid
 import pydantic
 import structlog
 
-from app import const, models, schema, types
-from app.balance import element_chart
-from app.battle import actions
-from app.battle import schema as battle_schema
-from app.battle.engine import GameEngine
-from app.content import CONTENT_DIR, load_provider_moves
-from app.plugins.climate.const import WeatherCode
-from app.plugins.climate.provider import ClimateProvider
+from app.domains.battle import actions
+from app.domains.battle import entity as battle_schema
+from app.domains.battle.engine import GameEngine
+from app.domains.generation.affinity import Affinity
+from app.domains.generation.seed import BirthSeed
+from app.domains.move import catalog as element_chart
+from app.domains.move import types as move_types
+from app.domains.move.entity import Heal, StatChange, StatusInflict, WeatherSet
+from app.domains.vibemon import types as vibemon_types
+from app.domains.vibemon.entity import Vibemon
+from app.providers.climate.const import WeatherCode
+from app.providers.climate.provider import ClimateProvider
+from app.storage.database import models
 
 
 type PolicyName = str
 
-STAT_KEYS: tuple[types.BaseStatNameT, ...] = (
+STAT_KEYS: tuple[vibemon_types.BaseStatNameT, ...] = (
     "hp",
     "attack",
     "defense",
@@ -475,19 +480,19 @@ def build_climate_payload(spec: ScenarioSpec, *, days: int = 44) -> dict[str, ob
     }
 
 
-def _seed_for(spec: ScenarioSpec, provider: ClimateProvider) -> schema.BirthSeed:
-    return schema.BirthSeed(
+def _seed_for(spec: ScenarioSpec, provider: ClimateProvider) -> BirthSeed:
+    return BirthSeed(
         timestamp=dt.datetime(2026, 1, 1, 12, tzinfo=dt.timezone.utc),
         geo_coords=(0.0, 0.0),
         providers=[provider],
     )
 
 
-async def synthesize_scenario(provider: ClimateProvider, spec: ScenarioSpec) -> schema.Affinity:
+async def synthesize_scenario(provider: ClimateProvider, spec: ScenarioSpec) -> Affinity:
     payload = build_climate_payload(spec)
     seed = _seed_for(spec, provider)
 
-    async def run() -> schema.Affinity:
+    async def run() -> Affinity:
         affinity = await provider.synthesize(seed, payload)
         identity = affinity.identity.model_copy(update={"name": spec.name})
         return affinity.model_copy(update={"identity": identity})
@@ -495,7 +500,7 @@ async def synthesize_scenario(provider: ClimateProvider, spec: ScenarioSpec) -> 
     return await _with_random_seed_async(spec.name, run)
 
 
-def _affinity_signature(affinity: schema.Affinity) -> tuple[object, ...]:
+def _affinity_signature(affinity: Affinity) -> tuple[object, ...]:
     identity = affinity.identity
     return (
         tuple(element.value for element in identity.elements),
@@ -549,14 +554,13 @@ async def _check_synthesize_network_free(spec: ScenarioSpec) -> bool:
         return False
     finally:
         provider.client = original_client
-        await provider.teardown()
 
 
-def _safe_exposed_elements(provider: ClimateProvider) -> tuple[dict[types.VibemonTypeT, str], str | None]:
+def _safe_exposed_elements(provider: ClimateProvider) -> tuple[dict[move_types.VibemonTypeT, str], str | None]:
     try:
         return provider.get_exposed_elements(), None
     except Exception as exc:
-        exposed: dict[types.VibemonTypeT, str] = {}
+        exposed: dict[move_types.VibemonTypeT, str] = {}
         for annotated_type in provider.exposed_elements:
             if get_origin(annotated_type) is not Annotated:
                 continue
@@ -564,19 +568,19 @@ def _safe_exposed_elements(provider: ClimateProvider) -> tuple[dict[types.Vibemo
             if len(args) < 2:
                 continue
             element, description = args[0], args[1]
-            if not isinstance(element, types.VibemonTypeT) and hasattr(element, "__forward_arg__"):
+            if not isinstance(element, move_types.VibemonTypeT) and hasattr(element, "__forward_arg__"):
                 try:
-                    element = types.VibemonTypeT(getattr(element, "__forward_arg__"))
+                    element = move_types.VibemonTypeT(getattr(element, "__forward_arg__"))
                 except ValueError:
                     pass
-            if isinstance(element, types.VibemonTypeT) and isinstance(description, str):
+            if isinstance(element, move_types.VibemonTypeT) and isinstance(description, str):
                 exposed[element] = description
         return exposed, f"get_exposed_elements() raised {type(exc).__name__}: {exc}"
 
 
 async def analyze_provider_contract(provider: ClimateProvider, specs: Sequence[ScenarioSpec]) -> ProviderContractReport:
     exposed, exposed_error = _safe_exposed_elements(provider)
-    all_types = {element for element in types.VibemonTypeT}
+    all_types = {element for element in move_types.VibemonTypeT}
     unseeded_deterministic, seeded_deterministic = await _check_replay_determinism(provider, specs[0])
     synthesize_network_free = await _check_synthesize_network_free(specs[0])
 
@@ -611,7 +615,7 @@ def _counter_values(counter: Counter) -> dict[str, int]:
 
 
 def analyze_move_catalog() -> MoveCatalogReport:
-    moves = load_provider_moves(CONTENT_DIR / "climate.json").moves
+    moves = ClimateProvider().moves()
     by_type = Counter(move.type.value for move in moves)
     by_category = Counter(move.category.value for move in moves)
     by_level = Counter(str(move.level_requirement) for move in moves)
@@ -626,23 +630,23 @@ def analyze_move_catalog() -> MoveCatalogReport:
         for group in move.effects:
             for effect in group.effects:
                 effect_kinds[effect.kind] += 1
-                if isinstance(effect, schema.StatusInflict):
+                if isinstance(effect, StatusInflict):
                     statuses[effect.status.value] += 1
-                elif isinstance(effect, schema.WeatherSet):
+                elif isinstance(effect, WeatherSet):
                     weather_sets[effect.weather.value] += 1
 
     power_by_category: dict[str, dict[str, float]] = {}
-    for category in types.MoveCategoryT:
+    for category in move_types.MoveCategoryT:
         powers = [float(move.power) for move in moves if move.category == category and move.power is not None]
         if powers:
             power_by_category[category.value] = _stats(powers)
 
     condition_count = sum(len(move.behavior.conditions) for move in moves)
-    script_count = sum(1 for move in moves if move.behavior.script_id)
+    script_count = sum(1 for move in moves if getattr(move.behavior, "script_id", None))
     moves_with_effects = sum(1 for move in moves if move.effects)
 
     findings: list[str] = []
-    if len(by_type) == len(types.VibemonTypeT):
+    if len(by_type) == len(move_types.VibemonTypeT):
         findings.append("Climate moves cover every Vibemon type.")
     if by_level.get("1", 0) > len(moves) * 0.5:
         findings.append("Most climate moves are available at level 1, so starter move pools carry late-game breadth.")
@@ -653,7 +657,7 @@ def analyze_move_catalog() -> MoveCatalogReport:
     if condition_count == 0:
         findings.append("Climate moves do not currently exercise declarative conditional move behavior.")
     if script_count == 0:
-        findings.append("Climate moves do not use first-party move scripts.")
+        findings.append("The current move model has no first-party move script hook in MoveBehavior.")
 
     return MoveCatalogReport(
         total_moves=len(moves),
@@ -675,10 +679,10 @@ def analyze_move_catalog() -> MoveCatalogReport:
     )
 
 
-def _defensive_profile(elements: Sequence[types.VibemonTypeT]) -> dict[str, int]:
+def _defensive_profile(elements: Sequence[move_types.VibemonTypeT]) -> dict[str, int]:
     modifiers = [
         element_chart.get_element_effectiveness(attack_type, list(elements))
-        for attack_type in types.VibemonTypeT
+        for attack_type in move_types.VibemonTypeT
     ]
     return {
         "weaknesses": sum(1 for modifier in modifiers if modifier > 1.0),
@@ -688,16 +692,16 @@ def _defensive_profile(elements: Sequence[types.VibemonTypeT]) -> dict[str, int]
     }
 
 
-def _move_set_report(affinity: schema.Affinity) -> MoveSetReport:
+def _move_set_report(affinity: Affinity) -> MoveSetReport:
     elements = affinity.identity.elements
     moves = affinity.moves
-    damaging = [move for move in moves if move.power is not None and move.category != types.MoveCategoryT.STATUS]
-    status = [move for move in moves if move.power is None or move.category == types.MoveCategoryT.STATUS]
+    damaging = [move for move in moves if move.power is not None and move.category != move_types.MoveCategoryT.STATUS]
+    status = [move for move in moves if move.power is None or move.category == move_types.MoveCategoryT.STATUS]
     powers = [move.power for move in damaging if move.power is not None]
     coverage_types = 0
     blocked_by_immunity = 0
 
-    for defender_type in types.VibemonTypeT:
+    for defender_type in move_types.VibemonTypeT:
         effectiveness = [
             element_chart.get_element_effectiveness(move.type, [defender_type])
             for move in damaging
@@ -720,7 +724,7 @@ def _move_set_report(affinity: schema.Affinity) -> MoveSetReport:
     )
 
 
-def _scenario_affinity_report(spec: ScenarioSpec, affinity: schema.Affinity) -> ScenarioAffinityReport:
+def _scenario_affinity_report(spec: ScenarioSpec, affinity: Affinity) -> ScenarioAffinityReport:
     identity = affinity.identity
     stats = {
         "hp": identity.base_hp,
@@ -747,7 +751,7 @@ def _scenario_affinity_report(spec: ScenarioSpec, affinity: schema.Affinity) -> 
 
 def analyze_generated_affinities(
     specs: Sequence[ScenarioSpec],
-    affinities: Sequence[schema.Affinity],
+    affinities: Sequence[Affinity],
 ) -> GeneratedAffinityReport:
     scenario_reports = [
         _scenario_affinity_report(spec, affinity)
@@ -772,7 +776,7 @@ def analyze_generated_affinities(
     if max_element_count / max(1, sum(element_frequency.values())) > 0.25:
         most_common = element_frequency.most_common(1)[0][0]
         findings.append(f"{most_common} appears in more than a quarter of generated type slots.")
-    missing_types = sorted(set(element.value for element in types.VibemonTypeT) - set(element_frequency))
+    missing_types = sorted(set(element.value for element in move_types.VibemonTypeT) - set(element_frequency))
     if missing_types:
         findings.append("Synthetic climate corpus did not produce: " + ", ".join(missing_types) + ".")
     if dual_type_rate > 0.8:
@@ -796,9 +800,9 @@ def analyze_generated_affinities(
     )
 
 
-def _vibemon_from_affinity(affinity: schema.Affinity, *, level: int) -> schema.Vibemon:
+def _vibemon_from_affinity(affinity: Affinity, *, level: int) -> Vibemon:
     moves = tuple(affinity.moves[:4])
-    return schema.Vibemon(
+    return Vibemon(
         nickname=affinity.identity.name,
         identity=affinity.identity,
         moves=moves,
@@ -806,7 +810,7 @@ def _vibemon_from_affinity(affinity: schema.Affinity, *, level: int) -> schema.V
     )
 
 
-def _battle_vibemon(vibemon: schema.Vibemon) -> battle_schema.BattleVibemon:
+def _battle_vibemon(vibemon: Vibemon) -> battle_schema.BattleVibemon:
     return battle_schema.BattleVibemon(**vibemon.model_dump())
 
 
@@ -815,17 +819,17 @@ def _estimated_damage_score(
     target: battle_schema.BattleVibemon,
     move: battle_schema.BattleMove,
 ) -> float:
-    if move.power is None or move.category == types.MoveCategoryT.STATUS:
+    if move.power is None or move.category == move_types.MoveCategoryT.STATUS:
         return 0.0
 
-    if move.category == types.MoveCategoryT.PHYSICAL:
+    if move.category == move_types.MoveCategoryT.PHYSICAL:
         attack = user.attack
         defense = target.defense
     else:
         attack = user.sp_attack
         defense = target.sp_defense
 
-    stab = const.STAB_MULTIPLIER if move.type in user.elements else 1.0
+    stab = 1.5 if move.type in user.elements else 1.0
     type_effect = element_chart.get_element_effectiveness(move.type, list(target.elements))
     accuracy = 1.0 if move.accuracy is None else move.accuracy
     priority_bonus = 1.05 if move.priority > 0 else 1.0
@@ -842,28 +846,28 @@ def _status_effect_score(
     for group in move.effects:
         chance = group.chance
         for effect in group.effects:
-            if isinstance(effect, schema.StatusInflict) and target.status == types.StatusConditionT.NONE:
+            if isinstance(effect, StatusInflict) and target.status == move_types.StatusConditionT.NONE:
                 weights = {
-                    types.StatusConditionT.BURN: 18.0,
-                    types.StatusConditionT.PARALYSIS: 16.0,
-                    types.StatusConditionT.FREEZE: 20.0,
-                    types.StatusConditionT.SLEEP: 10.0,
-                    types.StatusConditionT.POISON: 12.0,
-                    types.StatusConditionT.BAD_POISON: 18.0,
+                    move_types.StatusConditionT.BURN: 18.0,
+                    move_types.StatusConditionT.PARALYSIS: 16.0,
+                    move_types.StatusConditionT.FREEZE: 20.0,
+                    move_types.StatusConditionT.SLEEP: 10.0,
+                    move_types.StatusConditionT.POISON: 12.0,
+                    move_types.StatusConditionT.BAD_POISON: 18.0,
                 }
                 score += weights.get(effect.status, 0.0) * chance
-            elif isinstance(effect, schema.StatChange):
+            elif isinstance(effect, StatChange):
                 magnitude = sum(abs(delta) for delta in effect.changes.values())
                 if effect.target == "self":
                     score += 8.0 * magnitude * chance
                 elif effect.target == "target":
                     score += 7.0 * magnitude * chance
-            elif isinstance(effect, schema.Heal) and user.current_hp < user.max_hp * 0.66:
+            elif isinstance(effect, Heal) and user.current_hp < user.max_hp * 0.66:
                 score += 20.0 * effect.ratio * chance
-            elif isinstance(effect, schema.WeatherSet):
+            elif isinstance(effect, WeatherSet):
                 score += 4.0 * chance
 
-    if move.category == types.MoveCategoryT.STATUS and move.accuracy is not None:
+    if move.category == move_types.MoveCategoryT.STATUS and move.accuracy is not None:
         score *= move.accuracy
     return score
 
@@ -878,7 +882,7 @@ def _choose_move(
     if not usable:
         return None
 
-    damaging = [move for move in usable if move.power is not None and move.category != types.MoveCategoryT.STATUS]
+    damaging = [move for move in usable if move.power is not None and move.category != move_types.MoveCategoryT.STATUS]
     if policy == "random":
         return rng.choice(usable)
 
@@ -905,8 +909,8 @@ def _choose_move(
 
 
 def _run_battle(
-    left: schema.Vibemon,
-    right: schema.Vibemon,
+    left: Vibemon,
+    right: Vibemon,
     *,
     policy: PolicyName,
     seed: int,
@@ -955,7 +959,7 @@ def _run_battle(
 
 
 def analyze_battles(
-    affinities: Sequence[schema.Affinity],
+    affinities: Sequence[Affinity],
     *,
     policies: Sequence[PolicyName],
     battle_rounds: int,
@@ -1041,17 +1045,19 @@ def analyze_battles(
 
 
 def _detect_engine_gaps() -> list[str]:
-    from app.battle.rules import turn_order
-    from app.battle import mechanics
+    from app.domains.battle.mechanics import turn_order
 
     gaps: list[str] = []
     turn_order_source = inspect.getsource(turn_order._priority)
     if "priority_delta" not in turn_order_source:
         gaps.append("Declarative conditional priority exists but is not applied by turn order.")
 
-    weather_module = getattr(mechanics, "weather", None)
-    if weather_module is None or "placeholder" in (weather_module.__doc__ or "").lower():
-        gaps.append("Weather mechanics are placeholders, so weather-setting moves do not yet modify damage or speed.")
+    try:
+        from app.domains.battle.mechanics import weather  # type: ignore[attr-defined]
+    except ImportError:
+        weather = None
+    if weather is None or "placeholder" in (weather.__doc__ or "").lower():
+        gaps.append("Weather field state exists, but weather-setting moves do not yet modify damage or speed.")
 
     return gaps
 
@@ -1076,7 +1082,7 @@ def _scorecard(
     if generated.dual_type_rate > 0.85:
         element_status = "watch"
         element_summary = "Dual typing is high enough to compress defensive identity."
-    if len(generated.element_frequency) < len(types.VibemonTypeT) * 0.6:
+    if len(generated.element_frequency) < len(move_types.VibemonTypeT) * 0.6:
         element_status = "watch"
         element_summary = "Weather-only signals leave several Pokemon-style habitat types underrepresented."
 
@@ -1141,45 +1147,42 @@ async def build_report(
 ) -> ProviderBalanceReport:
     specs = SCENARIOS[:scenario_limit] if scenario_limit is not None else SCENARIOS
     provider = ClimateProvider()
-    try:
-        contract = await analyze_provider_contract(provider, specs)
-        move_catalog = analyze_move_catalog()
-        affinities = [await synthesize_scenario(provider, spec) for spec in specs]
-        generated = analyze_generated_affinities(specs, affinities)
-        battle = analyze_battles(
-            affinities,
-            policies=policies,
-            battle_rounds=battle_rounds,
-            max_turns=max_turns,
-            level=level,
-        )
-        scorecard = _scorecard(contract, move_catalog, generated, battle)
-        top_findings = _top_findings(contract, move_catalog, generated, battle)
+    contract = await analyze_provider_contract(provider, specs)
+    move_catalog = analyze_move_catalog()
+    affinities = [await synthesize_scenario(provider, spec) for spec in specs]
+    generated = analyze_generated_affinities(specs, affinities)
+    battle = analyze_battles(
+        affinities,
+        policies=policies,
+        battle_rounds=battle_rounds,
+        max_turns=max_turns,
+        level=level,
+    )
+    scorecard = _scorecard(contract, move_catalog, generated, battle)
+    top_findings = _top_findings(contract, move_catalog, generated, battle)
 
-        return ProviderBalanceReport(
-            generated_at=dt.datetime.now(tz=dt.timezone.utc).isoformat(),
-            benchmark=[
-                "Pokemon Scarlet/Violet style: curated type roles, strong type chart counterplay, four active moves.",
-                "Gen IX inspiration: powerful special mechanics are constrained by explicit battle rules and counterplay.",
-                "Pokemon Champions framing: battles are shaped by Pokemon, types, abilities, moves, and items.",
-            ],
-            contract=contract,
-            move_catalog=move_catalog,
-            generated_affinities=generated,
-            battle=battle,
-            scorecard=scorecard,
-            pokemon_benchmark_differences=[
-                "Vibemon providers generate species identity from real-world signals instead of selecting curated species.",
-                "No abilities, held items, natures, EVs, IVs, or Terastal equivalent are currently modeled.",
-                "Battle weather can be set as field state, but first-party weather mechanics are placeholders.",
-                f"Provider-assigned move lists can exceed Pokemon's four-move battle limit; climate samples return up to "
-                f"{max(report.moves.move_count for report in generated.scenarios)} moves.",
-                "Status and stat-stage effects exist, but some Pokemon-like durations and immunities are simplified.",
-            ],
-            top_findings=top_findings,
-        )
-    finally:
-        await provider.teardown()
+    return ProviderBalanceReport(
+        generated_at=dt.datetime.now(tz=dt.timezone.utc).isoformat(),
+        benchmark=[
+            "Pokemon Scarlet/Violet style: curated type roles, strong type chart counterplay, four active moves.",
+            "Gen IX inspiration: powerful special mechanics are constrained by explicit battle rules and counterplay.",
+            "Pokemon Champions framing: battles are shaped by Pokemon, types, abilities, moves, and items.",
+        ],
+        contract=contract,
+        move_catalog=move_catalog,
+        generated_affinities=generated,
+        battle=battle,
+        scorecard=scorecard,
+        pokemon_benchmark_differences=[
+            "Vibemon providers generate species identity from real-world signals instead of selecting curated species.",
+            "No abilities, held items, natures, EVs, IVs, or Terastal equivalent are currently modeled.",
+            "Battle weather can be set as field state, but first-party weather mechanics are placeholders.",
+            f"Provider-assigned move lists can exceed Pokemon's four-move battle limit; climate samples return up to "
+            f"{max(report.moves.move_count for report in generated.scenarios)} moves.",
+            "Status and stat-stage effects exist, but some Pokemon-like durations and immunities are simplified.",
+        ],
+        top_findings=top_findings,
+    )
 
 
 def _format_counter(counter: dict[str, int], *, limit: int | None = None) -> str:

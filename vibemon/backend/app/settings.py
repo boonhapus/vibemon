@@ -31,16 +31,12 @@ class Settings(pydantic_settings.BaseSettings):
     asset_store_url: str = ""
     """
     Where Vibemon assets (sprites, audio, poses) get persisted.
-    Any obstore-supported URL.
 
-    Set ``ASSET_STORE_URL`` in the environment or ``.env``.
+    Any obstore-supported URL.
 
     Local: ``file:///<absolute-path>``.
     Remote: ``s3://bucket/prefix``, ``gs://bucket/prefix``, ``az://container/prefix``.
     Ephemeral: ``memory:///`` (tests).
-
-    Callers are responsible for supplying a fully-qualified URL — settings
-    does not resolve relative paths.
     """
 
     # ── Configuration ─────────────────────────────────────────────────────────────────

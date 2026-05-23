@@ -1,22 +1,37 @@
-"""Shared command-line plumbing for thin Vibemon workflow scripts."""
+"""Shared command-line plumbing for Vibemon rehearsal scripts."""
 
 from __future__ import annotations
 
-from collections.abc import AsyncIterator
+from collections.abc import AsyncGenerator
 from contextlib import asynccontextmanager
+from typing import Literal
 import dataclasses
 import datetime as dt
 import json
 import os
 import pathlib
+import random
 import uuid
 
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker, create_async_engine
+import sqlalchemy as sa
 
 from app.core.ids import TrainerIdT
+from app.domains.battle import actions as battle_actions
+from app.domains.battle import engine as battle_engine
+from app.domains.battle import entity as battle_entity
 from app.domains.generation.seed import BirthSeed
+from app.domains.move import catalog as move_catalog
+from app.domains.move import entity as move_entity
+from app.domains.move import types as move_types
+from app.domains.vibemon.schema import PublicVibemon
+from app.domains.vibemon.types import VibemonLifecycleT
 from app.providers.climate.provider import ClimateProvider
-from app.storage.database import models
+from app.storage.database import mapper, models, repositories
+from app.workflows import _workflow_support as workflow_support
+from app.workflows.materialize_vibemon import MaterializeVibemon
+
+type BattleMovePolicyT = Literal["first_available", "best_damage", "stab_first", "status_aware", "random"]
 
 _REPO_ROOT = pathlib.Path(__file__).resolve().parents[3]
 _DEFAULT_GENERATED = _REPO_ROOT / ".generated"
@@ -49,19 +64,23 @@ def birth_seed(
     )
 
 
+def random_latitude() -> float:
+    return random.uniform(-90.0, 90.0)
+
+
+def random_longitude() -> float:
+    return random.uniform(-180.0, 180.0)
+
+
 @asynccontextmanager
-async def session_scope(
-    *,
-    database_url: str,
-    create_schema: bool = True,
-) -> AsyncIterator[AsyncSession]:
+async def session_scope(*, database_url: str) -> AsyncGenerator[AsyncSession]:
     if database_url == DEFAULT_DATABASE_URL:
         _DEFAULT_DATABASE_PATH.parent.mkdir(parents=True, exist_ok=True)
     engine = create_async_engine(database_url)
     try:
-        if create_schema:
-            async with engine.begin() as conn:
-                await conn.run_sync(models.Base.metadata.create_all)
+        async with engine.begin() as conn:
+            await conn.run_sync(models.Base.metadata.create_all)
+
         session_factory = async_sessionmaker(engine, expire_on_commit=False)
         async with session_factory() as sess:
             try:
@@ -75,16 +94,264 @@ async def session_scope(
 
 
 def dump(value: object) -> None:
+    print(json.dumps(_jsonable(value), default=str, indent=2, sort_keys=True))
+
+
+def _jsonable(value: object) -> object:
     if hasattr(value, "model_dump"):
-        print(json.dumps(value.model_dump(mode="json"), indent=2, sort_keys=True))
-        return
+        return _jsonable(value.model_dump(mode="json"))
     if dataclasses.is_dataclass(value) and not isinstance(value, type):
-        value = dataclasses.asdict(value)
-    print(json.dumps(value, default=str, indent=2, sort_keys=True))
+        return _jsonable(dataclasses.asdict(value))
+    if isinstance(value, dict):
+        return {str(key): _jsonable(item) for key, item in value.items()}
+    if isinstance(value, (list, tuple, set)):
+        return [_jsonable(item) for item in value]
+    return value
 
 
 def trainer_id(value: uuid.UUID) -> TrainerIdT:
     return value
+
+
+async def ensure_trainer(
+    sess: AsyncSession,
+    trainer_id: uuid.UUID,
+    *,
+    username: str | None = None,
+) -> models.Trainer:
+    row = await sess.get(models.Trainer, trainer_id)
+    if row is not None:
+        return row
+    row = models.Trainer(id=trainer_id, username=username or f"trainer-{str(trainer_id)[:8]}")
+    sess.add(row)
+    await sess.flush()
+    return row
+
+
+async def load_public_vibemon(sess: AsyncSession, vibemon_id: uuid.UUID) -> PublicVibemon:
+    row = await repositories.load_vibemon(sess, vibemon_id)
+    return await workflow_support.public_vibemon(row)
+
+
+async def materialize_vibemon(
+    sess: AsyncSession,
+    vibemon_id: uuid.UUID,
+    *,
+    lifecycle: VibemonLifecycleT,
+) -> PublicVibemon:
+    row = await repositories.load_vibemon(sess, vibemon_id)
+    vibemon = await mapper.vibemon_from_row(row)
+    realizer = MaterializeVibemon()
+    if lifecycle is VibemonLifecycleT.CHRISTENED:
+        vibemon = await realizer.christen(vibemon)
+    elif lifecycle is VibemonLifecycleT.MANIFESTED:
+        vibemon = await realizer.manifest(await realizer.christen(vibemon))
+    mapper.apply_vibemon_to_row(row, vibemon)
+    await repositories.persist_assets(sess, vibemon)
+    await sess.flush()
+    return await workflow_support.public_vibemon(row)
+
+
+async def load_battle_vibemon(sess: AsyncSession, vibemon_id: uuid.UUID) -> battle_entity.BattleVibemon:
+    row = await repositories.load_vibemon(sess, vibemon_id)
+    vibemon = await mapper.vibemon_from_row(row)
+    return battle_entity.BattleVibemon(**vibemon.model_dump())
+
+
+async def load_random_battle_vibemon(
+    sess: AsyncSession,
+    *,
+    exclude_ids: set[uuid.UUID] | None = None,
+) -> tuple[uuid.UUID, battle_entity.BattleVibemon]:
+    vibemon_id = await _random_battle_vibemon_id(sess, exclude_ids=exclude_ids)
+    if vibemon_id is None and exclude_ids:
+        vibemon_id = await _random_battle_vibemon_id(sess)
+    if vibemon_id is None:
+        raise ValueError("No Vibemon with moves exists in the database for random battle selection.")
+    return vibemon_id, await load_battle_vibemon(sess, vibemon_id)
+
+
+async def _random_battle_vibemon_id(
+    sess: AsyncSession,
+    *,
+    exclude_ids: set[uuid.UUID] | None = None,
+) -> uuid.UUID | None:
+    has_move = sa.exists(
+        sa.select(1).where(
+            models.VibemonMove.vibemon_id == models.Vibemon.id,
+            models.VibemonMove.active_slot.is_not(None),
+        )
+    )
+    stmt = sa.select(models.Vibemon.id).where(has_move).order_by(sa.func.random()).limit(1)
+    if exclude_ids:
+        stmt = stmt.where(models.Vibemon.id.not_in(exclude_ids))
+    return (await sess.execute(stmt)).scalar_one_or_none()
+
+
+def simulate_battle(
+    vibemon_a: battle_entity.BattleVibemon,
+    vibemon_b: battle_entity.BattleVibemon,
+    *,
+    trainer_a_id: uuid.UUID,
+    trainer_b_id: uuid.UUID,
+    trainer_a_name: str = "trainer-a",
+    trainer_b_name: str = "trainer-b",
+    rng_seed: int | None = None,
+    move_policy: BattleMovePolicyT = "first_available",
+) -> dict[str, object]:
+    rng = random.Random(rng_seed)
+    policy_rng = (
+        random.Random()
+        if rng_seed is None
+        else random.Random(f"move-policy:{move_policy}:{rng_seed}:{trainer_a_id}:{trainer_b_id}")
+    )
+    engine = battle_engine.GameEngine(
+        battle_entity.BattleTrainer(
+            id=trainer_id(trainer_a_id),
+            username=trainer_a_name,
+            team=[vibemon_a],
+        ),
+        battle_entity.BattleTrainer(
+            id=trainer_id(trainer_b_id),
+            username=trainer_b_name,
+            team=[vibemon_b],
+        ),
+        rng=rng,
+    )
+    turns: list[dict[str, object]] = []
+    while not engine.battle.concluded:
+        submitted = [
+            _policy_move(engine.battle.trainer_a, engine.battle.trainer_b, policy=move_policy, rng=policy_rng),
+            _policy_move(engine.battle.trainer_b, engine.battle.trainer_a, policy=move_policy, rng=policy_rng),
+        ]
+        events = engine.submit_actions(submitted)
+        turns.append(
+            {
+                "turn": engine.battle.turn_number - 1,
+                "actions": [action.model_dump(mode="json") for action in submitted],
+                "events": [event.model_dump(mode="json") for event in events],
+            }
+        )
+    winner = engine.battle.winner
+    return {
+        "winner_trainer_id": None if winner is None else str(winner.id),
+        "winner": None if winner is None else winner.username,
+        "concluded": engine.battle.concluded,
+        "move_policy": move_policy,
+        "turns": turns,
+        "battle": engine.battle.to_json(),
+    }
+
+
+def _policy_move(
+    trainer: battle_entity.BattleTrainer,
+    opponent: battle_entity.BattleTrainer,
+    *,
+    policy: BattleMovePolicyT,
+    rng: random.Random,
+) -> battle_actions.MoveAction:
+    user = trainer.active_vibemon
+    target = opponent.active_vibemon
+    move = _choose_move(user, target, policy=policy, rng=rng)
+    return battle_actions.MoveAction(trainer=trainer.id, move_name=move.name)
+
+
+def _choose_move(
+    user: battle_entity.BattleVibemon,
+    target: battle_entity.BattleVibemon,
+    *,
+    policy: BattleMovePolicyT,
+    rng: random.Random,
+) -> battle_entity.BattleMove:
+    usable = [move for move in user.battle_moves if move.pp_current > 0]
+    if not usable:
+        return user.battle_moves[0]
+
+    if policy == "first_available":
+        return usable[0]
+    if policy == "random":
+        return rng.choice(usable)
+
+    damaging = [move for move in usable if move.power is not None and move.category != move_types.MoveCategoryT.STATUS]
+    if policy == "stab_first":
+        stab = [move for move in damaging if move.type in user.elements]
+        if stab:
+            return max(stab, key=lambda move: (_estimated_damage_score(user, target, move), move.power or 0))
+        if damaging:
+            return max(damaging, key=lambda move: (_estimated_damage_score(user, target, move), move.power or 0))
+        return usable[0]
+
+    best_damage = max(damaging, key=lambda move: _estimated_damage_score(user, target, move), default=None)
+    if policy == "status_aware":
+        best_status = max(usable, key=lambda move: _status_effect_score(user, target, move), default=None)
+        best_status_score = _status_effect_score(user, target, best_status) if best_status is not None else 0.0
+        best_damage_score = _estimated_damage_score(user, target, best_damage) if best_damage is not None else 0.0
+        if best_status is not None and best_status_score >= max(10.0, best_damage_score * 0.6):
+            return best_status
+
+    if best_damage is not None:
+        return best_damage
+    return usable[0]
+
+
+def _estimated_damage_score(
+    user: battle_entity.BattleVibemon,
+    target: battle_entity.BattleVibemon,
+    move: battle_entity.BattleMove | None,
+) -> float:
+    if move is None or move.power is None or move.category == move_types.MoveCategoryT.STATUS:
+        return 0.0
+
+    if move.category == move_types.MoveCategoryT.PHYSICAL:
+        attack = user.attack
+        defense = target.defense
+    else:
+        attack = user.sp_attack
+        defense = target.sp_defense
+
+    stab = 1.5 if move.type in user.elements else 1.0
+    type_effect = move_catalog.get_element_effectiveness(move.type, list(target.elements))
+    accuracy = 1.0 if move.accuracy is None else move.accuracy
+    priority_bonus = 1.05 if move.priority > 0 else 1.0
+    return move.power * (attack / max(1, defense)) * stab * type_effect * accuracy * priority_bonus
+
+
+def _status_effect_score(
+    user: battle_entity.BattleVibemon,
+    target: battle_entity.BattleVibemon,
+    move: battle_entity.BattleMove | None,
+) -> float:
+    if move is None:
+        return 0.0
+
+    score = 0.0
+    for group in move.effects:
+        chance = group.chance
+        for effect in group.effects:
+            if isinstance(effect, move_entity.StatusInflict) and target.status == move_types.StatusConditionT.NONE:
+                weights = {
+                    move_types.StatusConditionT.BURN: 18.0,
+                    move_types.StatusConditionT.PARALYSIS: 16.0,
+                    move_types.StatusConditionT.FREEZE: 20.0,
+                    move_types.StatusConditionT.SLEEP: 10.0,
+                    move_types.StatusConditionT.POISON: 12.0,
+                    move_types.StatusConditionT.BAD_POISON: 18.0,
+                }
+                score += weights.get(effect.status, 0.0) * chance
+            elif isinstance(effect, move_entity.StatChange):
+                magnitude = sum(abs(delta) for delta in effect.changes.values())
+                if effect.target == "self":
+                    score += 8.0 * magnitude * chance
+                elif effect.target == "target":
+                    score += 7.0 * magnitude * chance
+            elif isinstance(effect, move_entity.Heal) and user.current_hp < user.max_hp * 0.66:
+                score += 20.0 * effect.ratio * chance
+            elif isinstance(effect, move_entity.WeatherSet):
+                score += 4.0 * chance
+
+    if move.category == move_types.MoveCategoryT.STATUS and move.accuracy is not None:
+        score *= move.accuracy
+    return score
 
 
 def ensure_local_blob_dir(url: str) -> None:
