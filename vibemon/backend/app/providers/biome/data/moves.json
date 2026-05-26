@@ -1,0 +1,4306 @@
+[
+  {
+    "id": "biome.footpath_tap",
+    "name": "Footpath Tap",
+    "flavor_text": "A quick strike timed to worn commuter paths where the creature was born.",
+    "type": "normal",
+    "category": "physical",
+    "power": 30,
+    "accuracy": 1.0,
+    "pp": 30
+  },
+  {
+    "id": "biome.greenbelt_bump",
+    "name": "Greenbelt Bump",
+    "flavor_text": "Shoulder-check along suburban greenbelt margins where towns refuse to sprawl.",
+    "type": "normal",
+    "category": "physical",
+    "power": 30,
+    "accuracy": 1.0,
+    "pp": 30
+  },
+  {
+    "id": "biome.lawn_edge",
+    "name": "Lawn Edge",
+    "flavor_text": "Cuts along the crisp boundary between tended turf and wild verge.",
+    "type": "normal",
+    "category": "physical",
+    "power": 40,
+    "accuracy": 1.0,
+    "pp": 25
+  },
+  {
+    "id": "biome.pasture_pound",
+    "name": "Pasture Pound",
+    "flavor_text": "Drives weight into open grazing land packed firm by generations of hooves.",
+    "type": "normal",
+    "category": "physical",
+    "power": 40,
+    "accuracy": 1.0,
+    "pp": 25
+  },
+  {
+    "id": "biome.furrow_follow",
+    "name": "Furrow Follow",
+    "flavor_text": "Tracks the groove of cropland rows until movement feels inevitable.",
+    "type": "normal",
+    "category": "physical",
+    "power": 45,
+    "accuracy": 1.0,
+    "pp": 25
+  },
+  {
+    "id": "biome.hedgerow_clash",
+    "name": "Hedgerow Clash",
+    "flavor_text": "Rams through nested boundary growth where one field ends and another begins.",
+    "type": "normal",
+    "category": "physical",
+    "power": 40,
+    "accuracy": 1.0,
+    "pp": 25,
+    "effects": [
+      {
+        "chance": 0.3,
+        "trigger": "on_hit",
+        "effects": [
+          {
+            "kind": "stat",
+            "target": "target",
+            "changes": {
+              "attack": -1
+            }
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "id": "biome.cricket_pitch_skid",
+    "name": "Cricket Pitch Skid",
+    "flavor_text": "Slides across manicured turf with the unfair momentum of sport-scarred earth.",
+    "type": "normal",
+    "category": "physical",
+    "power": 35,
+    "accuracy": 1.0,
+    "pp": 25
+  },
+  {
+    "id": "biome.open_lot_heave",
+    "name": "Open Lot Heave",
+    "flavor_text": "Hurls debris from vacant suburban parcels cleared but never built upon.",
+    "type": "normal",
+    "category": "physical",
+    "power": 50,
+    "accuracy": 1.0,
+    "pp": 20
+  },
+  {
+    "id": "biome.tilled_calm",
+    "name": "Tilled Calm",
+    "flavor_text": "Steadies breath against freshly turned soil until bones settle into furrow logic.",
+    "type": "normal",
+    "category": "status",
+    "accuracy": 1.0,
+    "pp": 20,
+    "effects": [
+      {
+        "chance": 1.0,
+        "trigger": "on_hit",
+        "effects": [
+          {
+            "kind": "stat",
+            "target": "self",
+            "changes": {
+              "defense": 1
+            }
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "id": "biome.verge_vigil",
+    "name": "Verge Vigil",
+    "flavor_text": "Waits like a roadside creature attuned to passing wheels, wind, and commuter rhythm.",
+    "type": "normal",
+    "category": "status",
+    "accuracy": 1.0,
+    "pp": 20,
+    "effects": [
+      {
+        "chance": 1.0,
+        "trigger": "on_hit",
+        "effects": [
+          {
+            "kind": "stat",
+            "target": "self",
+            "changes": {
+              "speed": 1
+            }
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "id": "biome.hayloft_rest",
+    "name": "Hayloft Rest",
+    "flavor_text": "Retreats into the imagined shelter of stacked grassland harvest.",
+    "type": "normal",
+    "category": "status",
+    "accuracy": 1.0,
+    "pp": 15,
+    "effects": [
+      {
+        "chance": 1.0,
+        "trigger": "on_hit",
+        "effects": [
+          {
+            "kind": "heal",
+            "target": "self",
+            "ratio": 0.4
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "id": "biome.rotational_plow",
+    "name": "Rotational Plow",
+    "flavor_text": "Churns earth the way seasonal planting remembers, lifting a rising arc of dirt.",
+    "type": "normal",
+    "category": "physical",
+    "power": 70,
+    "accuracy": 1.0,
+    "pp": 20,
+    "level_requirement": 22,
+    "effects": [
+      {
+        "chance": 0.3,
+        "trigger": "on_hit",
+        "effects": [
+          {
+            "kind": "stat",
+            "target": "target",
+            "changes": {
+              "speed": -1
+            }
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "id": "biome.windrow_cycle",
+    "name": "Windrow Cycle",
+    "flavor_text": "Whips cut hay into a rolling barrier flung across open cropland.",
+    "type": "normal",
+    "category": "physical",
+    "power": 90,
+    "accuracy": 1.0,
+    "pp": 15,
+    "level_requirement": 34
+  },
+  {
+    "id": "biome.prairie_horizon",
+    "name": "Prairie Horizon",
+    "flavor_text": "Charges the visible limit of grassland sky where flattening land feels endless.",
+    "type": "normal",
+    "category": "physical",
+    "power": 105,
+    "accuracy": 0.95,
+    "pp": 10,
+    "level_requirement": 51,
+    "effects": [
+      {
+        "chance": 0.1,
+        "trigger": "on_hit",
+        "effects": [
+          {
+            "kind": "stat",
+            "target": "target",
+            "changes": {
+              "defense": -1
+            }
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "id": "biome.continental_plainbreaker",
+    "name": "Continental Plainbreaker",
+    "flavor_text": "Unleashes the accumulated weight of a creature born on vast open interior grassland.",
+    "type": "normal",
+    "category": "physical",
+    "power": 120,
+    "accuracy": 1.0,
+    "pp": 5,
+    "level_requirement": 64
+  },
+  {
+    "id": "biome.scrub_kick",
+    "name": "Scrub Kick",
+    "flavor_text": "A creature born among bare scrub flicks heat from desiccated stems and cracked stalks.",
+    "type": "fire",
+    "category": "physical",
+    "power": 30,
+    "accuracy": 1.0,
+    "pp": 30
+  },
+  {
+    "id": "biome.mirage_flick",
+    "name": "Mirage Flick",
+    "flavor_text": "Sends a heat-shimmer pulse that barely scorches across sun-bleached pan.",
+    "type": "fire",
+    "category": "special",
+    "power": 30,
+    "accuracy": 1.0,
+    "pp": 30
+  },
+  {
+    "id": "biome.dust_pan",
+    "name": "Dust Pan",
+    "flavor_text": "Sweeps superheated grit across cracked basin floor like a born desert wind.",
+    "type": "fire",
+    "category": "special",
+    "power": 40,
+    "accuracy": 1.0,
+    "pp": 25
+  },
+  {
+    "id": "biome.caliche_chip",
+    "name": "Caliche Chip",
+    "flavor_text": "Splinters sun-hardened calcium crust from arid ground at close range.",
+    "type": "fire",
+    "category": "physical",
+    "power": 40,
+    "accuracy": 1.0,
+    "pp": 25
+  },
+  {
+    "id": "biome.crackle_step",
+    "name": "Crackle Step",
+    "flavor_text": "Each footfall pops dried scrub underfoot into sparks and snapping embers.",
+    "type": "fire",
+    "category": "physical",
+    "power": 40,
+    "accuracy": 1.0,
+    "pp": 25,
+    "effects": [
+      {
+        "chance": 0.2,
+        "trigger": "on_hit",
+        "effects": [
+          {
+            "kind": "status",
+            "target": "target",
+            "status": "burn"
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "id": "biome.bone_dry_rush",
+    "name": "Bone Dry Rush",
+    "flavor_text": "Channels air so parched it steals moisture the instant it touches skin.",
+    "type": "fire",
+    "category": "special",
+    "power": 45,
+    "accuracy": 1.0,
+    "pp": 25
+  },
+  {
+    "id": "biome.thistle_ember",
+    "name": "Thistle Ember",
+    "flavor_text": "Ignites resin trapped in stubborn arid weeds at point-blank range.",
+    "type": "fire",
+    "category": "special",
+    "power": 40,
+    "accuracy": 1.0,
+    "pp": 25,
+    "effects": [
+      {
+        "chance": 0.3,
+        "trigger": "on_hit",
+        "effects": [
+          {
+            "kind": "stat",
+            "target": "target",
+            "changes": {
+              "sp_attack": -1
+            }
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "id": "biome.wadi_scorch",
+    "name": "Wadi Scorch",
+    "flavor_text": "Flash-flood channel memory turns to steam the moment rain fails forever.",
+    "type": "fire",
+    "category": "special",
+    "power": 52,
+    "accuracy": 1.0,
+    "pp": 20
+  },
+  {
+    "id": "biome.heat_shimmer",
+    "name": "Heat Shimmer",
+    "flavor_text": "Bends light above bare ground until its outline doubles and heat feels weaponized.",
+    "type": "fire",
+    "category": "status",
+    "accuracy": 1.0,
+    "pp": 20,
+    "effects": [
+      {
+        "chance": 1.0,
+        "trigger": "on_hit",
+        "effects": [
+          {
+            "kind": "stat",
+            "target": "self",
+            "changes": {
+              "sp_attack": 1
+            }
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "id": "biome.sunbaked_guard",
+    "name": "Sunbaked Guard",
+    "flavor_text": "Stands rigid on crusted earth that stores noon and refuses to give ground.",
+    "type": "fire",
+    "category": "status",
+    "accuracy": 1.0,
+    "pp": 20,
+    "effects": [
+      {
+        "chance": 1.0,
+        "trigger": "on_hit",
+        "effects": [
+          {
+            "kind": "stat",
+            "target": "self",
+            "changes": {
+              "defense": 1
+            }
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "id": "biome.scorch_vigil",
+    "name": "Scorch Vigil",
+    "flavor_text": "Holds a coal-still pose on bare sparse ground until foe skin dries and cracks.",
+    "type": "fire",
+    "category": "status",
+    "accuracy": 0.9,
+    "pp": 20,
+    "effects": [
+      {
+        "chance": 0.3,
+        "trigger": "on_hit",
+        "effects": [
+          {
+            "kind": "status",
+            "target": "target",
+            "status": "burn"
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "id": "biome.badland_surge",
+    "name": "Badland Surge",
+    "flavor_text": "Upwelling thermal from painted canyon striations and eroded sparse scrub.",
+    "type": "fire",
+    "category": "special",
+    "power": 70,
+    "accuracy": 1.0,
+    "pp": 20,
+    "level_requirement": 19
+  },
+  {
+    "id": "biome.erg_dune_rip",
+    "name": "Erg Dune Rip",
+    "flavor_text": "Tears a crest of sand and heat along erg faces born into wind-scoured memory.",
+    "type": "fire",
+    "category": "physical",
+    "power": 90,
+    "accuracy": 1.0,
+    "pp": 15,
+    "level_requirement": 39,
+    "effects": [
+      {
+        "chance": 0.15,
+        "trigger": "on_hit",
+        "effects": [
+          {
+            "kind": "status",
+            "target": "target",
+            "status": "burn"
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "id": "biome.salt_pan_detonate",
+    "name": "Salt Pan Detonate",
+    "flavor_text": "Detonates crystallized basin floor into white-hot mineral shards.",
+    "type": "fire",
+    "category": "special",
+    "power": 110,
+    "accuracy": 0.85,
+    "pp": 5,
+    "level_requirement": 55,
+    "effects": [
+      {
+        "chance": 0.1,
+        "trigger": "on_hit",
+        "effects": [
+          {
+            "kind": "status",
+            "target": "target",
+            "status": "burn"
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "id": "biome.sirocco_collapse",
+    "name": "Sirocco Collapse",
+    "flavor_text": "Collapses a fatal heat mirage into consuming flame over utterly bare ground.",
+    "type": "fire",
+    "category": "special",
+    "power": 125,
+    "accuracy": 0.9,
+    "pp": 5,
+    "level_requirement": 70,
+    "effects": [
+      {
+        "chance": 1.0,
+        "trigger": "after_damage",
+        "effects": [
+          {
+            "kind": "recoil",
+            "ratio": 0.15
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "id": "biome.rivulet_jab",
+    "name": "Rivulet Jab",
+    "flavor_text": "Needle strike drawn from memory of the smallest stream near birthplace.",
+    "type": "water",
+    "category": "physical",
+    "power": 30,
+    "accuracy": 1.0,
+    "pp": 30
+  },
+  {
+    "id": "biome.shingle_toss",
+    "name": "Shingle Toss",
+    "flavor_text": "Skips pebbles along tidal flats with coast-born rhythm learned from endless retreat and return.",
+    "type": "water",
+    "category": "physical",
+    "power": 30,
+    "accuracy": 1.0,
+    "pp": 30
+  },
+  {
+    "id": "biome.marsh_slap",
+    "name": "Marsh Slap",
+    "flavor_text": "Flat palm of wetland silt displaced in a sudden born-from-bog push.",
+    "type": "water",
+    "category": "physical",
+    "power": 40,
+    "accuracy": 1.0,
+    "pp": 25
+  },
+  {
+    "id": "biome.coastline_peel",
+    "name": "Coastline Peel",
+    "flavor_text": "Peels back the foam layer where land meets water in a sharp brine cut.",
+    "type": "water",
+    "category": "special",
+    "power": 40,
+    "accuracy": 1.0,
+    "pp": 25
+  },
+  {
+    "id": "biome.wetland_push",
+    "name": "Wetland Push",
+    "flavor_text": "Uses born-familiar bog resistance as offensive weight against the foe.",
+    "type": "water",
+    "category": "physical",
+    "power": 45,
+    "accuracy": 1.0,
+    "pp": 25
+  },
+  {
+    "id": "biome.reedbed_cut",
+    "name": "Reedbed Cut",
+    "flavor_text": "Shears through standing reed architecture at thigh height near river margin.",
+    "type": "water",
+    "category": "physical",
+    "power": 40,
+    "accuracy": 1.0,
+    "pp": 25,
+    "effects": [
+      {
+        "chance": 0.25,
+        "trigger": "on_hit",
+        "effects": [
+          {
+            "kind": "stat",
+            "target": "target",
+            "changes": {
+              "speed": -1
+            }
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "id": "biome.tidal_wrack",
+    "name": "Tidal Wrack",
+    "flavor_text": "Hurls rotting seashore kelp burden soaked with brine and born tidal memory.",
+    "type": "water",
+    "category": "special",
+    "power": 40,
+    "accuracy": 1.0,
+    "pp": 25,
+    "effects": [
+      {
+        "chance": 0.3,
+        "trigger": "on_hit",
+        "effects": [
+          {
+            "kind": "stat",
+            "target": "target",
+            "changes": {
+              "speed": -1
+            }
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "id": "biome.delta_surge",
+    "name": "Delta Surge",
+    "flavor_text": "Brief crest from rivermouth memory where channels braid and split.",
+    "type": "water",
+    "category": "special",
+    "power": 50,
+    "accuracy": 1.0,
+    "pp": 20
+  },
+  {
+    "id": "biome.tide_pool_stillness",
+    "name": "Tide Pool Stillness",
+    "flavor_text": "Matches the eerie calm of shallow pools between waves where birthplace water first taught patience.",
+    "type": "water",
+    "category": "status",
+    "accuracy": 1.0,
+    "pp": 20,
+    "effects": [
+      {
+        "chance": 1.0,
+        "trigger": "on_hit",
+        "effects": [
+          {
+            "kind": "stat",
+            "target": "self",
+            "changes": {
+              "sp_defense": 1
+            }
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "id": "biome.estuary_breath",
+    "name": "Estuary Breath",
+    "flavor_text": "Inhales brackish air that heals like the humid mixed-salinity air of home.",
+    "type": "water",
+    "category": "status",
+    "accuracy": 1.0,
+    "pp": 15,
+    "effects": [
+      {
+        "chance": 1.0,
+        "trigger": "on_hit",
+        "effects": [
+          {
+            "kind": "heal",
+            "target": "self",
+            "ratio": 0.4
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "id": "biome.brackish_ward",
+    "name": "Brackish Ward",
+    "flavor_text": "Murk where river meets sea clings to foe footing and dulls their strike.",
+    "type": "water",
+    "category": "status",
+    "accuracy": 1.0,
+    "pp": 20,
+    "effects": [
+      {
+        "chance": 1.0,
+        "trigger": "on_hit",
+        "effects": [
+          {
+            "kind": "stat",
+            "target": "target",
+            "changes": {
+              "attack": -1
+            }
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "id": "biome.floodplain_roll",
+    "name": "Floodplain Roll",
+    "flavor_text": "Rolls with remembered seasonal overflow across low pasture and river margin.",
+    "type": "water",
+    "category": "physical",
+    "power": 75,
+    "accuracy": 1.0,
+    "pp": 20,
+    "level_requirement": 26,
+    "effects": [
+      {
+        "chance": 0.3,
+        "trigger": "on_hit",
+        "effects": [
+          {
+            "kind": "stat",
+            "target": "target",
+            "changes": {
+              "defense": -1
+            }
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "id": "biome.estuary_break",
+    "name": "Estuary Break",
+    "flavor_text": "Full brackish pressure wave from mixed-salinity birthplace where fresh and salt refuse to separate.",
+    "type": "water",
+    "category": "special",
+    "power": 90,
+    "accuracy": 1.0,
+    "pp": 15,
+    "level_requirement": 43
+  },
+  {
+    "id": "biome.undercurrent_rip",
+    "name": "Undercurrent Rip",
+    "flavor_text": "Pulls foe into the invisible coastal shelf drop felt but never seen from shore.",
+    "type": "water",
+    "category": "physical",
+    "power": 105,
+    "accuracy": 0.95,
+    "pp": 10,
+    "level_requirement": 58
+  },
+  {
+    "id": "biome.abyssal_shelf_breaker",
+    "name": "Abyssal Shelf Breaker",
+    "flavor_text": "Collapses born-memory of deep offshore shelf into one catastrophic wave.",
+    "type": "water",
+    "category": "special",
+    "power": 120,
+    "accuracy": 1.0,
+    "pp": 5,
+    "level_requirement": 67
+  },
+  {
+    "id": "biome.canopy_tap",
+    "name": "Canopy Tap",
+    "flavor_text": "A low branch shadow snaps forward from tree-cover birthplace, tagging the foe with a quick woody strike.",
+    "type": "grass",
+    "category": "physical",
+    "power": 40,
+    "accuracy": 1.0,
+    "pp": 25
+  },
+  {
+    "id": "biome.seed_pellet",
+    "name": "Seed Pellet",
+    "flavor_text": "Hardened cropland seed flung from a furrowed row bursts on impact.",
+    "type": "grass",
+    "category": "special",
+    "power": 30,
+    "accuracy": 1.0,
+    "pp": 30
+  },
+  {
+    "id": "biome.blade_row",
+    "name": "Blade Row",
+    "flavor_text": "The user scythes through irrigated crop rows in one sweeping cut.",
+    "type": "grass",
+    "category": "physical",
+    "power": 45,
+    "accuracy": 1.0,
+    "pp": 25
+  },
+  {
+    "id": "biome.mangrove_hush",
+    "name": "Mangrove Hush",
+    "flavor_text": "Tidal roots from brackish fringe muffle footing and drag at the ankles.",
+    "type": "grass",
+    "category": "status",
+    "accuracy": 1.0,
+    "pp": 20,
+    "priority": 1,
+    "effects": [
+      {
+        "chance": 1.0,
+        "trigger": "on_hit",
+        "effects": [
+          {
+            "kind": "stat",
+            "target": "target",
+            "changes": {
+              "speed": -1
+            }
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "id": "biome.pasture_rush",
+    "name": "Pasture Rush",
+    "flavor_text": "Open grassland turf is torn up in a charging gallop through grazing ground.",
+    "type": "grass",
+    "category": "physical",
+    "power": 40,
+    "accuracy": 1.0,
+    "pp": 25
+  },
+  {
+    "id": "biome.briar_snap",
+    "name": "Briar Snap",
+    "flavor_text": "Roadside thicket whips outward from tangled verge growth.",
+    "type": "grass",
+    "category": "physical",
+    "power": 45,
+    "accuracy": 1.0,
+    "pp": 25
+  },
+  {
+    "id": "biome.sprout_jab",
+    "name": "Sprout Jab",
+    "flavor_text": "A newborn shoot punches up through cracked birthplace soil.",
+    "type": "grass",
+    "category": "special",
+    "power": 40,
+    "accuracy": 1.0,
+    "pp": 25
+  },
+  {
+    "id": "biome.leaf_flick",
+    "name": "Leaf Flick",
+    "flavor_text": "Shed canopy litter is slapped aside in a dismissive flutter.",
+    "type": "grass",
+    "category": "special",
+    "power": 30,
+    "accuracy": 1.0,
+    "pp": 30
+  },
+  {
+    "id": "biome.hedgerow_grip",
+    "name": "Hedgerow Grip",
+    "flavor_text": "Field-edge branches weave shut and clamp from hedgerow margin.",
+    "type": "grass",
+    "category": "physical",
+    "power": 52,
+    "accuracy": 1.0,
+    "pp": 20,
+    "effects": [
+      {
+        "chance": 0.3,
+        "trigger": "on_hit",
+        "effects": [
+          {
+            "kind": "stat",
+            "target": "target",
+            "changes": {
+              "defense": -1
+            }
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "id": "biome.root_tangle",
+    "name": "Root Tangle",
+    "flavor_text": "Subsurface roots trip and knot at a meadow clearing edge.",
+    "type": "grass",
+    "category": "status",
+    "accuracy": 0.9,
+    "pp": 20,
+    "effects": [
+      {
+        "chance": 0.3,
+        "trigger": "on_hit",
+        "effects": [
+          {
+            "kind": "status",
+            "target": "target",
+            "status": "paralysis"
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "id": "biome.understory_veil",
+    "name": "Understory Veil",
+    "flavor_text": "Dim tree-floor light steadies the user beneath closed canopy.",
+    "type": "grass",
+    "category": "status",
+    "accuracy": 1.0,
+    "pp": 20,
+    "effects": [
+      {
+        "chance": 1.0,
+        "trigger": "on_hit",
+        "effects": [
+          {
+            "kind": "stat",
+            "target": "self",
+            "changes": {
+              "defense": 1
+            }
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "id": "biome.harvest_reap",
+    "name": "Harvest Reap",
+    "flavor_text": "One full-season cropland cut sweeps every standing stalk at once.",
+    "type": "grass",
+    "category": "physical",
+    "power": 55,
+    "accuracy": 1.0,
+    "pp": 20,
+    "level_requirement": 15,
+    "effects": [
+      {
+        "chance": 1.0,
+        "trigger": "on_hit",
+        "effects": [
+          {
+            "kind": "drain",
+            "ratio": 0.25
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "id": "biome.timberfall",
+    "name": "Timberfall",
+    "flavor_text": "Dead timber from forest margin crashes down in a heavy trunk drop.",
+    "type": "grass",
+    "category": "physical",
+    "power": 70,
+    "accuracy": 1.0,
+    "pp": 20,
+    "level_requirement": 22
+  },
+  {
+    "id": "biome.delta_silt_spray",
+    "name": "Delta Silt Spray",
+    "flavor_text": "Mangrove mud and pollen burst from tidal delta birthplace.",
+    "type": "grass",
+    "category": "special",
+    "power": 90,
+    "accuracy": 1.0,
+    "pp": 15,
+    "level_requirement": 38,
+    "effects": [
+      {
+        "chance": 0.3,
+        "trigger": "on_hit",
+        "effects": [
+          {
+            "kind": "stat",
+            "target": "target",
+            "changes": {
+              "speed": -1
+            }
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "id": "biome.terrestrial_bloom",
+    "name": "Terrestrial Bloom",
+    "flavor_text": "The creature's birthplace canopy erupts in a continent of flora over the foe.",
+    "type": "grass",
+    "category": "special",
+    "power": 120,
+    "accuracy": 1.0,
+    "pp": 5,
+    "level_requirement": 58,
+    "effects": [
+      {
+        "chance": 0.2,
+        "trigger": "on_hit",
+        "effects": [
+          {
+            "kind": "stat",
+            "target": "target",
+            "changes": {
+              "sp_attack": -1
+            }
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "id": "biome.rime_dust",
+    "name": "Rime Dust",
+    "flavor_text": "Windblown surface frost scoured from a cold ridge stings the foe.",
+    "type": "ice",
+    "category": "special",
+    "power": 30,
+    "accuracy": 1.0,
+    "pp": 30
+  },
+  {
+    "id": "biome.snowdrift_bash",
+    "name": "Snowdrift Bash",
+    "flavor_text": "Shoulder slams into packed snow at a trail-side drift wall.",
+    "type": "ice",
+    "category": "physical",
+    "power": 40,
+    "accuracy": 1.0,
+    "pp": 25
+  },
+  {
+    "id": "biome.hoarfrost_needle",
+    "name": "Hoarfrost Needle",
+    "flavor_text": "Needle crystals condense from frozen breath above ice cover.",
+    "type": "ice",
+    "category": "special",
+    "power": 40,
+    "accuracy": 1.0,
+    "pp": 25
+  },
+  {
+    "id": "biome.permafrost_hush",
+    "name": "Permafrost Hush",
+    "flavor_text": "Ground cold from tundra permafrost quiets the battlefield around the user.",
+    "type": "ice",
+    "category": "status",
+    "accuracy": 1.0,
+    "pp": 20,
+    "effects": [
+      {
+        "chance": 1.0,
+        "trigger": "on_hit",
+        "effects": [
+          {
+            "kind": "stat",
+            "target": "self",
+            "changes": {
+              "sp_defense": 1
+            }
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "id": "biome.crust_step",
+    "name": "Crust Step",
+    "flavor_text": "Thin ice skin over a hidden hollow shatters under a stomping stride.",
+    "type": "ice",
+    "category": "physical",
+    "power": 45,
+    "accuracy": 1.0,
+    "pp": 25
+  },
+  {
+    "id": "biome.avalanche_echo",
+    "name": "Avalanche Echo",
+    "flavor_text": "Distant slide rumble shakes scree on a high cold slope.",
+    "type": "ice",
+    "category": "physical",
+    "power": 52,
+    "accuracy": 1.0,
+    "pp": 20
+  },
+  {
+    "id": "biome.glacial_shiver",
+    "name": "Glacial Shiver",
+    "flavor_text": "Cold radiates outward from a buried ice lens beneath birthplace snow.",
+    "type": "ice",
+    "category": "special",
+    "power": 30,
+    "accuracy": 1.0,
+    "pp": 30
+  },
+  {
+    "id": "biome.firn_scrape",
+    "name": "Firn Scrape",
+    "flavor_text": "Compacted snow granules scrape off in a gritty shoulder rub.",
+    "type": "ice",
+    "category": "physical",
+    "power": 30,
+    "accuracy": 1.0,
+    "pp": 30
+  },
+  {
+    "id": "biome.whiteout_veil",
+    "name": "Whiteout Veil",
+    "flavor_text": "Blizzard haze from open ice field wraps the user in drifting snow.",
+    "type": "ice",
+    "category": "status",
+    "accuracy": 1.0,
+    "pp": 20,
+    "effects": [
+      {
+        "chance": 1.0,
+        "trigger": "on_hit",
+        "effects": [
+          {
+            "kind": "stat",
+            "target": "self",
+            "changes": {
+              "defense": 1
+            }
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "id": "biome.cryo_bind",
+    "name": "Cryo Bind",
+    "flavor_text": "Rime cuffs ankles in a frost hollow at the tree line.",
+    "type": "ice",
+    "category": "status",
+    "accuracy": 0.75,
+    "pp": 15,
+    "effects": [
+      {
+        "chance": 0.3,
+        "trigger": "on_hit",
+        "effects": [
+          {
+            "kind": "status",
+            "target": "target",
+            "status": "freeze"
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "id": "biome.sastrugi_cut",
+    "name": "Sastrugi Cut",
+    "flavor_text": "Wind-carved ice ridge slices the pass in a glancing arc.",
+    "type": "ice",
+    "category": "physical",
+    "power": 40,
+    "accuracy": 1.0,
+    "pp": 25,
+    "effects": [
+      {
+        "chance": 0.3,
+        "trigger": "on_hit",
+        "effects": [
+          {
+            "kind": "stat",
+            "target": "target",
+            "changes": {
+              "attack": -1
+            }
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "id": "biome.icefall_crush",
+    "name": "Icefall Crush",
+    "flavor_text": "A serac detaches from a high cirque and crushes downward.",
+    "type": "ice",
+    "category": "physical",
+    "power": 60,
+    "accuracy": 1.0,
+    "pp": 20,
+    "level_requirement": 18
+  },
+  {
+    "id": "biome.crevasse_drop",
+    "name": "Crevasse Drop",
+    "flavor_text": "Foe is driven toward a hidden crack in glacier shell.",
+    "type": "ice",
+    "category": "physical",
+    "power": 75,
+    "accuracy": 1.0,
+    "pp": 15,
+    "level_requirement": 24
+  },
+  {
+    "id": "biome.summit_chill",
+    "name": "Summit Chill",
+    "flavor_text": "Elevation cold front descends from bare peak exposure.",
+    "type": "ice",
+    "category": "special",
+    "power": 95,
+    "accuracy": 1.0,
+    "pp": 15,
+    "level_requirement": 42,
+    "effects": [
+      {
+        "chance": 0.3,
+        "trigger": "on_hit",
+        "effects": [
+          {
+            "kind": "stat",
+            "target": "target",
+            "changes": {
+              "speed": -1
+            }
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "id": "biome.birthplace_glacier",
+    "name": "Birthplace Glacier",
+    "flavor_text": "Birthplace ice mass calves in a thunderous slab collapse.",
+    "type": "ice",
+    "category": "special",
+    "power": 125,
+    "accuracy": 1.0,
+    "pp": 5,
+    "level_requirement": 60,
+    "effects": [
+      {
+        "chance": 0.3,
+        "trigger": "on_hit",
+        "effects": [
+          {
+            "kind": "stat",
+            "target": "target",
+            "changes": {
+              "speed": -2
+            }
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "id": "biome.thermal_nudge",
+    "name": "Thermal Nudge",
+    "flavor_text": "Weak updraft off sunlit pasture lifts debris into the foe.",
+    "type": "flying",
+    "category": "special",
+    "power": 30,
+    "accuracy": 1.0,
+    "pp": 30
+  },
+  {
+    "id": "biome.ridge_gust",
+    "name": "Ridge Gust",
+    "flavor_text": "Gust channelled along a bare ridgeline slams the target.",
+    "type": "flying",
+    "category": "special",
+    "power": 40,
+    "accuracy": 1.0,
+    "pp": 25
+  },
+  {
+    "id": "biome.pasture_dive",
+    "name": "Pasture Dive",
+    "flavor_text": "Steep plunge over open grazing flats ends in a talon strike.",
+    "type": "flying",
+    "category": "physical",
+    "power": 40,
+    "accuracy": 1.0,
+    "pp": 25
+  },
+  {
+    "id": "biome.exposure_alert",
+    "name": "Exposure Alert",
+    "flavor_text": "Mountaintop wind over high-elevation exposure sharpens reflexes.",
+    "type": "flying",
+    "category": "status",
+    "accuracy": 1.0,
+    "pp": 20,
+    "effects": [
+      {
+        "chance": 1.0,
+        "trigger": "on_hit",
+        "effects": [
+          {
+            "kind": "stat",
+            "target": "self",
+            "changes": {
+              "speed": 1
+            }
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "id": "biome.feather_sling",
+    "name": "Feather Sling",
+    "flavor_text": "Shed plumage whipped from molt lines cuts across the foe.",
+    "type": "flying",
+    "category": "physical",
+    "power": 30,
+    "accuracy": 1.0,
+    "pp": 30
+  },
+  {
+    "id": "biome.hayfield_sweep",
+    "name": "Hayfield Sweep",
+    "flavor_text": "Low pass scythes dry grass tops across open steppe.",
+    "type": "flying",
+    "category": "physical",
+    "power": 40,
+    "accuracy": 1.0,
+    "pp": 25
+  },
+  {
+    "id": "biome.cirrus_peck",
+    "name": "Cirrus Peck",
+    "flavor_text": "Sharp strike delivered from thin high cloud layer above birthplace.",
+    "type": "flying",
+    "category": "physical",
+    "power": 45,
+    "accuracy": 1.0,
+    "pp": 25
+  },
+  {
+    "id": "biome.upland_flurry",
+    "name": "Upland Flurry",
+    "flavor_text": "Stinging grit lifted from open grassland steppe pelts the foe.",
+    "type": "flying",
+    "category": "special",
+    "power": 30,
+    "accuracy": 1.0,
+    "pp": 30
+  },
+  {
+    "id": "biome.gale_mark",
+    "name": "Gale Mark",
+    "flavor_text": "User reads wind shear over open ground and commits to the line.",
+    "type": "flying",
+    "category": "status",
+    "accuracy": 1.0,
+    "pp": 20,
+    "effects": [
+      {
+        "chance": 1.0,
+        "trigger": "on_hit",
+        "effects": [
+          {
+            "kind": "stat",
+            "target": "self",
+            "changes": {
+              "attack": 1
+            }
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "id": "biome.loft_snare",
+    "name": "Loft Snare",
+    "flavor_text": "Updraft snatch traps a low-flying target against exposed sky.",
+    "type": "flying",
+    "category": "status",
+    "accuracy": 0.9,
+    "pp": 20,
+    "effects": [
+      {
+        "chance": 0.3,
+        "trigger": "on_hit",
+        "effects": [
+          {
+            "kind": "status",
+            "target": "target",
+            "status": "paralysis"
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "id": "biome.headwind_lash",
+    "name": "Headwind Lash",
+    "flavor_text": "Contrary wind on an exposed slope batters the foe backward.",
+    "type": "flying",
+    "category": "physical",
+    "power": 52,
+    "accuracy": 1.0,
+    "pp": 20,
+    "effects": [
+      {
+        "chance": 0.3,
+        "trigger": "on_hit",
+        "effects": [
+          {
+            "kind": "stat",
+            "target": "target",
+            "changes": {
+              "defense": -1
+            }
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "id": "biome.katabatic_rush",
+    "name": "Katabatic Rush",
+    "flavor_text": "Cold dense air dumps off escarpment in a sudden downhill rush.",
+    "type": "flying",
+    "category": "physical",
+    "power": 40,
+    "accuracy": 1.0,
+    "pp": 25,
+    "priority": 1,
+    "level_requirement": 16
+  },
+  {
+    "id": "biome.jetstream_cut",
+    "name": "Jetstream Cut",
+    "flavor_text": "High-altitude ribbon wind slices across the battlefield.",
+    "type": "flying",
+    "category": "special",
+    "power": 75,
+    "accuracy": 1.0,
+    "pp": 15,
+    "level_requirement": 26
+  },
+  {
+    "id": "biome.mesa_glide",
+    "name": "Mesa Glide",
+    "flavor_text": "Long gliding strike across plateau rim builds momentum into impact.",
+    "type": "flying",
+    "category": "physical",
+    "power": 90,
+    "accuracy": 1.0,
+    "pp": 15,
+    "level_requirement": 40,
+    "effects": [
+      {
+        "chance": 0.3,
+        "trigger": "on_hit",
+        "effects": [
+          {
+            "kind": "stat",
+            "target": "target",
+            "changes": {
+              "speed": -1
+            }
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "id": "biome.skyborn_cataclysm",
+    "name": "Skyborn Cataclysm",
+    "flavor_text": "Birthplace horizon unleashes a storm front from open sky exposure.",
+    "type": "flying",
+    "category": "special",
+    "power": 120,
+    "accuracy": 1.0,
+    "pp": 5,
+    "level_requirement": 62,
+    "effects": [
+      {
+        "chance": 0.2,
+        "trigger": "on_hit",
+        "effects": [
+          {
+            "kind": "stat",
+            "target": "target",
+            "changes": {
+              "sp_defense": -1
+            }
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "id": "biome.wind_scoured_stand",
+    "name": "Wind-Scoured Stand",
+    "flavor_text": "The fighter plants into wind-scoured badland grit, hardening against blows born of exposed ridge lines.",
+    "type": "fighting",
+    "category": "status",
+    "accuracy": 1.0,
+    "pp": 20,
+    "effects": [
+      {
+        "chance": 1.0,
+        "trigger": "on_hit",
+        "effects": [
+          {
+            "kind": "stat",
+            "target": "self",
+            "changes": {
+              "defense": 1
+            }
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "id": "biome.caliche_jab",
+    "name": "Caliche Jab",
+    "flavor_text": "A quick strike from caliche-hardened knuckles scraped off sun-baked sparse ground.",
+    "type": "fighting",
+    "category": "physical",
+    "power": 30,
+    "accuracy": 1.0,
+    "pp": 30
+  },
+  {
+    "id": "biome.mesquite_shove",
+    "name": "Mesquite Shove",
+    "flavor_text": "Shoulders through mesquite thicket like a badland trail charge.",
+    "type": "fighting",
+    "category": "physical",
+    "power": 40,
+    "accuracy": 1.0,
+    "pp": 25
+  },
+  {
+    "id": "biome.brittle_bush_bash",
+    "name": "Brittle Bush Bash",
+    "flavor_text": "Swings through brittle desert scrub that snaps on impact.",
+    "type": "fighting",
+    "category": "physical",
+    "power": 30,
+    "accuracy": 1.0,
+    "pp": 30
+  },
+  {
+    "id": "biome.sagebrush_hook",
+    "name": "Sagebrush Hook",
+    "flavor_text": "Hooks an opponent with a sagebrush-tangled forearm from rugged shrubland.",
+    "type": "fighting",
+    "category": "physical",
+    "power": 40,
+    "accuracy": 1.0,
+    "pp": 25
+  },
+  {
+    "id": "biome.dry_wash_uppercut",
+    "name": "Dry Wash Uppercut",
+    "flavor_text": "Launches upward from a dry wash floor where sparse ground collapses underfoot.",
+    "type": "fighting",
+    "category": "physical",
+    "power": 45,
+    "accuracy": 1.0,
+    "pp": 25
+  },
+  {
+    "id": "biome.scree_slide",
+    "name": "Scree Slide",
+    "flavor_text": "Skids downslope on loose scree scraped from badland faces.",
+    "type": "fighting",
+    "category": "physical",
+    "power": 40,
+    "accuracy": 1.0,
+    "pp": 25,
+    "effects": [
+      {
+        "chance": 0.3,
+        "trigger": "on_hit",
+        "effects": [
+          {
+            "kind": "stat",
+            "target": "target",
+            "changes": {
+              "speed": -1
+            }
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "id": "biome.thornscrub_snap",
+    "name": "Thornscrub Snap",
+    "flavor_text": "Whips thornscrub limbs in a close-range badland flurry.",
+    "type": "fighting",
+    "category": "physical",
+    "power": 40,
+    "accuracy": 1.0,
+    "pp": 25,
+    "effects": [
+      {
+        "chance": 0.3,
+        "trigger": "on_hit",
+        "effects": [
+          {
+            "kind": "stat",
+            "target": "target",
+            "changes": {
+              "defense": -1
+            }
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "id": "biome.badland_ridge_rush",
+    "name": "Badland Ridge Rush",
+    "flavor_text": "A rare full-body charge off a badland ridge crest before the terrain gives way.",
+    "type": "fighting",
+    "category": "physical",
+    "power": 52,
+    "accuracy": 1.0,
+    "pp": 20
+  },
+  {
+    "id": "biome.arroyo_lunge",
+    "name": "Arroyo Lunge",
+    "flavor_text": "Strikes first from an arroyo cut where sparse ground funnels prey into ambush.",
+    "type": "fighting",
+    "category": "physical",
+    "power": 40,
+    "accuracy": 1.0,
+    "pp": 25,
+    "priority": 1
+  },
+  {
+    "id": "biome.cholla_brace",
+    "name": "Cholla Brace",
+    "flavor_text": "Locks posture among cholla skeletons on rugged sparse ground, bracing for brawls.",
+    "type": "fighting",
+    "category": "status",
+    "accuracy": 1.0,
+    "pp": 20,
+    "effects": [
+      {
+        "chance": 1.0,
+        "trigger": "on_hit",
+        "effects": [
+          {
+            "kind": "stat",
+            "target": "self",
+            "changes": {
+              "attack": 1
+            }
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "id": "biome.hoodoo_break",
+    "name": "Hoodoo Break",
+    "flavor_text": "Shatters a hoodoo pillar and drives the debris into the foe.",
+    "type": "fighting",
+    "category": "physical",
+    "power": 65,
+    "accuracy": 1.0,
+    "pp": 20,
+    "level_requirement": 24
+  },
+  {
+    "id": "biome.juniper_snag_lock",
+    "name": "Juniper Snag Lock",
+    "flavor_text": "Traps the foe against a juniper snag rooted in hard badland soil.",
+    "type": "fighting",
+    "category": "status",
+    "accuracy": 1.0,
+    "pp": 20,
+    "level_requirement": 28,
+    "effects": [
+      {
+        "chance": 1.0,
+        "trigger": "on_hit",
+        "effects": [
+          {
+            "kind": "stat",
+            "target": "target",
+            "changes": {
+              "speed": -1
+            }
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "id": "biome.coyote_trail_charge",
+    "name": "Coyote Trail Charge",
+    "flavor_text": "Runs down a coyote trail across open shrubland badlands with relentless momentum.",
+    "type": "fighting",
+    "category": "physical",
+    "power": 90,
+    "accuracy": 1.0,
+    "pp": 15,
+    "level_requirement": 42
+  },
+  {
+    "id": "biome.alluvial_fan_slam",
+    "name": "Alluvial Fan Slam",
+    "flavor_text": "Unleashes the full weight of an alluvial fan collapse born from eroded sparse high ground.",
+    "type": "fighting",
+    "category": "physical",
+    "power": 120,
+    "accuracy": 1.0,
+    "pp": 5,
+    "level_requirement": 58,
+    "effects": [
+      {
+        "chance": 0.2,
+        "trigger": "on_hit",
+        "effects": [
+          {
+            "kind": "stat",
+            "target": "target",
+            "changes": {
+              "defense": -2
+            }
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "id": "biome.effluent_haze",
+    "name": "Effluent Haze",
+    "flavor_text": "Exhales industrial effluent haze gathered from built-up runoff zones near stagnant water.",
+    "type": "poison",
+    "category": "status",
+    "accuracy": 1.0,
+    "pp": 20,
+    "effects": [
+      {
+        "chance": 1.0,
+        "trigger": "on_hit",
+        "effects": [
+          {
+            "kind": "stat",
+            "target": "self",
+            "changes": {
+              "sp_attack": 1
+            }
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "id": "biome.stagnant_pool_poke",
+    "name": "Stagnant Pool Poke",
+    "flavor_text": "Prods with a tendril dipped in stagnant pool water from wetland margins.",
+    "type": "poison",
+    "category": "special",
+    "power": 30,
+    "accuracy": 1.0,
+    "pp": 30
+  },
+  {
+    "id": "biome.culvert_drip",
+    "name": "Culvert Drip",
+    "flavor_text": "Drips culvert runoff from built-up drainage into industrial backwaters.",
+    "type": "poison",
+    "category": "special",
+    "power": 30,
+    "accuracy": 1.0,
+    "pp": 30
+  },
+  {
+    "id": "biome.rust_runoff",
+    "name": "Rust Runoff",
+    "flavor_text": "Slings oxidized rust runoff scraped from old industrial pipes.",
+    "type": "poison",
+    "category": "special",
+    "power": 40,
+    "accuracy": 1.0,
+    "pp": 25
+  },
+  {
+    "id": "biome.leachate_splash",
+    "name": "Leachate Splash",
+    "flavor_text": "Splashes landfill leachate seeping through bare industrial soil.",
+    "type": "poison",
+    "category": "special",
+    "power": 40,
+    "accuracy": 1.0,
+    "pp": 25
+  },
+  {
+    "id": "biome.reed_bed_sting",
+    "name": "Reed Bed Sting",
+    "flavor_text": "Strikes from reed bed margins where wetland toxins concentrate.",
+    "type": "poison",
+    "category": "special",
+    "power": 45,
+    "accuracy": 1.0,
+    "pp": 25
+  },
+  {
+    "id": "biome.marsh_gas_burp",
+    "name": "Marsh Gas Burp",
+    "flavor_text": "Belches marsh gas from peat-heavy wetland pockets.",
+    "type": "poison",
+    "category": "special",
+    "power": 40,
+    "accuracy": 1.0,
+    "pp": 25,
+    "effects": [
+      {
+        "chance": 0.3,
+        "trigger": "on_hit",
+        "effects": [
+          {
+            "kind": "status",
+            "target": "target",
+            "status": "poison"
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "id": "biome.algae_bloom_smother",
+    "name": "Algae Bloom Smother",
+    "flavor_text": "Smothers with algae bloom pulled from stagnant backwater.",
+    "type": "poison",
+    "category": "special",
+    "power": 40,
+    "accuracy": 1.0,
+    "pp": 25,
+    "effects": [
+      {
+        "chance": 0.35,
+        "trigger": "on_hit",
+        "effects": [
+          {
+            "kind": "status",
+            "target": "target",
+            "status": "poison"
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "id": "biome.brine_sump_spit",
+    "name": "Brine Sump Spit",
+    "flavor_text": "Spits brine from a clogged industrial sump near wetland edges.",
+    "type": "poison",
+    "category": "special",
+    "power": 45,
+    "accuracy": 1.0,
+    "pp": 25
+  },
+  {
+    "id": "biome.smokestack_residue",
+    "name": "Smokestack Residue",
+    "flavor_text": "Rare heavy hit coated in smokestack residue from built-up clusters.",
+    "type": "poison",
+    "category": "special",
+    "power": 52,
+    "accuracy": 1.0,
+    "pp": 20
+  },
+  {
+    "id": "biome.sump_overflow",
+    "name": "Sump Overflow",
+    "flavor_text": "Overflows a toxic sump across stagnant industrial ground.",
+    "type": "poison",
+    "category": "status",
+    "accuracy": 0.9,
+    "pp": 15,
+    "effects": [
+      {
+        "chance": 1.0,
+        "trigger": "on_hit",
+        "effects": [
+          {
+            "kind": "status",
+            "target": "target",
+            "status": "poison"
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "id": "biome.sewer_grate_gasp",
+    "name": "Sewer Grate Gasp",
+    "flavor_text": "Surges up through a sewer grate for a quick toxic exhale from built-up underworks.",
+    "type": "poison",
+    "category": "special",
+    "power": 30,
+    "accuracy": 1.0,
+    "pp": 30,
+    "priority": 1,
+    "effects": [
+      {
+        "chance": 0.25,
+        "trigger": "on_hit",
+        "effects": [
+          {
+            "kind": "status",
+            "target": "target",
+            "status": "poison"
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "id": "biome.oxidized_pipe_whip",
+    "name": "Oxidized Pipe Whip",
+    "flavor_text": "Whips a corroded pipe torn from industrial wetland infrastructure.",
+    "type": "poison",
+    "category": "physical",
+    "power": 65,
+    "accuracy": 1.0,
+    "pp": 20,
+    "level_requirement": 22,
+    "effects": [
+      {
+        "chance": 0.3,
+        "trigger": "on_hit",
+        "effects": [
+          {
+            "kind": "stat",
+            "target": "target",
+            "changes": {
+              "defense": -1
+            }
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "id": "biome.peat_bog_mire",
+    "name": "Peat Bog Mire",
+    "flavor_text": "Pulls the foe into peat bog mire where wetland toxins slow every step.",
+    "type": "poison",
+    "category": "status",
+    "accuracy": 1.0,
+    "pp": 20,
+    "level_requirement": 30,
+    "effects": [
+      {
+        "chance": 1.0,
+        "trigger": "on_hit",
+        "effects": [
+          {
+            "kind": "stat",
+            "target": "target",
+            "changes": {
+              "speed": -1
+            }
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "id": "biome.landfill_seep",
+    "name": "Landfill Seep",
+    "flavor_text": "Unleashes a catastrophic landfill seep of industrial poison into stagnant ground.",
+    "type": "poison",
+    "category": "special",
+    "power": 120,
+    "accuracy": 0.85,
+    "pp": 5,
+    "level_requirement": 62,
+    "effects": [
+      {
+        "chance": 0.5,
+        "trigger": "on_hit",
+        "effects": [
+          {
+            "kind": "status",
+            "target": "target",
+            "status": "bad_poison"
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "id": "biome.hardpan_stance",
+    "name": "Hardpan Stance",
+    "flavor_text": "Compacts into hardpan crust on bare sparse land, anchoring against displacement.",
+    "type": "ground",
+    "category": "status",
+    "accuracy": 1.0,
+    "pp": 20,
+    "effects": [
+      {
+        "chance": 1.0,
+        "trigger": "on_hit",
+        "effects": [
+          {
+            "kind": "stat",
+            "target": "self",
+            "changes": {
+              "defense": 1
+            }
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "id": "biome.dust_puff",
+    "name": "Dust Puff",
+    "flavor_text": "Kicks up a dust puff from parched bare ground.",
+    "type": "ground",
+    "category": "physical",
+    "power": 30,
+    "accuracy": 1.0,
+    "pp": 30
+  },
+  {
+    "id": "biome.gravel_flick",
+    "name": "Gravel Flick",
+    "flavor_text": "Flicks sharp gravel off desert pavement with minimal wind-up.",
+    "type": "ground",
+    "category": "physical",
+    "power": 30,
+    "accuracy": 1.0,
+    "pp": 30
+  },
+  {
+    "id": "biome.cracked_earth_tap",
+    "name": "Cracked Earth Tap",
+    "flavor_text": "Stamps cracked earth where sparse land splits under heat.",
+    "type": "ground",
+    "category": "physical",
+    "power": 40,
+    "accuracy": 1.0,
+    "pp": 25
+  },
+  {
+    "id": "biome.alkali_crust_jab",
+    "name": "Alkali Crust Jab",
+    "flavor_text": "Jabs with alkali-crusted knuckles from sun-white bare flats.",
+    "type": "ground",
+    "category": "physical",
+    "power": 40,
+    "accuracy": 1.0,
+    "pp": 25
+  },
+  {
+    "id": "biome.tumbleweed_roll",
+    "name": "Tumbleweed Roll",
+    "flavor_text": "Bowls forward like tumbleweed across dry shrub barrens.",
+    "type": "ground",
+    "category": "physical",
+    "power": 45,
+    "accuracy": 1.0,
+    "pp": 25
+  },
+  {
+    "id": "biome.parched_root_lash",
+    "name": "Parched Root Lash",
+    "flavor_text": "Lashes with parched roots clawing up from bare sparse soil.",
+    "type": "ground",
+    "category": "physical",
+    "power": 40,
+    "accuracy": 1.0,
+    "pp": 25,
+    "effects": [
+      {
+        "chance": 0.3,
+        "trigger": "on_hit",
+        "effects": [
+          {
+            "kind": "stat",
+            "target": "target",
+            "changes": {
+              "speed": -1
+            }
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "id": "biome.sun_baked_clay_chop",
+    "name": "Sun-Baked Clay Chop",
+    "flavor_text": "Chops with sun-baked clay hardened on dry shrub margins.",
+    "type": "ground",
+    "category": "physical",
+    "power": 45,
+    "accuracy": 1.0,
+    "pp": 25
+  },
+  {
+    "id": "biome.lithified_soil_slam",
+    "name": "Lithified Soil Slam",
+    "flavor_text": "Drives lithified soil upward from compacted bare ground.",
+    "type": "ground",
+    "category": "physical",
+    "power": 52,
+    "accuracy": 1.0,
+    "pp": 20
+  },
+  {
+    "id": "biome.barren_scrape",
+    "name": "Barren Scrape",
+    "flavor_text": "Scrapes knuckles across barren scrape zones of wind-stripped land.",
+    "type": "ground",
+    "category": "physical",
+    "power": 40,
+    "accuracy": 1.0,
+    "pp": 25
+  },
+  {
+    "id": "biome.dry_shrub_mulch",
+    "name": "Dry Shrub Mulch",
+    "flavor_text": "Mulches dry shrub debris into a footing boost on sparse ground.",
+    "type": "ground",
+    "category": "status",
+    "accuracy": 1.0,
+    "pp": 20,
+    "effects": [
+      {
+        "chance": 1.0,
+        "trigger": "on_hit",
+        "effects": [
+          {
+            "kind": "stat",
+            "target": "self",
+            "changes": {
+              "attack": 1
+            }
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "id": "biome.dune_ripple_rush",
+    "name": "Dune Ripple Rush",
+    "flavor_text": "Surges along a dune ripple for a first strike across bare sparse flats.",
+    "type": "ground",
+    "category": "physical",
+    "power": 40,
+    "accuracy": 1.0,
+    "pp": 25,
+    "priority": 1
+  },
+  {
+    "id": "biome.caliche_fault_break",
+    "name": "Caliche Fault Break",
+    "flavor_text": "Ruptures a caliche fault line beneath bare sparse terrain.",
+    "type": "ground",
+    "category": "physical",
+    "power": 65,
+    "accuracy": 1.0,
+    "pp": 20,
+    "level_requirement": 26
+  },
+  {
+    "id": "biome.baked_sod_sink",
+    "name": "Baked Sod Sink",
+    "flavor_text": "Drops the foe into baked sod that sucks at the feet of dry shrub country.",
+    "type": "ground",
+    "category": "status",
+    "accuracy": 1.0,
+    "pp": 20,
+    "level_requirement": 32,
+    "effects": [
+      {
+        "chance": 1.0,
+        "trigger": "on_hit",
+        "effects": [
+          {
+            "kind": "stat",
+            "target": "target",
+            "changes": {
+              "speed": -1
+            }
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "id": "biome.desert_pavement_collapse",
+    "name": "Desert Pavement Collapse",
+    "flavor_text": "Triggers a full desert pavement collapse across miles of bare sparse land.",
+    "type": "ground",
+    "category": "physical",
+    "power": 120,
+    "accuracy": 1.0,
+    "pp": 5,
+    "level_requirement": 60,
+    "effects": [
+      {
+        "chance": 0.3,
+        "trigger": "on_hit",
+        "effects": [
+          {
+            "kind": "stat",
+            "target": "target",
+            "changes": {
+              "defense": -2
+            }
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "id": "biome.hedgerow_nip",
+    "name": "Hedgerow Nip",
+    "flavor_text": "A quick bite from crop-row bramble that grew where the creature was born.",
+    "type": "bug",
+    "category": "physical",
+    "power": 40,
+    "accuracy": 1.0,
+    "pp": 25
+  },
+  {
+    "id": "biome.canopy_fleck",
+    "name": "Canopy Fleck",
+    "flavor_text": "Shed scales drift down from treetop light and sting on contact.",
+    "type": "bug",
+    "category": "physical",
+    "power": 40,
+    "accuracy": 1.0,
+    "pp": 25
+  },
+  {
+    "id": "biome.mangrove_snare",
+    "name": "Mangrove Snare",
+    "flavor_text": "Mangrove roots whip upward from the understory mud.",
+    "type": "bug",
+    "category": "physical",
+    "power": 45,
+    "accuracy": 1.0,
+    "pp": 25,
+    "effects": [
+      {
+        "chance": 0.3,
+        "trigger": "on_hit",
+        "effects": [
+          {
+            "kind": "stat",
+            "target": "target",
+            "changes": {
+              "speed": -1
+            }
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "id": "biome.pollen_puff",
+    "name": "Pollen Puff",
+    "flavor_text": "A burst of crop-bloom dust puffs from furrow-side flowers.",
+    "type": "bug",
+    "category": "special",
+    "power": 30,
+    "accuracy": 1.0,
+    "pp": 30
+  },
+  {
+    "id": "biome.bark_mite_rush",
+    "name": "Bark Mite Rush",
+    "flavor_text": "A surge of mites spills from rotting trunk bark.",
+    "type": "bug",
+    "category": "physical",
+    "power": 45,
+    "accuracy": 1.0,
+    "pp": 25
+  },
+  {
+    "id": "biome.marsh_gnaw",
+    "name": "Marsh Gnaw",
+    "flavor_text": "A salty mangrove bite laced with brackish residue.",
+    "type": "bug",
+    "category": "physical",
+    "power": 30,
+    "accuracy": 1.0,
+    "pp": 30,
+    "effects": [
+      {
+        "chance": 0.2,
+        "trigger": "on_hit",
+        "effects": [
+          {
+            "kind": "status",
+            "target": "target",
+            "status": "poison"
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "id": "biome.hive_signal",
+    "name": "Hive Signal",
+    "flavor_text": "A cropland swarm pulse that coordinates a stinging rush.",
+    "type": "bug",
+    "category": "physical",
+    "power": 45,
+    "accuracy": 1.0,
+    "pp": 25
+  },
+  {
+    "id": "biome.briar_pinch",
+    "name": "Briar Pinch",
+    "flavor_text": "Hedge thorns clamp shut on whatever stepped into the row.",
+    "type": "bug",
+    "category": "physical",
+    "power": 52,
+    "accuracy": 1.0,
+    "pp": 20
+  },
+  {
+    "id": "biome.canopy_drop",
+    "name": "Canopy Drop",
+    "flavor_text": "The attacker falls from the treeline before the foe can react.",
+    "type": "bug",
+    "category": "physical",
+    "power": 30,
+    "accuracy": 1.0,
+    "pp": 30,
+    "priority": 1
+  },
+  {
+    "id": "biome.sap_bind",
+    "name": "Sap Bind",
+    "flavor_text": "Tree resin oozes from canopy wounds and glues the foe in place.",
+    "type": "bug",
+    "category": "status",
+    "accuracy": 0.9,
+    "pp": 20,
+    "effects": [
+      {
+        "chance": 0.3,
+        "trigger": "on_hit",
+        "effects": [
+          {
+            "kind": "status",
+            "target": "target",
+            "status": "paralysis"
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "id": "biome.mulch_cozy",
+    "name": "Mulch Cozy",
+    "flavor_text": "The user burrows into warm compost heap warmth to recover.",
+    "type": "bug",
+    "category": "status",
+    "accuracy": 1.0,
+    "pp": 15,
+    "effects": [
+      {
+        "chance": 1.0,
+        "trigger": "on_hit",
+        "effects": [
+          {
+            "kind": "heal",
+            "target": "self",
+            "ratio": 0.35
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "id": "biome.rot_cycle",
+    "name": "Rot Cycle",
+    "flavor_text": "A decomposition aura seeps from decaying understory litter.",
+    "type": "bug",
+    "category": "status",
+    "accuracy": 1.0,
+    "pp": 20,
+    "level_requirement": 18,
+    "effects": [
+      {
+        "chance": 1.0,
+        "trigger": "on_hit",
+        "effects": [
+          {
+            "kind": "stat",
+            "target": "target",
+            "changes": {
+              "defense": -1
+            }
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "id": "biome.thorn_lattice",
+    "name": "Thorn Lattice",
+    "flavor_text": "Interlocking hedge barbs rake across the foe in a woven pattern.",
+    "type": "bug",
+    "category": "physical",
+    "power": 50,
+    "accuracy": 1.0,
+    "pp": 20,
+    "level_requirement": 28
+  },
+  {
+    "id": "biome.understory_surge",
+    "name": "Understory Surge",
+    "flavor_text": "A full-body rush through dappled mangrove shade.",
+    "type": "bug",
+    "category": "physical",
+    "power": 90,
+    "accuracy": 1.0,
+    "pp": 15,
+    "level_requirement": 44
+  },
+  {
+    "id": "biome.mangrove_crown",
+    "name": "Mangrove Crown",
+    "flavor_text": "The creature rises on a crown of arching roots and slams down.",
+    "type": "bug",
+    "category": "physical",
+    "power": 120,
+    "accuracy": 1.0,
+    "pp": 5,
+    "level_requirement": 62
+  },
+  {
+    "id": "biome.scree_toss",
+    "name": "Scree Toss",
+    "flavor_text": "Loose stones skitter from bare sparse ground into the foe.",
+    "type": "rock",
+    "category": "physical",
+    "power": 40,
+    "accuracy": 1.0,
+    "pp": 25
+  },
+  {
+    "id": "biome.talus_first",
+    "name": "Talus First",
+    "flavor_text": "The attacker rolls downslope scree before the foe can brace.",
+    "type": "rock",
+    "category": "physical",
+    "power": 30,
+    "accuracy": 1.0,
+    "pp": 30,
+    "priority": 1
+  },
+  {
+    "id": "biome.moss_scrape",
+    "name": "Moss Scrape",
+    "flavor_text": "A scraping strike across mossy bare rock patches.",
+    "type": "rock",
+    "category": "physical",
+    "power": 40,
+    "accuracy": 1.0,
+    "pp": 25
+  },
+  {
+    "id": "biome.pebble_flick",
+    "name": "Pebble Flick",
+    "flavor_text": "Pebbles flick up from sun-baked sparse soil.",
+    "type": "rock",
+    "category": "physical",
+    "power": 30,
+    "accuracy": 1.0,
+    "pp": 30
+  },
+  {
+    "id": "biome.shale_snap",
+    "name": "Shale Snap",
+    "flavor_text": "A brittle shale plate snaps forward from exposed bedrock.",
+    "type": "rock",
+    "category": "physical",
+    "power": 45,
+    "accuracy": 1.0,
+    "pp": 25
+  },
+  {
+    "id": "biome.ridge_bash",
+    "name": "Ridge Bash",
+    "flavor_text": "A shoulder slam driven by high-elevation wind behind it.",
+    "type": "rock",
+    "category": "physical",
+    "power": 52,
+    "accuracy": 1.0,
+    "pp": 20
+  },
+  {
+    "id": "biome.wind_shear",
+    "name": "Wind Shear",
+    "flavor_text": "Alpine gust strips lichen crust and hurls grit at the foe.",
+    "type": "rock",
+    "category": "special",
+    "power": 40,
+    "accuracy": 1.0,
+    "pp": 25,
+    "effects": [
+      {
+        "chance": 0.3,
+        "trigger": "on_hit",
+        "effects": [
+          {
+            "kind": "stat",
+            "target": "target",
+            "changes": {
+              "sp_defense": -1
+            }
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "id": "biome.crag_pinch",
+    "name": "Crag Pinch",
+    "flavor_text": "Two crag points clamp like a lichen-crusted vise.",
+    "type": "rock",
+    "category": "physical",
+    "power": 30,
+    "accuracy": 1.0,
+    "pp": 30,
+    "effects": [
+      {
+        "chance": 0.3,
+        "trigger": "on_hit",
+        "effects": [
+          {
+            "kind": "stat",
+            "target": "target",
+            "changes": {
+              "speed": -1
+            }
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "id": "biome.lichen_scorch",
+    "name": "Lichen Scorch",
+    "flavor_text": "Sun-baked lichen flakes ignite into a brief abrasive burn.",
+    "type": "rock",
+    "category": "special",
+    "power": 40,
+    "accuracy": 1.0,
+    "pp": 25,
+    "effects": [
+      {
+        "chance": 0.2,
+        "trigger": "on_hit",
+        "effects": [
+          {
+            "kind": "status",
+            "target": "target",
+            "status": "burn"
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "id": "biome.crust_regrow",
+    "name": "Crust Regrow",
+    "flavor_text": "Bare rock crust slowly knits over the user's wounds.",
+    "type": "rock",
+    "category": "status",
+    "accuracy": 1.0,
+    "pp": 15,
+    "effects": [
+      {
+        "chance": 1.0,
+        "trigger": "on_hit",
+        "effects": [
+          {
+            "kind": "heal",
+            "target": "self",
+            "ratio": 0.35
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "id": "biome.bare_stand",
+    "name": "Bare Stand",
+    "flavor_text": "The user roots into sparse ground and hardens like exposed stone.",
+    "type": "rock",
+    "category": "status",
+    "accuracy": 1.0,
+    "pp": 20,
+    "effects": [
+      {
+        "chance": 1.0,
+        "trigger": "on_hit",
+        "effects": [
+          {
+            "kind": "stat",
+            "target": "self",
+            "changes": {
+              "defense": 1
+            }
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "id": "biome.summit_breath",
+    "name": "Summit Breath",
+    "flavor_text": "Thin high-elevation air sharpens focus and reflexes.",
+    "type": "rock",
+    "category": "status",
+    "accuracy": 1.0,
+    "pp": 20,
+    "level_requirement": 22,
+    "effects": [
+      {
+        "chance": 1.0,
+        "trigger": "on_hit",
+        "effects": [
+          {
+            "kind": "stat",
+            "target": "self",
+            "changes": {
+              "speed": 1
+            }
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "id": "biome.boulder_roll",
+    "name": "Boulder Roll",
+    "flavor_text": "A talus boulder gathers momentum down a bare slope.",
+    "type": "rock",
+    "category": "physical",
+    "power": 50,
+    "accuracy": 1.0,
+    "pp": 20,
+    "level_requirement": 30,
+    "effects": [
+      {
+        "chance": 1.0,
+        "trigger": "on_hit",
+        "effects": [
+          {
+            "kind": "stat",
+            "target": "self",
+            "changes": {
+              "defense": -1
+            }
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "id": "biome.alpine_breaker",
+    "name": "Alpine Breaker",
+    "flavor_text": "A crushing blow from elevation-forged stone mass.",
+    "type": "rock",
+    "category": "physical",
+    "power": 95,
+    "accuracy": 1.0,
+    "pp": 15,
+    "level_requirement": 47
+  },
+  {
+    "id": "biome.avalanche_mark",
+    "name": "Avalanche Mark",
+    "flavor_text": "The creature triggers a marked scree slide from the ridgeline above.",
+    "type": "rock",
+    "category": "physical",
+    "power": 125,
+    "accuracy": 1.0,
+    "pp": 5,
+    "level_requirement": 65
+  },
+  {
+    "id": "biome.alley_drift",
+    "name": "Alley Drift",
+    "flavor_text": "The user slides through a shaded footpath between old walls.",
+    "type": "ghost",
+    "category": "physical",
+    "power": 40,
+    "accuracy": 1.0,
+    "pp": 25,
+    "effects": [
+      {
+        "chance": 0.3,
+        "trigger": "on_hit",
+        "effects": [
+          {
+            "kind": "stat",
+            "target": "target",
+            "changes": {
+              "speed": -1
+            }
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "id": "biome.cellar_chill",
+    "name": "Cellar Chill",
+    "flavor_text": "Cold air exhales from a built-up cellar beneath cracked pavement.",
+    "type": "ghost",
+    "category": "special",
+    "power": 40,
+    "accuracy": 1.0,
+    "pp": 25
+  },
+  {
+    "id": "biome.threshold_tap",
+    "name": "Threshold Tap",
+    "flavor_text": "A light strike on a doorway sill that saps warmth from the foe.",
+    "type": "ghost",
+    "category": "physical",
+    "power": 40,
+    "accuracy": 1.0,
+    "pp": 25,
+    "effects": [
+      {
+        "chance": 1.0,
+        "trigger": "on_hit",
+        "effects": [
+          {
+            "kind": "drain",
+            "ratio": 0.2
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "id": "biome.mortar_flake",
+    "name": "Mortar Flake",
+    "flavor_text": "Crumbling mortar dust scrapes across the foe like ash.",
+    "type": "ghost",
+    "category": "physical",
+    "power": 30,
+    "accuracy": 1.0,
+    "pp": 30
+  },
+  {
+    "id": "biome.lantern_rush",
+    "name": "Lantern Rush",
+    "flavor_text": "A gutter-lantern glow precedes a sudden lunge from shade.",
+    "type": "ghost",
+    "category": "physical",
+    "power": 30,
+    "accuracy": 1.0,
+    "pp": 30,
+    "priority": 1
+  },
+  {
+    "id": "biome.haunt_nudge",
+    "name": "Haunt Nudge",
+    "flavor_text": "An unseen shove from a historical footprint disturbs the foe.",
+    "type": "ghost",
+    "category": "physical",
+    "power": 45,
+    "accuracy": 1.0,
+    "pp": 25
+  },
+  {
+    "id": "biome.veil_scratch",
+    "name": "Veil Scratch",
+    "flavor_text": "Tree-cover shade peels forward and rakes like torn fabric.",
+    "type": "ghost",
+    "category": "physical",
+    "power": 45,
+    "accuracy": 1.0,
+    "pp": 25
+  },
+  {
+    "id": "biome.relic_rattle",
+    "name": "Relic Rattle",
+    "flavor_text": "Old buried objects clatter up through cobbles and strike.",
+    "type": "ghost",
+    "category": "physical",
+    "power": 52,
+    "accuracy": 1.0,
+    "pp": 20
+  },
+  {
+    "id": "biome.echo_poke",
+    "name": "Echo Poke",
+    "flavor_text": "A faint duplicate strike rebounds off alley walls.",
+    "type": "ghost",
+    "category": "special",
+    "power": 30,
+    "accuracy": 1.0,
+    "pp": 30
+  },
+  {
+    "id": "biome.dusk_mantle",
+    "name": "Dusk Mantle",
+    "flavor_text": "Tree-cover shade wraps the user in a dim protective fold.",
+    "type": "ghost",
+    "category": "status",
+    "accuracy": 1.0,
+    "pp": 20,
+    "effects": [
+      {
+        "chance": 1.0,
+        "trigger": "on_hit",
+        "effects": [
+          {
+            "kind": "stat",
+            "target": "self",
+            "changes": {
+              "sp_defense": 1
+            }
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "id": "biome.cobble_murmur",
+    "name": "Cobble Murmur",
+    "flavor_text": "Whispered street names underfoot unsettle the foe's focus.",
+    "type": "ghost",
+    "category": "status",
+    "accuracy": 0.9,
+    "pp": 20,
+    "effects": [
+      {
+        "chance": 0.3,
+        "trigger": "on_hit",
+        "effects": [
+          {
+            "kind": "stat",
+            "target": "target",
+            "changes": {
+              "sp_attack": -1
+            }
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "id": "biome.ledger_weight",
+    "name": "Ledger Weight",
+    "flavor_text": "The weight of old civic records presses on the foe's will.",
+    "type": "ghost",
+    "category": "status",
+    "accuracy": 1.0,
+    "pp": 20,
+    "level_requirement": 24,
+    "effects": [
+      {
+        "chance": 1.0,
+        "trigger": "on_hit",
+        "effects": [
+          {
+            "kind": "stat",
+            "target": "target",
+            "changes": {
+              "attack": -1,
+              "sp_attack": -1
+            }
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "id": "biome.shaded_assault",
+    "name": "Shaded Assault",
+    "flavor_text": "A full strike from canopy shadow that ignores obvious guard.",
+    "type": "ghost",
+    "category": "physical",
+    "power": 50,
+    "accuracy": 1.0,
+    "pp": 20,
+    "level_requirement": 31
+  },
+  {
+    "id": "biome.ruin_collapse",
+    "name": "Ruin Collapse",
+    "flavor_text": "A fragment of historical masonry crashes down from above.",
+    "type": "ghost",
+    "category": "physical",
+    "power": 90,
+    "accuracy": 1.0,
+    "pp": 15,
+    "level_requirement": 46
+  },
+  {
+    "id": "biome.forgotten_procession",
+    "name": "Forgotten Procession",
+    "flavor_text": "A procession of shade-figures marches through the foe and passes on.",
+    "type": "ghost",
+    "category": "special",
+    "power": 120,
+    "accuracy": 1.0,
+    "pp": 5,
+    "level_requirement": 68
+  },
+  {
+    "id": "biome.ridge_scrape",
+    "name": "Ridge Scrape",
+    "flavor_text": "A newborn scrapes quartz grit off a wind-scoured ridgeline into a slicing spray.",
+    "type": "dragon",
+    "category": "physical",
+    "power": 40,
+    "accuracy": 1.0,
+    "pp": 25
+  },
+  {
+    "id": "biome.timberline_nip",
+    "name": "Timberline Nip",
+    "flavor_text": "A quick bite at alpine timberline where thin air and frost-hardened bark meet.",
+    "type": "dragon",
+    "category": "physical",
+    "power": 30,
+    "accuracy": 1.0,
+    "pp": 30
+  },
+  {
+    "id": "biome.scree_tumble",
+    "name": "Scree Tumble",
+    "flavor_text": "Loosened scree cascades downslope in a rattling hail of stone.",
+    "type": "dragon",
+    "category": "physical",
+    "power": 30,
+    "accuracy": 1.0,
+    "pp": 30
+  },
+  {
+    "id": "biome.kettle_pond_splash",
+    "name": "Kettle Pond Splash",
+    "flavor_text": "A glacial kettle pond erupts in a cold, mineral-heavy splash.",
+    "type": "dragon",
+    "category": "special",
+    "power": 40,
+    "accuracy": 1.0,
+    "pp": 25
+  },
+  {
+    "id": "biome.wind_gap_rush",
+    "name": "Wind Gap Rush",
+    "flavor_text": "The creature charges through a mountain wind gap, body low and streamlined.",
+    "type": "dragon",
+    "category": "physical",
+    "power": 45,
+    "accuracy": 1.0,
+    "pp": 25
+  },
+  {
+    "id": "biome.summit_exhale",
+    "name": "Summit Exhale",
+    "flavor_text": "Thin summit air condenses into a sharp, altitude-borne breath.",
+    "type": "dragon",
+    "category": "special",
+    "power": 45,
+    "accuracy": 1.0,
+    "pp": 25
+  },
+  {
+    "id": "biome.talus_slide",
+    "name": "Talus Slide",
+    "flavor_text": "A slab of talus breaks free and grinds across the slope.",
+    "type": "dragon",
+    "category": "physical",
+    "power": 45,
+    "accuracy": 1.0,
+    "pp": 25
+  },
+  {
+    "id": "biome.isolated_peak_roar",
+    "name": "Isolated Peak Roar",
+    "flavor_text": "A roar echoes off a lone peak, shaking loose ice and stone.",
+    "type": "dragon",
+    "category": "special",
+    "power": 52,
+    "accuracy": 1.0,
+    "pp": 20
+  },
+  {
+    "id": "biome.alpine_hunker",
+    "name": "Alpine Hunker",
+    "flavor_text": "It beds down in lee of a rock spine, letting elevation weather pass over.",
+    "type": "dragon",
+    "category": "status",
+    "accuracy": 1.0,
+    "pp": 20,
+    "effects": [
+      {
+        "chance": 1.0,
+        "trigger": "on_hit",
+        "effects": [
+          {
+            "kind": "stat",
+            "target": "self",
+            "changes": {
+              "defense": 1
+            }
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "id": "biome.timberline_mist",
+    "name": "Timberline Mist",
+    "flavor_text": "Cold mist rolls off timberline, slowing breath and footing alike.",
+    "type": "dragon",
+    "category": "status",
+    "accuracy": 1.0,
+    "pp": 20,
+    "effects": [
+      {
+        "chance": 1.0,
+        "trigger": "on_hit",
+        "effects": [
+          {
+            "kind": "stat",
+            "target": "target",
+            "changes": {
+              "speed": -1
+            }
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "id": "biome.ridge_vigil",
+    "name": "Ridge Vigil",
+    "flavor_text": "It holds a high ridgeline watch, reading wind and terrain before striking.",
+    "type": "dragon",
+    "category": "status",
+    "accuracy": 1.0,
+    "pp": 20,
+    "effects": [
+      {
+        "chance": 1.0,
+        "trigger": "on_hit",
+        "effects": [
+          {
+            "kind": "stat",
+            "target": "self",
+            "changes": {
+              "attack": 1
+            }
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "id": "biome.moraine_crush",
+    "name": "Moraine Crush",
+    "flavor_text": "A moraine shoulder collapses under crushing weight.",
+    "type": "dragon",
+    "category": "physical",
+    "power": 70,
+    "accuracy": 1.0,
+    "pp": 20,
+    "level_requirement": 28
+  },
+  {
+    "id": "biome.cirque_breaker",
+    "name": "Cirque Breaker",
+    "flavor_text": "Ice and rock shear from a cirque wall in one brutal release.",
+    "type": "dragon",
+    "category": "physical",
+    "power": 85,
+    "accuracy": 1.0,
+    "pp": 15,
+    "level_requirement": 36,
+    "effects": [
+      {
+        "chance": 0.3,
+        "trigger": "on_hit",
+        "effects": [
+          {
+            "kind": "stat",
+            "target": "target",
+            "changes": {
+              "defense": -1
+            }
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "id": "biome.horn_ridge_slam",
+    "name": "Horn Ridge Slam",
+    "flavor_text": "The creature slams down along a horn ridge, grinding stone into the foe.",
+    "type": "dragon",
+    "category": "physical",
+    "power": 100,
+    "accuracy": 1.0,
+    "pp": 10,
+    "level_requirement": 48
+  },
+  {
+    "id": "biome.continental_divide",
+    "name": "Continental Divide",
+    "flavor_text": "Watershed force splits the battlefield\u2014one titanic strike born of divide-scale terrain.",
+    "type": "dragon",
+    "category": "special",
+    "power": 120,
+    "accuracy": 1.0,
+    "pp": 5,
+    "level_requirement": 62
+  },
+  {
+    "id": "biome.conduit_spark",
+    "name": "Conduit Spark",
+    "flavor_text": "A stray spark jumps from buried urban conduit beneath cracked pavement.",
+    "type": "electric",
+    "category": "special",
+    "power": 30,
+    "accuracy": 1.0,
+    "pp": 30
+  },
+  {
+    "id": "biome.crosswalk_zap",
+    "name": "Crosswalk Zap",
+    "flavor_text": "Static discharges across a wet crosswalk in a stuttering jolt.",
+    "type": "electric",
+    "category": "special",
+    "power": 30,
+    "accuracy": 1.0,
+    "pp": 30
+  },
+  {
+    "id": "biome.grid_hum",
+    "name": "Grid Hum",
+    "flavor_text": "The block's grid hums through pavement and rebar into a focused pulse.",
+    "type": "electric",
+    "category": "special",
+    "power": 40,
+    "accuracy": 1.0,
+    "pp": 25
+  },
+  {
+    "id": "biome.streetlamp_arc",
+    "name": "Streetlamp Arc",
+    "flavor_text": "An arc leaps from a streetlamp mast down into the target.",
+    "type": "electric",
+    "category": "special",
+    "power": 45,
+    "accuracy": 1.0,
+    "pp": 25
+  },
+  {
+    "id": "biome.alleyway_surge",
+    "name": "Alleyway Surge",
+    "flavor_text": "Power surges through narrow alley wiring, channeling into one burst.",
+    "type": "electric",
+    "category": "special",
+    "power": 45,
+    "accuracy": 1.0,
+    "pp": 25
+  },
+  {
+    "id": "biome.transit_rail_shock",
+    "name": "Transit Rail Shock",
+    "flavor_text": "Third-rail charge bleeds through the urban substrate in a grinding shock.",
+    "type": "electric",
+    "category": "physical",
+    "power": 52,
+    "accuracy": 1.0,
+    "pp": 20
+  },
+  {
+    "id": "biome.pavement_crackle",
+    "name": "Pavement Crackle",
+    "flavor_text": "Heat and charge spider through expanding pavement cracks.",
+    "type": "electric",
+    "category": "special",
+    "power": 40,
+    "accuracy": 1.0,
+    "pp": 25
+  },
+  {
+    "id": "biome.brownout_flicker",
+    "name": "Brownout Flicker",
+    "flavor_text": "A district brownout stutters into painful, irregular flicker-strikes.",
+    "type": "electric",
+    "category": "special",
+    "power": 45,
+    "accuracy": 1.0,
+    "pp": 25,
+    "effects": [
+      {
+        "chance": 0.3,
+        "trigger": "on_hit",
+        "effects": [
+          {
+            "kind": "status",
+            "target": "target",
+            "status": "paralysis"
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "id": "biome.substation_pulse",
+    "name": "Substation Pulse",
+    "flavor_text": "A buried substation dumps a single heavy pulse through the block.",
+    "type": "electric",
+    "category": "special",
+    "power": 52,
+    "accuracy": 1.0,
+    "pp": 20
+  },
+  {
+    "id": "biome.traffic_signal_blink",
+    "name": "Traffic Signal Blink",
+    "flavor_text": "It syncs to intersection signals, forcing the foe to read false greens and reds.",
+    "type": "electric",
+    "category": "status",
+    "accuracy": 0.9,
+    "pp": 20,
+    "effects": [
+      {
+        "chance": 0.3,
+        "trigger": "on_hit",
+        "effects": [
+          {
+            "kind": "stat",
+            "target": "target",
+            "changes": {
+              "speed": -1
+            }
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "id": "biome.urban_roost",
+    "name": "Urban Roost",
+    "flavor_text": "It perches on a transformer housing, drawing quiet charge from the fabric.",
+    "type": "electric",
+    "category": "status",
+    "accuracy": 1.0,
+    "pp": 20,
+    "effects": [
+      {
+        "chance": 1.0,
+        "trigger": "on_hit",
+        "effects": [
+          {
+            "kind": "stat",
+            "target": "self",
+            "changes": {
+              "sp_attack": 1
+            }
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "id": "biome.district_ground",
+    "name": "District Ground",
+    "flavor_text": "It grounds excess charge through municipal wiring, stabilizing its output.",
+    "type": "electric",
+    "category": "status",
+    "accuracy": 1.0,
+    "pp": 20,
+    "effects": [
+      {
+        "chance": 1.0,
+        "trigger": "on_hit",
+        "effects": [
+          {
+            "kind": "stat",
+            "target": "self",
+            "changes": {
+              "sp_defense": 1
+            }
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "id": "biome.overpass_bolt",
+    "name": "Overpass Bolt",
+    "flavor_text": "A bolt channels from overpass steel into a single lane of destruction.",
+    "type": "electric",
+    "category": "special",
+    "power": 75,
+    "accuracy": 1.0,
+    "pp": 15,
+    "level_requirement": 24
+  },
+  {
+    "id": "biome.red_light_rush",
+    "name": "Red Light Rush",
+    "flavor_text": "It darts the gap on a stale red, striking before cross-traffic clears.",
+    "type": "electric",
+    "category": "physical",
+    "power": 40,
+    "accuracy": 1.0,
+    "pp": 25,
+    "priority": 1,
+    "level_requirement": 18
+  },
+  {
+    "id": "biome.metro_blackout",
+    "name": "Metro Blackout",
+    "flavor_text": "The whole district drops dark; when lights return, one cataclysmic surge remains.",
+    "type": "electric",
+    "category": "special",
+    "power": 125,
+    "accuracy": 1.0,
+    "pp": 5,
+    "level_requirement": 58
+  },
+  {
+    "id": "biome.alley_shade",
+    "name": "Alley Shade",
+    "flavor_text": "A slice of alley shadow peels loose and cuts across the foe.",
+    "type": "dark",
+    "category": "physical",
+    "power": 30,
+    "accuracy": 1.0,
+    "pp": 30
+  },
+  {
+    "id": "biome.backlot_grudge",
+    "name": "Backlot Grudge",
+    "flavor_text": "Old grievances pooled in a service alley lash out as a spiteful strike.",
+    "type": "dark",
+    "category": "physical",
+    "power": 40,
+    "accuracy": 1.0,
+    "pp": 25
+  },
+  {
+    "id": "biome.loading_dock_lurk",
+    "name": "Loading Dock Lurk",
+    "flavor_text": "It strikes from dock shadow between freight pallets.",
+    "type": "dark",
+    "category": "physical",
+    "power": 45,
+    "accuracy": 1.0,
+    "pp": 25
+  },
+  {
+    "id": "biome.midnight_puddle",
+    "name": "Midnight Puddle",
+    "flavor_text": "Streetlight glare on a midnight puddle warps into a drowning pull.",
+    "type": "dark",
+    "category": "special",
+    "power": 45,
+    "accuracy": 1.0,
+    "pp": 25
+  },
+  {
+    "id": "biome.tenement_sigh",
+    "name": "Tenement Sigh",
+    "flavor_text": "A weary tenement exhale carries soot, regret, and weight.",
+    "type": "dark",
+    "category": "special",
+    "power": 45,
+    "accuracy": 1.0,
+    "pp": 25
+  },
+  {
+    "id": "biome.closed_sign_scowl",
+    "name": "Closed Sign Scowl",
+    "flavor_text": "A shuttered storefront's scowl lands as a heavy, personal hit.",
+    "type": "dark",
+    "category": "physical",
+    "power": 52,
+    "accuracy": 1.0,
+    "pp": 20
+  },
+  {
+    "id": "biome.night_market_haggle",
+    "name": "Night Market Haggle",
+    "flavor_text": "A nocturnal bargain turns cruel\u2014payment taken in flesh and nerve.",
+    "type": "dark",
+    "category": "physical",
+    "power": 45,
+    "accuracy": 1.0,
+    "pp": 25,
+    "effects": [
+      {
+        "chance": 0.3,
+        "trigger": "on_hit",
+        "effects": [
+          {
+            "kind": "status",
+            "target": "target",
+            "status": "poison"
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "id": "biome.curbside_whisper",
+    "name": "Curbside Whisper",
+    "flavor_text": "A curbside whisper at solar nadir erodes resolve before the blow.",
+    "type": "dark",
+    "category": "special",
+    "power": 40,
+    "accuracy": 1.0,
+    "pp": 25,
+    "effects": [
+      {
+        "chance": 0.2,
+        "trigger": "on_hit",
+        "effects": [
+          {
+            "kind": "stat",
+            "target": "target",
+            "changes": {
+              "attack": -1
+            }
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "id": "biome.after_hours_lock",
+    "name": "After-Hours Lock",
+    "flavor_text": "It bars the foe behind an after-hours gate, narrowing options.",
+    "type": "dark",
+    "category": "status",
+    "accuracy": 1.0,
+    "pp": 15,
+    "effects": [
+      {
+        "chance": 1.0,
+        "trigger": "on_hit",
+        "effects": [
+          {
+            "kind": "stat",
+            "target": "target",
+            "changes": {
+              "speed": -2
+            }
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "id": "biome.nocturnal_roost",
+    "name": "Nocturnal Roost",
+    "flavor_text": "It settles on a fire escape in full dark, gathering malice from the block.",
+    "type": "dark",
+    "category": "status",
+    "accuracy": 1.0,
+    "pp": 20,
+    "effects": [
+      {
+        "chance": 1.0,
+        "trigger": "on_hit",
+        "effects": [
+          {
+            "kind": "stat",
+            "target": "self",
+            "changes": {
+              "attack": 1
+            }
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "id": "biome.streetlamp_umbra",
+    "name": "Streetlamp Umbra",
+    "flavor_text": "It hides in the cone beneath a streetlamp, untouched by the light.",
+    "type": "dark",
+    "category": "status",
+    "accuracy": 1.0,
+    "pp": 20,
+    "effects": [
+      {
+        "chance": 1.0,
+        "trigger": "on_hit",
+        "effects": [
+          {
+            "kind": "stat",
+            "target": "self",
+            "changes": {
+              "defense": 1
+            }
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "id": "biome.industrial_belt_smother",
+    "name": "Industrial Belt Smother",
+    "flavor_text": "Smog and shadow from an industrial belt choke the lane.",
+    "type": "dark",
+    "category": "special",
+    "power": 75,
+    "accuracy": 1.0,
+    "pp": 15,
+    "level_requirement": 26
+  },
+  {
+    "id": "biome.nightshift_grind",
+    "name": "Nightshift Grind",
+    "flavor_text": "Graveyard-shift rhythm grinds the foe down in relentless, ugly passes.",
+    "type": "dark",
+    "category": "physical",
+    "power": 90,
+    "accuracy": 1.0,
+    "pp": 15,
+    "level_requirement": 38,
+    "effects": [
+      {
+        "chance": 0.3,
+        "trigger": "on_hit",
+        "effects": [
+          {
+            "kind": "stat",
+            "target": "target",
+            "changes": {
+              "defense": -1
+            }
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "id": "biome.last_train_fare",
+    "name": "Last Train Fare",
+    "flavor_text": "The final nocturnal fare is collected\u2014paid in full, paid in pain.",
+    "type": "dark",
+    "category": "physical",
+    "power": 105,
+    "accuracy": 1.0,
+    "pp": 10,
+    "level_requirement": 44
+  },
+  {
+    "id": "biome.solar_nadir",
+    "name": "Solar Nadir",
+    "flavor_text": "At the solar nadir the district goes hollow; one absolute strike remains when dawn is still far.",
+    "type": "dark",
+    "category": "special",
+    "power": 120,
+    "accuracy": 1.0,
+    "pp": 5,
+    "level_requirement": 60
+  },
+  {
+    "id": "biome.rebar_snap",
+    "name": "Rebar Snap",
+    "flavor_text": "A twisted rebar lash flung from a demolition fringe where old industrial blocks meet bare ground.",
+    "type": "steel",
+    "category": "physical",
+    "power": 40,
+    "accuracy": 1.0,
+    "pp": 25
+  },
+  {
+    "id": "biome.boilerplate_bash",
+    "name": "Boilerplate Bash",
+    "flavor_text": "Stamped metal siding buckles forward like a shield turned weapon on a cramped factory lot.",
+    "type": "steel",
+    "category": "physical",
+    "power": 40,
+    "accuracy": 1.0,
+    "pp": 25
+  },
+  {
+    "id": "biome.conveyor_lash",
+    "name": "Conveyor Lash",
+    "flavor_text": "A loading-belt whip snaps across a freight bay floor born from clustered built-up cover.",
+    "type": "steel",
+    "category": "physical",
+    "power": 45,
+    "accuracy": 1.0,
+    "pp": 25
+  },
+  {
+    "id": "biome.zinc_plume",
+    "name": "Zinc Plume",
+    "flavor_text": "Oxidized zinc dust blooms off corroded roofing in a downwind industrial pocket.",
+    "type": "steel",
+    "category": "special",
+    "power": 40,
+    "accuracy": 1.0,
+    "pp": 25,
+    "effects": [
+      {
+        "chance": 0.3,
+        "trigger": "on_hit",
+        "effects": [
+          {
+            "kind": "stat",
+            "target": "target",
+            "changes": {
+              "sp_defense": -1
+            }
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "id": "biome.weld_spark",
+    "name": "Weld Spark",
+    "flavor_text": "A brief arc-welder flick between alleyway scaffolding and rusted girders.",
+    "type": "steel",
+    "category": "special",
+    "power": 30,
+    "accuracy": 1.0,
+    "pp": 30
+  },
+  {
+    "id": "biome.freight_tap",
+    "name": "Freight Tap",
+    "flavor_text": "A light coupling bump from yard shunting on rail spurs through built-up clusters.",
+    "type": "steel",
+    "category": "physical",
+    "power": 30,
+    "accuracy": 1.0,
+    "pp": 30
+  },
+  {
+    "id": "biome.foundry_clang",
+    "name": "Foundry Clang",
+    "flavor_text": "Molten foundry resonance rings through brick stacks and smoke-black chimneys.",
+    "type": "steel",
+    "category": "physical",
+    "power": 52,
+    "accuracy": 1.0,
+    "pp": 20
+  },
+  {
+    "id": "biome.catwalk_strike",
+    "name": "Catwalk Strike",
+    "flavor_text": "A knee drop from an elevated walkway spanning a warehouse district.",
+    "type": "steel",
+    "category": "physical",
+    "power": 40,
+    "accuracy": 1.0,
+    "pp": 25
+  },
+  {
+    "id": "biome.shift_hooter",
+    "name": "Shift Hooter",
+    "flavor_text": "A factory whistle stagger that halts rhythm on the shift-change hour.",
+    "type": "steel",
+    "category": "status",
+    "accuracy": 1.0,
+    "pp": 20,
+    "effects": [
+      {
+        "chance": 1.0,
+        "trigger": "on_hit",
+        "effects": [
+          {
+            "kind": "stat",
+            "target": "self",
+            "changes": {
+              "defense": 1
+            }
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "id": "biome.rust_veil",
+    "name": "Rust Veil",
+    "flavor_text": "Oxidized plating flakes into a protective haze over corroded industrial siding.",
+    "type": "steel",
+    "category": "status",
+    "accuracy": 1.0,
+    "pp": 20,
+    "effects": [
+      {
+        "chance": 1.0,
+        "trigger": "on_hit",
+        "effects": [
+          {
+            "kind": "stat",
+            "target": "self",
+            "changes": {
+              "defense": 1
+            }
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "id": "biome.overpass_brace",
+    "name": "Overpass Brace",
+    "flavor_text": "Structural bracing under a concrete overpass steadies the body against urban wind shear.",
+    "type": "steel",
+    "category": "status",
+    "accuracy": 1.0,
+    "pp": 20,
+    "level_requirement": 18,
+    "effects": [
+      {
+        "chance": 1.0,
+        "trigger": "on_hit",
+        "effects": [
+          {
+            "kind": "stat",
+            "target": "self",
+            "changes": {
+              "sp_defense": 1
+            }
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "id": "biome.smokestack_vent",
+    "name": "Smokestack Vent",
+    "flavor_text": "Hot exhaust vents upward from a clustered smokestack row over built-up terrain.",
+    "type": "steel",
+    "category": "special",
+    "power": 70,
+    "accuracy": 1.0,
+    "pp": 20,
+    "level_requirement": 24,
+    "effects": [
+      {
+        "chance": 0.3,
+        "trigger": "on_hit",
+        "effects": [
+          {
+            "kind": "status",
+            "target": "target",
+            "status": "burn"
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "id": "biome.railhead_rush",
+    "name": "Railhead Rush",
+    "flavor_text": "A low sprint along rail spurs where freight lines knot through industrial blocks.",
+    "type": "steel",
+    "category": "physical",
+    "power": 75,
+    "accuracy": 1.0,
+    "pp": 15,
+    "level_requirement": 38
+  },
+  {
+    "id": "biome.corrugated_slice",
+    "name": "Corrugated Slice",
+    "flavor_text": "Corrugated siding shears outward in a razor sheet from a metal-clad shed row.",
+    "type": "steel",
+    "category": "physical",
+    "power": 95,
+    "accuracy": 1.0,
+    "pp": 15,
+    "level_requirement": 48,
+    "effects": [
+      {
+        "chance": 0.3,
+        "trigger": "on_hit",
+        "effects": [
+          {
+            "kind": "stat",
+            "target": "target",
+            "changes": {
+              "defense": -1
+            }
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "id": "biome.chimney_crown",
+    "name": "Chimney Crown",
+    "flavor_text": "The crown of a towering chimney crashes down as a single decisive industrial monument.",
+    "type": "steel",
+    "category": "physical",
+    "power": 120,
+    "accuracy": 1.0,
+    "pp": 5,
+    "level_requirement": 62
+  },
+  {
+    "id": "biome.moss_cushion",
+    "name": "Moss Cushion",
+    "flavor_text": "Soft moss compresses then springs from a lichen grove floor at the forest edge.",
+    "type": "fairy",
+    "category": "physical",
+    "power": 40,
+    "accuracy": 1.0,
+    "pp": 25
+  },
+  {
+    "id": "biome.grove_gleam",
+    "name": "Grove Gleam",
+    "flavor_text": "Dawn light filters through lichen-draped branches into a gentle radiant pulse.",
+    "type": "fairy",
+    "category": "special",
+    "power": 40,
+    "accuracy": 1.0,
+    "pp": 25
+  },
+  {
+    "id": "biome.lichen_fleck",
+    "name": "Lichen Fleck",
+    "flavor_text": "Pale lichen flecks lift on a still grove breeze and sting like fairy dust.",
+    "type": "fairy",
+    "category": "special",
+    "power": 30,
+    "accuracy": 1.0,
+    "pp": 30
+  },
+  {
+    "id": "biome.dew_nibble",
+    "name": "Dew Nibble",
+    "flavor_text": "Beads of dawn dew roll off moss and patter in a rapid harmless-looking flurry.",
+    "type": "fairy",
+    "category": "physical",
+    "power": 30,
+    "accuracy": 1.0,
+    "pp": 30
+  },
+  {
+    "id": "biome.spore_ribbon",
+    "name": "Spore Ribbon",
+    "flavor_text": "A ribbon of grove spores spirals through mossy understory air.",
+    "type": "fairy",
+    "category": "special",
+    "power": 45,
+    "accuracy": 1.0,
+    "pp": 25,
+    "effects": [
+      {
+        "chance": 0.2,
+        "trigger": "on_hit",
+        "effects": [
+          {
+            "kind": "status",
+            "target": "target",
+            "status": "poison"
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "id": "biome.twilight_petal",
+    "name": "Twilight Petal",
+    "flavor_text": "Dusk-lit petals drift from a lichen grove margin at solar phase change.",
+    "type": "fairy",
+    "category": "special",
+    "power": 40,
+    "accuracy": 1.0,
+    "pp": 25
+  },
+  {
+    "id": "biome.dawn_filament",
+    "name": "Dawn Filament",
+    "flavor_text": "First light threads through moss like a filament strike before the grove fully wakes.",
+    "type": "fairy",
+    "category": "special",
+    "power": 40,
+    "accuracy": 1.0,
+    "pp": 25,
+    "priority": 1
+  },
+  {
+    "id": "biome.filament_wreathe",
+    "name": "Filament Wreathe",
+    "flavor_text": "Moss tendrils wreathe a foe at the grove threshold in soft constriction.",
+    "type": "fairy",
+    "category": "physical",
+    "power": 40,
+    "accuracy": 1.0,
+    "pp": 25,
+    "effects": [
+      {
+        "chance": 0.2,
+        "trigger": "on_hit",
+        "effects": [
+          {
+            "kind": "stat",
+            "target": "target",
+            "changes": {
+              "speed": -1
+            }
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "id": "biome.dew_mantle",
+    "name": "Dew Mantle",
+    "flavor_text": "A mantle of dawn dew settles over lichen pads and steadies the bearer.",
+    "type": "fairy",
+    "category": "status",
+    "accuracy": 1.0,
+    "pp": 20,
+    "effects": [
+      {
+        "chance": 1.0,
+        "trigger": "on_hit",
+        "effects": [
+          {
+            "kind": "stat",
+            "target": "self",
+            "changes": {
+              "sp_defense": 1
+            }
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "id": "biome.lichen_hush",
+    "name": "Lichen Hush",
+    "flavor_text": "The grove falls quiet; lichen muffles breath and thought at still dawn.",
+    "type": "fairy",
+    "category": "status",
+    "accuracy": 0.75,
+    "pp": 15,
+    "effects": [
+      {
+        "chance": 0.4,
+        "trigger": "on_hit",
+        "effects": [
+          {
+            "kind": "status",
+            "target": "target",
+            "status": "sleep"
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "id": "biome.gloaming_ward",
+    "name": "Gloaming Ward",
+    "flavor_text": "Dusk-phase gloaming folds around the user like a grove at solar transition.",
+    "type": "fairy",
+    "category": "status",
+    "accuracy": 1.0,
+    "pp": 20,
+    "level_requirement": 22,
+    "effects": [
+      {
+        "chance": 1.0,
+        "trigger": "on_hit",
+        "effects": [
+          {
+            "kind": "stat",
+            "target": "self",
+            "changes": {
+              "sp_defense": 1
+            }
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "id": "biome.canopy_sporefall",
+    "name": "Canopy Sporefall",
+    "flavor_text": "Spores rain from a mossy canopy during a humid grove stillness.",
+    "type": "fairy",
+    "category": "special",
+    "power": 65,
+    "accuracy": 1.0,
+    "pp": 20,
+    "level_requirement": 28,
+    "effects": [
+      {
+        "chance": 0.3,
+        "trigger": "on_hit",
+        "effects": [
+          {
+            "kind": "status",
+            "target": "target",
+            "status": "poison"
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "id": "biome.phase_bloom",
+    "name": "Phase Bloom",
+    "flavor_text": "The grove blooms in a burst aligned to dawn or dusk solar phase.",
+    "type": "fairy",
+    "category": "special",
+    "power": 85,
+    "accuracy": 1.0,
+    "pp": 15,
+    "level_requirement": 36
+  },
+  {
+    "id": "biome.lichen_aurora",
+    "name": "Lichen Aurora",
+    "flavor_text": "Lichen glow intensifies across the grove floor into a sweeping auroral wash.",
+    "type": "fairy",
+    "category": "special",
+    "power": 95,
+    "accuracy": 1.0,
+    "pp": 15,
+    "level_requirement": 44
+  },
+  {
+    "id": "biome.grove_coronation",
+    "name": "Grove Coronation",
+    "flavor_text": "The entire moss-lichen grove crowns the moment in a radiant place-born finale.",
+    "type": "fairy",
+    "category": "special",
+    "power": 120,
+    "accuracy": 1.0,
+    "pp": 5,
+    "level_requirement": 58,
+    "effects": [
+      {
+        "chance": 0.2,
+        "trigger": "on_hit",
+        "effects": [
+          {
+            "kind": "stat",
+            "target": "target",
+            "changes": {
+              "sp_attack": -2
+            }
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "id": "biome.canopy_whisper",
+    "name": "Canopy Whisper",
+    "flavor_text": "A thought ripples through still dawn air beneath forest cover.",
+    "type": "psychic",
+    "category": "special",
+    "power": 40,
+    "accuracy": 1.0,
+    "pp": 25
+  },
+  {
+    "id": "biome.meadow_pause",
+    "name": "Meadow Pause",
+    "flavor_text": "Open-land stillness compresses into a focused psychic pulse at first light.",
+    "type": "psychic",
+    "category": "special",
+    "power": 40,
+    "accuracy": 1.0,
+    "pp": 25
+  },
+  {
+    "id": "biome.thought_ripple",
+    "name": "Thought Ripple",
+    "flavor_text": "A small ripple of mind-energy across quiet meadow grass at dawn.",
+    "type": "psychic",
+    "category": "special",
+    "power": 30,
+    "accuracy": 1.0,
+    "pp": 30
+  },
+  {
+    "id": "biome.hush_pebble",
+    "name": "Hush Pebble",
+    "flavor_text": "A pebble lifted in motionless dawn hovers then taps with psychic intent.",
+    "type": "psychic",
+    "category": "physical",
+    "power": 30,
+    "accuracy": 1.0,
+    "pp": 30
+  },
+  {
+    "id": "biome.open_horizon",
+    "name": "Open Horizon",
+    "flavor_text": "The psychic horizon of open land at dawn widens into a directed beam of clarity.",
+    "type": "psychic",
+    "category": "special",
+    "power": 45,
+    "accuracy": 1.0,
+    "pp": 25
+  },
+  {
+    "id": "biome.forest_aperture",
+    "name": "Forest Aperture",
+    "flavor_text": "A narrow mental aperture opens between still trees and widens into force.",
+    "type": "psychic",
+    "category": "special",
+    "power": 40,
+    "accuracy": 1.0,
+    "pp": 25,
+    "effects": [
+      {
+        "chance": 0.1,
+        "trigger": "on_hit",
+        "effects": [
+          {
+            "kind": "stat",
+            "target": "target",
+            "changes": {
+              "sp_attack": -1
+            }
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "id": "biome.first_light_beam",
+    "name": "First Light Beam",
+    "flavor_text": "Dawn stillness in forest or field condenses into a single luminous psychic ray.",
+    "type": "psychic",
+    "category": "special",
+    "power": 52,
+    "accuracy": 1.0,
+    "pp": 20
+  },
+  {
+    "id": "biome.stillwater_pulse",
+    "name": "Stillwater Pulse",
+    "flavor_text": "Psychic energy pulses across a motionless forest pool at daybreak.",
+    "type": "psychic",
+    "category": "special",
+    "power": 40,
+    "accuracy": 1.0,
+    "pp": 25,
+    "effects": [
+      {
+        "chance": 0.2,
+        "trigger": "on_hit",
+        "effects": [
+          {
+            "kind": "stat",
+            "target": "target",
+            "changes": {
+              "sp_attack": -1
+            }
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "id": "biome.stillness_trance",
+    "name": "Stillness Trance",
+    "flavor_text": "Dawn stillness settles over the mind like forest floor mist.",
+    "type": "psychic",
+    "category": "status",
+    "accuracy": 1.0,
+    "pp": 20,
+    "effects": [
+      {
+        "chance": 1.0,
+        "trigger": "on_hit",
+        "effects": [
+          {
+            "kind": "stat",
+            "target": "self",
+            "changes": {
+              "sp_attack": 1
+            }
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "id": "biome.mindmist_veil",
+    "name": "Mindmist Veil",
+    "flavor_text": "A veil of psychic mist rises from open land dew at first light.",
+    "type": "psychic",
+    "category": "status",
+    "accuracy": 1.0,
+    "pp": 20,
+    "effects": [
+      {
+        "chance": 1.0,
+        "trigger": "on_hit",
+        "effects": [
+          {
+            "kind": "stat",
+            "target": "self",
+            "changes": {
+              "sp_defense": 1
+            }
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "id": "biome.trance_anchor",
+    "name": "Trance Anchor",
+    "flavor_text": "The user anchors awareness in dawn forest stillness to steady the body.",
+    "type": "psychic",
+    "category": "status",
+    "accuracy": 1.0,
+    "pp": 20,
+    "level_requirement": 20,
+    "effects": [
+      {
+        "chance": 1.0,
+        "trigger": "on_hit",
+        "effects": [
+          {
+            "kind": "stat",
+            "target": "self",
+            "changes": {
+              "defense": 1
+            }
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "id": "biome.timber_echo",
+    "name": "Timber Echo",
+    "flavor_text": "Psychic resonance echoes through dawn-still timber on forest or open edge.",
+    "type": "psychic",
+    "category": "special",
+    "power": 70,
+    "accuracy": 1.0,
+    "pp": 20,
+    "level_requirement": 26,
+    "effects": [
+      {
+        "chance": 0.3,
+        "trigger": "on_hit",
+        "effects": [
+          {
+            "kind": "stat",
+            "target": "target",
+            "changes": {
+              "sp_defense": -1
+            }
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "id": "biome.horizon_lull",
+    "name": "Horizon Lull",
+    "flavor_text": "Open-land psychic calm slows the battlefield rhythm at solar dawn.",
+    "type": "psychic",
+    "category": "status",
+    "accuracy": 1.0,
+    "pp": 20,
+    "level_requirement": 30,
+    "effects": [
+      {
+        "chance": 1.0,
+        "trigger": "on_hit",
+        "effects": [
+          {
+            "kind": "stat",
+            "target": "target",
+            "changes": {
+              "speed": -1
+            }
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "id": "biome.auroral_mind",
+    "name": "Auroral Mind",
+    "flavor_text": "Dawn auroral stillness over open land floods outward as psychic radiance.",
+    "type": "psychic",
+    "category": "special",
+    "power": 90,
+    "accuracy": 1.0,
+    "pp": 15,
+    "level_requirement": 42
+  },
+  {
+    "id": "biome.silent_meridian",
+    "name": "Silent Meridian",
+    "flavor_text": "The place-born meridian of dawn stillness aligns forest and field into one overwhelming psychic line.",
+    "type": "psychic",
+    "category": "special",
+    "power": 120,
+    "accuracy": 1.0,
+    "pp": 5,
+    "level_requirement": 60
+  }
+]
