@@ -17,6 +17,7 @@ from app.domains.move.entity import Move
 from app.domains.move.types import VibemonTypeT
 from app.domains.vibemon.entity import Vibemon
 from app.domains.vibemon.identity import Identity
+from app.providers.biome.provider import BiomeProvider
 from app.providers.climate.provider import ClimateProvider
 from app.storage.database import mapper, models, move_catalog
 
@@ -54,7 +55,7 @@ async def rebalance_existing_vibemons(
     if limit is not None and limit < 1:
         raise ValueError("limit must be greater than zero")
 
-    provider_list = tuple(providers or (ClimateProvider(),))
+    provider_list = tuple(providers or (ClimateProvider(), BiomeProvider()))
     rows = await _load_rebalance_rows(sess, vibemon_id=vibemon_id, limit=limit)
     summaries: list[RebalanceSummary] = []
     for row in rows:
