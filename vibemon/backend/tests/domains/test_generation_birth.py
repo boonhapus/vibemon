@@ -36,6 +36,7 @@ class FakeProvider:
             ),
             provider_id=self.name,
             intensity=0.5,
+            element_rankings={self._element: 1.0},
             moves=(
                 Move(
                     id=f"{self.name}.tap",
@@ -108,3 +109,42 @@ async def test_vibemon_birth_is_replayable_from_same_seed_and_snapshot() -> None
 
     assert first.identity.model_dump(exclude={"generated_at"}) == second.identity.model_dump(exclude={"generated_at"})
     assert [move.id for move in first.moves] == [move.id for move in second.moves]
+
+
+def test_affinity_merge_uses_fused_rankings_not_local_elements() -> None:
+    import random
+
+    fire_move = Move(
+        id="climate.fire",
+        name="Climate Fire",
+        flavor_text="A deterministic test move.",
+        type=VibemonTypeT.FIRE,
+        category=MoveCategoryT.PHYSICAL,
+        power=40,
+    )
+    water_move = Move(
+        id="biome.water",
+        name="Biome Water",
+        flavor_text="A deterministic test move.",
+        type=VibemonTypeT.WATER,
+        category=MoveCategoryT.PHYSICAL,
+        power=40,
+    )
+    climate = Affinity(
+        identity=Identity(name="climate", elements=(VibemonTypeT.FIRE,), base_attack=70),
+        provider_id="climate",
+        intensity=0.4,
+        element_rankings={VibemonTypeT.FIRE: 0.9, VibemonTypeT.WATER: 0.1},
+        moves=(fire_move,),
+    )
+    biome = Affinity(
+        identity=Identity(name="biome", elements=(VibemonTypeT.STEEL,), base_attack=80),
+        provider_id="biome",
+        intensity=0.8,
+        element_rankings={VibemonTypeT.WATER: 0.95, VibemonTypeT.STEEL: 0.5},
+        moves=(water_move,),
+    )
+
+    outcome = Affinity.merge(climate, biome, rng=random.Random(0))
+
+    assert VibemonTypeT.WATER in outcome.identity.elements

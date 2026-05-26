@@ -10,13 +10,17 @@ import hashlib
 import json
 import random
 
+from astral import Observer
+from astral.sun import sun
 import pydantic
 
 from app.core.schema import FrozenSchema
-from app.domains.generation.snapshot import BirthSnapshot
+
+from . import types
+from .snapshot import BirthSnapshot
 
 if TYPE_CHECKING:
-    from app.domains.generation.affinity import Affinity
+    from .affinity import Affinity
 
 
 class BirthSeed(FrozenSchema):
@@ -24,6 +28,7 @@ class BirthSeed(FrozenSchema):
 
     timestamp: dt.datetime
     geo_coords: tuple[float, float]
+    local_timezone: dt.timezone = dt.UTC
     providers: list[Any]
 
     @pydantic.field_validator("timestamp")
@@ -38,6 +43,36 @@ class BirthSeed(FrozenSchema):
     def datestamp(self) -> dt.date:
         """Get the date of the birth seed."""
         return self.timestamp.date()
+
+    @property
+    def local_time(self) -> dt.datetime:
+        """Birth instant in the seed's local timezone."""
+        return self.timestamp.astimezone(self.local_timezone)
+
+    @property
+    def solar_phase(self) -> types.SolarPhase:
+        """Local solar-time phase derived from timestamp and coordinates."""
+        latitude, longitude = self.geo_coords
+        observer = Observer(latitude=latitude, longitude=longitude)
+
+        try:
+            solar = sun(observer, date=self.local_time.date(), tzinfo=self.local_timezone)
+        except ValueError:
+            return types.SolarPhase.NIGHT if abs(latitude) > 66.0 else types.SolarPhase.DAY
+
+        if self.local_time < solar["dawn"]:
+            return types.SolarPhase.NIGHT
+
+        if self.local_time < solar["sunrise"]:
+            return types.SolarPhase.DAWN
+
+        if self.local_time < solar["sunset"]:
+            return types.SolarPhase.DAY
+
+        if self.local_time < solar["dusk"]:
+            return types.SolarPhase.DUSK
+
+        return types.SolarPhase.NIGHT
 
     @staticmethod
     def _hash_seed_material(seed_material: dict[str, Any]) -> int:

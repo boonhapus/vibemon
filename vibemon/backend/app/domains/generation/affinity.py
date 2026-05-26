@@ -15,8 +15,11 @@ from app.domains.move.entity import Move
 from app.domains.vibemon import types
 from app.domains.vibemon.identity import Identity
 from app.domains.vibemon.strength_formulas import apply_evo_seed_bst_bias
+from app.providers.helpers import filter_element_types, fuse_element_rankings
 
 _LOGGER = structlog.get_logger(__name__)
+
+_PROVIDER_MERGE_WEIGHT = 1.0
 
 
 class BirthOutcome(FrozenSchema):
@@ -31,6 +34,14 @@ class Affinity(FrozenSchema):
     intensity: float = 0.5
     provider_id: str
     moves: tuple[Move, ...]
+    element_rankings: dict[types.VibemonTypeT, float] = pydantic.Field(default_factory=dict)
+
+    @pydantic.field_validator("element_rankings", mode="before")
+    @classmethod
+    def _coerce_element_rankings(cls, value: Any) -> Any:
+        if value is None:
+            return dict[types.VibemonTypeT, float]()
+        return value
 
     @pydantic.field_validator("moves", mode="before")
     @classmethod
@@ -69,24 +80,28 @@ class Affinity(FrozenSchema):
         total = 0
         stats = {k: 0 for k in stat_keys}
         notes: list[str] = []
-        pop_e: list[tuple[types.VibemonTypeT, int]] = []
         pop_m: list[tuple[Move, int]] = []
+        ranking_pairs: list[tuple[dict[types.VibemonTypeT, float], float]] = []
 
         for idx, affinity in enumerate(sorted(affinities, key=lambda a: (-a.intensity, a.provider_id))):
             weight = int(affinity.intensity * 100)
             total += weight
+
             for k in stat_keys:
                 stats[k] += weight * math.floor(getattr(affinity.identity, k))
-            pop_e.extend((e, weight) for e in affinity.identity.elements)
+
             pop_m.extend((m, weight) for m in affinity.moves)
+            ranking_pairs.append((cls._rankings_for_merge(affinity), _PROVIDER_MERGE_WEIGHT))
+
             if idx == 0:
                 name = affinity.identity.name
+
             if affinity.visual_notes:
                 notes.append(f"{affinity.visual_notes} ({weight}%)")
 
         try:
             stats_merged = {k: math.floor(stats[k] / total) for k in stat_keys}
-            elements = weighted_sample(*zip(*pop_e, strict=True), k=rng.randint(1, min(2, len(pop_e))), rng=rng)
+            elements = filter_element_types(fuse_element_rankings(*ranking_pairs))
             moves = weighted_sample(*zip(*pop_m, strict=True), k=rng.randint(2, min(3, len(pop_m))), rng=rng)
         except ZeroDivisionError:
             _LOGGER.exception("Total is zero.", affinities=affinities)
@@ -107,3 +122,9 @@ class Affinity(FrozenSchema):
         )
 
         return BirthOutcome(identity=identity, moves=tuple(moves), evo_stage=evo_stage)
+
+    @staticmethod
+    def _rankings_for_merge(affinity: Affinity) -> dict[types.VibemonTypeT, float]:
+        if affinity.element_rankings:
+            return affinity.element_rankings
+        return {element: 1.0 - index * 0.01 for index, element in enumerate(affinity.identity.elements)}
