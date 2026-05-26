@@ -18,8 +18,8 @@ from app.domains.vibemon.strength_formulas import base_stat_asymmetric_scaling, 
 from app.providers.base import VibeProvider
 from app.providers.helpers import Signal, filter_element_types, pick_starter_moves
 
-from . import api as _weather
 from .const import WeatherCode
+from .openmeteo import api as openmeteo_api
 
 _LOGGER = structlog.get_logger(__name__)
 
@@ -31,8 +31,8 @@ class ClimateProvider(VibeProvider):
     Open-Meteo's daily forecast at the trainer's coordinates becomes genetic
     material, folding live weather signals into an `Affinity`.
 
-    Six continuous signals route directly to base stats: temperature (HP),
-    wind gusts (Attack), elevation (Defense), radiation (Sp. Attack),
+    Six continuous weather signals route directly to base stats: temperature (HP),
+    wind gusts (Attack), atmospheric obscurity (Defense), radiation (Sp. Attack),
     precipitation (Sp. Defense), and sustained wind (Speed).
 
     The result is that a creature born in a Death Valley heatwave has a
@@ -62,7 +62,7 @@ class ClimateProvider(VibeProvider):
     ]
 
     def __init__(self) -> None:
-        self.client = _weather.OpenMeteoAPIClient()
+        self.client = openmeteo_api.OpenMeteoClient()
 
     def calculate_intensity(self, daily: dict[str, list[float]], *, index: int) -> float:
         """
@@ -341,7 +341,7 @@ class ClimateProvider(VibeProvider):
 
         try:
             # TODO: use asyncio.gather when upgraded to paid OpenMeteo.
-            wr = await self.client.current_weather(
+            wr = await self.client.forecast(
                 latitude=seed.geo_coords[0],
                 longitude=seed.geo_coords[1],
                 start_date=start_date,
@@ -406,7 +406,6 @@ class ClimateProvider(VibeProvider):
                 Signal(name="transp", attr="et0_fao_evapotranspiration", raw=s["et0_fao_evapotranspiration"][i],  min=   0.00, med=     3.50, max=    15.00),
                 Signal(name="pollut", attr="pm2_5_mean",                 raw=s["pm2_5_mean"][i],                  min=   0.00, med=    25.00, max=   500.00),
                 Signal(name="precip", attr="precipitation_sum",          raw=s["precipitation_sum"][i],           min=   0.00, med=     1.50, max=   500.00),
-                Signal(name="pressr", attr="pressure_msl_mean",          raw=s["pressure_msl_mean"][i],           min= 970.00, med=  1013.20, max=  1050.00),
                 Signal(name="humdty", attr="relative_humidity_2m_mean",  raw=s["relative_humidity_2m_mean"][i],   min=   5.00, med=    65.00, max=   100.00),
                 Signal(name="radiat", attr="shortwave_radiation_sum",    raw=s["shortwave_radiation_sum"][i],     min=   0.00, med=    15.00, max=    35.00),
                 Signal(name="snowfl", attr="snowfall_sum",               raw=s["snowfall_sum"][i],                min=   0.00, med=     0.10, max=   100.00),
@@ -422,23 +421,24 @@ class ClimateProvider(VibeProvider):
 
         wmo_code = WeatherCode(s["weather_code"][i])
         rankings = self.determine_element_scores(signals=signals, weather_code=wmo_code)
-        elements = filter_element_types(rankings)
+        local_elements = filter_element_types(rankings)
 
         # fmt: off
-        hp_signal  = Signal.mix(signals["tmp_hi"] * 0.5, signals["elevat"] * 0.5, mode="center")  # mass + altitude endurance
+        hp_signal  = Signal.mix(signals["tmp_hi"] * 0.5, signals["tmp_lo"] * 0.5, mode="center")  # heat/cold endurance
         atk_signal = signals["windgu"].center                                                     # gust impact
-        def_signal = Signal.mix(signals["elevat"] * 0.6, signals["pressr"] * 0.4, mode="center")  # solidity + compression
+        obscurity  = clamp(1.0 - signals["visibl"].center, minimum=0.0, maximum=1.0)
+        def_signal = clamp(0.65 * obscurity + 0.35 * signals["pollut"].center, minimum=0.0, maximum=1.0)
         spa_signal = Signal.mix(signals["radiat"] * 0.5, signals["cape_m"] * 0.5, mode="center")  # solar + electric flux
         spd_signal = Signal.mix(signals["humdty"] * 0.5, signals["precip"] * 0.5, mode="center")  # cushion + dampening
         spe_signal = signals["windsp"].center                                                     # kinetic
         # fmt: on
 
-        ratio = ft.partial(stat_ratio_from_grade, elements=elements)
+        ratio = ft.partial(stat_ratio_from_grade, elements=local_elements)
 
         affinity = Affinity(
             identity=Identity(
                 name="__",
-                elements=elements,
+                elements=local_elements,
                 base_hp=base_stat_asymmetric_scaling(ratio(hp_signal, stat="hp"), stat="hp"),
                 base_attack=base_stat_asymmetric_scaling(ratio(atk_signal, stat="attack"), stat="attack"),
                 base_defense=base_stat_asymmetric_scaling(ratio(def_signal, stat="defense"), stat="defense"),
@@ -449,8 +449,9 @@ class ClimateProvider(VibeProvider):
             visual_notes=wmo_code.description,
             intensity=self.calculate_intensity(s, index=i),
             provider_id=self.name,
+            element_rankings=rankings,
             moves=pick_starter_moves(
-                moves=self.selectable_moves(), rankings=rankings, elements=elements, k=10, rng=rng
+                moves=self.selectable_moves(), rankings=rankings, elements=local_elements, k=10, rng=rng
             ),
         )
 
