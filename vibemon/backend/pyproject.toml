@@ -5,6 +5,7 @@ description = "Vibemon Litestar API"
 requires-python = ">=3.14"
 dependencies = [
     "annotated-types>=0.7.0",
+    "astral>=3.2",
     "elevenlabs>=1.15.0",
     "jinja2>=3.1.6",
     "niquests>=3.18.5",
@@ -41,6 +42,9 @@ build-backend = "hatchling.build"
 
 [tool.hatch.build.targets.wheel]
 packages = ["app"]
+
+[tool.hatch.build.targets.wheel.force-include]
+"app/providers/biome/data" = "app/providers/biome/data"
 
 [tool.pytest.ini_options]
 asyncio_mode = "auto"

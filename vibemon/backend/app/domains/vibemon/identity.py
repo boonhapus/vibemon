@@ -18,22 +18,14 @@ class Identity(Schema):
     provider_visual_notes: str | None = None
     elements: types.IdentityElementsT
 
-    base_hp: int = pydantic.Field(default=70, ge=1, le=255, json_schema_extra={"min": 1, "med": 70, "max": 255})
-    base_attack: int = pydantic.Field(default=75, ge=5, le=190, json_schema_extra={"min": 5, "med": 75, "max": 190})
-    base_defense: int = pydantic.Field(default=70, ge=5, le=230, json_schema_extra={"min": 5, "med": 70, "max": 230})
-    base_sp_attack: int = pydantic.Field(
-        default=70,
-        ge=10,
-        le=194,
-        json_schema_extra={"min": 10, "med": 70, "max": 194},
-    )
-    base_sp_defense: int = pydantic.Field(
-        default=70,
-        ge=20,
-        le=230,
-        json_schema_extra={"min": 20, "med": 70, "max": 230},
-    )
-    base_speed: int = pydantic.Field(default=70, ge=5, le=200, json_schema_extra={"min": 5, "med": 70, "max": 200})
+    # fmt: off
+    base_hp: int         = pydantic.Field(default=70, ge= 1, le=255, json_schema_extra={"min":  1, "med": 70, "max": 255})  # noqa: E501
+    base_attack: int     = pydantic.Field(default=75, ge= 5, le=190, json_schema_extra={"min":  5, "med": 75, "max": 190})  # noqa: E501
+    base_defense: int    = pydantic.Field(default=70, ge= 5, le=230, json_schema_extra={"min":  5, "med": 70, "max": 230})  # noqa: E501
+    base_sp_attack: int  = pydantic.Field(default=70, ge=10, le=194, json_schema_extra={"min": 10, "med": 70, "max": 194})  # noqa: E501
+    base_sp_defense: int = pydantic.Field(default=70, ge=20, le=230, json_schema_extra={"min": 20, "med": 70, "max": 230})  # noqa: E501
+    base_speed: int      = pydantic.Field(default=70, ge= 5, le=200, json_schema_extra={"min":  5, "med": 70, "max": 200})  # noqa: E501
+    # fmt: on
 
     evo_seed: types.EvolutionStageT = types.EvolutionStageT.BASE
     is_radiant: bool = False

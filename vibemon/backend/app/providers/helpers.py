@@ -1,4 +1,5 @@
 from typing import Literal
+import math
 import random
 
 import pydantic
@@ -22,11 +23,14 @@ class Signal(pydantic.BaseModel):
     min: float
     med: float
     max: float
+    axis: Literal["linear", "log10"] = "linear"
 
     @pydantic.model_validator(mode="after")
     def validate_range(self):
         if not (self.min < self.med < self.max):
             raise ValueError("Must satisfy: min < med < max")
+        if self.axis == "log10" and self.min <= 0:
+            raise ValueError("axis='log10' requires min > 0")
         return self
 
     @pydantic.computed_field
@@ -34,6 +38,15 @@ class Signal(pydantic.BaseModel):
     def clamped(self) -> float:
         """Transform the .raw value to the Signal's basis."""
         return clamp(self.raw, minimum=self.min, maximum=self.max)
+
+    def _inverse_lerp(self, value: float) -> UnitIntervalT:
+        """Where ``value`` sits between min and max as a 0-1 fraction (linear or log-spaced)."""
+        value = clamp(value, minimum=self.min, maximum=self.max)
+        if self.axis == "log10":
+            lo = math.log10(self.min)
+            hi = math.log10(self.max)
+            return (math.log10(value) - lo) / (hi - lo)
+        return (value - self.min) / (self.max - self.min)
 
     @pydantic.computed_field
     @property
@@ -43,7 +56,7 @@ class Signal(pydantic.BaseModel):
 
         Values below 'min' become 0.0; values above 'max' become 1.0.
         """
-        return (self.clamped - self.min) / (self.max - self.min)
+        return self._inverse_lerp(self.clamped)
 
     @pydantic.computed_field
     @property
@@ -54,10 +67,18 @@ class Signal(pydantic.BaseModel):
         Each half of the population is spread independently across [0, 0.5] or
         (0.5, 1.0] so the median always maps to 0.5 regardless of skew.
         """
+        if self.axis == "log10":
+            if self.clamped <= self.med:
+                lo = math.log10(self.min)
+                mid = math.log10(self.med)
+                return 0.5 * (math.log10(self.clamped) - lo) / (mid - lo)
+            mid = math.log10(self.med)
+            hi = math.log10(self.max)
+            return 0.5 + 0.5 * (math.log10(self.clamped) - mid) / (hi - mid)
+
         if self.clamped <= self.med:
             return 0.5 * (self.clamped - self.min) / (self.med - self.min)
-        else:
-            return 0.5 + 0.5 * (self.clamped - self.med) / (self.max - self.med)
+        return 0.5 + 0.5 * (self.clamped - self.med) / (self.max - self.med)
 
     @classmethod
     def mix(
@@ -91,12 +112,12 @@ class Signal(pydantic.BaseModel):
         return clamp(weighted_sum / divisor, minimum=0, maximum=1)
 
     def __mul__(self, weight: float) -> tuple[Signal, float]:
-        """Syntactic sugar for signal.scale(weight). Enables: signal * 0.5"""
-        return self.scale(weight)
+        """Syntactic sugar for signal.weighted(weight). Enables: signal * 0.5"""
+        return self.weighted(weight)
 
     def __rmul__(self, weight: float) -> tuple[Signal, float]:
         """Syntactic sugar for weight * signal. Enables: 0.5 * signal"""
-        return self.scale(weight)
+        return self.weighted(weight)
 
     def __pow__(self, power: float) -> UnitIntervalT:
         """Syntactic sugar for signal.reshape(power). Enables: signal ** 2"""
@@ -112,7 +133,7 @@ class Signal(pydantic.BaseModel):
         """
         return self.normal**power
 
-    def scale(self, factor: float) -> tuple[Signal, float]:
+    def weighted(self, factor: float) -> tuple[Signal, float]:
         """
         Pairs this signal with a weight for use in Signal.mix().
 
@@ -203,6 +224,35 @@ class Signal(pydantic.BaseModel):
             return 1.0 if v >= 0 else 0.0
 
         return clamp(v / reach, minimum=0, maximum=1)
+
+
+def fuse_element_rankings(
+    *pairs: tuple[dict[VibemonTypeT, float], float],
+) -> dict[VibemonTypeT, float]:
+    """
+    Fuse per-provider element evidence into one score dict for final typing.
+
+    Each provider's scores are peak-normalized before merge weighting so providers
+    with different score scales (climate ramps vs biome lookup sums) contribute
+    comparably. Overlapping types accumulate; provider-only types pass through.
+    """
+    fused: dict[VibemonTypeT, float] = {}
+
+    for rankings, merge_weight in pairs:
+        if not rankings or merge_weight <= 0:
+            continue
+
+        peak = max(rankings.values())
+        if peak <= 0:
+            continue
+
+        scale = merge_weight / peak
+        for element, score in rankings.items():
+            if score <= 0:
+                continue
+            fused[element] = fused.get(element, 0.0) + score * scale
+
+    return fused
 
 
 def filter_element_types(

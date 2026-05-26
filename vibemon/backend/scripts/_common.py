@@ -26,6 +26,7 @@ from app.domains.move import entity as move_entity
 from app.domains.move import types as move_types
 from app.domains.vibemon.schema import PublicVibemon
 from app.domains.vibemon.types import VibemonLifecycleT
+from app.providers.biome.provider import BiomeProvider
 from app.providers.climate.provider import ClimateProvider
 from app.storage.database import mapper, models, repositories
 from app.workflows import _workflow_support as workflow_support
@@ -38,6 +39,12 @@ _DEFAULT_GENERATED = _REPO_ROOT / ".generated"
 _DEFAULT_DATABASE_PATH = _REPO_ROOT / ".generated" / "database" / "vibemon.sqlite"
 DEFAULT_DATABASE_URL = f"sqlite+aiosqlite:///{_DEFAULT_DATABASE_PATH.as_posix()}"
 DEFAULT_ASSET_STORE_URL = f"file:///{(_DEFAULT_GENERATED / 'monstore').as_posix().lstrip('/')}"
+
+
+def load_repo_env() -> None:
+    from dotenv import load_dotenv
+
+    load_dotenv(_REPO_ROOT / ".env")
 
 
 def default_database_url() -> str:
@@ -60,7 +67,7 @@ def birth_seed(
     return BirthSeed(
         timestamp=parse_datetime(timestamp) if timestamp is not None else dt.datetime.now(tz=dt.UTC),
         geo_coords=(latitude, longitude),
-        providers=[ClimateProvider()],
+        providers=[ClimateProvider(), BiomeProvider()],
     )
 
 

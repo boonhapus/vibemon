@@ -108,7 +108,7 @@ _Avoid_: Workflow, orchestration, generation
 _Home_: state and transition rules in `domains/vibemon`; christen/manifest realization in `vibemon/scripts`
 
 **Birth**:
-Deterministic creation of a schema-ready **Vibemon** from provider-derived inputs.
+Deterministic creation of a schema-ready **Vibemon** from **Birth Context** and captured place observations.
 
 **Christen**:
 Lifecycle transition that finalizes name and preview presentation.
@@ -144,28 +144,10 @@ An extracted sprite image used for battle or emote presentation.
 
 **Monstore**:
 The object-store abstraction for **Vibemon** asset bytes.
-_Avoid_: Provider
 
-**Provider**:
-A module that translates external or user-context signals into domain inputs.
-
-**Signal**:
-A normalized input measurement consumed by a **Provider**.
-
-**Affinity**:
-A provider-synthesized contribution used during **Birth**.
-
-**Intensity**:
-A provider-supplied strength indicator for how strongly its contribution should influence **Birth**.
-
-**Birth Seed**:
-A reproducible input used to derive deterministic birth outputs.
-
-**Birth Snapshot**:
-Captured provider payloads associated with a birth run.
-
-**Lineage**:
-An internal/debug view of provider contributions behind a generated **Vibemon**.
+**Solar Phase**:
+The local time-of-day phase (dawn, day, dusk, night) derived from birth coordinates and timestamp.
+_Avoid_: Time phase (ambiguous with battle turns or lifecycle)
 
 **Element**:
 A Vibemon type label (for example fire, water, ghost).
@@ -213,6 +195,5 @@ The near-term user-facing surface under `vibemon/scripts`; scripts are thin adap
 - **Wild Pool** contains encounter-eligible **Wild** **Vibemon**; **Wild Expiration** transitions stale entries to **Expired**.
 - **Party** is a trainer's battle roster composed of **Battle Slots**.
 - **Party Strength** is derived from per-member **Member Strength**.
-- **Birth Seed**, **Birth Snapshot**, **Signal**, **Affinity**, and **Intensity** describe how **Providers** influence **Birth**.
 - **Lifecycle** states describe presentation readiness; **Service** describes orchestration.
 - **Move Catalog** stores approved **Move** definitions composed of **Effect** primitives.

@@ -57,6 +57,7 @@ class FakeProvider:
             ),
             intensity=1.0,
             provider_id=self.name,
+            element_rankings={VibemonTypeT.FIRE: 1.0},
             moves=(
                 Move(
                     id="test.ember",
