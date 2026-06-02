@@ -12,9 +12,18 @@ __pycache__/
 .pytest_cache/
 .mypy_cache/
 
-# Ignore svelta artifacts
+# Ignore Svelte / SvelteKit / Vite artifacts
 .vscode
 node_modules/
+.svelte-kit/
+.vite/
+build/
+.output/
+.vercel/
+.netlify/
+.wrangler/
+vite.config.js.timestamp-*
+vite.config.ts.timestamp-*
 
 # Ignore project-specific build artifacts
 .venv/
