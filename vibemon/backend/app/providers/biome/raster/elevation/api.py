@@ -5,13 +5,13 @@ import datetime as dt
 
 import niquests
 
-from app import __project__
-from app.providers.api_hooks import LoggingHook, RateLimiterHook, provider_retry_policy
+from app.providers._api.hooks import LoggingHook, RateLimiterHook, ThrottledSessionMixin
+from app.providers._api.policy import provider_default_headers, provider_retry_policy
 
 from . import const
 
 
-class OpenMeteoElevationClient(niquests.AsyncSession):
+class OpenMeteoElevationClient(ThrottledSessionMixin, niquests.AsyncSession):
     """Point elevation lookup using Copernicus GLO-90 via Open-Meteo."""
 
     provider_name = const.PROVIDER_NAME
@@ -21,18 +21,15 @@ class OpenMeteoElevationClient(niquests.AsyncSession):
             (600, dt.timedelta(minutes=1)),
             (5_000, dt.timedelta(hours=1)),
             provider=OpenMeteoElevationClient.provider_name,
+            concurrency=1,
         )
+
         super().__init__(
             base_url=const.ELEVATION_BASE_URL,
             hooks=LoggingHook(provider=OpenMeteoElevationClient.provider_name) + rate_limiter,  # pyrefly: ignore
             retries=provider_retry_policy(),
+            headers=provider_default_headers(),
             **session_opts,
-        )
-        self.headers.update(
-            {
-                "user-agent": f"{__project__.__name__} v{__project__.__version__} (+github/{__project__.__slug__})",
-                "accept": "application/json",
-            }
         )
 
     async def point(self, latitude: float, longitude: float) -> float:

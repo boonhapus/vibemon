@@ -1,0 +1,185 @@
+[
+  {
+    "name": "happy",
+    "weights": {
+      "fairy": 0.4,
+      "normal": 0.4
+    },
+    "terms": [
+      "happy",
+      "joyful",
+      "cheerful",
+      "upbeat",
+      "playful",
+      "bouncy"
+    ]
+  },
+  {
+    "name": "sad",
+    "weights": {
+      "water": 0.5,
+      "ghost": 0.3
+    },
+    "terms": [
+      "sad",
+      "somber",
+      "bittersweet",
+      "poignant"
+    ],
+    "patterns": [
+      "\\bmelanchol"
+    ]
+  },
+  {
+    "name": "dark",
+    "weights": {
+      "dark": 0.6,
+      "ghost": 0.3,
+      "poison": 0.3
+    },
+    "terms": [
+      "dark",
+      "gothic",
+      "gloomy",
+      "creepy",
+      "tense",
+      "stormy",
+      "thunderous"
+    ]
+  },
+  {
+    "name": "energetic",
+    "weights": {
+      "fire": 0.5,
+      "fighting": 0.3
+    },
+    "terms": [
+      "energetic",
+      "frenetic",
+      "frantic",
+      "lively",
+      "vibrant"
+    ]
+  },
+  {
+    "name": "calm",
+    "weights": {
+      "water": 0.5,
+      "grass": 0.3
+    },
+    "terms": [
+      "calm",
+      "chill",
+      "peaceful",
+      "tranquil",
+      "serene",
+      "gentle",
+      "soothing",
+      "mellow",
+      "meditative"
+    ]
+  },
+  {
+    "name": "aggressive",
+    "weights": {
+      "fighting": 0.6,
+      "fire": 0.3
+    },
+    "terms": [
+      "aggressive",
+      "angry",
+      "heavy",
+      "intense",
+      "raw",
+      "rough"
+    ]
+  },
+  {
+    "name": "dreamy",
+    "weights": {
+      "psychic": 0.5,
+      "flying": 0.3
+    },
+    "terms": [
+      "dreamy",
+      "ethereal",
+      "misty",
+      "spacey",
+      "trippy",
+      "psychedelic"
+    ]
+  },
+  {
+    "name": "romantic",
+    "weights": {
+      "water": 0.4,
+      "fairy": 0.3
+    },
+    "terms": [
+      "romantic",
+      "tender",
+      "lovely",
+      "passionate",
+      "sweet",
+      "sexy"
+    ]
+  },
+  {
+    "name": "epic",
+    "weights": {
+      "dragon": 0.6,
+      "steel": 0.3
+    },
+    "terms": [
+      "epic",
+      "sweeping",
+      "mythic",
+      "cinematic"
+    ]
+  },
+  {
+    "name": "funky",
+    "weights": {
+      "fire": 0.3,
+      "electric": 0.3
+    },
+    "terms": [
+      "funky",
+      "groovy"
+    ]
+  },
+  {
+    "name": "cold",
+    "weights": {
+      "ice": 0.6,
+      "water": 0.3
+    },
+    "terms": [
+      "cold",
+      "icy",
+      "frost",
+      "crystalline"
+    ]
+  },
+  {
+    "name": "warm",
+    "weights": {
+      "fire": 0.4,
+      "normal": 0.3
+    },
+    "terms": [
+      "warm"
+    ]
+  },
+  {
+    "name": "nostalgic",
+    "weights": {
+      "ghost": 0.4,
+      "psychic": 0.3
+    },
+    "terms": [
+      "nostalgic",
+      "nostalgia"
+    ]
+  }
+]

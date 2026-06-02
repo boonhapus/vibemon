@@ -1,7 +1,5 @@
 """Public Vibemon read-model schemas."""
 
-from __future__ import annotations
-
 import uuid
 
 from app.core.ids import TrainerIdT

@@ -1,5 +1,3 @@
-from __future__ import annotations
-
 import random
 import uuid
 
@@ -8,7 +6,7 @@ import pytest
 from app.domains.battle import actions, engine, entity, events
 from app.domains.move.entity import Move
 from app.domains.move.types import MoveCategoryT, VibemonTypeT
-from app.domains.vibemon.identity import Identity
+from app.domains.vibemon.identity import BaseStats, Identity
 
 
 def test_battle_engine_resolves_damage_and_winner() -> None:
@@ -36,8 +34,7 @@ def test_battle_engine_resolves_damage_and_winner() -> None:
         identity=Identity(
             name="Attacker",
             elements=(VibemonTypeT.NORMAL,),
-            base_attack=190,
-            base_speed=200,
+            base=BaseStats(attack=190, speed=200),
         ),
         moves=(strike,),
         level=50,
@@ -46,9 +43,7 @@ def test_battle_engine_resolves_damage_and_winner() -> None:
         identity=Identity(
             name="Defender",
             elements=(VibemonTypeT.NORMAL,),
-            base_hp=1,
-            base_defense=5,
-            base_speed=5,
+            base=BaseStats(hp=1, defense=5, speed=5),
         ),
         moves=(tap,),
         level=1,
@@ -87,7 +82,7 @@ def test_battle_engine_requires_one_action_per_active_trainer() -> None:
 
     def vibemon(name: str) -> entity.BattleVibemon:
         return entity.BattleVibemon(
-            identity=Identity(name=name, elements=(VibemonTypeT.NORMAL,)),
+            identity=Identity(name=name, elements=(VibemonTypeT.NORMAL,), base=BaseStats()),
             moves=(move,),
         )
 
@@ -131,14 +126,14 @@ def test_move_fails_when_selected_move_has_no_pp_but_other_moves_exist() -> None
     )
 
     attacker = entity.BattleVibemon(
-        identity=Identity(name="Attacker", elements=(VibemonTypeT.NORMAL,)),
+        identity=Identity(name="Attacker", elements=(VibemonTypeT.NORMAL,), base=BaseStats()),
         moves=(empty_move, backup),
         level=25,
     )
     attacker.battle_moves[0].pp_current = 0
 
     defender = entity.BattleVibemon(
-        identity=Identity(name="Defender", elements=(VibemonTypeT.NORMAL,)),
+        identity=Identity(name="Defender", elements=(VibemonTypeT.NORMAL,), base=BaseStats()),
         moves=(enemy,),
         level=25,
     )
@@ -200,7 +195,7 @@ def test_breaking_point_auto_used_when_all_moves_are_depleted() -> None:
     )
 
     attacker = entity.BattleVibemon(
-        identity=Identity(name="Attacker", elements=(VibemonTypeT.NORMAL,), base_hp=120),
+        identity=Identity(name="Attacker", elements=(VibemonTypeT.NORMAL,), base=BaseStats(hp=120)),
         moves=(dry_1, dry_2),
         level=30,
     )
@@ -209,7 +204,7 @@ def test_breaking_point_auto_used_when_all_moves_are_depleted() -> None:
     hp_before = attacker.current_hp
 
     defender = entity.BattleVibemon(
-        identity=Identity(name="Defender", elements=(VibemonTypeT.NORMAL,), base_hp=120),
+        identity=Identity(name="Defender", elements=(VibemonTypeT.NORMAL,), base=BaseStats(hp=120)),
         moves=(enemy,),
         level=30,
     )

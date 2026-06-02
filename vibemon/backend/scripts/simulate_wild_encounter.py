@@ -1,11 +1,8 @@
 """Rehearse searching the wild, battling an encounter, and recording outcome."""
 
-from __future__ import annotations
-
 from typing import Annotated
 import asyncio
 import enum
-import os
 import uuid
 
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -80,14 +77,21 @@ def simulate_wild_encounter(
         cyclopts.Parameter(group=COMMON_OPTIONS, help="Random seed for deterministic battle rolls."),
     ] = 1,
     database_url: Annotated[
-        str,
-        cyclopts.Parameter(group=ADVANCED_OPTIONS, help="Database URL for persisted script output."),
-    ] = _common.default_database_url(),
+        str | None,
+        cyclopts.Parameter(
+            group=ADVANCED_OPTIONS,
+            help="Database URL override; defaults to VIBEMON_STORAGE__DATABASE.",
+        ),
+    ] = None,
     asset_store_url: Annotated[
-        str,
-        cyclopts.Parameter(group=ADVANCED_OPTIONS, help="Blob/object store URL for generated assets."),
-    ] = _common.DEFAULT_ASSET_STORE_URL,
+        str | None,
+        cyclopts.Parameter(
+            group=ADVANCED_OPTIONS,
+            help="Asset store URL override; defaults to VIBEMON_STORAGE__ASSETS.",
+        ),
+    ] = None,
 ) -> None:
+    storage = _common.load_script_settings(database_url=database_url, asset_store_url=asset_store_url)
     latitude, longitude = _resolve_location(location=location)
 
     asyncio.run(
@@ -101,8 +105,8 @@ def simulate_wild_encounter(
             wild_to_generate=generate,
             desired_supply=supply,
             resolution=resolution,
-            database_url=database_url,
-            asset_store_url=asset_store_url,
+            database_url=storage.storage.database,
+            asset_store_url=storage.storage.assets,
             rng_seed=seed,
         )
     )
@@ -134,7 +138,6 @@ async def _run(
     asset_store_url: str,
     rng_seed: int | None,
 ) -> None:
-    os.environ["ASSET_STORE_URL"] = asset_store_url
     _common.ensure_local_blob_dir(asset_store_url)
     async with _common.session_scope(database_url=database_url) as sess:
         result = await _simulate(

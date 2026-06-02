@@ -1,7 +1,5 @@
 """Database row assembly for public Vibemon read models."""
 
-from __future__ import annotations
-
 from collections.abc import Awaitable, Callable
 import datetime as dt
 
@@ -20,6 +18,7 @@ from app.domains.vibemon.schema import (
     TypeDefenseSummary,
     TypeMatchupSummary,
 )
+from app.providers import schema as providers_schema
 from app.storage.database import models
 
 PUBLIC_ASSET_URL_TTL = dt.timedelta(minutes=15)
@@ -105,8 +104,13 @@ def visible_review(
                 resolution=resolution,
                 status_label=adoption_schema.candidate_review_status_label(status),
                 resolved_label=adoption_schema.candidate_review_status_label(resolution) if resolution else None,
+                provider_notes=_provider_notes(review.provider_notes),
             )
     return None
+
+
+def _provider_notes(raw: list[dict[str, str]]) -> tuple[providers_schema.ProviderNote, ...]:
+    return tuple(providers_schema.ProviderNote.model_validate(item) for item in raw)
 
 
 def type_matchup(vibemon: Vibemon) -> TypeMatchupSummary:

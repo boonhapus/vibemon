@@ -1,0 +1,51 @@
+{
+  "tracks": [
+    {
+      "mbid": "11111111-1111-1111-1111-111111111111",
+      "isrc": "USRC17607839",
+      "spotify_id": "spotify-track-1",
+      "name": "Ambient Loop",
+      "artist": "Calm Artist",
+      "genres": ["ambient"],
+      "tags": ["ambient", "downtempo"],
+      "duration": 240000,
+      "plays": 10,
+      "acousticness": 0.80,
+      "danceability": 0.35,
+      "energy": 0.25,
+      "instrumentalness": 0.70,
+      "liveness": 0.08,
+      "loudness": -14.0,
+      "mode": 1,
+      "speechiness": 0.04,
+      "tempo": 92.0,
+      "valence": 0.40
+    },
+    {
+      "mbid": "22222222-2222-2222-2222-222222222222",
+      "isrc": "USRC17607840",
+      "spotify_id": "spotify-track-2",
+      "name": "Night Drive",
+      "artist": "Dark Pulse",
+      "genres": ["darkwave"],
+      "tags": ["goth", "sad"],
+      "duration": 210000,
+      "plays": 10,
+      "acousticness": 0.18,
+      "danceability": 0.55,
+      "energy": 0.72,
+      "instrumentalness": 0.05,
+      "liveness": 0.08,
+      "loudness": -9.0,
+      "mode": 0,
+      "speechiness": 0.05,
+      "tempo": 122.0,
+      "valence": 0.21
+    }
+  ],
+  "last7d": 80,
+  "last1m": 200,
+  "meta": {
+    "notes": []
+  }
+}

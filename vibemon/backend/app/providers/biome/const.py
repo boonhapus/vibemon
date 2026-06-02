@@ -1,13 +1,13 @@
 """Biome provider constants: WorldCover taxonomy, scoring tables, and flavor text."""
 
 from dataclasses import dataclass
-from typing import Final, Self
+from typing import Final, Literal, Self
 import enum
 
 from app.domains.generation import types as generation_types
 from app.domains.move.types import VibemonTypeT
 
-type StatTierT = str
+type StatTierT = Literal["+", "0", "-"]
 
 
 @dataclass(frozen=True, slots=True)

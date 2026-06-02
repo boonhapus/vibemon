@@ -1,15 +1,11 @@
-from __future__ import annotations
-
-from collections.abc import AsyncGenerator
 import datetime as dt
 import uuid
 
 import pytest
 
 pytest.importorskip("sqlalchemy")
-pytest.importorskip("aiosqlite")
 
-from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker, create_async_engine
+from sqlalchemy.ext.asyncio import AsyncSession
 import sqlalchemy as sa
 
 from app.domains.generation.affinity import Affinity
@@ -17,46 +13,38 @@ from app.domains.generation.seed import BirthSeed
 from app.domains.move.entity import Move
 from app.domains.move.types import MoveCategoryT, MoveTargetT, VibemonTypeT
 from app.domains.vibemon.disposition import VibemonDispositionT
-from app.domains.vibemon.identity import Identity
+from app.domains.vibemon.identity import BaseStats, Identity
 from app.domains.vibemon.types import EvolutionStageT, VibemonLifecycleT
+from app.providers.base import VibeProvider
+from app.providers.climate.schema import ClimatePayload
 from app.storage.database import models
 from app.workflows.rebalance_vibemon import rebalance_existing_vibemons
+from tests.conftest import TEST_TRAINER_ID
+
+_CLIMATE_PAYLOAD = ClimatePayload(
+    start_date="2026-05-01",
+    end_date="2026-05-19",
+    weather_augmented={"weather": "clear"},
+)
 
 
-@pytest.fixture
-async def sess() -> AsyncGenerator[AsyncSession]:
-    engine = create_async_engine("sqlite+aiosqlite:///:memory:")
-    try:
-        async with engine.begin() as conn:
-            await conn.run_sync(models.Base.metadata.create_all)
-        async_session = async_sessionmaker(engine, expire_on_commit=False)
-        async with async_session() as session:
-            yield session
-    finally:
-        await engine.dispose()
-
-
-class FakeClimateProvider:
+class FakeClimateProvider(VibeProvider[ClimatePayload]):
     name = "climate"
+    payload_type = ClimatePayload
 
-    async def fetch(self, seed: BirthSeed) -> dict[str, str]:
-        return {"weather": "clear"}
+    async def fetch(self, seed: BirthSeed, *, secrets: object | None = None) -> ClimatePayload:
+        return _CLIMATE_PAYLOAD
 
-    async def synthesize(self, seed: BirthSeed, payload: dict[str, str]) -> Affinity:
+    async def synthesize(self, seed: BirthSeed, payload: ClimatePayload) -> Affinity:
         return Affinity(
             identity=Identity(
                 name="Ignored",
                 elements=(VibemonTypeT.WATER,),
-                base_hp=92,
-                base_attack=64,
-                base_defense=81,
-                base_sp_attack=88,
-                base_sp_defense=93,
-                base_speed=57,
+                base=BaseStats(hp=92, attack=64, defense=81, sp_attack=88, sp_defense=93, speed=57),
             ),
             intensity=1.0,
             provider_id=self.name,
-            element_rankings={VibemonTypeT.FIRE: 1.0},
+            element_rankings={VibemonTypeT.WATER: 1.0},
             moves=(
                 Move(
                     id="climate.wave_test",
@@ -100,8 +88,11 @@ async def _add_stale_vibemon(sess: AsyncSession, *, vibemon_id: uuid.UUID, now: 
         effects=[],
         behavior={},
     )
-    seed = models.BirthSeed(timestamp=now, geo_coords=[41.8781, -87.6298])
-    snapshot = models.BirthSnapshot(birth_seed=seed, provider_payloads={"climate": {"weather": "clear"}})
+    seed = models.BirthSeed(timestamp=now, geo_coords=[41.8781, -87.6298], trainer_id=TEST_TRAINER_ID)
+    snapshot = models.BirthSnapshot(
+        birth_seed=seed,
+        provider_payloads={"climate": _CLIMATE_PAYLOAD.model_dump(mode="json")},
+    )
     row = models.Vibemon(
         id=vibemon_id,
         nickname="Stale",
@@ -139,7 +130,7 @@ async def _add_stale_vibemon(sess: AsyncSession, *, vibemon_id: uuid.UUID, now: 
 
 
 @pytest.mark.asyncio
-async def test_rebalance_existing_vibemons_previews_without_mutating(sess: AsyncSession) -> None:
+async def test_rebalance_existing_vibemons_previews_without_mutating(sess: AsyncSession, test_trainer: object) -> None:
     vibemon_id = uuid.uuid7()
     now = dt.datetime(2026, 5, 19, 12, 0, tzinfo=dt.UTC)
     await _add_stale_vibemon(sess, vibemon_id=vibemon_id, now=now)
@@ -170,7 +161,9 @@ async def test_rebalance_existing_vibemons_previews_without_mutating(sess: Async
 
 
 @pytest.mark.asyncio
-async def test_rebalance_existing_vibemons_updates_identity_and_active_moves(sess: AsyncSession) -> None:
+async def test_rebalance_existing_vibemons_updates_identity_and_active_moves(
+    sess: AsyncSession, test_trainer: object
+) -> None:
     vibemon_id = uuid.uuid7()
     now = dt.datetime(2026, 5, 19, 12, 0, tzinfo=dt.UTC)
     await _add_stale_vibemon(sess, vibemon_id=vibemon_id, now=now)

@@ -1,7 +1,5 @@
 """Vibemon identity schema and derived battle profile."""
 
-from __future__ import annotations
-
 from typing import Literal, cast
 import datetime as dt
 
@@ -12,43 +10,44 @@ from app.core.time import resolve_clock
 from app.domains.vibemon import types
 
 
+class BaseStats(Schema):
+    """Scaled base stats ready to unpack into ``Identity``."""
+
+    hp: int = pydantic.Field(default=70, ge=1, le=255, json_schema_extra={"min": 1, "med": 70, "max": 255})
+    attack: int = pydantic.Field(default=75, ge=5, le=190, json_schema_extra={"min": 5, "med": 75, "max": 190})
+    defense: int = pydantic.Field(default=70, ge=5, le=230, json_schema_extra={"min": 5, "med": 70, "max": 230})
+    sp_attack: int = pydantic.Field(default=70, ge=10, le=194, json_schema_extra={"min": 10, "med": 70, "max": 194})
+    sp_defense: int = pydantic.Field(default=70, ge=20, le=230, json_schema_extra={"min": 20, "med": 70, "max": 230})
+    speed: int = pydantic.Field(default=70, ge=5, le=200, json_schema_extra={"min": 5, "med": 70, "max": 200})
+
+    @property
+    def total(self) -> int:
+        """Sum of all base stats, the canonical power level."""
+        return self.hp + self.attack + self.defense + self.sp_attack + self.sp_defense + self.speed
+
+    @classmethod
+    def _stat_info(cls, name: types.BaseStatNameT, type: Literal["min", "med", "max"] = "med") -> int | None:
+        if (field := cls.model_fields.get(name)) and field.json_schema_extra:
+            assert isinstance(field.json_schema_extra, dict), "json_schema_extra must be a dict."
+            return cast(int, field.json_schema_extra[type])
+        return None
+
+
 class Identity(Schema):
     name: str
     visual_notes: str | None = None
     provider_visual_notes: str | None = None
     elements: types.IdentityElementsT
-
-    # fmt: off
-    base_hp: int         = pydantic.Field(default=70, ge= 1, le=255, json_schema_extra={"min":  1, "med": 70, "max": 255})  # noqa: E501
-    base_attack: int     = pydantic.Field(default=75, ge= 5, le=190, json_schema_extra={"min":  5, "med": 75, "max": 190})  # noqa: E501
-    base_defense: int    = pydantic.Field(default=70, ge= 5, le=230, json_schema_extra={"min":  5, "med": 70, "max": 230})  # noqa: E501
-    base_sp_attack: int  = pydantic.Field(default=70, ge=10, le=194, json_schema_extra={"min": 10, "med": 70, "max": 194})  # noqa: E501
-    base_sp_defense: int = pydantic.Field(default=70, ge=20, le=230, json_schema_extra={"min": 20, "med": 70, "max": 230})  # noqa: E501
-    base_speed: int      = pydantic.Field(default=70, ge= 5, le=200, json_schema_extra={"min":  5, "med": 70, "max": 200})  # noqa: E501
-    # fmt: on
-
+    base: BaseStats
     evo_seed: types.EvolutionStageT = types.EvolutionStageT.BASE
     is_radiant: bool = False
     generation: int = 0
     generated_at: dt.datetime = pydantic.Field(default_factory=resolve_clock)
 
-    @classmethod
-    def _stat_info(cls, name: types.BaseStatNameT, type: Literal["min", "med", "max"] = "med") -> int | None:
-        if (field := cls.model_fields.get(f"base_{name}")) and field.json_schema_extra:
-            assert isinstance(field.json_schema_extra, dict), "json_schema_extra must be a dict."
-            return cast(int, field.json_schema_extra[type])
-        return None
-
     @property
     def bst(self) -> int:
-        return (
-            self.base_hp
-            + self.base_attack
-            + self.base_defense
-            + self.base_sp_attack
-            + self.base_sp_defense
-            + self.base_speed
-        )
+        """Sum of all base stats, the canonical power level."""
+        return self.base.total
 
     @property
     def tier(self) -> types.TierT:
@@ -66,21 +65,14 @@ class Identity(Schema):
 
     @property
     def battle_role(self) -> types.BattleRole:
-        hp = self.base_hp
-        atk = self.base_attack
-        sp_atk = self.base_sp_attack
-        defense = self.base_defense
-        sp_def = self.base_sp_defense
-        speed = self.base_speed
-
-        phys_ehp = hp * defense
-        spec_ehp = hp * sp_def
+        phys_ehp = self.base.hp * self.base.defense
+        spec_ehp = self.base.hp * self.base.sp_defense
         avg_ehp = (phys_ehp + spec_ehp) / 2
-        best_offense = max(atk, sp_atk)
+        best_offense = max(self.base.attack, self.base.sp_attack)
 
-        is_very_fast = speed >= 110
-        is_fast = speed >= 95
-        is_slow = speed < 65
+        is_very_fast = self.base.speed >= 110
+        is_fast = self.base.speed >= 95
+        is_slow = self.base.speed < 65
 
         is_elite_off = best_offense >= 120
         is_strong_off = best_offense >= 100

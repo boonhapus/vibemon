@@ -1,30 +1,32 @@
-from typing import Any, ClassVar
+from typing import ClassVar
+import asyncio
 import collections
 import datetime as dt
-import functools as ft
 import itertools as it
 import math
 import statistics
 
-import niquests
 import structlog
 
 from app.core.math import clamp
 from app.domains.generation.affinity import Affinity
+from app.domains.generation.ports import TrainerSecrets
 from app.domains.generation.seed import BirthSeed
 from app.domains.move.types import VibemonTypeT
 from app.domains.vibemon.identity import Identity
-from app.domains.vibemon.strength_formulas import base_stat_asymmetric_scaling, stat_ratio_from_grade
+from app.providers import schema as providers_schema
 from app.providers.base import VibeProvider
 from app.providers.helpers import Signal, filter_element_types, pick_starter_moves
 
+from . import schema as climate_schema
 from .const import WeatherCode
 from .openmeteo import api as openmeteo_api
+from .openmeteo import schema as openmeteo_schema
 
 _LOGGER = structlog.get_logger(__name__)
 
 
-class ClimateProvider(VibeProvider):
+class ClimateProvider(VibeProvider[climate_schema.ClimatePayload]):
     """
     A Vibemon is born from the sky above its birthplace.
 
@@ -41,6 +43,7 @@ class ClimateProvider(VibeProvider):
     """
 
     name = "climate"
+    payload_type = climate_schema.ClimatePayload
 
     exposed_elements: ClassVar[list[tuple[VibemonTypeT, str]]] = [
         (VibemonTypeT.NORMAL, "overcast skies without precipitation"),
@@ -64,7 +67,167 @@ class ClimateProvider(VibeProvider):
     def __init__(self) -> None:
         self.client = openmeteo_api.OpenMeteoClient()
 
-    def calculate_intensity(self, daily: dict[str, list[float]], *, index: int) -> float:
+    # ── INTERNAL HELPERS ──────────────────────────────────────────────────────────────
+
+    def derive_signals(self, payload: climate_schema.ClimatePayload) -> dict[str, Signal]:
+        """Create a mapping of Signals from the raw payload data."""
+        CLIMATE_DEFAULTS: dict[str, float] = {
+            "cape_mean": 100.0,
+            "cloud_cover_mean": 60.0,
+            "dew_point_2m_mean": 10.0,
+            "dust_mean": 15.0,
+            "et0_fao_evapotranspiration": 3.5,
+            "pm2_5_mean": 25.0,
+            "precipitation_sum": 1.5,
+            "relative_humidity_2m_mean": 65.0,
+            "shortwave_radiation_sum": 15.0,
+            "snowfall_sum": 0.1,
+            "temperature_2m_max": 20.0,
+            "temperature_2m_min": 8.0,
+            "uv_index_max": 6.0,
+            "visibility_mean": 15000.0,
+            "wind_gusts_10m_max": 30.0,
+            "wind_speed_10m_max": 15.0,
+        }
+
+        d = payload.weather_augmented
+        s = d["daily"]
+        i = -1
+
+        raws = {attr: CLIMATE_DEFAULTS[attr] if s[attr][i] is None else s[attr][i] for attr in CLIMATE_DEFAULTS}
+
+        # fmt: off
+        # ruff: noqa: E501
+        return {
+            sig.name: sig
+            for sig in (
+                Signal(name="cape_m", attr="cape_mean",                  raw=raws["cape_mean"],                  min=   0.00, med=   100.00, max=  5000.00),
+                Signal(name="clouds", attr="cloud_cover_mean",           raw=raws["cloud_cover_mean"],           min=   0.00, med=    60.00, max=   100.00),
+                Signal(name="dew_pt", attr="dew_point_2m_mean",          raw=raws["dew_point_2m_mean"],          min= -60.00, med=    10.00, max=    32.00),
+                Signal(name="dust_m", attr="dust_mean",                  raw=raws["dust_mean"],                  min=   0.00, med=    15.00, max=  1000.00),
+                Signal(name="elevat", attr="elevation",                  raw=d["elevation"],                     min=-430.00, med=   350.00, max=  5100.00),
+                Signal(name="transp", attr="et0_fao_evapotranspiration", raw=raws["et0_fao_evapotranspiration"], min=   0.00, med=     3.50, max=    15.00),
+                Signal(name="pollut", attr="pm2_5_mean",                 raw=raws["pm2_5_mean"],                 min=   0.00, med=    25.00, max=   500.00),
+                Signal(name="precip", attr="precipitation_sum",          raw=raws["precipitation_sum"],          min=   0.00, med=     1.50, max=   500.00),
+                Signal(name="humdty", attr="relative_humidity_2m_mean",  raw=raws["relative_humidity_2m_mean"],  min=   5.00, med=    65.00, max=   100.00),
+                Signal(name="radiat", attr="shortwave_radiation_sum",    raw=raws["shortwave_radiation_sum"],    min=   0.00, med=    15.00, max=    35.00),
+                Signal(name="snowfl", attr="snowfall_sum",               raw=raws["snowfall_sum"],               min=   0.00, med=     0.10, max=   100.00),
+                Signal(name="tmp_hi", attr="temperature_2m_max",         raw=raws["temperature_2m_max"],         min= -40.00, med=    20.00, max=    55.00),
+                Signal(name="tmp_lo", attr="temperature_2m_min",         raw=raws["temperature_2m_min"],         min= -60.00, med=     8.00, max=    35.00),
+                Signal(name="uv_idx", attr="uv_index_max",               raw=raws["uv_index_max"],               min=   0.00, med=     6.00, max=    18.00),
+                Signal(name="visibl", attr="visibility_mean",            raw=raws["visibility_mean"],            min=   0.00, med= 15000.00, max= 40000.00),
+                Signal(name="windgu", attr="wind_gusts_10m_max",         raw=raws["wind_gusts_10m_max"],         min=   0.00, med=    30.00, max=   250.00),
+                Signal(name="windsp", attr="wind_speed_10m_max",         raw=raws["wind_speed_10m_max"],         min=   0.00, med=    15.00, max=   150.00),
+            )
+        }
+        # fmt: on
+
+    def balance_for_bst(self, signals: dict[str, Signal]) -> providers_schema.BaseStatCenters:
+        """Mix Signals to provide a stat profile."""
+        obscurity = clamp(1.0 - signals["visibl"].center, minimum=0.0, maximum=1.0)
+
+        return providers_schema.BaseStatCenters(
+            hp=Signal.mix(signals["tmp_hi"] * 0.5, signals["tmp_lo"] * 0.5, mode="center"),
+            attack=signals["windgu"].center,
+            defense=clamp(0.65 * obscurity + 0.35 * signals["pollut"].center, minimum=0.0, maximum=1.0),
+            sp_attack=Signal.mix(signals["radiat"] * 0.5, signals["cape_m"] * 0.5, mode="center"),
+            sp_defense=Signal.mix(signals["humdty"] * 0.5, signals["precip"] * 0.5, mode="center"),
+            speed=signals["windsp"].center,
+        )
+
+    # ── CORE PROTOCOL MEMBERS ─────────────────────────────────────────────────────────
+
+    async def fetch(
+        self,
+        seed: BirthSeed,
+        *,
+        secrets: TrainerSecrets | None = None,
+    ) -> climate_schema.ClimatePayload:
+        """Fetch and enrich climate payloads for a birth seed."""
+        end_date = seed.datestamp
+        start_date = seed.datestamp - dt.timedelta(days=1) - dt.timedelta(weeks=6)
+
+        async with asyncio.TaskGroup() as g:
+            opts = {
+                "latitude": seed.geo_coords[0],
+                "longitude": seed.geo_coords[1],
+                "start_date": start_date,
+                "end_date": end_date,
+            }
+
+            wr_task = g.create_task(self.client.forecast(**opts))
+            ar_task = g.create_task(self.client.air_quality(**opts))
+
+        wr = wr_task.result()
+        ar = ar_task.result()
+
+        wr.raise_for_status()
+        ar.raise_for_status()
+
+        forecast = openmeteo_schema.ForecastResponse.model_validate(wr.json())
+        air_quality = openmeteo_schema.AirQualityResponse.model_validate(ar.json())
+
+        def daily_means(times: list[str], values: list[float | None]) -> dict[str, float]:
+            return {
+                day: statistics.fmean(day_values)
+                for day, group in it.groupby(zip(times, values, strict=True), key=lambda tp: tp[0][:10])
+                if (day_values := [value for _, value in group if value is not None])
+            }
+
+        pm25_by_day = daily_means(air_quality.hourly.time, air_quality.hourly.pm2_5)
+        dust_by_day = daily_means(air_quality.hourly.time, air_quality.hourly.dust)
+
+        # Inject hourly-derived aggregates onto the daily weather frame so replay is deterministic.
+        daily = forecast.daily.model_dump()
+        daily["pm2_5_mean"] = [pm25_by_day.get(day, 0.0) for day in daily["time"]]
+        daily["dust_mean"] = [dust_by_day.get(day, 0.0) for day in daily["time"]]
+
+        weather_augmented = forecast.model_dump()
+        weather_augmented["daily"] = daily
+
+        return climate_schema.ClimatePayload(
+            start_date=start_date.isoformat(),
+            end_date=end_date.isoformat(),
+            weather_augmented=weather_augmented,
+        )
+
+    async def synthesize(self, seed: BirthSeed, payload: climate_schema.ClimatePayload) -> Affinity:
+        """Translate captured climate payload to Affinity components."""
+        rng = seed.rng(f"provider.{self.name}.moves")
+
+        d = payload.weather_augmented
+        s = d["daily"]
+        i = -1
+
+        # RAW DATA
+        wmo_code = WeatherCode(s["weather_code"][i])
+        signals = self.derive_signals(payload)
+
+        # RANKED ELEMENTS BASED ON THE DATA
+        rankings = self.determine_element_scores(signals=signals, weather_code=wmo_code)
+        elements = filter_element_types(rankings)
+
+        # BALANCE SIGNAL DATA FOR BASE STAT TRANSLATION
+        normalized = self.balance_for_bst(signals)
+        base_stats = normalized.scaled(elements=elements)
+
+        # LOAD MOVES
+        all_moves = self.selectable_moves()
+
+        affinity = Affinity(
+            identity=Identity(name="__", elements=elements, base=base_stats),
+            visual_notes=wmo_code.description,
+            intensity=self.calculate_intensity(s, index=i),
+            provider_id=self.name,
+            element_rankings=rankings,
+            moves=pick_starter_moves(moves=all_moves, rankings=rankings, elements=elements, k=10, rng=rng),
+        )
+
+        return affinity
+
+    # ── PROTOCOL HELPERS ──────────────────────────────────────────────────────────────
+
+    def calculate_intensity(self, daily: dict[str, list[float | None]], *, index: int) -> float:
         """
         Calculates a normalized weather intensity score (0.0 to 1.0) for a specific day.
 
@@ -77,14 +240,14 @@ class ClimateProvider(VibeProvider):
         potential, and visibility degradation.
         """
         # Aggregate signals representing intense weather
-        temp_max = daily["temperature_2m_max"]
-        temp_min = daily["temperature_2m_min"]
-        precip = daily["precipitation_sum"]
-        wind_gusts = daily["wind_gusts_10m_max"]
-        cape = daily["cape_mean"]
+        temp_max = [v or 20.0 for v in daily["temperature_2m_max"]]
+        temp_min = [v or 8.0 for v in daily["temperature_2m_min"]]
+        precip = [v or 1.5 for v in daily["precipitation_sum"]]
+        wind_gusts = [v or 30.0 for v in daily["wind_gusts_10m_max"]]
+        cape = [v or 100.0 for v in daily["cape_mean"]]
 
         # Visibility inverted: low visibility (fog/storms) = high intensity
-        visibility_inverted = [50.0 - v for v in daily["visibility_mean"]]
+        visibility_inverted = [50.0 - (v or 15000.0) for v in daily["visibility_mean"]]
 
         def z_score(values: list[float]) -> float:
             if len(values) < 2 or not (stdev := statistics.stdev(values)):
@@ -333,126 +496,3 @@ class ClimateProvider(VibeProvider):
                 _LOGGER.warning("missing_mapped_weather_code", code=weather_code)
 
         return score
-
-    async def fetch(self, seed: BirthSeed) -> dict[str, Any]:
-        """Fetch and enrich climate payloads for a birth seed."""
-        end_date = seed.datestamp
-        start_date = seed.datestamp - dt.timedelta(days=1) - dt.timedelta(weeks=6)
-
-        try:
-            # TODO: use asyncio.gather when upgraded to paid OpenMeteo.
-            wr = await self.client.forecast(
-                latitude=seed.geo_coords[0],
-                longitude=seed.geo_coords[1],
-                start_date=start_date,
-                end_date=end_date,
-            )
-            ar = await self.client.air_quality(
-                latitude=seed.geo_coords[0],
-                longitude=seed.geo_coords[1],
-                start_date=start_date,
-                end_date=end_date,
-            )
-
-            wr.raise_for_status()
-            ar.raise_for_status()
-        except niquests.HTTPError as e:
-            self._log_http_error(e)
-            raise
-
-        d = wr.json()
-        a = ar.json()
-        s = d["daily"]
-
-        def daily_means(times: list[str], values: list[float | None]) -> dict[str, float]:
-            return {
-                day: statistics.fmean(day_values)
-                for day, group in it.groupby(zip(times, values, strict=True), key=lambda tp: tp[0][:10])
-                if (day_values := [value for _, value in group if value is not None])
-            }
-
-        pm25_by_day = daily_means(a["hourly"]["time"], a["hourly"]["pm2_5"])
-        dust_by_day = daily_means(a["hourly"]["time"], a["hourly"]["dust"])
-
-        # Inject hourly-derived aggregates onto the daily weather frame so replay is deterministic.
-        s["pm2_5_mean"] = [pm25_by_day.get(day, 0.0) for day in s["time"]]
-        s["dust_mean"] = [dust_by_day.get(day, 0.0) for day in s["time"]]
-
-        return {
-            "start_date": start_date.isoformat(),
-            "end_date": end_date.isoformat(),
-            "weather_augmented": d,
-        }
-
-    async def synthesize(self, seed: BirthSeed, payload: dict[str, Any]) -> Affinity:
-        """Translate captured climate payload to Affinity components."""
-        rng = seed.rng(f"provider.{self.name}.moves")
-
-        d = payload["weather_augmented"]
-        s = d["daily"]
-        i = -1
-
-        # fmt: off
-        # ruff: noqa: E501
-        signals = {
-            sig.name: sig
-            for sig in (
-                # THESE ARE GLOBAL, INHABITED (MIN, MED, MAX) RANGES FOR EACH ATTRIBUTE.
-                Signal(name="cape_m", attr="cape_mean",                  raw=s["cape_mean"][i],                   min=   0.00, med=   100.00, max=  5000.00),
-                Signal(name="clouds", attr="cloud_cover_mean",           raw=s["cloud_cover_mean"][i],            min=   0.00, med=    60.00, max=   100.00),
-                Signal(name="dew_pt", attr="dew_point_2m_mean",          raw=s["dew_point_2m_mean"][i],           min= -60.00, med=    10.00, max=    32.00),
-                Signal(name="dust_m", attr="dust_mean",                  raw=s["dust_mean"][i],                   min=   0.00, med=    15.00, max=  1000.00),
-                Signal(name="elevat", attr="elevation",                  raw=d["elevation"],                      min=-430.00, med=   350.00, max=  5100.00),
-                Signal(name="transp", attr="et0_fao_evapotranspiration", raw=s["et0_fao_evapotranspiration"][i],  min=   0.00, med=     3.50, max=    15.00),
-                Signal(name="pollut", attr="pm2_5_mean",                 raw=s["pm2_5_mean"][i],                  min=   0.00, med=    25.00, max=   500.00),
-                Signal(name="precip", attr="precipitation_sum",          raw=s["precipitation_sum"][i],           min=   0.00, med=     1.50, max=   500.00),
-                Signal(name="humdty", attr="relative_humidity_2m_mean",  raw=s["relative_humidity_2m_mean"][i],   min=   5.00, med=    65.00, max=   100.00),
-                Signal(name="radiat", attr="shortwave_radiation_sum",    raw=s["shortwave_radiation_sum"][i],     min=   0.00, med=    15.00, max=    35.00),
-                Signal(name="snowfl", attr="snowfall_sum",               raw=s["snowfall_sum"][i],                min=   0.00, med=     0.10, max=   100.00),
-                Signal(name="tmp_hi", attr="temperature_2m_max",         raw=s["temperature_2m_max"][i],          min= -40.00, med=    20.00, max=    55.00),
-                Signal(name="tmp_lo", attr="temperature_2m_min",         raw=s["temperature_2m_min"][i],          min= -60.00, med=     8.00, max=    35.00),
-                Signal(name="uv_idx", attr="uv_index_max",               raw=s["uv_index_max"][i],                min=   0.00, med=     6.00, max=    18.00),
-                Signal(name="visibl", attr="visibility_mean",            raw=s["visibility_mean"][i],             min=   0.00, med= 15000.00, max= 40000.00),
-                Signal(name="windgu", attr="wind_gusts_10m_max",         raw=s["wind_gusts_10m_max"][i],          min=   0.00, med=    30.00, max=   250.00),
-                Signal(name="windsp", attr="wind_speed_10m_max",         raw=s["wind_speed_10m_max"][i],          min=   0.00, med=    15.00, max=   150.00),
-            )
-        }
-        # fmt: on
-
-        wmo_code = WeatherCode(s["weather_code"][i])
-        rankings = self.determine_element_scores(signals=signals, weather_code=wmo_code)
-        local_elements = filter_element_types(rankings)
-
-        # fmt: off
-        hp_signal  = Signal.mix(signals["tmp_hi"] * 0.5, signals["tmp_lo"] * 0.5, mode="center")  # heat/cold endurance
-        atk_signal = signals["windgu"].center                                                     # gust impact
-        obscurity  = clamp(1.0 - signals["visibl"].center, minimum=0.0, maximum=1.0)
-        def_signal = clamp(0.65 * obscurity + 0.35 * signals["pollut"].center, minimum=0.0, maximum=1.0)
-        spa_signal = Signal.mix(signals["radiat"] * 0.5, signals["cape_m"] * 0.5, mode="center")  # solar + electric flux
-        spd_signal = Signal.mix(signals["humdty"] * 0.5, signals["precip"] * 0.5, mode="center")  # cushion + dampening
-        spe_signal = signals["windsp"].center                                                     # kinetic
-        # fmt: on
-
-        ratio = ft.partial(stat_ratio_from_grade, elements=local_elements)
-
-        affinity = Affinity(
-            identity=Identity(
-                name="__",
-                elements=local_elements,
-                base_hp=base_stat_asymmetric_scaling(ratio(hp_signal, stat="hp"), stat="hp"),
-                base_attack=base_stat_asymmetric_scaling(ratio(atk_signal, stat="attack"), stat="attack"),
-                base_defense=base_stat_asymmetric_scaling(ratio(def_signal, stat="defense"), stat="defense"),
-                base_sp_attack=base_stat_asymmetric_scaling(ratio(spa_signal, stat="sp_attack"), stat="sp_attack"),
-                base_sp_defense=base_stat_asymmetric_scaling(ratio(spd_signal, stat="sp_defense"), stat="sp_defense"),
-                base_speed=base_stat_asymmetric_scaling(ratio(spe_signal, stat="speed"), stat="speed"),
-            ),
-            visual_notes=wmo_code.description,
-            intensity=self.calculate_intensity(s, index=i),
-            provider_id=self.name,
-            element_rankings=rankings,
-            moves=pick_starter_moves(
-                moves=self.selectable_moves(), rankings=rankings, elements=local_elements, k=10, rng=rng
-            ),
-        )
-
-        return affinity

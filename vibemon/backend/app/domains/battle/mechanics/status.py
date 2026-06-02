@@ -1,5 +1,3 @@
-from __future__ import annotations
-
 import pydantic
 
 from app.core.schema import FrozenSchema

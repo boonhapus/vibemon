@@ -1,5 +1,3 @@
-from __future__ import annotations
-
 from typing import TYPE_CHECKING
 import io
 import uuid
@@ -10,7 +8,7 @@ import pytest
 from app.domains.move.entity import Move
 from app.domains.vibemon.assets import AssetKind, AssetRef
 from app.domains.vibemon.entity import Vibemon
-from app.domains.vibemon.identity import Identity
+from app.domains.vibemon.identity import BaseStats, Identity
 from app.domains.vibemon.types import VibemonLifecycleT, VibemonTypeT
 from app.storage.blob import const as blob_const
 from app.workflows.materialize_vibemon import MaterializeVibemon
@@ -91,6 +89,7 @@ def _vibemon() -> Vibemon:
             elements=(VibemonTypeT.FIRE,),
             visual_notes="small ember shell",
             provider_visual_notes="clear heat",
+            base=BaseStats(),
         )
     )
 

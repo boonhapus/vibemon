@@ -1,7 +1,5 @@
 """Captured provider payload replay for deterministic Vibemon birth."""
 
-from __future__ import annotations
-
 from collections.abc import Iterable
 from typing import TYPE_CHECKING, Any
 import asyncio
@@ -32,7 +30,10 @@ class BirthSnapshot(FrozenSchema):
 
         affinities = await asyncio.gather(
             *(
-                providers_by_name[provider_id].synthesize(seed, self.provider_payloads[provider_id])
+                providers_by_name[provider_id].synthesize(
+                    seed,
+                    providers_by_name[provider_id].parse_payload(self.provider_payloads[provider_id]),
+                )
                 for provider_id in sorted(self.provider_payloads)
             )
         )

@@ -4,8 +4,6 @@ All domain errors inherit from ``VibemonError`` so callers can catch a
 single base when they need to.
 """
 
-from __future__ import annotations
-
 import enum
 
 
@@ -35,6 +33,14 @@ class PartyFull(VibemonServiceError):
 
 class ReleaseUnavailable(VibemonServiceError):
     """Raised when a Vibemon cannot be released by the trainer."""
+
+
+class MusicListeningUnavailable(VibemonError):
+    """Raised when music birth preconditions fail (empty history or ReccoBeats fetch failure)."""
+
+
+class MusicLinkRequired(VibemonServiceError):
+    """Raised when music is opted in but the trainer has no linked Last.fm account."""
 
 
 class InterfaceErrorCode(enum.StrEnum):

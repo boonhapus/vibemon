@@ -1,7 +1,5 @@
 """Shared helpers for headless Vibemon app workflows."""
 
-from __future__ import annotations
-
 import datetime as dt
 import random
 import uuid
@@ -11,13 +9,16 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.core.ids import TrainerIdT
 from app.domains.adoption.types import CandidateReviewStatusT
 from app.domains.encounter import tuning as encounter_tuning
+from app.domains.generation.affinity import Affinity
 from app.domains.generation.seed import BirthSeed
 from app.domains.vibemon.disposition import VibemonDispositionT
 from app.domains.vibemon.entity import Vibemon
 from app.domains.vibemon.history import VibemonHistoryEventT
 from app.domains.vibemon.schema import PublicVibemon
+from app.providers import schema as providers_schema
 from app.storage.blob.monstore import get_default_monstore
 from app.storage.database import mapper, models, read_model, repositories
+from app.storage.secrets.repository import DbTrainerSecrets
 from app.workflows.materialize_vibemon import MaterializeVibemon
 
 
@@ -45,9 +46,10 @@ async def birth_and_persist_vibemon(
     core_identity: str | None,
     now: dt.datetime,
     christen: bool,
-) -> models.Vibemon:
-    snapshot = await birth_seed.fetch_snapshot()
-    affinities = await snapshot.regenerate(birth_seed.providers, birth_seed)
+) -> tuple[models.Vibemon, tuple[providers_schema.ProviderNote, ...]]:
+    snapshot = await birth_seed.fetch_snapshot(DbTrainerSecrets(sess))
+    affinities = list(await snapshot.regenerate(birth_seed.providers, birth_seed))
+    notes = Affinity.collect_notes(*affinities)
     vibemon = Vibemon.birth(
         *affinities,
         birth_seed=birth_seed,
@@ -56,13 +58,14 @@ async def birth_and_persist_vibemon(
     )
     if christen:
         vibemon = await MaterializeVibemon().christen(vibemon)
-    return await repositories.persist_new_vibemon(
+    row = await repositories.persist_new_vibemon(
         sess,
         vibemon=vibemon,
         birth_seed=birth_seed,
         snapshot=snapshot,
         now=now,
     )
+    return row, notes
 
 
 async def resolve_candidate_to_wild(

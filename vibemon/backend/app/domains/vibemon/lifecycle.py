@@ -1,7 +1,5 @@
 """Pure lifecycle transition policy for Vibemon presentation readiness."""
 
-from __future__ import annotations
-
 from app.domains.vibemon.entity import Vibemon
 from app.domains.vibemon.types import VibemonLifecycleT
 

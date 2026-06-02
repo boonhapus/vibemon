@@ -1,5 +1,9 @@
+# Ignore OS-specific
+.DS_Store
+
 # Ignore Secrets
 *.env
+*.env.local
 
 # Ignore python artifacts
 .python-version
@@ -8,17 +12,15 @@ __pycache__/
 .pytest_cache/
 .mypy_cache/
 
+# Ignore svelta artifacts
+.vscode
+node_modules/
+
 # Ignore project-specific build artifacts
 .venv/
 .data/
 .generated/
-.scripts/generated
-.scripts/battle_runs
-.scripts/*.db
-.scripts/*.md
-.scripts/_bak/
 
 # Ignore coding agents
 CLAUDE.md
 .claude/
-.nelson/

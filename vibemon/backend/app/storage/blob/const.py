@@ -1,12 +1,7 @@
-"""Static lookup tables for asset storage."""
+"""Static lookup tables for Vibemon asset storage keys and MIME types."""
 
-from app.domains.vibemon import assets
 from app.domains.vibemon.assets import AssetKind
 from app.domains.vibemon.types import PoseT
-
-ASSET_VERSION = assets.ASSET_VERSION
-"""Static schema/layout version for asset key paths."""
-
 
 UNSIGNABLE_SCHEMES = frozenset({"file", "memory"})
 """URL schemes that cannot be presigned; we hand back direct locators instead."""

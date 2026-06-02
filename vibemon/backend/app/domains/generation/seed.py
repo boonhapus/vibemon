@@ -1,7 +1,5 @@
 """Deterministic Vibemon birth seed helpers."""
 
-from __future__ import annotations
-
 from collections.abc import Iterable
 from typing import TYPE_CHECKING, Any
 import asyncio
@@ -9,6 +7,7 @@ import datetime as dt
 import hashlib
 import json
 import random
+import uuid
 
 from astral import Observer
 from astral.sun import sun
@@ -17,6 +16,7 @@ import pydantic
 from app.core.schema import FrozenSchema
 
 from . import types
+from .ports import TrainerSecrets
 from .snapshot import BirthSnapshot
 
 if TYPE_CHECKING:
@@ -28,6 +28,7 @@ class BirthSeed(FrozenSchema):
 
     timestamp: dt.datetime
     geo_coords: tuple[float, float]
+    trainer_id: uuid.UUID
     local_timezone: dt.timezone = dt.UTC
     providers: list[Any]
 
@@ -84,6 +85,7 @@ class BirthSeed(FrozenSchema):
         return {
             "geo_coords": list(self.geo_coords),
             "timestamp": self.timestamp.isoformat(timespec="microseconds"),
+            "trainer_id": str(self.trainer_id),
         }
 
     @property
@@ -104,12 +106,17 @@ class BirthSeed(FrozenSchema):
         """Create a fresh deterministic RNG for one birth subsystem."""
         return random.Random(self.rng_seed_for(namespace))
 
-    async def fetch_snapshot(self) -> BirthSnapshot:
+    async def fetch_snapshot(self, secrets: TrainerSecrets | None = None) -> BirthSnapshot:
         """Fetch provider payloads for this seed."""
-        snapshots = await asyncio.gather(*(provider.fetch(self) for provider in self.providers))
-        return BirthSnapshot(provider_payloads={p.name: s for p, s in zip(self.providers, snapshots, strict=True)})
+        snapshots = await asyncio.gather(*(provider.fetch(self, secrets=secrets) for provider in self.providers))
+        return BirthSnapshot(
+            provider_payloads={
+                provider.name: provider.serialize_payload(payload)
+                for provider, payload in zip(self.providers, snapshots, strict=True)
+            }
+        )
 
-    async def regenerate(self) -> Iterable[Affinity]:
+    async def regenerate(self, secrets: TrainerSecrets | None = None) -> Iterable[Affinity]:
         """Fetch provider payloads, then synthesize affinities from that snapshot."""
-        snapshot = await self.fetch_snapshot()
+        snapshot = await self.fetch_snapshot(secrets)
         return await snapshot.regenerate(self.providers, self)

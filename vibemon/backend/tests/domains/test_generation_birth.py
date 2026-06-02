@@ -1,60 +1,93 @@
-from __future__ import annotations
-
-from typing import Any
 import datetime as dt
+import uuid
 
 import pytest
 
 from app.domains.generation.affinity import Affinity
+from app.domains.generation.ports import TrainerSecrets
 from app.domains.generation.seed import BirthSeed
 from app.domains.generation.snapshot import BirthSnapshot
 from app.domains.move.entity import Move
 from app.domains.move.types import MoveCategoryT, VibemonTypeT
 from app.domains.vibemon.entity import Vibemon
-from app.domains.vibemon.identity import Identity
+from app.domains.vibemon.identity import BaseStats, Identity
+from app.providers.base import VibeProvider
+from tests.conftest import TEST_TRAINER_ID
+from tests.providers.fake_provider import FakeProviderPayload
 
 
-class FakeProvider:
-    def __init__(self, name: str, element: VibemonTypeT, attack: int) -> None:
-        self.name = name
-        self._element = element
-        self._attack = attack
+def _named_fake(provider_id: str, *, element: VibemonTypeT, attack: int) -> VibeProvider[FakeProviderPayload]:
+    class Provider(VibeProvider[FakeProviderPayload]):
+        name = provider_id
+        payload_type = FakeProviderPayload
 
-    async def fetch(self, seed: BirthSeed) -> dict[str, Any]:
-        return {
-            "datestamp": seed.datestamp.isoformat(),
-            "element": self._element.value,
-            "attack": self._attack,
-        }
+        def __init__(self) -> None:
+            self._element = element
+            self._attack = attack
 
-    async def synthesize(self, seed: BirthSeed, payload: dict[str, Any]) -> Affinity:
-        return Affinity(
-            identity=Identity(
-                name=f"{self.name}-{payload['datestamp']}",
-                elements=(self._element,),
-                base_attack=self._attack,
-            ),
-            provider_id=self.name,
-            intensity=0.5,
-            element_rankings={self._element: 1.0},
-            moves=(
-                Move(
-                    id=f"{self.name}.tap",
-                    name=f"{self.name} Tap",
-                    flavor_text="A deterministic test move.",
-                    type=self._element,
-                    category=MoveCategoryT.PHYSICAL,
-                    power=40,
+        async def fetch(self, seed: BirthSeed, *, secrets: TrainerSecrets | None = None) -> FakeProviderPayload:
+            return FakeProviderPayload(
+                datestamp=seed.datestamp.isoformat(),
+                element=self._element.value,
+                attack=self._attack,
+            )
+
+        async def synthesize(self, seed: BirthSeed, payload: FakeProviderPayload) -> Affinity:
+            element = VibemonTypeT(payload.element)
+            return Affinity(
+                identity=Identity(
+                    name=f"{self.name}-{payload.datestamp}",
+                    elements=(element,),
+                    base=BaseStats(attack=payload.attack),
                 ),
-            ),
-        )
+                provider_id=self.name,
+                intensity=0.5,
+                element_rankings={element: 1.0},
+                moves=(
+                    Move(
+                        id=f"{self.name}.tap",
+                        name=f"{self.name} Tap",
+                        flavor_text="A deterministic test move.",
+                        type=element,
+                        category=MoveCategoryT.PHYSICAL,
+                        power=40,
+                    ),
+                    Move(
+                        id=f"{self.name}.pulse",
+                        name=f"{self.name} Pulse",
+                        flavor_text="A second deterministic test move.",
+                        type=element,
+                        category=MoveCategoryT.SPECIAL,
+                        power=35,
+                    ),
+                ),
+            )
+
+    return Provider()
+
+
+def test_birth_seed_rng_changes_with_trainer_id() -> None:
+    base_kwargs = {
+        "timestamp": dt.datetime(2026, 5, 19, 9, 30, tzinfo=dt.UTC),
+        "geo_coords": (41.8781, -87.6298),
+        "providers": [],
+    }
+    first = BirthSeed(trainer_id=TEST_TRAINER_ID, **base_kwargs)
+    second = BirthSeed(trainer_id=uuid.uuid7(), **base_kwargs)
+    assert first.rng_seed != second.rng_seed
 
 
 def test_birth_seed_normalizes_timestamp_and_derives_stable_rngs() -> None:
-    seed = BirthSeed(timestamp=dt.datetime(2026, 5, 19, 9, 30), geo_coords=(41.8781, -87.6298), providers=[])
+    seed = BirthSeed(
+        timestamp=dt.datetime(2026, 5, 19, 9, 30),
+        geo_coords=(41.8781, -87.6298),
+        trainer_id=TEST_TRAINER_ID,
+        providers=[],
+    )
     same_seed = BirthSeed(
         timestamp=dt.datetime(2026, 5, 19, 9, 30, tzinfo=dt.UTC),
         geo_coords=(41.8781, -87.6298),
+        trainer_id=TEST_TRAINER_ID,
         providers=[],
     )
 
@@ -69,9 +102,10 @@ async def test_birth_snapshot_replays_provider_payloads_by_provider_name() -> No
     seed = BirthSeed(
         timestamp=dt.datetime(2026, 5, 19, 9, 30, tzinfo=dt.UTC),
         geo_coords=(41.8781, -87.6298),
+        trainer_id=TEST_TRAINER_ID,
         providers=[
-            FakeProvider("beta", VibemonTypeT.WATER, 82),
-            FakeProvider("alpha", VibemonTypeT.FIRE, 76),
+            _named_fake("beta", element=VibemonTypeT.WATER, attack=82),
+            _named_fake("alpha", element=VibemonTypeT.FIRE, attack=76),
         ],
     )
 
@@ -85,7 +119,12 @@ async def test_birth_snapshot_replays_provider_payloads_by_provider_name() -> No
 
 @pytest.mark.asyncio
 async def test_birth_snapshot_requires_all_recorded_provider_implementations() -> None:
-    seed = BirthSeed(timestamp=dt.datetime(2026, 5, 19, tzinfo=dt.UTC), geo_coords=(41.8781, -87.6298), providers=[])
+    seed = BirthSeed(
+        timestamp=dt.datetime(2026, 5, 19, tzinfo=dt.UTC),
+        geo_coords=(41.8781, -87.6298),
+        trainer_id=TEST_TRAINER_ID,
+        providers=[],
+    )
     snapshot = BirthSnapshot(provider_payloads={"missing": {}})
 
     with pytest.raises(ValueError, match="Missing provider implementations"):
@@ -97,9 +136,10 @@ async def test_vibemon_birth_is_replayable_from_same_seed_and_snapshot() -> None
     seed = BirthSeed(
         timestamp=dt.datetime(2026, 5, 19, 9, 30, tzinfo=dt.UTC),
         geo_coords=(41.8781, -87.6298),
+        trainer_id=TEST_TRAINER_ID,
         providers=[
-            FakeProvider("alpha", VibemonTypeT.FIRE, 76),
-            FakeProvider("beta", VibemonTypeT.WATER, 82),
+            _named_fake("alpha", element=VibemonTypeT.FIRE, attack=76),
+            _named_fake("beta", element=VibemonTypeT.WATER, attack=82),
         ],
     )
     snapshot = await seed.fetch_snapshot()
@@ -131,14 +171,14 @@ def test_affinity_merge_uses_fused_rankings_not_local_elements() -> None:
         power=40,
     )
     climate = Affinity(
-        identity=Identity(name="climate", elements=(VibemonTypeT.FIRE,), base_attack=70),
+        identity=Identity(name="climate", elements=(VibemonTypeT.FIRE,), base=BaseStats(attack=70)),
         provider_id="climate",
         intensity=0.4,
         element_rankings={VibemonTypeT.FIRE: 0.9, VibemonTypeT.WATER: 0.1},
         moves=(fire_move,),
     )
     biome = Affinity(
-        identity=Identity(name="biome", elements=(VibemonTypeT.STEEL,), base_attack=80),
+        identity=Identity(name="biome", elements=(VibemonTypeT.STEEL,), base=BaseStats(attack=80)),
         provider_id="biome",
         intensity=0.8,
         element_rankings={VibemonTypeT.WATER: 0.95, VibemonTypeT.STEEL: 0.5},

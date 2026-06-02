@@ -1,7 +1,5 @@
 """Geography helpers for wild encounter bucket selection."""
 
-from __future__ import annotations
-
 from dataclasses import dataclass
 
 _BASE32 = "0123456789bcdefghjkmnpqrstuvwxyz"

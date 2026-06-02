@@ -10,7 +10,6 @@ import datetime as dt
 import uuid
 
 from sqlalchemy import (
-    JSON,
     CheckConstraint,
     ForeignKeyConstraint,
     Index,
@@ -18,6 +17,9 @@ from sqlalchemy import (
     text,
 )
 from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column, relationship
+
+from app.domains.vibemon.identity import BaseStats
+from app.storage.database import types as db_types
 
 
 class Base(DeclarativeBase):
@@ -33,19 +35,51 @@ class Trainer(Base):
     vibemons: Mapped[list[Vibemon]] = relationship(back_populates="trainer")
     candidate_reviews: Mapped[list[CandidateReview]] = relationship(back_populates="trainer")
     generation_credit_days: Mapped[list[GenerationCreditDay]] = relationship(back_populates="trainer")
+    secrets: Mapped[list[TrainerSecret]] = relationship(back_populates="trainer")
+
+
+class TrainerSecret(Base):
+    __tablename__ = "trainer_secret"
+
+    id: Mapped[uuid.UUID] = mapped_column(primary_key=True, default=uuid.uuid7)
+    trainer_id: Mapped[uuid.UUID]
+    kind: Mapped[str]
+    ciphertext: Mapped[bytes]
+
+    __table_args__ = (
+        ForeignKeyConstraint(
+            ["trainer_id"],
+            ["trainer.id"],
+            name="fk_trainer_secret_trainer",
+            ondelete="CASCADE",
+        ),
+        UniqueConstraint("trainer_id", "kind", name="uq_trainer_secret_trainer_kind"),
+    )
+
+    trainer: Mapped[Trainer] = relationship(back_populates="secrets")
 
 
 class BirthSeed(Base):
     __tablename__ = "birth_seed"
 
     id: Mapped[uuid.UUID] = mapped_column(primary_key=True, default=uuid.uuid7)
-    timestamp: Mapped[dt.datetime]
-    geo_coords: Mapped[list[float]] = mapped_column(JSON)
+    timestamp: Mapped[dt.datetime] = mapped_column(db_types.TIMESTAMPTZ)
+    geo_coords: Mapped[list[float]] = mapped_column(db_types.JSON_STORE)
+    trainer_id: Mapped[uuid.UUID]
 
     birth_snapshots: Mapped[list[BirthSnapshot]] = relationship(
         back_populates="birth_seed",
         cascade="all, delete-orphan",
         single_parent=True,
+    )
+
+    __table_args__ = (
+        ForeignKeyConstraint(
+            ["trainer_id"],
+            ["trainer.id"],
+            name="fk_birth_seed_trainer",
+            ondelete="RESTRICT",
+        ),
     )
 
 
@@ -54,7 +88,7 @@ class BirthSnapshot(Base):
 
     id: Mapped[uuid.UUID] = mapped_column(primary_key=True, default=uuid.uuid7)
     birth_seed_id: Mapped[uuid.UUID]
-    provider_payloads: Mapped[dict[str, dict[str, Any]]] = mapped_column(JSON)
+    provider_payloads: Mapped[dict[str, dict[str, Any]]] = mapped_column(db_types.JSON_STORE)
 
     __table_args__ = (
         ForeignKeyConstraint(
@@ -82,9 +116,9 @@ class Vibemon(Base):
     team_slot: Mapped[int | None]
     trainer_id: Mapped[uuid.UUID | None]
     birth_snapshot_id: Mapped[uuid.UUID]
-    wild_entered_at: Mapped[dt.datetime | None]
-    last_encountered_at: Mapped[dt.datetime | None]
-    expired_at: Mapped[dt.datetime | None]
+    wild_entered_at: Mapped[dt.datetime | None] = mapped_column(db_types.TIMESTAMPTZ)
+    last_encountered_at: Mapped[dt.datetime | None] = mapped_column(db_types.TIMESTAMPTZ)
+    expired_at: Mapped[dt.datetime | None] = mapped_column(db_types.TIMESTAMPTZ)
 
     __table_args__ = (
         ForeignKeyConstraint(
@@ -107,11 +141,11 @@ class Vibemon(Base):
             "("
             "disposition IS NULL AND trainer_id IS NULL AND team_slot IS NULL"
             ") OR ("
-            "COALESCE(disposition = 'owned', 0) AND trainer_id IS NOT NULL AND team_slot IS NOT NULL"
+            "disposition = 'owned' AND trainer_id IS NOT NULL AND team_slot IS NOT NULL"
             ") OR ("
-            "COALESCE(disposition = 'wild', 0) AND trainer_id IS NULL AND team_slot IS NULL"
+            "disposition = 'wild' AND trainer_id IS NULL AND team_slot IS NULL"
             ") OR ("
-            "COALESCE(disposition = 'expired', 0) "
+            "disposition = 'expired' "
             "AND trainer_id IS NULL "
             "AND team_slot IS NULL "
             "AND expired_at IS NOT NULL"
@@ -124,6 +158,7 @@ class Vibemon(Base):
             "team_slot",
             unique=True,
             sqlite_where=text("team_slot IS NOT NULL"),
+            postgresql_where=text("team_slot IS NOT NULL"),
         ),
     )
 
@@ -165,7 +200,7 @@ class Identity(Base):
     name: Mapped[str]
     visual_notes: Mapped[str | None]
     provider_visual_notes: Mapped[str | None]
-    elements: Mapped[list[str]] = mapped_column(JSON)
+    elements: Mapped[list[str]] = mapped_column(db_types.JSON_STORE)
     base_hp: Mapped[int]
     base_attack: Mapped[int]
     base_defense: Mapped[int]
@@ -175,7 +210,18 @@ class Identity(Base):
     evo_seed: Mapped[int]
     is_radiant: Mapped[bool]
     generation: Mapped[int] = mapped_column(default=0)
-    generated_at: Mapped[dt.datetime]
+    generated_at: Mapped[dt.datetime] = mapped_column(db_types.TIMESTAMPTZ)
+
+    @property
+    def base(self) -> BaseStats:
+        return BaseStats(
+            hp=self.base_hp,
+            attack=self.base_attack,
+            defense=self.base_defense,
+            sp_attack=self.base_sp_attack,
+            sp_defense=self.base_sp_defense,
+            speed=self.base_speed,
+        )
 
     __table_args__ = (
         ForeignKeyConstraint(
@@ -204,8 +250,8 @@ class Move(Base):
     priority: Mapped[int] = mapped_column(default=0)
     target: Mapped[str]
     level_requirement: Mapped[int] = mapped_column(default=1)
-    effects: Mapped[list[dict[str, Any]]] = mapped_column(JSON, default=list)
-    behavior: Mapped[dict[str, Any]] = mapped_column(JSON, default=dict)
+    effects: Mapped[list[dict[str, Any]]] = mapped_column(db_types.JSON_STORE, default=list)
+    behavior: Mapped[dict[str, Any]] = mapped_column(db_types.JSON_STORE, default=dict)
 
     __table_args__ = (CheckConstraint("priority BETWEEN -7 AND 7", name="ck_move_priority"),)
 
@@ -240,6 +286,7 @@ class VibemonMove(Base):
             "active_slot",
             unique=True,
             sqlite_where=text("active_slot IS NOT NULL"),
+            postgresql_where=text("active_slot IS NOT NULL"),
         ),
     )
 
@@ -253,8 +300,8 @@ class VibemonHistory(Base):
     id: Mapped[uuid.UUID] = mapped_column(primary_key=True, default=uuid.uuid7)
     vibemon_id: Mapped[uuid.UUID]
     event_type: Mapped[str]
-    occurred_at: Mapped[dt.datetime]
-    payload: Mapped[dict[str, Any]] = mapped_column(JSON, default=dict)
+    occurred_at: Mapped[dt.datetime] = mapped_column(db_types.TIMESTAMPTZ)
+    payload: Mapped[dict[str, Any]] = mapped_column(db_types.JSON_STORE, default=dict)
 
     __table_args__ = (
         ForeignKeyConstraint(
@@ -279,8 +326,8 @@ class VibemonAsset(Base):
     content_type: Mapped[str]
     byte_size: Mapped[int]
     sha256: Mapped[str]
-    created_at: Mapped[dt.datetime]
-    updated_at: Mapped[dt.datetime]
+    created_at: Mapped[dt.datetime] = mapped_column(db_types.TIMESTAMPTZ)
+    updated_at: Mapped[dt.datetime] = mapped_column(db_types.TIMESTAMPTZ)
 
     __table_args__ = (
         ForeignKeyConstraint(
@@ -302,10 +349,11 @@ class CandidateReview(Base):
     vibemon_id: Mapped[uuid.UUID] = mapped_column(unique=True)
     trainer_id: Mapped[uuid.UUID]
     status: Mapped[str]
-    shown_at: Mapped[dt.datetime]
-    timeout_at: Mapped[dt.datetime]
-    resolved_at: Mapped[dt.datetime | None]
+    shown_at: Mapped[dt.datetime] = mapped_column(db_types.TIMESTAMPTZ)
+    timeout_at: Mapped[dt.datetime] = mapped_column(db_types.TIMESTAMPTZ)
+    resolved_at: Mapped[dt.datetime | None] = mapped_column(db_types.TIMESTAMPTZ)
     resolution: Mapped[str | None]
+    provider_notes: Mapped[list[dict[str, str]]] = mapped_column(db_types.JSON_STORE, default=list)
 
     __table_args__ = (
         ForeignKeyConstraint(
@@ -340,10 +388,10 @@ class GenerationCreditDay(Base):
 
     id: Mapped[uuid.UUID] = mapped_column(primary_key=True, default=uuid.uuid7)
     trainer_id: Mapped[uuid.UUID]
-    credit_date: Mapped[dt.date]
+    credit_date: Mapped[dt.date] = mapped_column(db_types.DATE)
     credits_consumed: Mapped[int] = mapped_column(default=0)
     active_hold_id: Mapped[uuid.UUID | None]
-    hold_started_at: Mapped[dt.datetime | None]
+    hold_started_at: Mapped[dt.datetime | None] = mapped_column(db_types.TIMESTAMPTZ)
 
     __table_args__ = (
         ForeignKeyConstraint(
@@ -367,8 +415,8 @@ class EncounterAdjustment(Base):
     vibemon_id: Mapped[uuid.UUID]
     source: Mapped[str]
     initial_multiplier: Mapped[float]
-    starts_at: Mapped[dt.datetime]
-    ends_at: Mapped[dt.datetime]
+    starts_at: Mapped[dt.datetime] = mapped_column(db_types.TIMESTAMPTZ)
+    ends_at: Mapped[dt.datetime] = mapped_column(db_types.TIMESTAMPTZ)
 
     __table_args__ = (
         ForeignKeyConstraint(

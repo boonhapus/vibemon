@@ -1,5 +1,3 @@
-from __future__ import annotations
-
 from app.domains.battle import actions, turn
 from app.domains.move.entity import IfHpBelow, IfOpponentAttacking, IfWeather, RandomPower
 

@@ -10,20 +10,23 @@ import structlog
 from app.domains.move import universal
 from app.domains.move.entity import Move
 from app.domains.move.types import VibemonTypeT
+from app.providers import schema
 
 if TYPE_CHECKING:
     from app.domains.generation.affinity import Affinity
+    from app.domains.generation.ports import TrainerSecrets
     from app.domains.generation.seed import BirthSeed
 
 _LOGGER = structlog.get_logger(__name__)
 
 
-class VibeProvider(abc.ABC):
+class VibeProvider[PayloadT: schema.ProviderPayload](abc.ABC):
     """
     Base interface for provider plugins.
 
     Subclasses only need to:
     - set `name` class attribute
+    - set `payload_type` to the provider's ``ProviderPayload`` subclass
     - declare `exposed_elements` with Annotated metadata mapping types to real-world signals
     - implement `fetch()` to capture provider payloads from external APIs
     - implement `synthesize()` to translate captured payloads to Affinity components
@@ -51,13 +54,21 @@ class VibeProvider(abc.ABC):
     name: ClassVar[str]
     """Stable provider identifier (persisted in `Affinity.provider_id`)."""
 
+    payload_type: ClassVar[type[schema.ProviderPayload]]
+    """Typed payload model produced by ``fetch`` and consumed by ``synthesize``."""
+
     exposed_elements: ClassVar[list[tuple[VibemonTypeT, str]]]
     """Elements this provider can assign with real-world signal descriptions."""
 
     @classmethod
-    def get_exposed_elements(cls) -> dict[VibemonTypeT, str]:
-        """Return a mapping of elements to their real-world signal descriptions."""
-        return dict(cls.exposed_elements)
+    def parse_payload(cls, raw: dict[str, Any]) -> PayloadT:
+        """Validate a persisted JSON payload for replay."""
+        return cast(PayloadT, cls.payload_type.model_validate(raw))
+
+    @classmethod
+    def serialize_payload(cls, payload: PayloadT) -> dict[str, Any]:
+        """Serialize a typed payload for snapshot persistence."""
+        return payload.model_dump(mode="json")
 
     def _log_http_error(self, exception: niquests.HTTPError) -> None:
         """If an HTTP error is encountered, log its context."""
@@ -75,8 +86,18 @@ class VibeProvider(abc.ABC):
         _LOGGER.exception(f"HTTP error from {self.name} provider", **log_data)
         raise exception
 
+    @classmethod
+    def get_exposed_elements(cls) -> dict[VibemonTypeT, str]:
+        """Return a mapping of elements to their real-world signal descriptions."""
+        return dict(cls.exposed_elements)
+
     @abc.abstractmethod
-    async def fetch(self, seed: BirthSeed) -> dict[str, Any]:
+    async def fetch(
+        self,
+        seed: BirthSeed,
+        *,
+        secrets: TrainerSecrets | None = None,
+    ) -> PayloadT:
         """
         Fetch and return a provider payload from upstream sources.
 
@@ -86,7 +107,7 @@ class VibeProvider(abc.ABC):
         """
 
     @abc.abstractmethod
-    async def synthesize(self, seed: BirthSeed, payload: dict[str, Any]) -> Affinity:
+    async def synthesize(self, seed: BirthSeed, payload: PayloadT) -> Affinity:
         """
         Translate captured provider payload to Affinity components.
 
@@ -112,6 +133,6 @@ class VibeProvider(abc.ABC):
 
         return self._moves
 
-    def selectable_moves(self) -> tuple[Move, ...]:
+    def selectable_moves(self, *, level: int = 1) -> tuple[Move, ...]:
         """Return shared universal moves plus provider-authored moves."""
-        return (*universal.moves(), *self.moves())
+        return tuple(m for m in (*universal.moves(), *self.moves()) if m.level_requirement <= level)

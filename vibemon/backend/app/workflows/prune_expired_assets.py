@@ -1,7 +1,5 @@
 """Prune asset rows and blobs for expired Vibemon."""
 
-from __future__ import annotations
-
 import datetime as dt
 
 from sqlalchemy.ext.asyncio import AsyncSession

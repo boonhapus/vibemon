@@ -1,0 +1,4746 @@
+[
+  {
+    "id": "music.chart_bump",
+    "name": "Chart Bump",
+    "flavor_text": "A chart-riding elbow check timed to the downbeat of a trending hook.",
+    "type": "normal",
+    "category": "physical",
+    "power": 40,
+    "accuracy": 1.0,
+    "pp": 35,
+    "priority": 1
+  },
+  {
+    "id": "music.hook_repeat",
+    "name": "Hook Repeat",
+    "flavor_text": "You loop a sticky chorus fragment until it cuts like glass.",
+    "type": "normal",
+    "category": "special",
+    "power": 34,
+    "accuracy": 1.0,
+    "pp": 35
+  },
+  {
+    "id": "music.radio_fade",
+    "name": "Radio Fade",
+    "flavor_text": "Signal dissolves into static, then snaps back with a spectral tail.",
+    "type": "normal",
+    "category": "special",
+    "power": 33,
+    "accuracy": 1.0,
+    "pp": 35
+  },
+  {
+    "id": "music.playlist_shuffle",
+    "name": "Playlist Shuffle",
+    "flavor_text": "Track order scrambles mid-fight, leaving nerves tangled like crossed cables.",
+    "type": "normal",
+    "category": "status",
+    "accuracy": 0.75,
+    "pp": 20,
+    "effects": [
+      {
+        "chance": 1.0,
+        "trigger": "on_hit",
+        "effects": [
+          {
+            "kind": "status",
+            "target": "target",
+            "status": "paralysis"
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "id": "music.velvet_liner_note",
+    "name": "Velvet Liner Note",
+    "flavor_text": "Liner-note poetry lands with the soft weight of pressed vinyl.",
+    "type": "normal",
+    "category": "physical",
+    "power": 72,
+    "accuracy": 0.95,
+    "pp": 15,
+    "level_requirement": 10
+  },
+  {
+    "id": "music.top_forty_glance",
+    "name": "Top Forty Glance",
+    "flavor_text": "A fleeting glance at the charts becomes a shoulder-check in 4/4.",
+    "type": "normal",
+    "category": "physical",
+    "power": 32,
+    "accuracy": 1.0,
+    "pp": 35
+  },
+  {
+    "id": "music.bright_valence",
+    "name": "Bright Valence",
+    "flavor_text": "Major-key optimism swells until your next phrase hits harder.",
+    "type": "normal",
+    "category": "status",
+    "accuracy": 1.0,
+    "pp": 20,
+    "effects": [
+      {
+        "chance": 1.0,
+        "trigger": "on_use",
+        "effects": [
+          {
+            "kind": "stat",
+            "target": "self",
+            "changes": {
+              "sp_attack": 1
+            }
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "id": "music.b_side_tease",
+    "name": "B-Side Tease",
+    "flavor_text": "A deep-cut riff drags the foe's tempo half a beat behind.",
+    "type": "normal",
+    "category": "physical",
+    "power": 44,
+    "accuracy": 1.0,
+    "pp": 25,
+    "effects": [
+      {
+        "chance": 0.3,
+        "trigger": "on_hit",
+        "effects": [
+          {
+            "kind": "stat",
+            "target": "target",
+            "changes": {
+              "speed": -1
+            }
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "id": "music.autotune_kiss",
+    "name": "Autotune Kiss",
+    "flavor_text": "Pitch-correction gloss strips warmth from the target's defense.",
+    "type": "normal",
+    "category": "special",
+    "power": 41,
+    "accuracy": 1.0,
+    "pp": 25,
+    "effects": [
+      {
+        "chance": 0.3,
+        "trigger": "on_hit",
+        "effects": [
+          {
+            "kind": "stat",
+            "target": "target",
+            "changes": {
+              "sp_defense": -1
+            }
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "id": "music.streaming_skip",
+    "name": "Streaming Skip",
+    "flavor_text": "The foe gets skipped mid-phrase, stumbling over missing bars.",
+    "type": "normal",
+    "category": "status",
+    "accuracy": 1.0,
+    "pp": 20,
+    "effects": [
+      {
+        "chance": 1.0,
+        "trigger": "on_hit",
+        "effects": [
+          {
+            "kind": "stat",
+            "target": "target",
+            "changes": {
+              "speed": -1
+            }
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "id": "music.chorus_lift",
+    "name": "Chorus Lift",
+    "flavor_text": "Stacked vocals climb one more floor before the drop.",
+    "type": "normal",
+    "category": "special",
+    "power": 52,
+    "accuracy": 1.0,
+    "pp": 25
+  },
+  {
+    "id": "music.gold_certification",
+    "name": "Gold Certification",
+    "flavor_text": "Plaque-weight swagger crashes down like a platinum-era power chord.",
+    "type": "normal",
+    "category": "physical",
+    "power": 68,
+    "accuracy": 0.95,
+    "pp": 15,
+    "level_requirement": 12,
+    "effects": [
+      {
+        "chance": 0.2,
+        "trigger": "on_hit",
+        "effects": [
+          {
+            "kind": "stat",
+            "target": "target",
+            "changes": {
+              "defense": -1
+            }
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "id": "music.stadium_encore",
+    "name": "Stadium Encore",
+    "flavor_text": "Crowd noise feeds back into a soaring final chorus line.",
+    "type": "normal",
+    "category": "special",
+    "power": 82,
+    "accuracy": 0.9,
+    "pp": 10,
+    "level_requirement": 24,
+    "effects": [
+      {
+        "chance": 1.0,
+        "trigger": "on_hit",
+        "effects": [
+          {
+            "kind": "stat",
+            "target": "self",
+            "changes": {
+              "sp_attack": 1
+            }
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "id": "music.billboard_apex",
+    "name": "Billboard Apex",
+    "flavor_text": "You summit the Hot 100 and body-check whatever blocks the spotlight.",
+    "type": "normal",
+    "category": "physical",
+    "power": 96,
+    "accuracy": 0.9,
+    "pp": 10,
+    "level_requirement": 42,
+    "effects": [
+      {
+        "chance": 0.3,
+        "trigger": "on_hit",
+        "effects": [
+          {
+            "kind": "stat",
+            "target": "target",
+            "changes": {
+              "defense": -1
+            }
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "id": "music.mainstage_headliner",
+    "name": "Mainstage Headliner",
+    "flavor_text": "Festival-headliner energy detonates in one unrestrained closing number.",
+    "type": "normal",
+    "category": "special",
+    "power": 128,
+    "accuracy": 0.85,
+    "pp": 5,
+    "level_requirement": 68
+  },
+  {
+    "id": "music.breakbeat_kick",
+    "name": "Breakbeat Kick",
+    "flavor_text": "A syncopated kick drum lands before the foe can settle into tempo.",
+    "type": "fire",
+    "category": "physical",
+    "power": 39,
+    "accuracy": 1.0,
+    "pp": 25,
+    "priority": 1
+  },
+  {
+    "id": "music.distortion_bite",
+    "name": "Distortion Bite",
+    "flavor_text": "Clipped guitar harmonics snap shut like a heated jaw.",
+    "type": "fire",
+    "category": "physical",
+    "power": 43,
+    "accuracy": 1.0,
+    "pp": 25,
+    "effects": [
+      {
+        "chance": 0.2,
+        "trigger": "on_hit",
+        "effects": [
+          {
+            "kind": "stat",
+            "target": "target",
+            "changes": {
+              "speed": -1
+            }
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "id": "music.salsa_snap",
+    "name": "Salsa Snap",
+    "flavor_text": "Percussion flares hot enough to scorch the mix bus.",
+    "type": "fire",
+    "category": "special",
+    "power": 31,
+    "accuracy": 1.0,
+    "pp": 35
+  },
+  {
+    "id": "music.overdrive_howl",
+    "name": "Overdrive Howl",
+    "flavor_text": "Tube saturation screams through the PA in a single sustained note.",
+    "type": "fire",
+    "category": "special",
+    "power": 72,
+    "accuracy": 0.95,
+    "pp": 15,
+    "level_requirement": 10
+  },
+  {
+    "id": "music.mosh_pit_pulse",
+    "name": "Mosh Pit Pulse",
+    "flavor_text": "Adrenaline spikes while guard drops\u2014classic pit economics.",
+    "type": "fire",
+    "category": "status",
+    "accuracy": 1.0,
+    "pp": 20,
+    "effects": [
+      {
+        "chance": 1.0,
+        "trigger": "on_use",
+        "effects": [
+          {
+            "kind": "stat",
+            "target": "self",
+            "changes": {
+              "attack": 1
+            }
+          },
+          {
+            "kind": "stat",
+            "target": "self",
+            "changes": {
+              "defense": -1
+            }
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "id": "music.hi_hat_flurry",
+    "name": "Hi-Hat Flurry",
+    "flavor_text": "Sixteenth-note hats chatter like sparks across a dry snare.",
+    "type": "fire",
+    "category": "special",
+    "power": 30,
+    "accuracy": 1.0,
+    "pp": 35
+  },
+  {
+    "id": "music.scorch_sample",
+    "name": "Scorch Sample",
+    "flavor_text": "A looped flame sample singes whatever it touches.",
+    "type": "fire",
+    "category": "special",
+    "power": 42,
+    "accuracy": 1.0,
+    "pp": 25,
+    "effects": [
+      {
+        "chance": 0.2,
+        "trigger": "on_hit",
+        "effects": [
+          {
+            "kind": "status",
+            "target": "target",
+            "status": "burn"
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "id": "music.tempo_tantrum",
+    "name": "Tempo Tantrum",
+    "flavor_text": "Tempo whiplash locks joints like a stuck click track.",
+    "type": "fire",
+    "category": "status",
+    "accuracy": 1.0,
+    "pp": 20,
+    "effects": [
+      {
+        "chance": 1.0,
+        "trigger": "on_hit",
+        "effects": [
+          {
+            "kind": "status",
+            "target": "target",
+            "status": "paralysis"
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "id": "music.amp_stack_slam",
+    "name": "Amp Stack Slam",
+    "flavor_text": "You leap off the stack and pay for it on the landing.",
+    "type": "fire",
+    "category": "physical",
+    "power": 54,
+    "accuracy": 1.0,
+    "pp": 25,
+    "effects": [
+      {
+        "chance": 1.0,
+        "trigger": "after_damage",
+        "effects": [
+          {
+            "kind": "recoil",
+            "ratio": 0.25
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "id": "music.subwoofer_thump",
+    "name": "Subwoofer Thump",
+    "flavor_text": "Low-end pressure hits the chest before the ear catches up.",
+    "type": "fire",
+    "category": "physical",
+    "power": 44,
+    "accuracy": 1.0,
+    "pp": 25,
+    "effects": [
+      {
+        "chance": 0.2,
+        "trigger": "on_hit",
+        "effects": [
+          {
+            "kind": "stat",
+            "target": "target",
+            "changes": {
+              "defense": -1
+            }
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "id": "music.riff_salvage",
+    "name": "Riff Salvage",
+    "flavor_text": "You rescue a half-burnt lick and weaponize the ash.",
+    "type": "fire",
+    "category": "special",
+    "power": 29,
+    "accuracy": 1.0,
+    "pp": 35
+  },
+  {
+    "id": "music.pyro_drop",
+    "name": "Pyro Drop",
+    "flavor_text": "Pyrotechnic cues fire on the one, blasting heat across the stage.",
+    "type": "fire",
+    "category": "special",
+    "power": 70,
+    "accuracy": 0.95,
+    "pp": 15,
+    "level_requirement": 12,
+    "effects": [
+      {
+        "chance": 0.2,
+        "trigger": "on_hit",
+        "effects": [
+          {
+            "kind": "status",
+            "target": "target",
+            "status": "burn"
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "id": "music.blast_beat_barrage",
+    "name": "Blast Beat Barrage",
+    "flavor_text": "Double-kick rolls hammer the mix like a wall of snares.",
+    "type": "fire",
+    "category": "physical",
+    "power": 88,
+    "accuracy": 0.9,
+    "pp": 10,
+    "level_requirement": 24
+  },
+  {
+    "id": "music.inferno_encore",
+    "name": "Inferno Encore",
+    "flavor_text": "The encore pyro cue misfires into a sustained burn on the crowd lane.",
+    "type": "fire",
+    "category": "special",
+    "power": 102,
+    "accuracy": 0.85,
+    "pp": 5,
+    "level_requirement": 42,
+    "effects": [
+      {
+        "chance": 0.1,
+        "trigger": "on_hit",
+        "effects": [
+          {
+            "kind": "status",
+            "target": "target",
+            "status": "burn"
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "id": "music.supernova_setlist",
+    "name": "Supernova Setlist",
+    "flavor_text": "Every banger on the setlist detonates in one impossible finale.",
+    "type": "fire",
+    "category": "special",
+    "power": 132,
+    "accuracy": 0.85,
+    "pp": 5,
+    "level_requirement": 68
+  },
+  {
+    "id": "music.downtempo_drift",
+    "name": "Downtempo Drift",
+    "flavor_text": "Half-time swell reaches the foe before the kick returns.",
+    "type": "water",
+    "category": "special",
+    "power": 37,
+    "accuracy": 1.0,
+    "pp": 25,
+    "priority": 1
+  },
+  {
+    "id": "music.ambient_wash",
+    "name": "Ambient Wash",
+    "flavor_text": "Reverb tails flood the lane like tide over flat sand.",
+    "type": "water",
+    "category": "special",
+    "power": 28,
+    "accuracy": 1.0,
+    "pp": 35
+  },
+  {
+    "id": "music.tidepool_tap",
+    "name": "Tidepool Tap",
+    "flavor_text": "Shallow ripples slap the ankles, then deepen without warning.",
+    "type": "water",
+    "category": "physical",
+    "power": 34,
+    "accuracy": 1.0,
+    "pp": 35
+  },
+  {
+    "id": "music.submerged_valence",
+    "name": "Submerged Valence",
+    "flavor_text": "Melancholy sinks the foe's swagger beneath the surface.",
+    "type": "water",
+    "category": "status",
+    "accuracy": 1.0,
+    "pp": 20,
+    "effects": [
+      {
+        "chance": 1.0,
+        "trigger": "on_hit",
+        "effects": [
+          {
+            "kind": "stat",
+            "target": "target",
+            "changes": {
+              "attack": -1
+            }
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "id": "music.fluid_sample",
+    "name": "Fluid Sample",
+    "flavor_text": "A warped water sample pulls rhythm out from underfoot.",
+    "type": "water",
+    "category": "special",
+    "power": 43,
+    "accuracy": 1.0,
+    "pp": 25,
+    "effects": [
+      {
+        "chance": 0.3,
+        "trigger": "on_hit",
+        "effects": [
+          {
+            "kind": "stat",
+            "target": "target",
+            "changes": {
+              "speed": -1
+            }
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "id": "music.rainstick_rattle",
+    "name": "Rainstick Rattle",
+    "flavor_text": "Granules slide down the tube in a hiss of falling rain.",
+    "type": "water",
+    "category": "special",
+    "power": 33,
+    "accuracy": 1.0,
+    "pp": 35
+  },
+  {
+    "id": "music.deep_mix_murmur",
+    "name": "Deep Mix Murmur",
+    "flavor_text": "Subtle mix moves shore up your low end like calm water.",
+    "type": "water",
+    "category": "status",
+    "accuracy": 1.0,
+    "pp": 20,
+    "effects": [
+      {
+        "chance": 1.0,
+        "trigger": "on_use",
+        "effects": [
+          {
+            "kind": "stat",
+            "target": "self",
+            "changes": {
+              "sp_defense": 1
+            }
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "id": "music.lagoon_lull",
+    "name": "Lagoon Lull",
+    "flavor_text": "Reed-soft ambience drifts until eyelids obey the pulse.",
+    "type": "water",
+    "category": "status",
+    "accuracy": 0.75,
+    "pp": 20,
+    "effects": [
+      {
+        "chance": 1.0,
+        "trigger": "on_hit",
+        "effects": [
+          {
+            "kind": "status",
+            "target": "target",
+            "status": "sleep"
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "id": "music.ripple_echo",
+    "name": "Ripple Echo",
+    "flavor_text": "Each note returns twice, slightly louder than before.",
+    "type": "water",
+    "category": "special",
+    "power": 72,
+    "accuracy": 0.95,
+    "pp": 15,
+    "level_requirement": 10
+  },
+  {
+    "id": "music.undertow_brush",
+    "name": "Undertow Brush",
+    "flavor_text": "Brush strokes on cymbals tug defense loose like receding surf.",
+    "type": "water",
+    "category": "special",
+    "power": 44,
+    "accuracy": 1.0,
+    "pp": 25,
+    "effects": [
+      {
+        "chance": 0.3,
+        "trigger": "on_hit",
+        "effects": [
+          {
+            "kind": "stat",
+            "target": "target",
+            "changes": {
+              "defense": -1
+            }
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "id": "music.blue_hour_bloom",
+    "name": "Blue Hour Bloom",
+    "flavor_text": "Twilight reverb opens into a wide, luminous chord.",
+    "type": "water",
+    "category": "special",
+    "power": 51,
+    "accuracy": 1.0,
+    "pp": 25
+  },
+  {
+    "id": "music.channel_reverb",
+    "name": "Channel Reverb",
+    "flavor_text": "Long plate tails turn a mid-level hit into canyon depth.",
+    "type": "water",
+    "category": "special",
+    "power": 66,
+    "accuracy": 0.95,
+    "pp": 15,
+    "level_requirement": 12
+  },
+  {
+    "id": "music.moonlit_underscore",
+    "name": "Moonlit Underscore",
+    "flavor_text": "Strings swell under moonlight, stitching health back into the groove.",
+    "type": "water",
+    "category": "special",
+    "power": 84,
+    "accuracy": 0.9,
+    "pp": 10,
+    "level_requirement": 24,
+    "effects": [
+      {
+        "chance": 0.25,
+        "trigger": "on_hit",
+        "effects": [
+          {
+            "kind": "heal",
+            "target": "self",
+            "ratio": 0.25
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "id": "music.abyssal_crescendo",
+    "name": "Abyssal Crescendo",
+    "flavor_text": "Pressure builds from the trench until the drop hits like a breaker.",
+    "type": "water",
+    "category": "special",
+    "power": 94,
+    "accuracy": 0.9,
+    "pp": 10,
+    "level_requirement": 42,
+    "effects": [
+      {
+        "chance": 0.2,
+        "trigger": "on_hit",
+        "effects": [
+          {
+            "kind": "stat",
+            "target": "target",
+            "changes": {
+              "speed": -1
+            }
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "id": "music.mariana_finale",
+    "name": "Mariana Finale",
+    "flavor_text": "The deepest note on the record closes the set with oceanic finality.",
+    "type": "water",
+    "category": "special",
+    "power": 125,
+    "accuracy": 0.85,
+    "pp": 5,
+    "level_requirement": 68
+  },
+  {
+    "id": "music.acoustic_pluck",
+    "name": "Acoustic Pluck",
+    "flavor_text": "A dry fingerpick snaps forward before the room can breathe.",
+    "type": "grass",
+    "category": "physical",
+    "power": 38,
+    "accuracy": 1.0,
+    "pp": 25,
+    "priority": 1
+  },
+  {
+    "id": "music.campfire_strum",
+    "name": "Campfire Strum",
+    "flavor_text": "Smoke-throat chords warm the air around a circle of listeners.",
+    "type": "grass",
+    "category": "special",
+    "power": 32,
+    "accuracy": 1.0,
+    "pp": 35
+  },
+  {
+    "id": "music.folk_harmonic",
+    "name": "Folk Harmonic",
+    "flavor_text": "Open tuning rings out with porch-light honesty.",
+    "type": "grass",
+    "category": "special",
+    "power": 72,
+    "accuracy": 0.95,
+    "pp": 15,
+    "level_requirement": 10
+  },
+  {
+    "id": "music.root_note_anchor",
+    "name": "Root Note Anchor",
+    "flavor_text": "You plant on the tonic and refuse to budge with the chord changes.",
+    "type": "grass",
+    "category": "status",
+    "accuracy": 1.0,
+    "pp": 20,
+    "effects": [
+      {
+        "chance": 1.0,
+        "trigger": "on_use",
+        "effects": [
+          {
+            "kind": "stat",
+            "target": "self",
+            "changes": {
+              "defense": 1
+            }
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "id": "music.willow_whisper",
+    "name": "Willow Whisper",
+    "flavor_text": "Wind through leaves hushes the foe's aggressive phrasing.",
+    "type": "grass",
+    "category": "status",
+    "accuracy": 1.0,
+    "pp": 20,
+    "effects": [
+      {
+        "chance": 1.0,
+        "trigger": "on_hit",
+        "effects": [
+          {
+            "kind": "stat",
+            "target": "target",
+            "changes": {
+              "attack": -1
+            }
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "id": "music.banjo_snap",
+    "name": "Banjo Snap",
+    "flavor_text": "Steel strings crack sharp enough to trip a hurried step.",
+    "type": "grass",
+    "category": "physical",
+    "power": 43,
+    "accuracy": 1.0,
+    "pp": 25,
+    "effects": [
+      {
+        "chance": 0.25,
+        "trigger": "on_hit",
+        "effects": [
+          {
+            "kind": "stat",
+            "target": "target",
+            "changes": {
+              "speed": -1
+            }
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "id": "music.field_recording",
+    "name": "Field Recording",
+    "flavor_text": "Cricket chirp and tape hiss become an unsettling opener.",
+    "type": "grass",
+    "category": "special",
+    "power": 34,
+    "accuracy": 1.0,
+    "pp": 35
+  },
+  {
+    "id": "music.story_circle",
+    "name": "Story Circle",
+    "flavor_text": "Round-robin verses loop until limbs forget their tempo.",
+    "type": "grass",
+    "category": "status",
+    "accuracy": 1.0,
+    "pp": 20,
+    "effects": [
+      {
+        "chance": 1.0,
+        "trigger": "on_hit",
+        "effects": [
+          {
+            "kind": "status",
+            "target": "target",
+            "status": "paralysis"
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "id": "music.porch_swing_rhythm",
+    "name": "Porch Swing Rhythm",
+    "flavor_text": "Lazy swing-time siphons a little life with each pass.",
+    "type": "grass",
+    "category": "physical",
+    "power": 44,
+    "accuracy": 1.0,
+    "pp": 25,
+    "effects": [
+      {
+        "chance": 0.3,
+        "trigger": "on_hit",
+        "effects": [
+          {
+            "kind": "drain",
+            "ratio": 0.25
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "id": "music.open_mic_nudge",
+    "name": "Open Mic Nudge",
+    "flavor_text": "A gentle stage bump steers the foe off their prepared bit.",
+    "type": "grass",
+    "category": "special",
+    "power": 33,
+    "accuracy": 1.0,
+    "pp": 35
+  },
+  {
+    "id": "music.harvest_hymn",
+    "name": "Harvest Hymn",
+    "flavor_text": "Autumn choir harmonies land with barn-rafter weight.",
+    "type": "grass",
+    "category": "special",
+    "power": 53,
+    "accuracy": 1.0,
+    "pp": 25
+  },
+  {
+    "id": "music.barn_session",
+    "name": "Barn Session",
+    "flavor_text": "Full-band stomp shakes dust from the rafters.",
+    "type": "grass",
+    "category": "special",
+    "power": 67,
+    "accuracy": 0.95,
+    "pp": 15,
+    "level_requirement": 12,
+    "effects": [
+      {
+        "chance": 0.2,
+        "trigger": "on_hit",
+        "effects": [
+          {
+            "kind": "stat",
+            "target": "target",
+            "changes": {
+              "defense": -1
+            }
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "id": "music.wildflower_anthem",
+    "name": "Wildflower Anthem",
+    "flavor_text": "Field-recording petals burst into a sunlit hook.",
+    "type": "grass",
+    "category": "special",
+    "power": 86,
+    "accuracy": 0.9,
+    "pp": 10,
+    "level_requirement": 24,
+    "effects": [
+      {
+        "chance": 1.0,
+        "trigger": "on_hit",
+        "effects": [
+          {
+            "kind": "stat",
+            "target": "self",
+            "changes": {
+              "sp_attack": 1
+            }
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "id": "music.old_growth_ode",
+    "name": "Old Growth Ode",
+    "flavor_text": "Ancient timber resonance splinters armor along the grain.",
+    "type": "grass",
+    "category": "special",
+    "power": 97,
+    "accuracy": 0.9,
+    "pp": 10,
+    "level_requirement": 42,
+    "effects": [
+      {
+        "chance": 0.3,
+        "trigger": "on_hit",
+        "effects": [
+          {
+            "kind": "stat",
+            "target": "target",
+            "changes": {
+              "defense": -1
+            }
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "id": "music.world_tree_ballad",
+    "name": "World Tree Ballad",
+    "flavor_text": "Roots-deep balladry shakes the whole forest floor on the final verse.",
+    "type": "grass",
+    "category": "special",
+    "power": 130,
+    "accuracy": 0.85,
+    "pp": 5,
+    "level_requirement": 68
+  },
+  {
+    "id": "music.microhouse_tick",
+    "name": "Microhouse Tick",
+    "flavor_text": "Minimal clockwork hi-hats tick one beat ahead of the foe.",
+    "type": "ice",
+    "category": "special",
+    "power": 36,
+    "accuracy": 1.0,
+    "pp": 25,
+    "priority": 1
+  },
+  {
+    "id": "music.crystal_hi_hat",
+    "name": "Crystal Hi-Hat",
+    "flavor_text": "Ice-bright transients slice the air in crystalline bursts.",
+    "type": "ice",
+    "category": "special",
+    "power": 32,
+    "accuracy": 1.0,
+    "pp": 35
+  },
+  {
+    "id": "music.subzero_sub",
+    "name": "Subzero Sub",
+    "flavor_text": "Sub-bass frost blooms across exposed skin.",
+    "type": "ice",
+    "category": "special",
+    "power": 42,
+    "accuracy": 1.0,
+    "pp": 25,
+    "effects": [
+      {
+        "chance": 0.15,
+        "trigger": "on_hit",
+        "effects": [
+          {
+            "kind": "status",
+            "target": "target",
+            "status": "freeze"
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "id": "music.grid_lock",
+    "name": "Grid Lock",
+    "flavor_text": "Quantized grid freezes footwork to the metronome.",
+    "type": "ice",
+    "category": "status",
+    "accuracy": 1.0,
+    "pp": 20,
+    "effects": [
+      {
+        "chance": 1.0,
+        "trigger": "on_hit",
+        "effects": [
+          {
+            "kind": "stat",
+            "target": "target",
+            "changes": {
+              "speed": -1
+            }
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "id": "music.glass_perc_loop",
+    "name": "Glass Perc Loop",
+    "flavor_text": "Brittle percussion loops shimmer like frozen wind chimes.",
+    "type": "ice",
+    "category": "special",
+    "power": 31,
+    "accuracy": 1.0,
+    "pp": 35
+  },
+  {
+    "id": "music.frostbite_filter",
+    "name": "Frostbite Filter",
+    "flavor_text": "High-shelf boost turns breath into visible vapor.",
+    "type": "ice",
+    "category": "status",
+    "accuracy": 1.0,
+    "pp": 20,
+    "effects": [
+      {
+        "chance": 1.0,
+        "trigger": "on_use",
+        "effects": [
+          {
+            "kind": "stat",
+            "target": "self",
+            "changes": {
+              "sp_attack": 1
+            }
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "id": "music.minimal_glide",
+    "name": "Minimal Glide",
+    "flavor_text": "Ice-slick glide carries momentum through a sparse groove.",
+    "type": "ice",
+    "category": "physical",
+    "power": 30,
+    "accuracy": 1.0,
+    "pp": 35
+  },
+  {
+    "id": "music.white_room_reverb",
+    "name": "White Room Reverb",
+    "flavor_text": "Sterile room tone leaches warmth from special defense.",
+    "type": "ice",
+    "category": "special",
+    "power": 43,
+    "accuracy": 1.0,
+    "pp": 25,
+    "effects": [
+      {
+        "chance": 0.3,
+        "trigger": "on_hit",
+        "effects": [
+          {
+            "kind": "stat",
+            "target": "target",
+            "changes": {
+              "sp_defense": -1
+            }
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "id": "music.quantize_snap",
+    "name": "Quantize Snap",
+    "flavor_text": "Hard quantization locks the foe mid-groove like a stuck step sequencer.",
+    "type": "ice",
+    "category": "status",
+    "accuracy": 1.0,
+    "pp": 20,
+    "effects": [
+      {
+        "chance": 1.0,
+        "trigger": "on_hit",
+        "effects": [
+          {
+            "kind": "status",
+            "target": "target",
+            "status": "paralysis"
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "id": "music.icepick_arp",
+    "name": "Icepick Arp",
+    "flavor_text": "Staccato arpeggios needle through gaps in the mix.",
+    "type": "ice",
+    "category": "special",
+    "power": 72,
+    "accuracy": 0.95,
+    "pp": 15,
+    "level_requirement": 10
+  },
+  {
+    "id": "music.polar_peak",
+    "name": "Polar Peak",
+    "flavor_text": "Summit-cold air compresses into a single heavy blow.",
+    "type": "ice",
+    "category": "physical",
+    "power": 55,
+    "accuracy": 1.0,
+    "pp": 25
+  },
+  {
+    "id": "music.cold_storage",
+    "name": "Cold Storage",
+    "flavor_text": "Walk-in freezer air dumps decades of chill into one hit.",
+    "type": "ice",
+    "category": "special",
+    "power": 69,
+    "accuracy": 0.95,
+    "pp": 15,
+    "level_requirement": 12,
+    "effects": [
+      {
+        "chance": 0.2,
+        "trigger": "on_hit",
+        "effects": [
+          {
+            "kind": "stat",
+            "target": "target",
+            "changes": {
+              "speed": -1
+            }
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "id": "music.glacial_sequence",
+    "name": "Glacial Sequence",
+    "flavor_text": "Slow-moving ice sheets advance with patient, crushing force.",
+    "type": "ice",
+    "category": "special",
+    "power": 87,
+    "accuracy": 0.9,
+    "pp": 10,
+    "level_requirement": 24,
+    "effects": [
+      {
+        "chance": 1.0,
+        "trigger": "on_hit",
+        "effects": [
+          {
+            "kind": "stat",
+            "target": "self",
+            "changes": {
+              "attack": 1
+            }
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "id": "music.permafrost_protocol",
+    "name": "Permafrost Protocol",
+    "flavor_text": "Emergency freeze protocol seals the lane in brittle silence.",
+    "type": "ice",
+    "category": "special",
+    "power": 101,
+    "accuracy": 0.85,
+    "pp": 5,
+    "level_requirement": 42,
+    "effects": [
+      {
+        "chance": 0.1,
+        "trigger": "on_hit",
+        "effects": [
+          {
+            "kind": "status",
+            "target": "target",
+            "status": "freeze"
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "id": "music.absolute_zero_mixdown",
+    "name": "Absolute Zero Mixdown",
+    "flavor_text": "The final bounce renders everything to still, airless cold.",
+    "type": "ice",
+    "category": "special",
+    "power": 135,
+    "accuracy": 0.85,
+    "pp": 5,
+    "level_requirement": 68
+  },
+  {
+    "id": "music.shoegaze_shimmer",
+    "name": "Shoegaze Shimmer",
+    "flavor_text": "Detuned shimmer reaches the foe before the chord resolves.",
+    "type": "flying",
+    "category": "physical",
+    "power": 37,
+    "accuracy": 1.0,
+    "pp": 25,
+    "priority": 1
+  },
+  {
+    "id": "music.dream_pop_sigh",
+    "name": "Dream Pop Sigh",
+    "flavor_text": "Breathy vocals exhale a weightless, drifting push.",
+    "type": "flying",
+    "category": "physical",
+    "power": 29,
+    "accuracy": 1.0,
+    "pp": 35
+  },
+  {
+    "id": "music.ethereal_wave",
+    "name": "Ethereal Wave",
+    "flavor_text": "Phase-shifted pads wash over the lane like aurora light.",
+    "type": "flying",
+    "category": "special",
+    "power": 72,
+    "accuracy": 0.95,
+    "pp": 15,
+    "level_requirement": 10
+  },
+  {
+    "id": "music.nebula_drift",
+    "name": "Nebula Drift",
+    "flavor_text": "You float half a beat above the floor, untouchable for a moment.",
+    "type": "flying",
+    "category": "status",
+    "accuracy": 1.0,
+    "pp": 20,
+    "effects": [
+      {
+        "chance": 1.0,
+        "trigger": "on_use",
+        "effects": [
+          {
+            "kind": "stat",
+            "target": "self",
+            "changes": {
+              "speed": 1
+            }
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "id": "music.velvet_haze",
+    "name": "Velvet Haze",
+    "flavor_text": "Thick reverb haze slows reactions to dream tempo.",
+    "type": "flying",
+    "category": "status",
+    "accuracy": 1.0,
+    "pp": 20,
+    "effects": [
+      {
+        "chance": 1.0,
+        "trigger": "on_hit",
+        "effects": [
+          {
+            "kind": "status",
+            "target": "target",
+            "status": "paralysis"
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "id": "music.orbital_ping",
+    "name": "Orbital Ping",
+    "flavor_text": "Satellite-delay ping-pong bounces off the foe's guard.",
+    "type": "flying",
+    "category": "physical",
+    "power": 28,
+    "accuracy": 1.0,
+    "pp": 35
+  },
+  {
+    "id": "music.chorus_cathedral",
+    "name": "Chorus Cathedral",
+    "flavor_text": "Cathedral-width chorus smears timing into slow motion.",
+    "type": "flying",
+    "category": "physical",
+    "power": 44,
+    "accuracy": 1.0,
+    "pp": 25,
+    "effects": [
+      {
+        "chance": 0.3,
+        "trigger": "on_hit",
+        "effects": [
+          {
+            "kind": "stat",
+            "target": "target",
+            "changes": {
+              "speed": -1
+            }
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "id": "music.starlight_tremolo",
+    "name": "Starlight Tremolo",
+    "flavor_text": "Tremolo stars stutter the foe's footwork off-rhythm.",
+    "type": "flying",
+    "category": "physical",
+    "power": 42,
+    "accuracy": 1.0,
+    "pp": 25,
+    "effects": [
+      {
+        "chance": 0.25,
+        "trigger": "on_hit",
+        "effects": [
+          {
+            "kind": "stat",
+            "target": "target",
+            "changes": {
+              "speed": -1
+            }
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "id": "music.astral_feedback",
+    "name": "Astral Feedback",
+    "flavor_text": "Feedback constellations lull the foe into weightless sleep.",
+    "type": "flying",
+    "category": "status",
+    "accuracy": 0.75,
+    "pp": 20,
+    "effects": [
+      {
+        "chance": 1.0,
+        "trigger": "on_hit",
+        "effects": [
+          {
+            "kind": "status",
+            "target": "target",
+            "status": "sleep"
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "id": "music.cloudbank_glide",
+    "name": "Cloudbank Glide",
+    "flavor_text": "You ride a cloudbank across the stage lip.",
+    "type": "flying",
+    "category": "physical",
+    "power": 34,
+    "accuracy": 1.0,
+    "pp": 35
+  },
+  {
+    "id": "music.cosmic_crescendo",
+    "name": "Cosmic Crescendo",
+    "flavor_text": "Nebula strings swell toward a bright, inevitable peak.",
+    "type": "flying",
+    "category": "physical",
+    "power": 72,
+    "accuracy": 0.95,
+    "pp": 15,
+    "level_requirement": 10
+  },
+  {
+    "id": "music.gravity_well",
+    "name": "Gravity Well",
+    "flavor_text": "Low-end gravity bends trajectories toward center stage.",
+    "type": "flying",
+    "category": "physical",
+    "power": 71,
+    "accuracy": 0.95,
+    "pp": 15,
+    "level_requirement": 12,
+    "effects": [
+      {
+        "chance": 0.2,
+        "trigger": "on_hit",
+        "effects": [
+          {
+            "kind": "stat",
+            "target": "target",
+            "changes": {
+              "sp_defense": -1
+            }
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "id": "music.event_horizon",
+    "name": "Event Horizon",
+    "flavor_text": "Past the horizon, light and power bend toward you alone.",
+    "type": "flying",
+    "category": "physical",
+    "power": 83,
+    "accuracy": 0.9,
+    "pp": 10,
+    "level_requirement": 24,
+    "effects": [
+      {
+        "chance": 1.0,
+        "trigger": "on_hit",
+        "effects": [
+          {
+            "kind": "stat",
+            "target": "self",
+            "changes": {
+              "sp_attack": 1
+            }
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "id": "music.supernova_haze",
+    "name": "Supernova Haze",
+    "flavor_text": "Exploding star haze scorches the lane in pastel fire.",
+    "type": "flying",
+    "category": "physical",
+    "power": 95,
+    "accuracy": 0.9,
+    "pp": 10,
+    "level_requirement": 42,
+    "effects": [
+      {
+        "chance": 0.2,
+        "trigger": "on_hit",
+        "effects": [
+          {
+            "kind": "stat",
+            "target": "target",
+            "changes": {
+              "defense": -1
+            }
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "id": "music.interstellar_lullaby",
+    "name": "Interstellar Lullaby",
+    "flavor_text": "A lullaby broadcast across light-years ends the tour in silence.",
+    "type": "flying",
+    "category": "physical",
+    "power": 122,
+    "accuracy": 0.85,
+    "pp": 5,
+    "level_requirement": 68
+  },
+  {
+    "id": "music.pit_stomp",
+    "name": "Pit Stomp",
+    "flavor_text": "Steel-toe stomp echoes off concrete like a floor-tom flam.",
+    "type": "fighting",
+    "category": "physical",
+    "power": 33,
+    "accuracy": 1.0,
+    "pp": 35
+  },
+  {
+    "id": "music.mic_stand_jab",
+    "name": "Mic Stand Jab",
+    "flavor_text": "Quick jabs with a mic stand\u2014cheap, sharp, repeatable.",
+    "type": "fighting",
+    "category": "physical",
+    "power": 28,
+    "accuracy": 1.0,
+    "pp": 35
+  },
+  {
+    "id": "music.breakdown_haymaker",
+    "name": "Breakdown Haymaker",
+    "flavor_text": "Drop-section haymaker lands when the kick returns.",
+    "type": "fighting",
+    "category": "physical",
+    "power": 42,
+    "accuracy": 1.0,
+    "pp": 25,
+    "effects": [
+      {
+        "chance": 0.2,
+        "trigger": "on_hit",
+        "effects": [
+          {
+            "kind": "stat",
+            "target": "target",
+            "changes": {
+              "speed": -1
+            }
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "id": "music.stage_dive_slam",
+    "name": "Stage Dive Slam",
+    "flavor_text": "Crowd-surf momentum converts into a reckless body blow.",
+    "type": "fighting",
+    "category": "physical",
+    "power": 32,
+    "accuracy": 1.0,
+    "pp": 35
+  },
+  {
+    "id": "music.knuckledrop_beat",
+    "name": "Knuckledrop Beat",
+    "flavor_text": "Knuckle tattoos drum a bruising rhythm on contact.",
+    "type": "fighting",
+    "category": "physical",
+    "power": 52,
+    "accuracy": 1.0,
+    "pp": 25
+  },
+  {
+    "id": "music.circle_pit_whirl",
+    "name": "Circle Pit Whirl",
+    "flavor_text": "Spinning pit energy whips bodies in a tight orbit.",
+    "type": "fighting",
+    "category": "physical",
+    "power": 34,
+    "accuracy": 1.0,
+    "pp": 35
+  },
+  {
+    "id": "music.bass_kick_rush",
+    "name": "Bass Kick Rush",
+    "flavor_text": "Double-time kicks drive a shoulder-first charge.",
+    "type": "fighting",
+    "category": "physical",
+    "power": 44,
+    "accuracy": 1.0,
+    "pp": 25
+  },
+  {
+    "id": "music.headbutt_encore",
+    "name": "Headbutt Encore",
+    "flavor_text": "Forehead meets forehead on the final breakdown hit.",
+    "type": "fighting",
+    "category": "physical",
+    "power": 72,
+    "accuracy": 0.95,
+    "pp": 15,
+    "level_requirement": 10
+  },
+  {
+    "id": "music.riot_call",
+    "name": "Riot Call",
+    "flavor_text": "Crowd chant riles your attack before the security line breaks.",
+    "type": "fighting",
+    "category": "status",
+    "accuracy": 1.0,
+    "pp": 20,
+    "effects": [
+      {
+        "chance": 1.0,
+        "trigger": "on_use",
+        "effects": [
+          {
+            "kind": "stat",
+            "target": "self",
+            "changes": {
+              "attack": 1
+            }
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "id": "music.moshers_guard",
+    "name": "Mosher's Guard",
+    "flavor_text": "Elbows up, you brace against the surge.",
+    "type": "fighting",
+    "category": "status",
+    "accuracy": 1.0,
+    "pp": 20,
+    "effects": [
+      {
+        "chance": 1.0,
+        "trigger": "on_use",
+        "effects": [
+          {
+            "kind": "stat",
+            "target": "self",
+            "changes": {
+              "defense": 1
+            }
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "id": "music.front_row_rush",
+    "name": "Front Row Rush",
+    "flavor_text": "Barrier-storming sprint reaches the foe before house lights dim.",
+    "type": "fighting",
+    "category": "physical",
+    "power": 35,
+    "accuracy": 1.0,
+    "pp": 25,
+    "priority": 1
+  },
+  {
+    "id": "music.garage_riot",
+    "name": "Garage Riot",
+    "flavor_text": "Garage-band chaos erupts into a mid-set brawl.",
+    "type": "fighting",
+    "category": "physical",
+    "power": 90,
+    "accuracy": 0.9,
+    "pp": 10,
+    "level_requirement": 28
+  },
+  {
+    "id": "music.diss_track_uppercut",
+    "name": "Diss Track Uppercut",
+    "flavor_text": "A verbal uppercut lands as a spectral special blow.",
+    "type": "fighting",
+    "category": "special",
+    "power": 88,
+    "accuracy": 0.9,
+    "pp": 10,
+    "level_requirement": 28,
+    "effects": [
+      {
+        "chance": 0.3,
+        "trigger": "on_hit",
+        "effects": [
+          {
+            "kind": "stat",
+            "target": "target",
+            "changes": {
+              "sp_defense": -1
+            }
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "id": "music.wall_of_death",
+    "name": "Wall of Death",
+    "flavor_text": "The pit splits, closes, and crushes everything between.",
+    "type": "fighting",
+    "category": "physical",
+    "power": 108,
+    "accuracy": 0.85,
+    "pp": 5,
+    "level_requirement": 45,
+    "effects": [
+      {
+        "chance": 0.2,
+        "trigger": "on_hit",
+        "effects": [
+          {
+            "kind": "stat",
+            "target": "target",
+            "changes": {
+              "defense": -1
+            }
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "id": "music.hardcore_apotheosis",
+    "name": "Hardcore Apotheosis",
+    "flavor_text": "Pure hardcore transcendence leaves your knuckles ringing afterward.",
+    "type": "fighting",
+    "category": "physical",
+    "power": 128,
+    "accuracy": 0.85,
+    "pp": 5,
+    "level_requirement": 72,
+    "effects": [
+      {
+        "chance": 1.0,
+        "trigger": "after_damage",
+        "effects": [
+          {
+            "kind": "stat",
+            "target": "self",
+            "changes": {
+              "attack": -2
+            }
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "id": "music.static_scrape",
+    "name": "Static Scrape",
+    "flavor_text": "Needle-on-groove scrape raises hairs and welts alike.",
+    "type": "poison",
+    "category": "physical",
+    "power": 32,
+    "accuracy": 1.0,
+    "pp": 25
+  },
+  {
+    "id": "music.rusted_gate_clang",
+    "name": "Rusted Gate Clang",
+    "flavor_text": "Corroded metal clangs like a gate left open too long.",
+    "type": "poison",
+    "category": "physical",
+    "power": 33,
+    "accuracy": 1.0,
+    "pp": 35
+  },
+  {
+    "id": "music.feedback_lash",
+    "name": "Feedback Lash",
+    "flavor_text": "Runaway feedback whips toxic hiss across exposed skin.",
+    "type": "poison",
+    "category": "physical",
+    "power": 43,
+    "accuracy": 1.0,
+    "pp": 25,
+    "effects": [
+      {
+        "chance": 0.2,
+        "trigger": "on_hit",
+        "effects": [
+          {
+            "kind": "status",
+            "target": "target",
+            "status": "poison"
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "id": "music.distortion_bloom",
+    "name": "Distortion Bloom",
+    "flavor_text": "Harmonic bloom spreads like mold on a damp speaker cone.",
+    "type": "poison",
+    "category": "physical",
+    "power": 32,
+    "accuracy": 1.0,
+    "pp": 35
+  },
+  {
+    "id": "music.voltage_spasm",
+    "name": "Voltage Spasm",
+    "flavor_text": "Unstable current makes muscles twitch on every beat.",
+    "type": "poison",
+    "category": "physical",
+    "power": 54,
+    "accuracy": 1.0,
+    "pp": 25
+  },
+  {
+    "id": "music.grinder_pulse",
+    "name": "Grinder Pulse",
+    "flavor_text": "Industrial pulse grinds rhythm into jagged shards.",
+    "type": "poison",
+    "category": "physical",
+    "power": 31,
+    "accuracy": 1.0,
+    "pp": 35
+  },
+  {
+    "id": "music.harsh_noise_wash",
+    "name": "Harsh Noise Wash",
+    "flavor_text": "White-noise wall erodes composure bar by bar.",
+    "type": "poison",
+    "category": "physical",
+    "power": 72,
+    "accuracy": 0.95,
+    "pp": 15,
+    "level_requirement": 10
+  },
+  {
+    "id": "music.corrosion_hiss",
+    "name": "Corrosion Hiss",
+    "flavor_text": "Oxidizing hiss eats through polished surfaces.",
+    "type": "poison",
+    "category": "physical",
+    "power": 41,
+    "accuracy": 1.0,
+    "pp": 25,
+    "effects": [
+      {
+        "chance": 0.2,
+        "trigger": "on_hit",
+        "effects": [
+          {
+            "kind": "status",
+            "target": "target",
+            "status": "poison"
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "id": "music.oxidize",
+    "name": "Oxidize",
+    "flavor_text": "Air and moisture conspire until armor flakes like rust scale.",
+    "type": "poison",
+    "category": "status",
+    "accuracy": 0.9,
+    "pp": 20,
+    "effects": [
+      {
+        "chance": 1.0,
+        "trigger": "on_hit",
+        "effects": [
+          {
+            "kind": "status",
+            "target": "target",
+            "status": "poison"
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "id": "music.earplug_defiance",
+    "name": "Earplug Defiance",
+    "flavor_text": "You endure the wash and harden your mental mix.",
+    "type": "poison",
+    "category": "status",
+    "accuracy": 1.0,
+    "pp": 20,
+    "effects": [
+      {
+        "chance": 1.0,
+        "trigger": "on_use",
+        "effects": [
+          {
+            "kind": "stat",
+            "target": "self",
+            "changes": {
+              "sp_defense": 1
+            }
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "id": "music.toxic_residue",
+    "name": "Toxic Residue",
+    "flavor_text": "Sonic sludge lingers, poisoning every subsequent phrase.",
+    "type": "poison",
+    "category": "status",
+    "accuracy": 0.75,
+    "pp": 20,
+    "effects": [
+      {
+        "chance": 1.0,
+        "trigger": "on_hit",
+        "effects": [
+          {
+            "kind": "status",
+            "target": "target",
+            "status": "bad_poison"
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "id": "music.assembly_line_strike",
+    "name": "Assembly Line Strike",
+    "flavor_text": "Factory-line precision delivers a stamped-metal blow.",
+    "type": "poison",
+    "category": "physical",
+    "power": 70,
+    "accuracy": 0.95,
+    "pp": 15,
+    "level_requirement": 14,
+    "effects": [
+      {
+        "chance": 0.2,
+        "trigger": "on_hit",
+        "effects": [
+          {
+            "kind": "stat",
+            "target": "target",
+            "changes": {
+              "defense": -1
+            }
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "id": "music.subharmonic_rot",
+    "name": "Subharmonic Rot",
+    "flavor_text": "Subharmonics rot the groove until feet stick in tar tempo.",
+    "type": "poison",
+    "category": "physical",
+    "power": 90,
+    "accuracy": 0.9,
+    "pp": 10,
+    "level_requirement": 28,
+    "effects": [
+      {
+        "chance": 0.3,
+        "trigger": "on_hit",
+        "effects": [
+          {
+            "kind": "stat",
+            "target": "target",
+            "changes": {
+              "speed": -1
+            }
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "id": "music.meltdown_sequence",
+    "name": "Meltdown Sequence",
+    "flavor_text": "Reactor-core meltdown scorches friend and foe alike.",
+    "type": "poison",
+    "category": "physical",
+    "power": 112,
+    "accuracy": 0.85,
+    "pp": 5,
+    "level_requirement": 45,
+    "effects": [
+      {
+        "chance": 1.0,
+        "trigger": "after_damage",
+        "effects": [
+          {
+            "kind": "recoil",
+            "ratio": 0.25
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "id": "music.terminal_feedback_loop",
+    "name": "Terminal Feedback Loop",
+    "flavor_text": "Runaway loop poisons the mix and drains your own headroom.",
+    "type": "poison",
+    "category": "physical",
+    "power": 130,
+    "accuracy": 0.85,
+    "pp": 5,
+    "level_requirement": 72,
+    "effects": [
+      {
+        "chance": 0.1,
+        "trigger": "on_hit",
+        "effects": [
+          {
+            "kind": "status",
+            "target": "target",
+            "status": "bad_poison"
+          }
+        ]
+      },
+      {
+        "chance": 1.0,
+        "trigger": "after_damage",
+        "effects": [
+          {
+            "kind": "stat",
+            "target": "self",
+            "changes": {
+              "sp_attack": -2
+            }
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "id": "music.porch_step_tap",
+    "name": "Porch Step Tap",
+    "flavor_text": "Wood porch boards creak under a lazy, repeated tap.",
+    "type": "ground",
+    "category": "physical",
+    "power": 26,
+    "accuracy": 1.0,
+    "pp": 35
+  },
+  {
+    "id": "music.dust_road_kick",
+    "name": "Dust Road Kick",
+    "flavor_text": "Gravel dust kicks up with every dusty backbeat step.",
+    "type": "ground",
+    "category": "physical",
+    "power": 30,
+    "accuracy": 1.0,
+    "pp": 35
+  },
+  {
+    "id": "music.bottleneck_slide",
+    "name": "Bottleneck Slide",
+    "flavor_text": "Glass slide moans across frets like heat on asphalt.",
+    "type": "ground",
+    "category": "special",
+    "power": 42,
+    "accuracy": 1.0,
+    "pp": 25
+  },
+  {
+    "id": "music.barn_plank_stomp",
+    "name": "Barn Plank Stomp",
+    "flavor_text": "Loft plank stomp shakes hay from the ceiling.",
+    "type": "ground",
+    "category": "physical",
+    "power": 72,
+    "accuracy": 0.95,
+    "pp": 15,
+    "level_requirement": 10
+  },
+  {
+    "id": "music.delta_shout",
+    "name": "Delta Shout",
+    "flavor_text": "Field holler power carries across dry riverbed air.",
+    "type": "ground",
+    "category": "physical",
+    "power": 51,
+    "accuracy": 1.0,
+    "pp": 25
+  },
+  {
+    "id": "music.root_note_burrow",
+    "name": "Root Note Burrow",
+    "flavor_text": "You dig into the downbeat and erupt from below.",
+    "type": "ground",
+    "category": "special",
+    "power": 29,
+    "accuracy": 1.0,
+    "pp": 35
+  },
+  {
+    "id": "music.harmonica_grit",
+    "name": "Harmonica Grit",
+    "flavor_text": "Blues harp grit scrapes confidence off the attack.",
+    "type": "ground",
+    "category": "physical",
+    "power": 34,
+    "accuracy": 1.0,
+    "pp": 25,
+    "effects": [
+      {
+        "chance": 0.3,
+        "trigger": "on_hit",
+        "effects": [
+          {
+            "kind": "stat",
+            "target": "target",
+            "changes": {
+              "attack": -1
+            }
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "id": "music.wagon_wheel_roll",
+    "name": "Wagon Wheel Roll",
+    "flavor_text": "Wagon-wheel rhythm rolls momentum forward.",
+    "type": "ground",
+    "category": "physical",
+    "power": 28,
+    "accuracy": 1.0,
+    "pp": 35
+  },
+  {
+    "id": "music.tall_grass_rest",
+    "name": "Tall Grass Rest",
+    "flavor_text": "You lie in tall grass and let the field recording heal you.",
+    "type": "ground",
+    "category": "status",
+    "accuracy": 1.0,
+    "pp": 20,
+    "effects": [
+      {
+        "chance": 1.0,
+        "trigger": "on_use",
+        "effects": [
+          {
+            "kind": "heal",
+            "target": "self",
+            "ratio": 0.5
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "id": "music.compost_hum",
+    "name": "Compost Hum",
+    "flavor_text": "Rich soil hum steadies your footing like packed earth.",
+    "type": "ground",
+    "category": "status",
+    "accuracy": 1.0,
+    "pp": 20,
+    "effects": [
+      {
+        "chance": 1.0,
+        "trigger": "on_use",
+        "effects": [
+          {
+            "kind": "stat",
+            "target": "self",
+            "changes": {
+              "defense": 1
+            }
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "id": "music.salt_flat_mirage",
+    "name": "Salt Flat Mirage",
+    "flavor_text": "Heat shimmer tricks the eye into seeing you everywhere at once.",
+    "type": "ground",
+    "category": "status",
+    "accuracy": 1.0,
+    "pp": 20,
+    "effects": [
+      {
+        "chance": 1.0,
+        "trigger": "on_use",
+        "effects": [
+          {
+            "kind": "stat",
+            "target": "self",
+            "changes": {
+              "speed": 1
+            }
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "id": "music.riverbank_erosion",
+    "name": "Riverbank Erosion",
+    "flavor_text": "Current carves stone until foundations crumble.",
+    "type": "ground",
+    "category": "physical",
+    "power": 88,
+    "accuracy": 0.9,
+    "pp": 10,
+    "level_requirement": 28
+  },
+  {
+    "id": "music.twelve_bar_tremor",
+    "name": "Twelve-Bar Tremor",
+    "flavor_text": "Classic twelve-bar weight shakes the ground on the turnaround.",
+    "type": "ground",
+    "category": "physical",
+    "power": 95,
+    "accuracy": 0.9,
+    "pp": 10,
+    "level_requirement": 28,
+    "effects": [
+      {
+        "chance": 0.2,
+        "trigger": "on_hit",
+        "effects": [
+          {
+            "kind": "stat",
+            "target": "target",
+            "changes": {
+              "defense": -1
+            }
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "id": "music.canyon_echo_slam",
+    "name": "Canyon Echo Slam",
+    "flavor_text": "Slam reverberates wall-to-wall until the canyon answers.",
+    "type": "ground",
+    "category": "physical",
+    "power": 105,
+    "accuracy": 0.85,
+    "pp": 5,
+    "level_requirement": 45,
+    "effects": [
+      {
+        "chance": 0.2,
+        "trigger": "on_hit",
+        "effects": [
+          {
+            "kind": "stat",
+            "target": "target",
+            "changes": {
+              "defense": -1
+            }
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "id": "music.continental_drift",
+    "name": "Continental Drift",
+    "flavor_text": "Tectonic tempo shifts continents; the recoil is geological.",
+    "type": "ground",
+    "category": "physical",
+    "power": 125,
+    "accuracy": 0.85,
+    "pp": 5,
+    "level_requirement": 72,
+    "effects": [
+      {
+        "chance": 1.0,
+        "trigger": "after_damage",
+        "effects": [
+          {
+            "kind": "recoil",
+            "ratio": 0.25
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "id": "music.bit_crush_nip",
+    "name": "Bit Crush Nip",
+    "flavor_text": "4-bit crunch nips at heels like a pixelated mosquito.",
+    "type": "bug",
+    "category": "physical",
+    "power": 24,
+    "accuracy": 1.0,
+    "pp": 35
+  },
+  {
+    "id": "music.stutter_wing",
+    "name": "Stutter Wing",
+    "flavor_text": "Buffer stutter flutters wings faster than the eye tracks.",
+    "type": "bug",
+    "category": "physical",
+    "power": 34,
+    "accuracy": 1.0,
+    "pp": 35
+  },
+  {
+    "id": "music.hyperpop_flutter",
+    "name": "Hyperpop Flutter",
+    "flavor_text": "Sugar-rush arps flutter in neon bursts.",
+    "type": "bug",
+    "category": "special",
+    "power": 72,
+    "accuracy": 0.95,
+    "pp": 15,
+    "level_requirement": 10
+  },
+  {
+    "id": "music.buzzsaw_arp",
+    "name": "Buzzsaw Arp",
+    "flavor_text": "Saw-wave arps buzz through armor seams.",
+    "type": "bug",
+    "category": "physical",
+    "power": 43,
+    "accuracy": 1.0,
+    "pp": 25,
+    "effects": [
+      {
+        "chance": 0.3,
+        "trigger": "on_hit",
+        "effects": [
+          {
+            "kind": "stat",
+            "target": "target",
+            "changes": {
+              "defense": -1
+            }
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "id": "music.dropout_swarm",
+    "name": "Dropout Swarm",
+    "flavor_text": "Sample-drop glitches swarm like angry insects.",
+    "type": "bug",
+    "category": "physical",
+    "power": 53,
+    "accuracy": 1.0,
+    "pp": 25
+  },
+  {
+    "id": "music.pixel_mandible",
+    "name": "Pixel Mandible",
+    "flavor_text": "8-bit mandibles click in hungry, rhythmic bursts.",
+    "type": "bug",
+    "category": "physical",
+    "power": 33,
+    "accuracy": 1.0,
+    "pp": 35
+  },
+  {
+    "id": "music.sidechain_sting",
+    "name": "Sidechain Sting",
+    "flavor_text": "Sidechain pump snaps shut like a trap jaw.",
+    "type": "bug",
+    "category": "physical",
+    "power": 45,
+    "accuracy": 1.0,
+    "pp": 25
+  },
+  {
+    "id": "music.fractured_hive",
+    "name": "Fractured Hive",
+    "flavor_text": "Hive-mind static fractures into stinging shards.",
+    "type": "bug",
+    "category": "physical",
+    "power": 32,
+    "accuracy": 1.0,
+    "pp": 35
+  },
+  {
+    "id": "music.lag_buffer",
+    "name": "Lag Buffer",
+    "flavor_text": "Input lag freezes the foe one buffer length behind reality.",
+    "type": "bug",
+    "category": "status",
+    "accuracy": 0.75,
+    "pp": 20,
+    "effects": [
+      {
+        "chance": 1.0,
+        "trigger": "on_hit",
+        "effects": [
+          {
+            "kind": "status",
+            "target": "target",
+            "status": "paralysis"
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "id": "music.autotune_shell",
+    "name": "Autotune Shell",
+    "flavor_text": "Pitch-lock armor hardens around brittle harmonics.",
+    "type": "bug",
+    "category": "status",
+    "accuracy": 1.0,
+    "pp": 20,
+    "effects": [
+      {
+        "chance": 1.0,
+        "trigger": "on_use",
+        "effects": [
+          {
+            "kind": "stat",
+            "target": "self",
+            "changes": {
+              "sp_defense": 1
+            }
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "id": "music.mosquito_tone",
+    "name": "Mosquito Tone",
+    "flavor_text": "Mosquito-tone whine reaches the foe before the beat drops.",
+    "type": "bug",
+    "category": "physical",
+    "power": 30,
+    "accuracy": 1.0,
+    "pp": 35,
+    "priority": 1
+  },
+  {
+    "id": "music.corrupted_chorus",
+    "name": "Corrupted Chorus",
+    "flavor_text": "Bit-rot chorus files scream in corrupted harmony.",
+    "type": "bug",
+    "category": "physical",
+    "power": 88,
+    "accuracy": 0.9,
+    "pp": 10,
+    "level_requirement": 28
+  },
+  {
+    "id": "music.glitch_pop_detonation",
+    "name": "Glitch Pop Detonation",
+    "flavor_text": "Pop hook detonates into glitch shards and static paralysis.",
+    "type": "bug",
+    "category": "physical",
+    "power": 92,
+    "accuracy": 0.9,
+    "pp": 10,
+    "level_requirement": 28,
+    "effects": [
+      {
+        "chance": 0.1,
+        "trigger": "on_hit",
+        "effects": [
+          {
+            "kind": "status",
+            "target": "target",
+            "status": "paralysis"
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "id": "music.sample_rate_collapse",
+    "name": "Sample Rate Collapse",
+    "flavor_text": "Nyquist collapse turns the mix into weaponized aliasing.",
+    "type": "bug",
+    "category": "physical",
+    "power": 110,
+    "accuracy": 0.85,
+    "pp": 5,
+    "level_requirement": 45,
+    "effects": [
+      {
+        "chance": 0.2,
+        "trigger": "on_hit",
+        "effects": [
+          {
+            "kind": "stat",
+            "target": "target",
+            "changes": {
+              "sp_defense": -1
+            }
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "id": "music.infinite_scroll_buzz",
+    "name": "Infinite Scroll Buzz",
+    "flavor_text": "Endless feed buzz never stops; the recoil is carpal-tunnel pain.",
+    "type": "bug",
+    "category": "physical",
+    "power": 122,
+    "accuracy": 0.85,
+    "pp": 5,
+    "level_requirement": 72,
+    "effects": [
+      {
+        "chance": 1.0,
+        "trigger": "after_damage",
+        "effects": [
+          {
+            "kind": "recoil",
+            "ratio": 0.25
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "id": "music.open_chord_slash",
+    "name": "Open Chord Slash",
+    "flavor_text": "Open-position chord slashes ring with garage-band honesty.",
+    "type": "rock",
+    "category": "physical",
+    "power": 34,
+    "accuracy": 1.0,
+    "pp": 35
+  },
+  {
+    "id": "music.pick_scrape",
+    "name": "Pick Scrape",
+    "flavor_text": "Pick scrape down the strings\u2014cheap, loud, infinite.",
+    "type": "rock",
+    "category": "physical",
+    "power": 27,
+    "accuracy": 1.0,
+    "pp": 35
+  },
+  {
+    "id": "music.power_chord_slam",
+    "name": "Power Chord Slam",
+    "flavor_text": "Root-fifth slam hits like a cabinet stack tipping.",
+    "type": "rock",
+    "category": "physical",
+    "power": 72,
+    "accuracy": 0.95,
+    "pp": 15,
+    "level_requirement": 10
+  },
+  {
+    "id": "music.feedback_howl",
+    "name": "Feedback Howl",
+    "flavor_text": "Amp feedback howls through the room like a wounded animal.",
+    "type": "rock",
+    "category": "special",
+    "power": 33,
+    "accuracy": 1.0,
+    "pp": 35
+  },
+  {
+    "id": "music.stadium_riff",
+    "name": "Stadium Riff",
+    "flavor_text": "Arena-scale riff lands with Jumbotron weight.",
+    "type": "rock",
+    "category": "physical",
+    "power": 55,
+    "accuracy": 1.0,
+    "pp": 25
+  },
+  {
+    "id": "music.tremolo_plectrum",
+    "name": "Tremolo Plectrum",
+    "flavor_text": "Tremolo picking blurs into a sustained saw.",
+    "type": "rock",
+    "category": "physical",
+    "power": 32,
+    "accuracy": 1.0,
+    "pp": 35
+  },
+  {
+    "id": "music.wah_pedal_lunge",
+    "name": "Wah Pedal Lunge",
+    "flavor_text": "Wah sweep dips defense before the lunge lands.",
+    "type": "rock",
+    "category": "physical",
+    "power": 42,
+    "accuracy": 1.0,
+    "pp": 25,
+    "effects": [
+      {
+        "chance": 0.3,
+        "trigger": "on_hit",
+        "effects": [
+          {
+            "kind": "stat",
+            "target": "target",
+            "changes": {
+              "defense": -1
+            }
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "id": "music.cranked_tube_spit",
+    "name": "Cranked Tube Spit",
+    "flavor_text": "Cranked tubes spit hot saliva across the front row.",
+    "type": "rock",
+    "category": "physical",
+    "power": 34,
+    "accuracy": 1.0,
+    "pp": 25
+  },
+  {
+    "id": "music.setlist_tighten",
+    "name": "Setlist Tighten",
+    "flavor_text": "You tighten the setlist and your grip in the same breath.",
+    "type": "rock",
+    "category": "status",
+    "accuracy": 1.0,
+    "pp": 20,
+    "effects": [
+      {
+        "chance": 1.0,
+        "trigger": "on_use",
+        "effects": [
+          {
+            "kind": "stat",
+            "target": "self",
+            "changes": {
+              "attack": 1
+            }
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "id": "music.road_case_wall",
+    "name": "Road Case Wall",
+    "flavor_text": "Road cases stack into an immovable wall of plywood and steel.",
+    "type": "rock",
+    "category": "status",
+    "accuracy": 1.0,
+    "pp": 20,
+    "effects": [
+      {
+        "chance": 1.0,
+        "trigger": "on_use",
+        "effects": [
+          {
+            "kind": "stat",
+            "target": "self",
+            "changes": {
+              "defense": 1
+            }
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "id": "music.monitor_shatter",
+    "name": "Monitor Shatter",
+    "flavor_text": "Monitor wedge shatter slows the foe with flying grille cloth.",
+    "type": "rock",
+    "category": "status",
+    "accuracy": 0.85,
+    "pp": 20,
+    "effects": [
+      {
+        "chance": 1.0,
+        "trigger": "on_hit",
+        "effects": [
+          {
+            "kind": "stat",
+            "target": "target",
+            "changes": {
+              "speed": -1
+            }
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "id": "music.double_tracking",
+    "name": "Double Tracking",
+    "flavor_text": "Double-tracked guitars hit twice as hard in the chorus pocket.",
+    "type": "rock",
+    "category": "physical",
+    "power": 76,
+    "accuracy": 0.95,
+    "pp": 15,
+    "level_requirement": 14,
+    "effects": [
+      {
+        "chance": 0.2,
+        "trigger": "on_hit",
+        "effects": [
+          {
+            "kind": "stat",
+            "target": "target",
+            "changes": {
+              "defense": -1
+            }
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "id": "music.alt_rock_breakdown",
+    "name": "Alt-Rock Breakdown",
+    "flavor_text": "Quiet-loud breakdown detonates into alt-rock catharsis.",
+    "type": "rock",
+    "category": "physical",
+    "power": 98,
+    "accuracy": 0.9,
+    "pp": 10,
+    "level_requirement": 28,
+    "effects": [
+      {
+        "chance": 0.2,
+        "trigger": "on_hit",
+        "effects": [
+          {
+            "kind": "stat",
+            "target": "target",
+            "changes": {
+              "defense": -1
+            }
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "id": "music.stack_marshall",
+    "name": "Stack Marshall",
+    "flavor_text": "Full Marshall stack volume peels paint and knuckles alike.",
+    "type": "rock",
+    "category": "physical",
+    "power": 115,
+    "accuracy": 0.85,
+    "pp": 5,
+    "level_requirement": 45,
+    "effects": [
+      {
+        "chance": 1.0,
+        "trigger": "after_damage",
+        "effects": [
+          {
+            "kind": "recoil",
+            "ratio": 0.25
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "id": "music.platinum_encore",
+    "name": "Platinum Encore",
+    "flavor_text": "Platinum-disc encore glory leaves your arms too heavy to lift.",
+    "type": "rock",
+    "category": "physical",
+    "power": 135,
+    "accuracy": 0.85,
+    "pp": 5,
+    "level_requirement": 72,
+    "effects": [
+      {
+        "chance": 1.0,
+        "trigger": "after_damage",
+        "effects": [
+          {
+            "kind": "stat",
+            "target": "self",
+            "changes": {
+              "attack": -2
+            }
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "id": "music.tape_hiss_wisp",
+    "name": "Tape Hiss Wisp",
+    "flavor_text": "Ghostly tape hiss drifts like a wisp through dead air.",
+    "type": "ghost",
+    "category": "physical",
+    "power": 22,
+    "accuracy": 1.0,
+    "pp": 35
+  },
+  {
+    "id": "music.dungeon_step",
+    "name": "Dungeon Step",
+    "flavor_text": "Dungeon-synth footfalls echo from stone corridors.",
+    "type": "ghost",
+    "category": "physical",
+    "power": 31,
+    "accuracy": 1.0,
+    "pp": 35
+  },
+  {
+    "id": "music.reverb_tomb",
+    "name": "Reverb Tomb",
+    "flavor_text": "Tomb reverb swallows light before spitting it back colder.",
+    "type": "ghost",
+    "category": "special",
+    "power": 41,
+    "accuracy": 1.0,
+    "pp": 25
+  },
+  {
+    "id": "music.memory_crackle",
+    "name": "Memory Crackle",
+    "flavor_text": "Vinyl crackle erodes sharp memories into dull static.",
+    "type": "ghost",
+    "category": "physical",
+    "power": 38,
+    "accuracy": 1.0,
+    "pp": 25,
+    "effects": [
+      {
+        "chance": 0.3,
+        "trigger": "on_hit",
+        "effects": [
+          {
+            "kind": "stat",
+            "target": "target",
+            "changes": {
+              "sp_attack": -1
+            }
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "id": "music.catacomb_drone",
+    "name": "Catacomb Drone",
+    "flavor_text": "Subterranean drone presses from all sides at once.",
+    "type": "ghost",
+    "category": "physical",
+    "power": 88,
+    "accuracy": 0.9,
+    "pp": 10,
+    "level_requirement": 24
+  },
+  {
+    "id": "music.phantom_lament",
+    "name": "Phantom Lament",
+    "flavor_text": "Phantom vocal lament passes through armor like fog.",
+    "type": "ghost",
+    "category": "physical",
+    "power": 30,
+    "accuracy": 1.0,
+    "pp": 35
+  },
+  {
+    "id": "music.faded_polaroid",
+    "name": "Faded Polaroid",
+    "flavor_text": "Sepia snapshot fades until only outline remains.",
+    "type": "ghost",
+    "category": "physical",
+    "power": 29,
+    "accuracy": 1.0,
+    "pp": 35
+  },
+  {
+    "id": "music.subwoofer_mourning",
+    "name": "Subwoofer Mourning",
+    "flavor_text": "Funeral sub-bass mourns in frequencies felt not heard.",
+    "type": "ghost",
+    "category": "physical",
+    "power": 72,
+    "accuracy": 0.95,
+    "pp": 15,
+    "level_requirement": 10
+  },
+  {
+    "id": "music.unresolved_cadence",
+    "name": "Unresolved Cadence",
+    "flavor_text": "A cadence that never resolves poisons the air like bad mix notes.",
+    "type": "ghost",
+    "category": "status",
+    "accuracy": 0.7,
+    "pp": 20,
+    "effects": [
+      {
+        "chance": 1.0,
+        "trigger": "on_hit",
+        "effects": [
+          {
+            "kind": "status",
+            "target": "target",
+            "status": "bad_poison"
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "id": "music.dim_lamp_glow",
+    "name": "Dim Lamp Glow",
+    "flavor_text": "Dim lamp glow kindles spectral attack from old sessions.",
+    "type": "ghost",
+    "category": "status",
+    "accuracy": 1.0,
+    "pp": 20,
+    "effects": [
+      {
+        "chance": 1.0,
+        "trigger": "on_use",
+        "effects": [
+          {
+            "kind": "stat",
+            "target": "self",
+            "changes": {
+              "sp_attack": 1
+            }
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "id": "music.dusty_sleeve",
+    "name": "Dusty Sleeve",
+    "flavor_text": "Dusty sleeve shuffle accelerates your exit from the groove.",
+    "type": "ghost",
+    "category": "status",
+    "accuracy": 1.0,
+    "pp": 20,
+    "effects": [
+      {
+        "chance": 1.0,
+        "trigger": "on_use",
+        "effects": [
+          {
+            "kind": "stat",
+            "target": "self",
+            "changes": {
+              "speed": 1
+            }
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "id": "music.threshold_hum",
+    "name": "Threshold Hum",
+    "flavor_text": "Threshold hum at the studio door warns of what's inside.",
+    "type": "ghost",
+    "category": "physical",
+    "power": 71,
+    "accuracy": 0.95,
+    "pp": 15,
+    "level_requirement": 14,
+    "effects": [
+      {
+        "chance": 0.2,
+        "trigger": "on_hit",
+        "effects": [
+          {
+            "kind": "stat",
+            "target": "target",
+            "changes": {
+              "sp_attack": -1
+            }
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "id": "music.nostalgia_sink",
+    "name": "Nostalgia Sink",
+    "flavor_text": "Nostalgia sink pulls special defense into warm, muddy reverb.",
+    "type": "ghost",
+    "category": "physical",
+    "power": 87,
+    "accuracy": 0.9,
+    "pp": 10,
+    "level_requirement": 28,
+    "effects": [
+      {
+        "chance": 0.3,
+        "trigger": "on_hit",
+        "effects": [
+          {
+            "kind": "stat",
+            "target": "target",
+            "changes": {
+              "sp_defense": -1
+            }
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "id": "music.ossuary_resonance",
+    "name": "Ossuary Resonance",
+    "flavor_text": "Bone-dry resonance rattles ossuary walls into weaponized echo.",
+    "type": "ghost",
+    "category": "physical",
+    "power": 108,
+    "accuracy": 0.85,
+    "pp": 5,
+    "level_requirement": 45,
+    "effects": [
+      {
+        "chance": 0.2,
+        "trigger": "on_hit",
+        "effects": [
+          {
+            "kind": "stat",
+            "target": "target",
+            "changes": {
+              "sp_defense": -1
+            }
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "id": "music.last_session_fadeout",
+    "name": "Last Session Fadeout",
+    "flavor_text": "Final session fade leaves your mix headroom permanently scarred.",
+    "type": "ghost",
+    "category": "physical",
+    "power": 127,
+    "accuracy": 0.85,
+    "pp": 5,
+    "level_requirement": 72,
+    "effects": [
+      {
+        "chance": 1.0,
+        "trigger": "after_damage",
+        "effects": [
+          {
+            "kind": "stat",
+            "target": "self",
+            "changes": {
+              "sp_attack": -2
+            }
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "id": "music.overture_bless",
+    "name": "Overture Bless",
+    "flavor_text": "Overture swell blesses the march with regal attack.",
+    "type": "dragon",
+    "category": "status",
+    "accuracy": 1.0,
+    "pp": 20,
+    "effects": [
+      {
+        "chance": 1.0,
+        "trigger": "on_use",
+        "effects": [
+          {
+            "kind": "stat",
+            "target": "self",
+            "changes": {
+              "attack": 1
+            }
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "id": "music.chorus_rally",
+    "name": "Chorus Rally",
+    "flavor_text": "Massed chorus rally sharpens special attack like brass polish.",
+    "type": "dragon",
+    "category": "status",
+    "accuracy": 1.0,
+    "pp": 20,
+    "effects": [
+      {
+        "chance": 1.0,
+        "trigger": "on_use",
+        "effects": [
+          {
+            "kind": "stat",
+            "target": "self",
+            "changes": {
+              "sp_attack": 1
+            }
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "id": "music.diminuendo_glare",
+    "name": "Diminuendo Glare",
+    "flavor_text": "Diminuendo glare cuts attack before the silence lands.",
+    "type": "dragon",
+    "category": "status",
+    "accuracy": 0.85,
+    "pp": 20,
+    "effects": [
+      {
+        "chance": 1.0,
+        "trigger": "on_hit",
+        "effects": [
+          {
+            "kind": "stat",
+            "target": "target",
+            "changes": {
+              "attack": -1
+            }
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "id": "music.orchestral_downstroke",
+    "name": "Orchestral Downstroke",
+    "flavor_text": "Full-orchestra downstroke lands with timpani weight.",
+    "type": "dragon",
+    "category": "physical",
+    "power": 28,
+    "accuracy": 1.0,
+    "pp": 35
+  },
+  {
+    "id": "music.symphonic_pulse",
+    "name": "Symphonic Pulse",
+    "flavor_text": "Symphonic pulse ripples through the score in measured waves.",
+    "type": "dragon",
+    "category": "special",
+    "power": 42,
+    "accuracy": 1.0,
+    "pp": 25
+  },
+  {
+    "id": "music.epic_staccato",
+    "name": "Epic Staccato",
+    "flavor_text": "Staccato brass stabs punctuate the battlefield score.",
+    "type": "dragon",
+    "category": "special",
+    "power": 34,
+    "accuracy": 1.0,
+    "pp": 35
+  },
+  {
+    "id": "music.brass_fanfare",
+    "name": "Brass Fanfare",
+    "flavor_text": "Fanfare trumpets announce a blow fit for a dragon.",
+    "type": "dragon",
+    "category": "special",
+    "power": 72,
+    "accuracy": 0.95,
+    "pp": 15,
+    "level_requirement": 10
+  },
+  {
+    "id": "music.progressive_rush",
+    "name": "Progressive Rush",
+    "flavor_text": "Odd-meter rush trips the foe on a changing time signature.",
+    "type": "dragon",
+    "category": "special",
+    "power": 40,
+    "accuracy": 1.0,
+    "pp": 25,
+    "effects": [
+      {
+        "chance": 0.2,
+        "trigger": "on_hit",
+        "effects": [
+          {
+            "kind": "stat",
+            "target": "target",
+            "changes": {
+              "speed": -1
+            }
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "id": "music.metal_crescendo",
+    "name": "Metal Crescendo",
+    "flavor_text": "Orchestral metal crescendo peaks at ear-splitting intensity.",
+    "type": "dragon",
+    "category": "special",
+    "power": 52,
+    "accuracy": 1.0,
+    "pp": 25
+  },
+  {
+    "id": "music.dragons_march",
+    "name": "Dragon's March",
+    "flavor_text": "Dragon's march stomp shakes banners and floorboards alike.",
+    "type": "dragon",
+    "category": "physical",
+    "power": 33,
+    "accuracy": 1.0,
+    "pp": 35
+  },
+  {
+    "id": "music.pickoff_arpeggio",
+    "name": "Pickoff Arpeggio",
+    "flavor_text": "Lightning arpeggio pickoff lands before the downbeat settles.",
+    "type": "dragon",
+    "category": "special",
+    "power": 35,
+    "accuracy": 1.0,
+    "pp": 25,
+    "priority": 1
+  },
+  {
+    "id": "music.symphonic_breakdown",
+    "name": "Symphonic Breakdown",
+    "flavor_text": "Orchestral breakdown drops the floor out from under mid-tier foes.",
+    "type": "dragon",
+    "category": "special",
+    "power": 72,
+    "accuracy": 0.95,
+    "pp": 15,
+    "level_requirement": 16,
+    "effects": [
+      {
+        "chance": 0.2,
+        "trigger": "on_hit",
+        "effects": [
+          {
+            "kind": "stat",
+            "target": "target",
+            "changes": {
+              "defense": -1
+            }
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "id": "music.dragonforce_solo",
+    "name": "Dragonforce Solo",
+    "flavor_text": "Impossible solo speed leaves burn trails on the fretboard of reality.",
+    "type": "dragon",
+    "category": "special",
+    "power": 92,
+    "accuracy": 0.9,
+    "pp": 10,
+    "level_requirement": 32,
+    "effects": [
+      {
+        "chance": 0.1,
+        "trigger": "on_hit",
+        "effects": [
+          {
+            "kind": "status",
+            "target": "target",
+            "status": "burn"
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "id": "music.epic_cataclysm",
+    "name": "Epic Cataclysm",
+    "flavor_text": "Cataclysmic finale drains your special attack like spent brass.",
+    "type": "dragon",
+    "category": "special",
+    "power": 108,
+    "accuracy": 0.85,
+    "pp": 5,
+    "level_requirement": 50,
+    "effects": [
+      {
+        "chance": 1.0,
+        "trigger": "after_damage",
+        "effects": [
+          {
+            "kind": "stat",
+            "target": "self",
+            "changes": {
+              "sp_attack": -2
+            }
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "id": "music.last_stand_crescendo",
+    "name": "Last Stand Crescendo",
+    "flavor_text": "Last-stand crescendo spends every ounce of mix headroom you have.",
+    "type": "dragon",
+    "category": "special",
+    "power": 128,
+    "accuracy": 0.85,
+    "pp": 5,
+    "level_requirement": 78,
+    "effects": [
+      {
+        "chance": 1.0,
+        "trigger": "after_damage",
+        "effects": [
+          {
+            "kind": "stat",
+            "target": "self",
+            "changes": {
+              "sp_attack": -2
+            }
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "id": "music.neon_warm_up",
+    "name": "Neon Warm-Up",
+    "flavor_text": "Neon stretch routine accelerates footwork before the drop.",
+    "type": "electric",
+    "category": "status",
+    "accuracy": 1.0,
+    "pp": 20,
+    "effects": [
+      {
+        "chance": 1.0,
+        "trigger": "on_use",
+        "effects": [
+          {
+            "kind": "stat",
+            "target": "self",
+            "changes": {
+              "speed": 1
+            }
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "id": "music.sidechain_pump",
+    "name": "Sidechain Pump",
+    "flavor_text": "Sidechain ducking punches special attack out of the mix.",
+    "type": "electric",
+    "category": "status",
+    "accuracy": 0.9,
+    "pp": 20,
+    "effects": [
+      {
+        "chance": 1.0,
+        "trigger": "on_hit",
+        "effects": [
+          {
+            "kind": "stat",
+            "target": "target",
+            "changes": {
+              "sp_attack": -1
+            }
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "id": "music.filter_sweep",
+    "name": "Filter Sweep",
+    "flavor_text": "Filter sweep carves defense away like a narrowing band-pass.",
+    "type": "electric",
+    "category": "status",
+    "accuracy": 0.85,
+    "pp": 20,
+    "effects": [
+      {
+        "chance": 1.0,
+        "trigger": "on_hit",
+        "effects": [
+          {
+            "kind": "stat",
+            "target": "target",
+            "changes": {
+              "defense": -1
+            }
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "id": "music.synth_stab",
+    "name": "Synth Stab",
+    "flavor_text": "Analog stab pierces the mix on the offbeat.",
+    "type": "electric",
+    "category": "special",
+    "power": 32,
+    "accuracy": 1.0,
+    "pp": 35
+  },
+  {
+    "id": "music.four_on_the_floor",
+    "name": "Four-on-the-Floor",
+    "flavor_text": "Kick-drum four-on-the-floor drives a physical shoulder charge.",
+    "type": "electric",
+    "category": "physical",
+    "power": 34,
+    "accuracy": 1.0,
+    "pp": 35
+  },
+  {
+    "id": "music.pop_hook_spark",
+    "name": "Pop Hook Spark",
+    "flavor_text": "Pop hook spark jumps synapses before the chorus lands.",
+    "type": "electric",
+    "category": "special",
+    "power": 33,
+    "accuracy": 1.0,
+    "pp": 35
+  },
+  {
+    "id": "music.electro_clap",
+    "name": "Electro Clap",
+    "flavor_text": "Sampled clap snaps on two and four with stinging force.",
+    "type": "electric",
+    "category": "special",
+    "power": 72,
+    "accuracy": 0.95,
+    "pp": 15,
+    "level_requirement": 10
+  },
+  {
+    "id": "music.bass_drop_kick",
+    "name": "Bass Drop Kick",
+    "flavor_text": "Sub drop kicks the chest on the one.",
+    "type": "electric",
+    "category": "physical",
+    "power": 53,
+    "accuracy": 1.0,
+    "pp": 25
+  },
+  {
+    "id": "music.static_shuffle",
+    "name": "Static Shuffle",
+    "flavor_text": "Static shuffle leaves crackling paralysis in its wake.",
+    "type": "electric",
+    "category": "special",
+    "power": 40,
+    "accuracy": 1.0,
+    "pp": 25,
+    "effects": [
+      {
+        "chance": 0.2,
+        "trigger": "on_hit",
+        "effects": [
+          {
+            "kind": "status",
+            "target": "target",
+            "status": "paralysis"
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "id": "music.laser_beam_sweep",
+    "name": "Laser Beam Sweep",
+    "flavor_text": "Laser sweep pans across the foe like a club light rig.",
+    "type": "electric",
+    "category": "special",
+    "power": 43,
+    "accuracy": 1.0,
+    "pp": 25,
+    "effects": [
+      {
+        "chance": 0.2,
+        "trigger": "on_hit",
+        "effects": [
+          {
+            "kind": "status",
+            "target": "target",
+            "status": "paralysis"
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "id": "music.drop_in_rush",
+    "name": "Drop-In Rush",
+    "flavor_text": "DJ drop-in rush hits before the crowd expects the transition.",
+    "type": "electric",
+    "category": "special",
+    "power": 38,
+    "accuracy": 1.0,
+    "pp": 25,
+    "priority": 1
+  },
+  {
+    "id": "music.build_up_break",
+    "name": "Build-Up Break",
+    "flavor_text": "Eight-bar build releases into a mid-tier breakdown hit.",
+    "type": "electric",
+    "category": "special",
+    "power": 90,
+    "accuracy": 0.9,
+    "pp": 10,
+    "level_requirement": 28
+  },
+  {
+    "id": "music.mainstage_surge",
+    "name": "Mainstage Surge",
+    "flavor_text": "Mainstage surge shorts the foe with festival-grade voltage.",
+    "type": "electric",
+    "category": "special",
+    "power": 90,
+    "accuracy": 0.9,
+    "pp": 10,
+    "level_requirement": 32,
+    "effects": [
+      {
+        "chance": 0.1,
+        "trigger": "on_hit",
+        "effects": [
+          {
+            "kind": "status",
+            "target": "target",
+            "status": "paralysis"
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "id": "music.rave_overload",
+    "name": "Rave Overload",
+    "flavor_text": "Rave overload fries your own speed circuits on the way down.",
+    "type": "electric",
+    "category": "special",
+    "power": 105,
+    "accuracy": 0.85,
+    "pp": 5,
+    "level_requirement": 50,
+    "effects": [
+      {
+        "chance": 1.0,
+        "trigger": "after_damage",
+        "effects": [
+          {
+            "kind": "stat",
+            "target": "self",
+            "changes": {
+              "speed": -2
+            }
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "id": "music.encore_thunderdome",
+    "name": "Encore Thunderdome",
+    "flavor_text": "Thunderdome encore detonates subwoofers; the recoil rattles bones.",
+    "type": "electric",
+    "category": "special",
+    "power": 125,
+    "accuracy": 0.85,
+    "pp": 5,
+    "level_requirement": 78,
+    "effects": [
+      {
+        "chance": 1.0,
+        "trigger": "after_damage",
+        "effects": [
+          {
+            "kind": "recoil",
+            "ratio": 0.25
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "id": "music.minor_key_sigh",
+    "name": "Minor Key Sigh",
+    "flavor_text": "Minor-key sigh deepens special attack like velvet dusk.",
+    "type": "dark",
+    "category": "status",
+    "accuracy": 1.0,
+    "pp": 20,
+    "effects": [
+      {
+        "chance": 1.0,
+        "trigger": "on_use",
+        "effects": [
+          {
+            "kind": "stat",
+            "target": "self",
+            "changes": {
+              "sp_attack": 1
+            }
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "id": "music.velvet_gloom",
+    "name": "Velvet Gloom",
+    "flavor_text": "Velvet gloom drapes attack in funeral-black fabric.",
+    "type": "dark",
+    "category": "status",
+    "accuracy": 0.9,
+    "pp": 20,
+    "effects": [
+      {
+        "chance": 1.0,
+        "trigger": "on_hit",
+        "effects": [
+          {
+            "kind": "stat",
+            "target": "target",
+            "changes": {
+              "attack": -1
+            }
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "id": "music.funeral_procession",
+    "name": "Funeral Procession",
+    "flavor_text": "Procession drums erode defense one measured step at a time.",
+    "type": "dark",
+    "category": "status",
+    "accuracy": 0.85,
+    "pp": 20,
+    "effects": [
+      {
+        "chance": 1.0,
+        "trigger": "on_hit",
+        "effects": [
+          {
+            "kind": "stat",
+            "target": "target",
+            "changes": {
+              "defense": -1
+            }
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "id": "music.backbeat_bite",
+    "name": "Backbeat Bite",
+    "flavor_text": "Backbeat snare bite lands with gothic physical snap.",
+    "type": "dark",
+    "category": "physical",
+    "power": 32,
+    "accuracy": 1.0,
+    "pp": 35
+  },
+  {
+    "id": "music.shadow_verse",
+    "name": "Shadow Verse",
+    "flavor_text": "Shadow verse projects darkness as a special waveform.",
+    "type": "dark",
+    "category": "special",
+    "power": 72,
+    "accuracy": 0.95,
+    "pp": 15,
+    "level_requirement": 10
+  },
+  {
+    "id": "music.cemetery_chip",
+    "name": "Cemetery Chip",
+    "flavor_text": "Graveyard chip-tune chirps with unsettling cheer.",
+    "type": "dark",
+    "category": "physical",
+    "power": 31,
+    "accuracy": 1.0,
+    "pp": 35
+  },
+  {
+    "id": "music.goth_glare",
+    "name": "Goth Glare",
+    "flavor_text": "Goth glare freezes the foe with eyeliner-sharp intensity.",
+    "type": "dark",
+    "category": "physical",
+    "power": 72,
+    "accuracy": 0.95,
+    "pp": 15,
+    "level_requirement": 10
+  },
+  {
+    "id": "music.melancholy_hook",
+    "name": "Melancholy Hook",
+    "flavor_text": "Melancholy hook sinks in with surprising late-set weight.",
+    "type": "dark",
+    "category": "physical",
+    "power": 51,
+    "accuracy": 1.0,
+    "pp": 25,
+    "effects": [
+      {
+        "chance": 0.2,
+        "trigger": "on_hit",
+        "effects": [
+          {
+            "kind": "stat",
+            "target": "target",
+            "changes": {
+              "speed": -1
+            }
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "id": "music.reverb_slash",
+    "name": "Reverb Slash",
+    "flavor_text": "Reverb-drenched slash drags tempo through wet delay tails.",
+    "type": "dark",
+    "category": "physical",
+    "power": 40,
+    "accuracy": 1.0,
+    "pp": 25,
+    "effects": [
+      {
+        "chance": 0.2,
+        "trigger": "on_hit",
+        "effects": [
+          {
+            "kind": "stat",
+            "target": "target",
+            "changes": {
+              "speed": -1
+            }
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "id": "music.bassline_feint",
+    "name": "Bassline Feint",
+    "flavor_text": "Subtle bassline feint misdirects before the real hit.",
+    "type": "dark",
+    "category": "physical",
+    "power": 30,
+    "accuracy": 1.0,
+    "pp": 35
+  },
+  {
+    "id": "music.sneak_preview",
+    "name": "Sneak Preview",
+    "flavor_text": "Sneak-preview riff strikes before the official release date.",
+    "type": "dark",
+    "category": "physical",
+    "power": 36,
+    "accuracy": 1.0,
+    "pp": 25,
+    "priority": 1
+  },
+  {
+    "id": "music.bridge_to_nowhere",
+    "name": "Bridge to Nowhere",
+    "flavor_text": "Bridge to nowhere collapses mid-song into crushing weight.",
+    "type": "dark",
+    "category": "physical",
+    "power": 92,
+    "accuracy": 0.9,
+    "pp": 10,
+    "level_requirement": 28
+  },
+  {
+    "id": "music.midnight_verse",
+    "name": "Midnight Verse",
+    "flavor_text": "Midnight verse smolders with rare, slow-burning flame.",
+    "type": "dark",
+    "category": "physical",
+    "power": 88,
+    "accuracy": 0.9,
+    "pp": 10,
+    "level_requirement": 32,
+    "effects": [
+      {
+        "chance": 0.1,
+        "trigger": "on_hit",
+        "effects": [
+          {
+            "kind": "status",
+            "target": "target",
+            "status": "burn"
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "id": "music.oppression_drop",
+    "name": "Oppression Drop",
+    "flavor_text": "Oppressive drop crushes your own attack under its weight.",
+    "type": "dark",
+    "category": "physical",
+    "power": 102,
+    "accuracy": 0.85,
+    "pp": 5,
+    "level_requirement": 50,
+    "effects": [
+      {
+        "chance": 1.0,
+        "trigger": "after_damage",
+        "effects": [
+          {
+            "kind": "stat",
+            "target": "self",
+            "changes": {
+              "attack": -2
+            }
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "id": "music.elegy_of_ruin",
+    "name": "Elegy of Ruin",
+    "flavor_text": "Ruin elegy spends special attack like the last candle in a cathedral.",
+    "type": "dark",
+    "category": "physical",
+    "power": 122,
+    "accuracy": 0.85,
+    "pp": 5,
+    "level_requirement": 78,
+    "effects": [
+      {
+        "chance": 1.0,
+        "trigger": "after_damage",
+        "effects": [
+          {
+            "kind": "stat",
+            "target": "self",
+            "changes": {
+              "sp_attack": -2
+            }
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "id": "music.temper_harden",
+    "name": "Temper Harden",
+    "flavor_text": "Tempered steel resolve hardens defense like quenched alloy.",
+    "type": "steel",
+    "category": "status",
+    "accuracy": 1.0,
+    "pp": 20,
+    "effects": [
+      {
+        "chance": 1.0,
+        "trigger": "on_use",
+        "effects": [
+          {
+            "kind": "stat",
+            "target": "self",
+            "changes": {
+              "defense": 1
+            }
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "id": "music.industrial_grind",
+    "name": "Industrial Grind",
+    "flavor_text": "Industrial grind shaves attack down to machine precision.",
+    "type": "steel",
+    "category": "status",
+    "accuracy": 0.9,
+    "pp": 20,
+    "effects": [
+      {
+        "chance": 1.0,
+        "trigger": "on_hit",
+        "effects": [
+          {
+            "kind": "stat",
+            "target": "target",
+            "changes": {
+              "attack": -1
+            }
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "id": "music.rivet_lock",
+    "name": "Rivet Lock",
+    "flavor_text": "Rivet lock pins speed with factory-floor certainty.",
+    "type": "steel",
+    "category": "status",
+    "accuracy": 0.85,
+    "pp": 20,
+    "effects": [
+      {
+        "chance": 1.0,
+        "trigger": "on_hit",
+        "effects": [
+          {
+            "kind": "stat",
+            "target": "target",
+            "changes": {
+              "speed": -1
+            }
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "id": "music.iron_palm",
+    "name": "Iron Palm",
+    "flavor_text": "Iron palm strike rings like an anvil greeting.",
+    "type": "steel",
+    "category": "physical",
+    "power": 29,
+    "accuracy": 1.0,
+    "pp": 35
+  },
+  {
+    "id": "music.distortion_hammer",
+    "name": "Distortion Hammer",
+    "flavor_text": "Distortion hammer swings special force through clipped iron.",
+    "type": "steel",
+    "category": "special",
+    "power": 40,
+    "accuracy": 1.0,
+    "pp": 25
+  },
+  {
+    "id": "music.sheet_metal_chip",
+    "name": "Sheet Metal Chip",
+    "flavor_text": "Sheet metal chip flies sharp from a bending press.",
+    "type": "steel",
+    "category": "physical",
+    "power": 28,
+    "accuracy": 1.0,
+    "pp": 35
+  },
+  {
+    "id": "music.anvil_clang",
+    "name": "Anvil Clang",
+    "flavor_text": "Anvil clang announces a physical blow with smithy finality.",
+    "type": "steel",
+    "category": "physical",
+    "power": 72,
+    "accuracy": 0.95,
+    "pp": 15,
+    "level_requirement": 10
+  },
+  {
+    "id": "music.scrapyard_slam",
+    "name": "Scrapyard Slam",
+    "flavor_text": "Scrapyard slam crushes with rusted-car weight.",
+    "type": "steel",
+    "category": "physical",
+    "power": 54,
+    "accuracy": 1.0,
+    "pp": 25,
+    "effects": [
+      {
+        "chance": 0.2,
+        "trigger": "on_hit",
+        "effects": [
+          {
+            "kind": "stat",
+            "target": "target",
+            "changes": {
+              "defense": -1
+            }
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "id": "music.chain_drive",
+    "name": "Chain Drive",
+    "flavor_text": "Chain drive torque strips speed from the target gear.",
+    "type": "steel",
+    "category": "physical",
+    "power": 41,
+    "accuracy": 1.0,
+    "pp": 25,
+    "effects": [
+      {
+        "chance": 0.2,
+        "trigger": "on_hit",
+        "effects": [
+          {
+            "kind": "stat",
+            "target": "target",
+            "changes": {
+              "speed": -1
+            }
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "id": "music.welding_arc",
+    "name": "Welding Arc",
+    "flavor_text": "Welding arc sears special force across exposed seams.",
+    "type": "steel",
+    "category": "special",
+    "power": 34,
+    "accuracy": 1.0,
+    "pp": 35
+  },
+  {
+    "id": "music.quick_rivet",
+    "name": "Quick Rivet",
+    "flavor_text": "Quick rivet shot lands before the assembly line catches up.",
+    "type": "steel",
+    "category": "physical",
+    "power": 37,
+    "accuracy": 1.0,
+    "pp": 25,
+    "priority": 1
+  },
+  {
+    "id": "music.gearshift_break",
+    "name": "Gearshift Break",
+    "flavor_text": "Gearshift break grinds mid-tier power through hardened gears.",
+    "type": "steel",
+    "category": "physical",
+    "power": 92,
+    "accuracy": 0.9,
+    "pp": 10,
+    "level_requirement": 28
+  },
+  {
+    "id": "music.foundry_strike",
+    "name": "Foundry Strike",
+    "flavor_text": "Foundry strike splashes molten burn across the lane.",
+    "type": "steel",
+    "category": "physical",
+    "power": 95,
+    "accuracy": 0.9,
+    "pp": 10,
+    "level_requirement": 32,
+    "effects": [
+      {
+        "chance": 0.1,
+        "trigger": "on_hit",
+        "effects": [
+          {
+            "kind": "status",
+            "target": "target",
+            "status": "burn"
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "id": "music.molten_overdrive",
+    "name": "Molten Overdrive",
+    "flavor_text": "Molten overdrive melts your own defense in the exhaust heat.",
+    "type": "steel",
+    "category": "physical",
+    "power": 110,
+    "accuracy": 0.85,
+    "pp": 5,
+    "level_requirement": 50,
+    "effects": [
+      {
+        "chance": 1.0,
+        "trigger": "after_damage",
+        "effects": [
+          {
+            "kind": "stat",
+            "target": "self",
+            "changes": {
+              "defense": -2
+            }
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "id": "music.titan_forge_anthem",
+    "name": "Titan Forge Anthem",
+    "flavor_text": "Titan forge anthem hammers the set closed; the recoil is industrial.",
+    "type": "steel",
+    "category": "physical",
+    "power": 130,
+    "accuracy": 0.85,
+    "pp": 5,
+    "level_requirement": 78,
+    "effects": [
+      {
+        "chance": 1.0,
+        "trigger": "after_damage",
+        "effects": [
+          {
+            "kind": "recoil",
+            "ratio": 0.2
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "id": "music.glitter_warm_up",
+    "name": "Glitter Warm-Up",
+    "flavor_text": "Glitter warm-up lifts special attack like pre-show hairspray.",
+    "type": "fairy",
+    "category": "status",
+    "accuracy": 1.0,
+    "pp": 20,
+    "effects": [
+      {
+        "chance": 1.0,
+        "trigger": "on_use",
+        "effects": [
+          {
+            "kind": "stat",
+            "target": "self",
+            "changes": {
+              "sp_attack": 1
+            }
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "id": "music.choreo_mark",
+    "name": "Choreo Mark",
+    "flavor_text": "Choreo mark tags the foe's attack with missed step penalties.",
+    "type": "fairy",
+    "category": "status",
+    "accuracy": 0.9,
+    "pp": 20,
+    "effects": [
+      {
+        "chance": 1.0,
+        "trigger": "on_hit",
+        "effects": [
+          {
+            "kind": "stat",
+            "target": "target",
+            "changes": {
+              "attack": -1
+            }
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "id": "music.sparkle_guard",
+    "name": "Sparkle Guard",
+    "flavor_text": "Sparkle guard catches hits on a shimmer of stage makeup.",
+    "type": "fairy",
+    "category": "status",
+    "accuracy": 1.0,
+    "pp": 20,
+    "effects": [
+      {
+        "chance": 1.0,
+        "trigger": "on_use",
+        "effects": [
+          {
+            "kind": "stat",
+            "target": "self",
+            "changes": {
+              "defense": 1
+            }
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "id": "music.hook_strike",
+    "name": "Hook Strike",
+    "flavor_text": "Choreographed hook strike lands on the downbeat of a dance break.",
+    "type": "fairy",
+    "category": "physical",
+    "power": 33,
+    "accuracy": 1.0,
+    "pp": 35
+  },
+  {
+    "id": "music.bubblegum_beam",
+    "name": "Bubblegum Beam",
+    "flavor_text": "Bubblegum beam pops with sugary special brightness.",
+    "type": "fairy",
+    "category": "special",
+    "power": 32,
+    "accuracy": 1.0,
+    "pp": 35
+  },
+  {
+    "id": "music.twinkle_tap",
+    "name": "Twinkle Tap",
+    "flavor_text": "Twinkle tap patters light but lands on every upbeat.",
+    "type": "fairy",
+    "category": "special",
+    "power": 34,
+    "accuracy": 1.0,
+    "pp": 35
+  },
+  {
+    "id": "music.point_choreo",
+    "name": "Point Choreo",
+    "flavor_text": "Point choreo directs a physical hit to center stage.",
+    "type": "fairy",
+    "category": "physical",
+    "power": 44,
+    "accuracy": 1.0,
+    "pp": 25
+  },
+  {
+    "id": "music.chorus_shine",
+    "name": "Chorus Shine",
+    "flavor_text": "Chorus shine refracts light into a surprisingly heavy blow.",
+    "type": "fairy",
+    "category": "special",
+    "power": 52,
+    "accuracy": 1.0,
+    "pp": 25
+  },
+  {
+    "id": "music.glitter_slap",
+    "name": "Glitter Slap",
+    "flavor_text": "Glitter slap leaves sparkling paralysis on cheek and nerve.",
+    "type": "fairy",
+    "category": "special",
+    "power": 39,
+    "accuracy": 1.0,
+    "pp": 25,
+    "effects": [
+      {
+        "chance": 0.2,
+        "trigger": "on_hit",
+        "effects": [
+          {
+            "kind": "status",
+            "target": "target",
+            "status": "paralysis"
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "id": "music.lightstick_wave",
+    "name": "Lightstick Wave",
+    "flavor_text": "Lightstick wave sweeps special color across the crowd line.",
+    "type": "fairy",
+    "category": "special",
+    "power": 72,
+    "accuracy": 0.95,
+    "pp": 15,
+    "level_requirement": 10
+  },
+  {
+    "id": "music.encore_skip",
+    "name": "Encore Skip",
+    "flavor_text": "Encore skip hops the beat and lands early on the foe.",
+    "type": "fairy",
+    "category": "special",
+    "power": 35,
+    "accuracy": 1.0,
+    "pp": 25,
+    "priority": 1
+  },
+  {
+    "id": "music.dance_break",
+    "name": "Dance Break",
+    "flavor_text": "Dance break drops into a mid-set pose with real impact.",
+    "type": "fairy",
+    "category": "special",
+    "power": 90,
+    "accuracy": 0.9,
+    "pp": 10,
+    "level_requirement": 28
+  },
+  {
+    "id": "music.center_stage",
+    "name": "Center Stage",
+    "flavor_text": "Center-stage spotlight paralyzes with pure main-character energy.",
+    "type": "fairy",
+    "category": "special",
+    "power": 91,
+    "accuracy": 0.9,
+    "pp": 10,
+    "level_requirement": 32,
+    "effects": [
+      {
+        "chance": 0.1,
+        "trigger": "on_hit",
+        "effects": [
+          {
+            "kind": "status",
+            "target": "target",
+            "status": "paralysis"
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "id": "music.chart_topper_blast",
+    "name": "Chart-Topper Blast",
+    "flavor_text": "Chart-topper blast spends special attack like a one-week-at-number-one run.",
+    "type": "fairy",
+    "category": "special",
+    "power": 104,
+    "accuracy": 0.85,
+    "pp": 5,
+    "level_requirement": 50,
+    "effects": [
+      {
+        "chance": 1.0,
+        "trigger": "after_damage",
+        "effects": [
+          {
+            "kind": "stat",
+            "target": "self",
+            "changes": {
+              "sp_attack": -2
+            }
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "id": "music.eternal_encore",
+    "name": "Eternal Encore",
+    "flavor_text": "Eternal encore bows forever; your speed never quite recovers.",
+    "type": "fairy",
+    "category": "special",
+    "power": 124,
+    "accuracy": 0.85,
+    "pp": 5,
+    "level_requirement": 78,
+    "effects": [
+      {
+        "chance": 1.0,
+        "trigger": "after_damage",
+        "effects": [
+          {
+            "kind": "stat",
+            "target": "self",
+            "changes": {
+              "speed": -2
+            }
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "id": "music.adagio_focus",
+    "name": "Adagio Focus",
+    "flavor_text": "Adagio focus steadies special attack like a held fermata.",
+    "type": "psychic",
+    "category": "status",
+    "accuracy": 1.0,
+    "pp": 20,
+    "effects": [
+      {
+        "chance": 1.0,
+        "trigger": "on_use",
+        "effects": [
+          {
+            "kind": "stat",
+            "target": "self",
+            "changes": {
+              "sp_attack": 1
+            }
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "id": "music.diminished_glance",
+    "name": "Diminished Glance",
+    "flavor_text": "Diminished glance shaves attack with a half-step of doubt.",
+    "type": "psychic",
+    "category": "status",
+    "accuracy": 0.9,
+    "pp": 20,
+    "effects": [
+      {
+        "chance": 1.0,
+        "trigger": "on_hit",
+        "effects": [
+          {
+            "kind": "stat",
+            "target": "target",
+            "changes": {
+              "attack": -1
+            }
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "id": "music.meditation_rest",
+    "name": "Meditation Rest",
+    "flavor_text": "Meditation rest fortifies special defense between movements.",
+    "type": "psychic",
+    "category": "status",
+    "accuracy": 1.0,
+    "pp": 20,
+    "effects": [
+      {
+        "chance": 1.0,
+        "trigger": "on_use",
+        "effects": [
+          {
+            "kind": "stat",
+            "target": "self",
+            "changes": {
+              "sp_defense": 1
+            }
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "id": "music.pizzicato_jab",
+    "name": "Pizzicato Jab",
+    "flavor_text": "Pizzicato jab plucks sharp physical stings from orchestral strings.",
+    "type": "psychic",
+    "category": "physical",
+    "power": 33,
+    "accuracy": 1.0,
+    "pp": 35
+  },
+  {
+    "id": "music.nocturne_pulse",
+    "name": "Nocturne Pulse",
+    "flavor_text": "Nocturne pulse drifts special force through moonlit phrasing.",
+    "type": "psychic",
+    "category": "special",
+    "power": 32,
+    "accuracy": 1.0,
+    "pp": 35
+  },
+  {
+    "id": "music.soft_pedal",
+    "name": "Soft Pedal",
+    "flavor_text": "Soft pedal dampens the strike but not the intent.",
+    "type": "psychic",
+    "category": "special",
+    "power": 31,
+    "accuracy": 1.0,
+    "pp": 35
+  },
+  {
+    "id": "music.blue_note_cut",
+    "name": "Blue Note Cut",
+    "flavor_text": "Blue note bend cuts physical timing just off the expected beat.",
+    "type": "psychic",
+    "category": "physical",
+    "power": 44,
+    "accuracy": 1.0,
+    "pp": 25
+  },
+  {
+    "id": "music.cadenza_surge",
+    "name": "Cadenza Surge",
+    "flavor_text": "Cadenza surge blooms into a soloist's unaccompanied peak.",
+    "type": "psychic",
+    "category": "special",
+    "power": 90,
+    "accuracy": 0.9,
+    "pp": 10,
+    "level_requirement": 24
+  },
+  {
+    "id": "music.syncopated_sting",
+    "name": "Syncopated Sting",
+    "flavor_text": "Syncopated sting jolts paralysis off the offbeat.",
+    "type": "psychic",
+    "category": "special",
+    "power": 41,
+    "accuracy": 1.0,
+    "pp": 25,
+    "effects": [
+      {
+        "chance": 0.2,
+        "trigger": "on_hit",
+        "effects": [
+          {
+            "kind": "status",
+            "target": "target",
+            "status": "paralysis"
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "id": "music.sonata_beam",
+    "name": "Sonata Beam",
+    "flavor_text": "Sonata beam projects formal structure as focused special force.",
+    "type": "psychic",
+    "category": "special",
+    "power": 72,
+    "accuracy": 0.95,
+    "pp": 15,
+    "level_requirement": 10
+  },
+  {
+    "id": "music.upbeat_pickup",
+    "name": "Upbeat Pickup",
+    "flavor_text": "Upbeat pickup catches the foe before the conductor's downbeat.",
+    "type": "psychic",
+    "category": "special",
+    "power": 36,
+    "accuracy": 1.0,
+    "pp": 25,
+    "priority": 1
+  },
+  {
+    "id": "music.development_passage",
+    "name": "Development Passage",
+    "flavor_text": "Development passage modulates mid-fight into stronger thematic territory.",
+    "type": "psychic",
+    "category": "special",
+    "power": 69,
+    "accuracy": 0.95,
+    "pp": 15,
+    "level_requirement": 16
+  },
+  {
+    "id": "music.improvisation_solo",
+    "name": "Improvisation Solo",
+    "flavor_text": "Improvisation solo sparks rare paralysis from pure spontaneous brilliance.",
+    "type": "psychic",
+    "category": "special",
+    "power": 89,
+    "accuracy": 0.9,
+    "pp": 10,
+    "level_requirement": 32,
+    "effects": [
+      {
+        "chance": 0.1,
+        "trigger": "on_hit",
+        "effects": [
+          {
+            "kind": "status",
+            "target": "target",
+            "status": "paralysis"
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "id": "music.climax_resolution",
+    "name": "Climax Resolution",
+    "flavor_text": "Climax resolution resolves the tension by spending your special defense.",
+    "type": "psychic",
+    "category": "special",
+    "power": 106,
+    "accuracy": 0.85,
+    "pp": 5,
+    "level_requirement": 50,
+    "effects": [
+      {
+        "chance": 1.0,
+        "trigger": "after_damage",
+        "effects": [
+          {
+            "kind": "stat",
+            "target": "self",
+            "changes": {
+              "sp_defense": -2
+            }
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "id": "music.symphony_of_mind",
+    "name": "Symphony of Mind",
+    "flavor_text": "Symphony of mind conducts a finale that leaves your mix permanently quieter.",
+    "type": "psychic",
+    "category": "special",
+    "power": 126,
+    "accuracy": 0.85,
+    "pp": 5,
+    "level_requirement": 78,
+    "effects": [
+      {
+        "chance": 1.0,
+        "trigger": "after_damage",
+        "effects": [
+          {
+            "kind": "stat",
+            "target": "self",
+            "changes": {
+              "sp_attack": -2
+            }
+          }
+        ]
+      }
+    ]
+  }
+]

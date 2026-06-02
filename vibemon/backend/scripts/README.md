@@ -22,8 +22,8 @@ These scripts should stay small, semantic, and experience-oriented.
 - Put shared command-line plumbing in `_common.py`: session scope, seed parsing,
   local asset setup, loading helpers, battle simulation helpers, and JSON
   dumping.
-- Prefer useful local defaults: generated SQLite database, local asset store,
-  auto-created schema, random coordinates when location is not the point of the
+- Require repo-root `.env` for storage URLs and secrets. Scripts call `_common.load_script_settings()` at startup.
+- Auto-create schema on first script run, use random coordinates when location is not the point of the
   rehearsal, and deterministic seeds for battle-heavy flows.
 - Emit compact JSON with the IDs and state needed for the next manual step.
 
@@ -49,11 +49,18 @@ CLI interfaces should be beginner-first:
 
 ## Current Scripts
 
-The current one-workflow scripts can be reduced toward a smaller set of
-experience-oriented orchestrators:
+Integration rehearsal and database tooling:
 
-- `generate_vibemon.py`: create a Vibemon at a requested lifecycle or review
-  stage, such as born, christened, manifested, candidate, wild, or owned.
+**Database**
+
+- `init_db.py`: create all tables from SQLAlchemy models (idempotent on a fresh DB).
+- `db_shell.py`: list tables, run ad-hoc SQL, or open an interactive shell against
+  the configured database.
+
+**UX rehearsal**
+
+- `generate_vibemon.py`: create a Vibemon at a requested asset form and optional
+  UX stage (`candidate`, `wild`, or `owned`).
 - `simulate_adoption.py`: rehearse trainer review behavior, including candidate
   generation, adoption, rejection, party-full release swaps, and optional
   manifestation.
@@ -63,32 +70,94 @@ experience-oriented orchestrators:
   Vibemon without requiring the full encounter/adoption flow.
 - `rebalance_vibemon.py`: replay existing Vibemon from persisted birth snapshots
   through the current provider balance logic and optionally update their derived
-  typing, stats, and active moves.
+  typing, stats, and active moves. **Dev-only tooling** — not a production player
+  workflow.
+- `link_lastfm.py`: store a trainer Last.fm session for local music birth
+  rehearsal, or print the browser web-auth URL.
 
 The goal is for these scripts to describe the behavior we expect future UI flows
 to drive, while the workflows remain the canonical place for persisted behavior.
+
+## Database setup
+
+Storage URLs are required in repo-root `.env` under `VIBEMON_STORAGE__*` (see `.env.example`).
+`Settings.load()` fails if any are missing.
+
+Copy `.env.example` to `.env`, set all values, then initialize schema:
+
+```powershell
+cd vibemon/backend
+uv run python scripts/init_db.py
+```
+
+**Postgres (local via Docker)**
+
+```powershell
+cd deploy/postgres
+docker compose up -d
+```
+
+Set in repo-root `.env`:
+
+```powershell
+VIBEMON_STORAGE__DATABASE=postgresql+asyncpg://vibemon:vibemon@127.0.0.1:5432/vibemon
+```
+
+Then re-run `init_db.py`.
+
+Pre-1.0 schema changes: drop and recreate the database, re-run `init_db.py`, then reseed.
+To preserve SQLite data during a one-off move to Postgres, use [pgloader](https://pgloader.io/).
+
+**Tests** use the same URL as `Settings.load().storage.database`. Override the test
+database with `VIBEMON_TEST_DATABASE_URL`, or point `VIBEMON_STORAGE__DATABASE` at
+Postgres. When Docker is available, testcontainers Postgres is used automatically.
 
 ## Generate Vibemon CLI Shape
 
 `generate_vibemon.py` is intentionally beginner-first. The common path is:
 
 ```powershell
-uv run python scripts/generate_vibemon.py --stage manifested --nickname Mochi
+uv run python scripts/generate_vibemon.py --form manifested --nickname Mochi
 ```
 
-The visible options describe rehearsal intent:
+The visible options are grouped by intent:
 
-- `--stage`: the UX state to create, such as `born`, `manifested`, `candidate`,
-  `wild`, or `owned`.
-- `--lifecycle`: how visually complete candidate, wild, or owned Vibemon should
-  be: `born`, `christened`, or `manifested`.
+**Common** — rehearsal flow and identity:
+
+- `--form`: asset completeness — `born`, `christened`, or `manifested`.
+- `--stage`: optional UX destination — `candidate`, `wild`, or `owned`. Omit for a
+  plain birth.
 - `--trainer` and `--name`: trainer context for candidate and owned stages.
-- `--location` and `--born-at`: deterministic birth seed inputs when randomness
-  is not useful.
-- `--nickname` and `--idea`: creative nudges for the generated Vibemon.
+- `--nickname`: optional Vibemon nickname.
+- `--affinity-only`: print provider affinities and the merged birth preview without
+  persisting a Vibemon.
+
+**Seed** — birth seed inputs:
+
+- `--location` and `--born-at`: deterministic coordinates and timestamp.
+- `--idea`: optional creative identity nudge.
+- `--provider`: birth providers to include (`climate`, `biome`, `music`); repeat
+  the flag to combine them. Default is climate and biome.
+
+**Output**:
+
+- `--count`: how many Vibemon to create.
+- `--output`: `json` or `table` (table when `--count > 1`).
 
 Advanced plumbing appears in its own help section: `--database-url`,
 `--asset-store-url`, and `--bypass-credits`.
+
+Music birth examples:
+
+```powershell
+uv run python scripts/link_lastfm.py --trainer <uuid>
+uv run python scripts/generate_vibemon.py --provider music --trainer <uuid> --affinity-only
+uv run python scripts/generate_vibemon.py --provider climate --provider biome --provider music --trainer <uuid> --stage candidate
+```
+
+When a script uses external providers, add `--bust-cache` to force fresh HTTP
+provider responses while still writing them back to Redis or SQLite cache. The
+same behavior is available process-wide with `VIBEMON_BUST_CACHE=1`.
 
 ## Simulate Adoption CLI Shape
 

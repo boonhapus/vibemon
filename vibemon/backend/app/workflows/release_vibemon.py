@@ -1,7 +1,5 @@
 """Release an owned Vibemon back to wild supply."""
 
-from __future__ import annotations
-
 import uuid
 
 from sqlalchemy.ext.asyncio import AsyncSession

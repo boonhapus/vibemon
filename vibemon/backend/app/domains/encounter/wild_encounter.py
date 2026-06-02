@@ -1,7 +1,5 @@
 """Wild encounter selection with supply top-up and final eligibility revalidation."""
 
-from __future__ import annotations
-
 from collections.abc import Awaitable, Callable
 import datetime as dt
 import random

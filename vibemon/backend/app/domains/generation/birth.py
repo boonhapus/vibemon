@@ -1,7 +1,5 @@
 """Deterministic Vibemon birth orchestration."""
 
-from __future__ import annotations
-
 from app.domains.generation.affinity import Affinity, BirthOutcome
 from app.domains.generation.seed import BirthSeed
 

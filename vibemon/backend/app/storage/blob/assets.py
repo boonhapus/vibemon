@@ -1,6 +1,8 @@
-"""Persist domain asset refs to the ``vibemon_asset`` table."""
+"""Persist domain asset refs to the ``vibemon_asset`` table.
 
-from __future__ import annotations
+Blob bytes live in :mod:`app.storage.blob.monstore`; this module keeps the
+database rows in sync and performs best-effort blob cleanup on replace/delete.
+"""
 
 from collections.abc import Iterable
 from typing import Any, cast

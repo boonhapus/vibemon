@@ -1,7 +1,5 @@
 """Candidate-review transition policy."""
 
-from __future__ import annotations
-
 import datetime as dt
 
 from app.core import errors, time

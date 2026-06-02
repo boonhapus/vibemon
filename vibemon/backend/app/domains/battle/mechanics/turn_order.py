@@ -1,5 +1,3 @@
-from __future__ import annotations
-
 import random
 
 from app.domains.battle import actions, entity, turn

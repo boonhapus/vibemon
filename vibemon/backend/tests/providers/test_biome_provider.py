@@ -14,6 +14,7 @@ from app.providers.biome.const import WorldCoverClassT
 from app.providers.biome.provider import BiomeProvider
 from app.providers.biome.raster.worldcover import api as worldcover_api
 from app.providers.helpers import filter_element_types
+from tests.conftest import TEST_TRAINER_ID
 
 
 def test_biome_move_catalog_has_fifteen_moves_per_exposed_element() -> None:
@@ -31,7 +32,7 @@ def test_biome_selectable_moves_include_shared_universal_moves_once() -> None:
     provider = BiomeProvider()
 
     universal_ids = {move.id for move in universal.moves()}
-    selectable_ids = [move.id for move in provider.selectable_moves()]
+    selectable_ids = [move.id for move in provider.selectable_moves(level=99)]
 
     assert universal_ids <= set(selectable_ids)
     assert len(selectable_ids) == len(set(selectable_ids))
@@ -53,6 +54,19 @@ def test_worldcover_fixture_png_decodes_to_tree_cover() -> None:
     assert isinstance(pixel, tuple)
     red, green, blue, _alpha = pixel
     assert worldcover_api.TerrascopeWorldCoverClient.decode_rgb((red, green, blue)) is WorldCoverClassT.TREE_COVER
+
+
+def test_worldcover_nodata_tile_returns_permanent_water() -> None:
+    image = Image.new("RGBA", (1, 1), (0, 0, 0, 0))
+    result = worldcover_api.TerrascopeWorldCoverClient.classify_tile_at_point(
+        image,
+        latitude=-13.133140200776296,
+        longitude=173.1623252194193,
+        tile_x=8036,
+        tile_y=4397,
+        zoom=13,
+    )
+    assert result is WorldCoverClassT.PERMANENT_WATER
 
 
 def test_determine_element_scores_boosts_built_up_elements() -> None:
@@ -143,6 +157,7 @@ async def test_synthesize_replay_from_london_payload() -> None:
     seed = BirthSeed(
         timestamp=dt.datetime(2026, 5, 19, 12, 0, tzinfo=dt.UTC),
         geo_coords=(51.5074, -0.1278),
+        trainer_id=TEST_TRAINER_ID,
         providers=[provider],
     )
     payload = {
@@ -156,8 +171,8 @@ async def test_synthesize_replay_from_london_payload() -> None:
         "inland_feature": "water",
     }
 
-    first = await provider.synthesize(seed, payload)
-    second = await provider.synthesize(seed, payload)
+    first = await provider.synthesize(seed, BiomeProvider.parse_payload(payload))
+    second = await provider.synthesize(seed, BiomeProvider.parse_payload(payload))
 
     assert first.provider_id == "biome"
     assert first.intensity == 0.5

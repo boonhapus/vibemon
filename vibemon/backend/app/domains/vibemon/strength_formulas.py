@@ -57,11 +57,11 @@ def base_stat_asymmetric_scaling(ratio: float, *, stat: BaseStatNameT) -> int:
     at the midpoint of the input, regardless of how lopsided the output
     range is.
     """
-    from app.domains.vibemon.identity import Identity
+    from app.domains.vibemon.identity import BaseStats
 
-    stat_min = Identity._stat_info(name=stat, type="min")
-    stat_med = Identity._stat_info(name=stat, type="med")
-    stat_max = Identity._stat_info(name=stat, type="max")
+    stat_min = BaseStats._stat_info(name=stat, type="min")
+    stat_med = BaseStats._stat_info(name=stat, type="med")
+    stat_max = BaseStats._stat_info(name=stat, type="max")
 
     assert stat_min is not None, f"Stat.min is not set for {stat}"
     assert stat_med is not None, f"Stat.med is not set for {stat}"
@@ -91,7 +91,7 @@ def apply_evo_seed_bst_bias(
     This keeps each stat's relative profile, then clamps to stat bounds and
     distributes rounding remainder to preserve the target BST when possible.
     """
-    from app.domains.vibemon.identity import Identity
+    from app.domains.vibemon.identity import BaseStats
 
     BST_SCALING_MATRIX = {
         EvolutionStageT.BASE: [485],
@@ -106,9 +106,9 @@ def apply_evo_seed_bst_bias(
     scaled: dict[str, int] = {}
 
     for key, value in stats.items():
-        stat = cast(BaseStatNameT, key.replace("base_", ""))
-        stat_min = Identity._stat_info(name=stat, type="min")
-        stat_max = Identity._stat_info(name=stat, type="max")
+        stat = cast(BaseStatNameT, key)
+        stat_min = BaseStats._stat_info(name=stat, type="min")
+        stat_max = BaseStats._stat_info(name=stat, type="max")
 
         assert stat_min is not None, f"Stat.min is not set for {stat}"
         assert stat_max is not None, f"Stat.max is not set for {stat}"

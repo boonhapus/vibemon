@@ -1,0 +1,28 @@
+# Local Redis for vibemon provider HTTP cache (SQLite alternative).
+# Usage: see deploy/redis/README.md
+
+services:
+  redis:
+    image: redis:7-alpine
+    container_name: vibemon-redis
+    restart: unless-stopped
+    command: >
+      redis-server
+      --appendonly no
+      --maxmemory 2gb
+      --maxmemory-policy allkeys-lru
+    environment:
+      TZ: UTC
+    ports:
+      - "${REDIS_PORT:-6379}:6379"
+    volumes:
+      - redis_data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+      start_period: 5s
+
+volumes:
+  redis_data:

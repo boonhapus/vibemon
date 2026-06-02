@@ -1,7 +1,5 @@
 """Vibemon runtime-domain schemas."""
 
-from __future__ import annotations
-
 from typing import Any, Self
 import uuid
 
@@ -134,24 +132,24 @@ class Vibemon(Schema):
 
     @property
     def hp(self) -> int:
-        return base_stat_level_scaling(self.identity.base_hp, level=self.level, true_floor=10) + self.level
+        return base_stat_level_scaling(self.identity.base.hp, level=self.level, true_floor=10) + self.level
 
     @property
     def attack(self) -> int:
-        return base_stat_level_scaling(self.identity.base_attack, level=self.level)
+        return base_stat_level_scaling(self.identity.base.attack, level=self.level)
 
     @property
     def defense(self) -> int:
-        return base_stat_level_scaling(self.identity.base_defense, level=self.level)
+        return base_stat_level_scaling(self.identity.base.defense, level=self.level)
 
     @property
     def sp_attack(self) -> int:
-        return base_stat_level_scaling(self.identity.base_sp_attack, level=self.level)
+        return base_stat_level_scaling(self.identity.base.sp_attack, level=self.level)
 
     @property
     def sp_defense(self) -> int:
-        return base_stat_level_scaling(self.identity.base_sp_defense, level=self.level)
+        return base_stat_level_scaling(self.identity.base.sp_defense, level=self.level)
 
     @property
     def speed(self) -> int:
-        return base_stat_level_scaling(self.identity.base_speed, level=self.level)
+        return base_stat_level_scaling(self.identity.base.speed, level=self.level)

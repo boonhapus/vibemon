@@ -1,85 +1,169 @@
-from typing import Self
-import functools as ft
-import os
+"""Application configuration loaded from ``VIBEMON_*`` environment variables."""
+
+from typing import Annotated, Any, ClassVar, Literal, Self
+from urllib.parse import urlsplit
+import pathlib
 
 import pydantic
 import pydantic_settings
 
 
+def _validate_database_url(value: str) -> str:
+    """Require an async SQLAlchemy URL for SQLite or PostgreSQL."""
+    accepted_schemes = ("sqlite+aiosqlite", "postgresql+asyncpg")
+
+    if not any(value.startswith(f"{scheme}://") for scheme in accepted_schemes):
+        raise ValueError(f"database URL must start with sqlite+aiosqlite:// or postgresql+asyncpg://, got {value!r}")
+    return value
+
+
+def _validate_cache_url(value: str) -> str:
+    """Accept Redis or a SQLite file URL for the HTTP response cache."""
+    parts = urlsplit(value)
+
+    if parts.scheme in ("redis", "rediss"):
+        return value
+
+    if parts.scheme == "sqlite" and parts.path:
+        return value
+
+    raise ValueError(f"cache URL must be redis://, rediss://, or sqlite:///path, got {value!r}")
+
+
+def _validate_obstore_url(value: str) -> str:
+    """Require a non-empty obstore-backed asset store URL."""
+    accepted_schemes = ("file", "s3", "gs", "az", "memory", "http", "https")
+
+    if not value:
+        raise ValueError("assets URL must not be empty")
+
+    parts = urlsplit(value)
+    if parts.scheme not in accepted_schemes:
+        raise ValueError(f"assets URL scheme must be one of {sorted(accepted_schemes)!r}, got {parts.scheme!r}")
+    return value
+
+
+def _validate_google_model_string(value: str) -> str:
+    """Require a ``provider:model`` string for pydantic-ai Google models."""
+    accepted_providers = ("google", "google-gla")
+
+    provider, _, model = value.partition(":")
+
+    if provider not in accepted_providers or not model:
+        raise ValueError(f"model string must be 'google-gla:model_name' or 'google:model_name', got {value!r}")
+
+    return value
+
+
+type DatabaseUrl = Annotated[str, pydantic.AfterValidator(_validate_database_url)]
+"""Validated async database connection URL."""
+
+type CacheUrl = Annotated[str, pydantic.AfterValidator(_validate_cache_url)]
+"""Validated HTTP cache backend URL (Redis or SQLite file)."""
+
+type ObstoreUrl = Annotated[str, pydantic.AfterValidator(_validate_obstore_url)]
+"""Validated obstore asset store URL."""
+
+type GoogleModelString = Annotated[str, pydantic.AfterValidator(_validate_google_model_string)]
+"""Validated ``google`` or ``google-gla`` model selector for GenAI."""
+
+type EnvironmentT = Literal["dev", "test", "prod"]
+"""Runtime environment name for local safety defaults."""
+
+
+class ApiSecrets(pydantic.BaseModel):
+    """Third-party API credentials and the app-owned trainer encryption key."""
+
+    eleven_labs: pydantic.SecretStr
+    google: pydantic.SecretStr
+    lastfm_key: pydantic.SecretStr
+    lastfm_secret: pydantic.SecretStr
+    trainer_encryption: pydantic.SecretStr
+
+
+class GenAiModels(pydantic.BaseModel):
+    """Google text and image model selectors for asset generation."""
+
+    text: GoogleModelString
+    image: GoogleModelString
+
+
+class StorageUrls(pydantic.BaseModel):
+    """Database, HTTP cache, and object-store connection URLs."""
+
+    database: DatabaseUrl
+    cache: CacheUrl
+    assets: ObstoreUrl
+
+
+class LastFmConfig(pydantic.BaseModel):
+    """Last.fm OAuth callback used during account linking."""
+
+    callback: pydantic.HttpUrl = pydantic.HttpUrl("http://127.0.0.1:8765/lastfm/callback")
+
+
+class MusicBrainzConfig(pydantic.BaseModel):
+    """MusicBrainz Web API endpoint (public API or self-hosted mirror)."""
+
+    base_url: pydantic.HttpUrl = pydantic.HttpUrl("https://musicbrainz.org/ws/2/")
+
+    @pydantic.model_validator(mode="after")
+    def _path_ends_with_ws2(self) -> Self:
+        path = urlsplit(str(self.base_url)).path.rstrip("/")
+        if not path.endswith("/ws/2"):
+            raise ValueError(f"MusicBrainz base URL path must end with /ws/2, got {path!r}")
+        return self
+
+
 class Settings(pydantic_settings.BaseSettings):
-    """A collection for API keys."""
+    """Root settings object; nested groups map to ``VIBEMON_<GROUP>__<FIELD>`` env keys."""
 
-    eleven_labs_api_key: pydantic.SecretStr = pydantic.Field(json_schema_extra={"mirror_to_os.environ": True})
-    """https://elevenlabs.io/app/api/api-keys"""
+    _loaded: ClassVar[Settings | None] = None
 
-    google_api_key: pydantic.SecretStr = pydantic.Field(json_schema_extra={"mirror_to_os.environ": True})
-    """https://aistudio.google.com/api-keys"""
-
-    openai_api_key: pydantic.SecretStr | None = pydantic.Field(None, json_schema_extra={"mirror_to_os.environ": True})
-    """https://platform.openai.com/api-keys"""
-
-    opencode_api_key: pydantic.SecretStr | None = pydantic.Field(None, json_schema_extra={"mirror_to_os.environ": True})
-    """..."""
-
-    # ── Specific models ───────────────────────────────────────────────────────────────
-
-    txt_ai_model: str
-    img_ai_model: str
-
-    # ── Asset storage ─────────────────────────────────────────────────────────────────
-
-    asset_store_url: str = ""
-    """
-    Where Vibemon assets (sprites, audio, poses) get persisted.
-
-    Any obstore-supported URL.
-
-    Local: ``file:///<absolute-path>``.
-    Remote: ``s3://bucket/prefix``, ``gs://bucket/prefix``, ``az://container/prefix``.
-    Ephemeral: ``memory:///`` (tests).
-    """
-
-    # ── Configuration ─────────────────────────────────────────────────────────────────
+    environment: EnvironmentT = "prod"
+    secrets: ApiSecrets
+    genai: GenAiModels
+    storage: StorageUrls
+    lastfm: LastFmConfig = LastFmConfig()
+    musicbrainz: MusicBrainzConfig = MusicBrainzConfig()
 
     model_config = pydantic_settings.SettingsConfigDict(
-        env_file=(".env", "../.env"),
+        env_prefix="VIBEMON_",
+        env_nested_delimiter="__",
+        env_file=(
+            ".env",
+            "../.env",
+            "../../.env",
+            str(pathlib.Path(__file__).resolve().parents[3] / ".env"),
+        ),
         env_file_encoding="utf-8",
         extra="ignore",
     )
 
-    @pydantic.field_validator("txt_ai_model", "img_ai_model")
     @classmethod
-    def _require_provider_prefix(cls, v: str) -> str:
-        provider, _, model = v.partition(":")
+    def load(cls, *, refresh: bool = False, **overrides: Any) -> Settings:
+        """Load settings from env files and the process environment.
 
-        if not provider or not model:
-            raise ValueError(f"model string must be 'provider:model_name', got {v!r}")
+        Returns a process-wide singleton. Pass ``refresh=True`` to re-read env
+        files after tests mutate ``os.environ``. Override kwargs mirror nested
+        groups, e.g. ``storage={"assets": "file:///tmp/monstore"}``.
+        """
+        if overrides:
+            instance = cls()
 
-        return v
+            for key, patch in overrides.items():
+                if key not in cls.model_fields:
+                    raise ValueError(f"Unknown Settings group {key!r}")
 
-    @pydantic.model_validator(mode="after")
-    def export_to_environ(self) -> Self:
-        """Sync loaded settings to os.environ for downstream libraries."""
-        for name, field in Settings.model_fields.items():
-            if field.json_schema_extra is None:
-                continue
-            if not isinstance(field.json_schema_extra, dict):
-                continue
-            if not field.json_schema_extra.get("mirror_to_os.environ"):
-                continue
+                if not isinstance(patch, dict):
+                    raise TypeError(f"Settings override {key!r} must be a dict of field updates")
 
-            val = getattr(self, name)
+                section = getattr(instance, key)
+                instance = instance.model_copy(update={key: section.model_copy(update=patch)})
 
-            if hasattr(val, "get_secret_value"):
-                val = val.get_secret_value()
+            cls._loaded = instance
 
-            if os.getenv(env_key := name.upper()) != str(val):
-                os.environ[env_key] = str(val)
+        elif refresh or cls._loaded is None:
+            cls._loaded = cls()
 
-        return self
-
-
-@ft.cache
-def get_settings() -> Settings:
-    """Load process settings on first use."""
-    return Settings()  # pyrefly: ignore
+        return cls._loaded

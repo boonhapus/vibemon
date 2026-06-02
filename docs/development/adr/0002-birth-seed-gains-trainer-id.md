@@ -1,13 +1,13 @@
 # `BirthSeed` gains `trainer_id`
 
-**Status:** proposed
+**Status:** accepted
 
 ## Context
 
 `BirthSeed` (`app/domains/generation/seed.py`) carried only `timestamp`, `geo_coords`, and `providers`. Two consequences:
 
 1. Two trainers birthing at the same coordinate and microsecond produced identical RNG seeds. Latent collision risk that hadn't bitten in practice yet.
-2. Per-trainer providers were architecturally blocked. `SoundProvider` (see `plans/sound-provider-plan.md`) needs the trainer's Spotify refresh token to fetch personal listening data; without `trainer_id` on the seed, there is no clean way to thread trainer identity into `provider.fetch(seed)`.
+2. Per-trainer providers were architecturally blocked. The first concrete case was `MusicProvider`, which needs the trainer's Spotify refresh token to fetch personal listening data; without `trainer_id` on the seed, there is no clean way to thread trainer identity into `provider.fetch(seed)`. The same shape applies to any future provider that reads trainer-scoped external state.
 
 ## Decision
 
@@ -17,7 +17,7 @@ Add `trainer_id: uuid.UUID` to `BirthSeed` and fold it into `_rng_seed_material`
 
 - **Pass trainer context via a sidecar bag** (`BirthSeed.provider_context: dict[str, Any]` keyed by provider name). Keeps trainer out of the seed proper, but conflates per-provider config with per-birth identity. Rejected — trainer identity is genuinely seed material, not provider configuration.
 - **Resolve trainer at `fetch()` time via thread-local / contextvar.** Adds invisible coupling and breaks the seed's `FrozenSchema` self-containment. Rejected.
-- **Leave `BirthSeed` unchanged; ship sound as market-mode-only.** Rejected when sound was scoped to personal-mode-only — see sound-provider-plan.md.
+- **Leave `BirthSeed` unchanged; ship music as market-mode-only.** Rejected when music was scoped to personal-mode-only — trainer identity is required at fetch time for any personal-mode provider.
 
 ## Consequences
 

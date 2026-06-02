@@ -1,7 +1,5 @@
 """Generation affinity concepts and merge behavior."""
 
-from __future__ import annotations
-
 from typing import Any
 import math
 import random
@@ -13,8 +11,9 @@ from app.core.math import clamp, weighted_sample
 from app.core.schema import FrozenSchema
 from app.domains.move.entity import Move
 from app.domains.vibemon import types
-from app.domains.vibemon.identity import Identity
+from app.domains.vibemon.identity import BaseStats, Identity
 from app.domains.vibemon.strength_formulas import apply_evo_seed_bst_bias
+from app.providers import schema as providers_schema
 from app.providers.helpers import filter_element_types, fuse_element_rankings
 
 _LOGGER = structlog.get_logger(__name__)
@@ -35,6 +34,19 @@ class Affinity(FrozenSchema):
     provider_id: str
     moves: tuple[Move, ...]
     element_rankings: dict[types.VibemonTypeT, float] = pydantic.Field(default_factory=dict)
+    provider_notes: tuple[providers_schema.ProviderNote, ...] = ()
+
+    @classmethod
+    def collect_notes(cls, *affinities: Affinity) -> tuple[providers_schema.ProviderNote, ...]:
+        seen: set[str] = set()
+        notes: list[providers_schema.ProviderNote] = []
+        for affinity in affinities:
+            for note in affinity.provider_notes:
+                if note.code in seen:
+                    continue
+                seen.add(note.code)
+                notes.append(note)
+        return tuple(notes)
 
     @pydantic.field_validator("element_rankings", mode="before")
     @classmethod
@@ -68,7 +80,7 @@ class Affinity(FrozenSchema):
         evo_rng: random.Random | None = None,
         radiant_rng: random.Random | None = None,
     ) -> BirthOutcome:
-        stat_keys = ("base_hp", "base_attack", "base_defense", "base_sp_attack", "base_sp_defense", "base_speed")
+        stat_keys = ("hp", "attack", "defense", "sp_attack", "sp_defense", "speed")
         if rng is None:
             rng = random.Random()
         if evo_rng is None:
@@ -88,7 +100,7 @@ class Affinity(FrozenSchema):
             total += weight
 
             for k in stat_keys:
-                stats[k] += weight * math.floor(getattr(affinity.identity, k))
+                stats[k] += weight * math.floor(getattr(affinity.identity.base, k))
 
             pop_m.extend((m, weight) for m in affinity.moves)
             ranking_pairs.append((cls._rankings_for_merge(affinity), _PROVIDER_MERGE_WEIGHT))
@@ -118,7 +130,7 @@ class Affinity(FrozenSchema):
             elements=tuple(dict.fromkeys(elements)),
             evo_seed=evo_seed,
             is_radiant=radiant_rng.randint(1, 4096) == 4096,
-            **stats_scaled,
+            base=BaseStats(**stats_scaled),
         )
 
         return BirthOutcome(identity=identity, moves=tuple(moves), evo_stage=evo_stage)

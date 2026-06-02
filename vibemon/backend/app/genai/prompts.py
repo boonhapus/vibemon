@@ -1,3 +1,5 @@
+"""Render versioned Jinja prompt templates from the bundled ``prompts/`` tree."""
+
 import functools as ft
 import pathlib
 
@@ -11,6 +13,8 @@ _PROMPT_DIR = pathlib.Path(__file__).parent.joinpath("prompts")
 
 
 class RenderedPrompt(pydantic.BaseModel):
+    """Frozen prompt payload returned to GenAI callers."""
+
     model_config = pydantic.ConfigDict(frozen=True)
 
     text: str
@@ -31,11 +35,10 @@ def _env_for(loader_root: pathlib.Path) -> jinja2.Environment:
 
 
 def render(template_path: str, **variables: object) -> RenderedPrompt:
-    """
-    Render a prompt from the prompts directory.
+    """Render a prompt template with YAML frontmatter metadata.
 
-    If the path is in a subdirectory, that directory becomes the Jinja
-    loader root so includes resolve relative to it.
+    When ``template_path`` includes subdirectories, that folder becomes the
+    Jinja loader root so ``{% include %}`` resolves relative to the template.
     """
     path = pathlib.Path(template_path)
     env = _env_for(_PROMPT_DIR / path.parent)

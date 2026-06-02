@@ -1,7 +1,5 @@
 """Move-domain schemas and declarative move behavior."""
 
-from __future__ import annotations
-
 from typing import Annotated, Literal
 import re
 

@@ -1,0 +1,352 @@
+{
+  "genres": [
+    {
+      "id": "4bb4043a-0ee5-4b84-93fa-6ba4567a6ba0",
+      "disambiguation": "",
+      "name": "contemporary r&b",
+      "count": 1
+    },
+    {
+      "id": "b739a895-85ed-4ad3-8717-4e9ef5387dd8",
+      "disambiguation": "",
+      "name": "dance-pop",
+      "count": 2
+    },
+    {
+      "id": "3f3388b4-e36a-4bf8-a0be-66b10d92aaa4",
+      "disambiguation": "",
+      "name": "electropop",
+      "count": 2
+    },
+    {
+      "id": "911c7bbb-172d-4df8-9478-dbff4296e791",
+      "count": 5,
+      "name": "pop",
+      "disambiguation": ""
+    },
+    {
+      "id": "988e91a3-3341-416d-b7f8-7dbef6848dac",
+      "count": 1,
+      "name": "synth-pop",
+      "disambiguation": ""
+    }
+  ],
+  "video": false,
+  "relations": [
+    {
+      "attributes": [],
+      "direction": "forward",
+      "target-credit": "",
+      "url": {
+        "id": "94baa4b6-0281-4127-96c6-72a9040d4943",
+        "resource": "https://open.spotify.com/track/797HyfWx7ZHVMOOawVSNuP"
+      },
+      "attribute-values": {},
+      "begin": null,
+      "type-id": "7e41ef12-a124-4324-afdb-fdbae687a89c",
+      "attribute-ids": {},
+      "type": "free streaming",
+      "source-credit": "",
+      "target-type": "url",
+      "ended": false,
+      "end": null
+    },
+    {
+      "type-id": "7e41ef12-a124-4324-afdb-fdbae687a89c",
+      "begin": null,
+      "attribute-values": {},
+      "url": {
+        "resource": "https://www.deezer.com/track/366298261",
+        "id": "6398e158-09c7-4ebb-9876-03437de174af"
+      },
+      "target-credit": "",
+      "attributes": [],
+      "direction": "forward",
+      "end": null,
+      "target-type": "url",
+      "ended": false,
+      "type": "free streaming",
+      "source-credit": "",
+      "attribute-ids": {}
+    },
+    {
+      "type-id": "92777657-504c-4acb-bd33-51a201bd57e1",
+      "begin": null,
+      "url": {
+        "resource": "https://music.apple.com/us/song/1227678648",
+        "id": "d6daf0e1-a476-4251-bfa6-7c897489973e"
+      },
+      "attribute-values": {},
+      "attributes": [],
+      "direction": "forward",
+      "target-credit": "",
+      "target-type": "url",
+      "ended": false,
+      "end": null,
+      "type": "purchase for download",
+      "source-credit": "",
+      "attribute-ids": {}
+    },
+    {
+      "attribute-ids": {},
+      "end": null,
+      "target-type": "url",
+      "ended": false,
+      "source-credit": "",
+      "type": "streaming",
+      "attribute-values": {},
+      "url": {
+        "id": "870fe623-4f05-40b8-a07a-f3471e05ba30",
+        "resource": "https://tidal.com/track/74442048"
+      },
+      "target-credit": "",
+      "attributes": [],
+      "direction": "forward",
+      "type-id": "b5f3058a-666c-406f-aafb-f9249fc7b122",
+      "begin": null
+    }
+  ],
+  "disambiguation": "explicit",
+  "artist-credit": [
+    {
+      "name": "Dua Lipa",
+      "artist": {
+        "type": "Person",
+        "tags": [
+          {
+            "count": 1,
+            "name": "2020s"
+          },
+          {
+            "count": 2,
+            "name": "alternative pop"
+          },
+          {
+            "count": 2,
+            "name": "boogie"
+          },
+          {
+            "count": 6,
+            "name": "contemporary r&b"
+          },
+          {
+            "name": "dance-pop",
+            "count": 11
+          },
+          {
+            "name": "dream pop",
+            "count": 2
+          },
+          {
+            "name": "electropop",
+            "count": 6
+          },
+          {
+            "count": 1,
+            "name": "english"
+          },
+          {
+            "name": "europop",
+            "count": 2
+          },
+          {
+            "count": 2,
+            "name": "funktronica"
+          },
+          {
+            "count": 2,
+            "name": "girlpower"
+          },
+          {
+            "name": "house",
+            "count": 2
+          },
+          {
+            "count": 2,
+            "name": "house music"
+          },
+          {
+            "count": 1,
+            "name": "hypnagogic pop"
+          },
+          {
+            "count": 2,
+            "name": "indie pop"
+          },
+          {
+            "count": 2,
+            "name": "left-field pop"
+          },
+          {
+            "count": 1,
+            "name": "leftfield"
+          },
+          {
+            "name": "nu disco",
+            "count": 3
+          },
+          {
+            "count": 2,
+            "name": "nuno"
+          },
+          {
+            "count": 9,
+            "name": "pop"
+          },
+          {
+            "count": 1,
+            "name": "r&b"
+          },
+          {
+            "name": "synth-pop",
+            "count": 5
+          },
+          {
+            "count": 1,
+            "name": "synthpop"
+          }
+        ],
+        "id": "6f1a58bf-9b1b-49cf-a44a-6cefad7ae04f",
+        "genres": [
+          {
+            "count": 2,
+            "name": "alternative pop",
+            "disambiguation": "",
+            "id": "d3ebe947-7c03-43f5-b333-09379881b0f6"
+          },
+          {
+            "name": "boogie",
+            "count": 2,
+            "disambiguation": "",
+            "id": "10fd28e3-51aa-4110-a3dd-032d8a141f99"
+          },
+          {
+            "id": "4bb4043a-0ee5-4b84-93fa-6ba4567a6ba0",
+            "disambiguation": "",
+            "name": "contemporary r&b",
+            "count": 6
+          },
+          {
+            "id": "b739a895-85ed-4ad3-8717-4e9ef5387dd8",
+            "count": 11,
+            "name": "dance-pop",
+            "disambiguation": ""
+          },
+          {
+            "id": "6242615b-5620-465b-b6fb-2e593e90cbad",
+            "disambiguation": "",
+            "name": "dream pop",
+            "count": 2
+          },
+          {
+            "name": "electropop",
+            "count": 6,
+            "disambiguation": "",
+            "id": "3f3388b4-e36a-4bf8-a0be-66b10d92aaa4"
+          },
+          {
+            "id": "50e3ff0e-1abb-4577-9bf3-95d5c539ce2d",
+            "name": "europop",
+            "count": 2,
+            "disambiguation": ""
+          },
+          {
+            "name": "funktronica",
+            "count": 2,
+            "disambiguation": "",
+            "id": "2fe74485-a939-4aa5-958f-ce09ba16906c"
+          },
+          {
+            "id": "a2782cb6-1cd0-477c-a61d-b3f8b42dd1b3",
+            "disambiguation": "",
+            "count": 2,
+            "name": "house"
+          },
+          {
+            "name": "hypnagogic pop",
+            "count": 1,
+            "disambiguation": "",
+            "id": "c0dccaaa-171d-4355-b5c6-10ae392c1087"
+          },
+          {
+            "disambiguation": "",
+            "count": 2,
+            "name": "indie pop",
+            "id": "f390be72-360b-41bb-a310-6a2e638779d2"
+          },
+          {
+            "id": "32bea60c-e201-4241-8ed4-228636d34a97",
+            "count": 1,
+            "name": "leftfield",
+            "disambiguation": ""
+          },
+          {
+            "id": "351424dd-91a3-4cf2-9edb-5df647743ec0",
+            "disambiguation": "",
+            "count": 3,
+            "name": "nu disco"
+          },
+          {
+            "id": "911c7bbb-172d-4df8-9478-dbff4296e791",
+            "disambiguation": "",
+            "count": 9,
+            "name": "pop"
+          },
+          {
+            "id": "31be54b2-4d0c-42df-aa44-c496c7b4c3c3",
+            "count": 1,
+            "name": "r&b",
+            "disambiguation": ""
+          },
+          {
+            "id": "988e91a3-3341-416d-b7f8-7dbef6848dac",
+            "count": 5,
+            "name": "synth-pop",
+            "disambiguation": ""
+          }
+        ],
+        "type-id": "b6e035f4-3ce9-331c-97df-83397230b0df",
+        "sort-name": "Lipa, Dua",
+        "name": "Dua Lipa",
+        "country": "GB",
+        "disambiguation": ""
+      },
+      "joinphrase": ""
+    }
+  ],
+  "length": 178583,
+  "id": "026fa041-3917-4c73-9079-ed16e36f20f8",
+  "tags": [
+    {
+      "name": "contemporary r&b",
+      "count": 1
+    },
+    {
+      "count": 2,
+      "name": "dance-pop"
+    },
+    {
+      "count": 2,
+      "name": "electropop"
+    },
+    {
+      "name": "pop",
+      "count": 5
+    },
+    {
+      "count": 1,
+      "name": "sexy"
+    },
+    {
+      "count": 1,
+      "name": "synth-pop"
+    }
+  ],
+  "first-release-date": "2016-08-26",
+  "title": "Blow Your Mind (Mwah)",
+  "isrcs": [
+    "DEUM71601954",
+    "GBAHT1600302",
+    "GBAHT1600318"
+  ]
+}

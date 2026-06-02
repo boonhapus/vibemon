@@ -1,7 +1,5 @@
 """Centralized tuning constants for wild encounter matching and weighting."""
 
-from __future__ import annotations
-
 import datetime as dt
 import random
 

@@ -3,13 +3,13 @@ import datetime as dt
 
 import niquests
 
-from app import __project__
-from app.providers.api_hooks import LoggingHook, RateLimiterHook, provider_retry_policy
+from app.providers._api.hooks import LoggingHook, RateLimiterHook, ThrottledSessionMixin
+from app.providers._api.policy import provider_default_headers, provider_retry_policy
 
 from . import const, utils
 
 
-class OpenMeteoClient(niquests.AsyncSession):
+class OpenMeteoClient(ThrottledSessionMixin, niquests.AsyncSession):
     """
     Fetches weather and air-quality time series from Open-Meteo.
 
@@ -26,19 +26,15 @@ class OpenMeteoClient(niquests.AsyncSession):
             (10_000, dt.timedelta(days=1)),
             (300_000, dt.timedelta(days=30)),
             provider=OpenMeteoClient.provider_name,
+            concurrency=1,
         )
+
         super().__init__(
             base_url=const.WEATHER_API_BASE_URL,
             hooks=LoggingHook(provider=OpenMeteoClient.provider_name) + rate_limiter,  # pyrefly: ignore
             retries=provider_retry_policy(),
+            headers={**provider_default_headers(), "content-type": "application/json"},
             **session_opts,
-        )
-        self.headers.update(
-            {
-                "user-agent": f"{__project__.__name__} v{__project__.__version__} (+github/{__project__.__slug__})",
-                "content-type": "application/json",
-                "accept": "application/json",
-            }
         )
 
     async def forecast(

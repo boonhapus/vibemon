@@ -1,6 +1,3 @@
-from __future__ import annotations
-
-from collections.abc import AsyncGenerator
 from types import SimpleNamespace
 from typing import cast
 import datetime as dt
@@ -9,28 +6,14 @@ import uuid
 import pytest
 
 pytest.importorskip("sqlalchemy")
-pytest.importorskip("aiosqlite")
 
-from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker, create_async_engine
+from sqlalchemy.ext.asyncio import AsyncSession
 import sqlalchemy as sa
 
 from app.domains.vibemon.assets import ASSET_VERSION, AssetKind, AssetRef
 from app.storage.blob import assets as blob_assets
 from app.storage.blob.monstore import MonStore
 from app.storage.database import models
-
-
-@pytest.fixture
-async def sess() -> AsyncGenerator[AsyncSession]:
-    engine = create_async_engine("sqlite+aiosqlite:///:memory:")
-    try:
-        async with engine.begin() as conn:
-            await conn.run_sync(models.Base.metadata.create_all)
-        async_session = async_sessionmaker(engine, expire_on_commit=False)
-        async with async_session() as session:
-            yield session
-    finally:
-        await engine.dispose()
 
 
 def _asset_ref(vibemon_id: uuid.UUID, key: str, *, kind: AssetKind = AssetKind.REFERENCE) -> AssetRef:

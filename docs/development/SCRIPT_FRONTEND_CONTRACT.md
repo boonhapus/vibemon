@@ -13,7 +13,7 @@ uv run --project vibemon/backend python -m vibemon.scripts.<command> <args>
 - A zero exit code means the workflow committed successfully.
 - A non-zero exit code means no successful result should be consumed.
 - `--database-url` accepts any SQLAlchemy async database URL supported by the backend.
-- If `--database-url` is omitted, scripts use `.generated/vibemon.sqlite` under the repository root through the anchored default in `vibemon/scripts/_common.py`.
+- If `--database-url` or `--asset-store-url` is omitted, scripts use `VIBEMON_STORAGE__DATABASE` and `VIBEMON_STORAGE__ASSETS` from repo-root `.env` via `Settings.load()`.
 - Scripts create database tables by default for local/dev use. Pass `--no-create-schema` when the frontend owns schema setup.
 - Timestamps are ISO-8601. Naive timestamps are treated as UTC; `Z` is accepted.
 - UUID arguments are standard UUID strings.

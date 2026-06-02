@@ -1,5 +1,7 @@
 # PostHog Analytics from Day One
 
+**Status:** Adopted. Operational plan lives in `docs/development/plans/infrastructure-plan.md` (self-hosted PostHog section). This document remains as the rationale and event-taxonomy reference.
+
 ## Premise
 Frontend decisions must be driven by observed user behavior, not intuition. Instrument from the first commit so we never ship a feature blind. Retrofitting analytics after launch loses the early-adopter signal — the most valuable cohort for shaping the product.
 

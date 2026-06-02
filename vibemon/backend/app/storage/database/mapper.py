@@ -1,31 +1,30 @@
 """Mapping between ORM rows and Vibemon domain objects."""
 
-from __future__ import annotations
-
 import uuid
 
 from app.domains.move.entity import EffectGroup, Move, MoveBehavior
 from app.domains.move.types import MoveCategoryT, MoveTargetT, VibemonTypeT
 from app.domains.vibemon.assets import AssetKind, AssetRef
 from app.domains.vibemon.entity import Aesthetic, Vibemon
-from app.domains.vibemon.identity import Identity
+from app.domains.vibemon.identity import BaseStats, Identity
 from app.domains.vibemon.types import EvolutionStageT, VibemonLifecycleT
 from app.storage.database import models
 
 
 def identity_row(vibemon: Vibemon) -> models.Identity:
     identity = vibemon.identity
+    base = identity.base
     return models.Identity(
         name=identity.name,
         visual_notes=identity.visual_notes,
         provider_visual_notes=identity.provider_visual_notes,
         elements=[element.value for element in identity.elements],
-        base_hp=identity.base_hp,
-        base_attack=identity.base_attack,
-        base_defense=identity.base_defense,
-        base_sp_attack=identity.base_sp_attack,
-        base_sp_defense=identity.base_sp_defense,
-        base_speed=identity.base_speed,
+        base_hp=base.hp,
+        base_attack=base.attack,
+        base_defense=base.defense,
+        base_sp_attack=base.sp_attack,
+        base_sp_defense=base.sp_defense,
+        base_speed=base.speed,
         evo_seed=int(identity.evo_seed),
         is_radiant=identity.is_radiant,
         generation=identity.generation,
@@ -48,12 +47,14 @@ async def vibemon_from_row(row: models.Vibemon) -> Vibemon:
         visual_notes=row.identity.visual_notes,
         provider_visual_notes=row.identity.provider_visual_notes,
         elements=tuple(VibemonTypeT(element) for element in row.identity.elements),
-        base_hp=row.identity.base_hp,
-        base_attack=row.identity.base_attack,
-        base_defense=row.identity.base_defense,
-        base_sp_attack=row.identity.base_sp_attack,
-        base_sp_defense=row.identity.base_sp_defense,
-        base_speed=row.identity.base_speed,
+        base=BaseStats(
+            hp=row.identity.base_hp,
+            attack=row.identity.base_attack,
+            defense=row.identity.base_defense,
+            sp_attack=row.identity.base_sp_attack,
+            sp_defense=row.identity.base_sp_defense,
+            speed=row.identity.base_speed,
+        ),
         evo_seed=EvolutionStageT(row.identity.evo_seed),
         is_radiant=row.identity.is_radiant,
         generation=row.identity.generation,

@@ -502,14 +502,15 @@ async def synthesize_scenario(provider: ClimateProvider, spec: ScenarioSpec) -> 
 
 def _affinity_signature(affinity: Affinity) -> tuple[object, ...]:
     identity = affinity.identity
+    base = identity.base
     return (
         tuple(element.value for element in identity.elements),
-        identity.base_hp,
-        identity.base_attack,
-        identity.base_defense,
-        identity.base_sp_attack,
-        identity.base_sp_defense,
-        identity.base_speed,
+        base.hp,
+        base.attack,
+        base.defense,
+        base.sp_attack,
+        base.sp_defense,
+        base.speed,
         identity.evo_seed.name,
         identity.is_radiant,
         round(affinity.intensity, 4),
@@ -726,13 +727,14 @@ def _move_set_report(affinity: Affinity) -> MoveSetReport:
 
 def _scenario_affinity_report(spec: ScenarioSpec, affinity: Affinity) -> ScenarioAffinityReport:
     identity = affinity.identity
+    base = identity.base
     stats = {
-        "hp": identity.base_hp,
-        "attack": identity.base_attack,
-        "defense": identity.base_defense,
-        "sp_attack": identity.base_sp_attack,
-        "sp_defense": identity.base_sp_defense,
-        "speed": identity.base_speed,
+        "hp": base.hp,
+        "attack": base.attack,
+        "defense": base.defense,
+        "sp_attack": base.sp_attack,
+        "sp_defense": base.sp_defense,
+        "speed": base.speed,
     }
     return ScenarioAffinityReport(
         name=spec.name,

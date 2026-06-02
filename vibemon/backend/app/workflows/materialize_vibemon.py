@@ -1,7 +1,5 @@
 """Lifecycle realization with injected IO adapters."""
 
-from __future__ import annotations
-
 from typing import Protocol
 import asyncio
 import io
@@ -53,9 +51,12 @@ class MaterializeVibemon:
         generator: VibemonAssetGenerator | None = None,
         monstore: AssetStore | None = None,
     ) -> None:
-        from app.genai import vibemon_assets
+        if generator is None:
+            from app.genai import vibemon_assets
 
-        self._generator = generator or vibemon_assets.get_default_asset_generator()
+            generator = vibemon_assets.get_default_asset_generator()
+
+        self._generator = generator
         asset_store = monstore or get_default_monstore()
         self._put_asset = asset_store.put
         self._get_asset = asset_store.get

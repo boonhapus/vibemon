@@ -19,7 +19,11 @@ A generated **Vibemon** currently presented to one **Trainer** for accept/reject
 _Home_: `domains/adoption`
 
 **Candidate Review**:
-The temporary decision state for a shown **Candidate** before it resolves to **Owned** or **Wild**.
+The temporary decision state for a shown **Candidate** before it resolves to **Owned** or **Wild**. May include **Provider Warnings** surfaced by the birth workflow.
+
+**Provider Warning**:
+A non-fatal signal from a **Provider** that birth completed but some inputs were thin or partial (for example low audio-analysis coverage for the **Music Provider**).
+_Avoid_: Error, failure
 
 **Candidate Review Timeout**:
 The review deadline after which an unresolved shown **Candidate** resolves to **Wild**.
@@ -79,7 +83,8 @@ The process that transitions stale encounter-inactive **Wild** **Vibemon** to **
 A real player encounter event with a **Wild** **Vibemon**.
 
 **Birth Context**:
-The raw context captured at generation time, including geography used for wild eligibility.
+The shared inputs every birth reproduces from: birth instant, place, and **Trainer** identity.
+_Avoid_: Provider payloads, listening history, weather readings
 
 **Wild Geography Bucket**:
 A coarse geographic grouping used to select relevant **Wild** encounters.
@@ -108,7 +113,27 @@ _Avoid_: Workflow, orchestration, generation
 _Home_: state and transition rules in `domains/vibemon`; christen/manifest realization in `vibemon/scripts`
 
 **Birth**:
-Deterministic creation of a schema-ready **Vibemon** from **Birth Context** and captured place observations.
+Deterministic creation of a schema-ready **Vibemon** from **Birth Context** and opted-in **Provider** contributions.
+_Avoid_: Soundtrack of birth (evocative phrase, not a domain object)
+
+**Provider**:
+An opt-in birth-time signal source that captures a **Provider Observation** and synthesizes an **Affinity**.
+_Home_: `app/providers`
+
+**Music Provider**:
+The personal-listening **Provider** (`provider_id="music"`) that derives an **Affinity** from a **Trainer**'s music taste at birth time.
+_Avoid_: Sound provider, Spotify provider, soundtrack of birth
+
+**Provider Observation**:
+One **Provider**'s reduced capture at birth time, persisted for replay and dev tuning.
+_Avoid_: Raw API response, snapshot payload
+
+**Affinity**:
+One **Provider**'s synthesized birth contribution—element leanings, stat signals, intensity, moves, and flavor—before merge into a **Vibemon** **Identity**.
+_Home_: `domains/generation`
+
+**Birth Snapshot**:
+The persisted set of **Provider Observations** for one **Birth**.
 
 **Christen**:
 Lifecycle transition that finalizes name and preview presentation.
@@ -197,3 +222,11 @@ The near-term user-facing surface under `vibemon/scripts`; scripts are thin adap
 - **Party Strength** is derived from per-member **Member Strength**.
 - **Lifecycle** states describe presentation readiness; **Service** describes orchestration.
 - **Move Catalog** stores approved **Move** definitions composed of **Effect** primitives.
+- **Birth** starts from **Birth Context**; each opted-in **Provider** adds a **Provider Observation** that synthesizes to an **Affinity**.
+- **Birth Snapshot** holds all **Provider Observations** for one **Birth**; replay re-synthesizes **Affinities** without re-fetching upstream sources.
+- **Provider Warnings** on an **Affinity** are non-fatal; the birth workflow may surface them during **Candidate Review**.
+
+## Flagged ambiguities
+
+- "Soundtrack of birth" is evocative marketing for the **Music Provider**, not a domain object—the listening fingerprint is a **Provider Observation**, not part of **Birth Context**.
+- **Biome Provider** is the ground/place **Provider** (formerly referred to as geography in early plans); **Music Provider** is the taste/culture axis, not place or sky.

@@ -1,5 +1,3 @@
-from __future__ import annotations
-
 import datetime as dt
 import uuid
 
@@ -9,7 +7,7 @@ from app.domains.move.entity import EffectGroup, Move, MoveBehavior, StatusInfli
 from app.domains.move.types import MoveCategoryT, MoveTargetT, StatusConditionT, VibemonTypeT
 from app.domains.vibemon.assets import AssetKind
 from app.domains.vibemon.entity import Vibemon
-from app.domains.vibemon.identity import Identity
+from app.domains.vibemon.identity import BaseStats, Identity
 from app.domains.vibemon.types import EvolutionStageT, VibemonLifecycleT
 from app.storage.database import mapper, models
 
@@ -49,12 +47,14 @@ def _identity(generated_at: dt.datetime) -> Identity:
         visual_notes="bright ember crest",
         provider_visual_notes="clear midday sun",
         elements=(VibemonTypeT.FIRE, VibemonTypeT.FLYING),
-        base_hp=61,
-        base_attack=72,
-        base_defense=55,
-        base_sp_attack=88,
-        base_sp_defense=64,
-        base_speed=91,
+        base=BaseStats(
+            hp=61,
+            attack=72,
+            defense=55,
+            sp_attack=88,
+            sp_defense=64,
+            speed=91,
+        ),
         evo_seed=EvolutionStageT.STAGE_2,
         is_radiant=True,
         generation=2,

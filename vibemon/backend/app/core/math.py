@@ -1,8 +1,11 @@
+"""Small numeric helpers shared by providers and domain formulas."""
+
 from collections.abc import Iterable
 import random
 
 
 def clamp(value: float, *, minimum: float, maximum: float) -> float:
+    """Pin ``value`` to the inclusive ``[minimum, maximum]`` range."""
     return max(minimum, min(maximum, value))
 
 
@@ -13,7 +16,7 @@ def weighted_sample[T](
     k: int = 1,
     rng: random.Random | None = None,
 ) -> list[T]:
-    """Like random.choices, but without replacement."""
+    """Sample ``k`` distinct items without replacement, weighted by ``weights``."""
     population = list(population)
     weights = list(weights)
 

@@ -1,5 +1,3 @@
-from __future__ import annotations
-
 from app.domains.battle import entity, events, turn
 from app.domains.battle.mechanics import stats
 from app.domains.move.entity import (

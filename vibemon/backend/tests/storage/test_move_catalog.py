@@ -1,30 +1,11 @@
-from __future__ import annotations
-
-from collections.abc import AsyncGenerator
-
+from sqlalchemy.ext.asyncio import AsyncSession
 import pytest
 
 pytest.importorskip("sqlalchemy")
-pytest.importorskip("aiosqlite")
-
-from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker, create_async_engine
 
 from app.domains.move.entity import Move
 from app.domains.move.types import MoveCategoryT, MoveTargetT, VibemonTypeT
-from app.storage.database import models, move_catalog
-
-
-@pytest.fixture
-async def sess() -> AsyncGenerator[AsyncSession]:
-    engine = create_async_engine("sqlite+aiosqlite:///:memory:")
-    try:
-        async with engine.begin() as conn:
-            await conn.run_sync(models.Base.metadata.create_all)
-        async_session = async_sessionmaker(engine, expire_on_commit=False)
-        async with async_session() as session:
-            yield session
-    finally:
-        await engine.dispose()
+from app.storage.database import move_catalog
 
 
 def _move(move_id: str, name: str) -> Move:

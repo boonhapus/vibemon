@@ -1,7 +1,5 @@
 """Reusable database operations for Vibemon workflows."""
 
-from __future__ import annotations
-
 import datetime as dt
 import uuid
 
@@ -18,12 +16,15 @@ from app.domains.encounter.wild_pool import WildPoolCandidate, WildPoolService
 from app.domains.generation.seed import BirthSeed
 from app.domains.generation.snapshot import BirthSnapshot
 from app.domains.move.entity import Move
+from app.domains.trainer import types as trainer_types
 from app.domains.vibemon.disposition import VibemonDispositionT
 from app.domains.vibemon.entity import Vibemon
 from app.domains.vibemon.history import VibemonHistoryEventT
 from app.domains.vibemon.strength import member_strength
+from app.providers import schema as providers_schema
 from app.storage.blob import assets as blob_assets
 from app.storage.database import mapper, models, move_catalog
+from app.storage.secrets import repository as secrets_repository
 
 
 async def persist_new_vibemon(
@@ -37,6 +38,7 @@ async def persist_new_vibemon(
     seed = models.BirthSeed(
         timestamp=birth_seed.timestamp,
         geo_coords=list(birth_seed.geo_coords),
+        trainer_id=birth_seed.trainer_id,
     )
     snapshot_row = models.BirthSnapshot(birth_seed=seed, provider_payloads=snapshot.provider_payloads)
     row = models.Vibemon(
@@ -109,6 +111,7 @@ def create_review(
     now: dt.datetime,
     *,
     timeout: dt.timedelta,
+    provider_notes: tuple[providers_schema.ProviderNote, ...] = (),
 ) -> models.CandidateReview:
     return models.CandidateReview(
         vibemon_id=vibemon_id,
@@ -118,6 +121,7 @@ def create_review(
         timeout_at=now + timeout,
         resolved_at=None,
         resolution=None,
+        provider_notes=[note.model_dump(mode="json") for note in provider_notes],
     )
 
 
@@ -149,6 +153,29 @@ async def pending_review(
         raise CandidateReviewUnavailable("No pending candidate review exists for this trainer and Vibemon.")
     adoption_policy.require_pending_review_status(review.status)
     return review
+
+
+async def set_trainer_lastfm_link(
+    sess: AsyncSession,
+    trainer_id: uuid.UUID,
+    *,
+    session_key: str | None,
+    username: str | None,
+) -> None:
+    row = await sess.get(models.Trainer, trainer_id)
+    if row is None:
+        raise ValueError(f"Trainer {trainer_id} does not exist.")
+    await secrets_repository.set_trainer_secret(sess, trainer_id, trainer_types.LASTFM_SESSION_KEY, session_key)
+    await secrets_repository.set_trainer_secret(sess, trainer_id, trainer_types.LASTFM_USERNAME, username)
+
+
+async def get_trainer_lastfm_link(sess: AsyncSession, trainer_id: uuid.UUID) -> tuple[str | None, str | None]:
+    row = await sess.get(models.Trainer, trainer_id)
+    if row is None:
+        raise ValueError(f"Trainer {trainer_id} does not exist.")
+    session_key = await secrets_repository.get_trainer_secret(sess, trainer_id, trainer_types.LASTFM_SESSION_KEY)
+    username = await secrets_repository.get_trainer_secret(sess, trainer_id, trainer_types.LASTFM_USERNAME)
+    return session_key, username
 
 
 async def load_vibemon(sess: AsyncSession, vibemon_id: uuid.UUID) -> models.Vibemon:

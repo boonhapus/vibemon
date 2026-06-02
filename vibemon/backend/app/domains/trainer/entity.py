@@ -1,7 +1,5 @@
 """Trainer-domain entity schemas."""
 
-from __future__ import annotations
-
 import uuid
 
 import pydantic

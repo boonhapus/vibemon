@@ -1,11 +1,8 @@
 """Rehearse trainer candidate review and adoption behavior."""
 
-from __future__ import annotations
-
 from typing import Annotated
 import asyncio
 import enum
-import os
 import uuid
 
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -79,18 +76,25 @@ def simulate_adoption(
         cyclopts.Parameter(group=COMMON_OPTIONS, help="Optional creative identity seed."),
     ] = None,
     database_url: Annotated[
-        str,
-        cyclopts.Parameter(group=ADVANCED_OPTIONS, help="Database URL for persisted script output."),
-    ] = _common.default_database_url(),
+        str | None,
+        cyclopts.Parameter(
+            group=ADVANCED_OPTIONS,
+            help="Database URL override; defaults to VIBEMON_STORAGE__DATABASE.",
+        ),
+    ] = None,
     asset_store_url: Annotated[
-        str,
-        cyclopts.Parameter(group=ADVANCED_OPTIONS, help="Blob/object store URL for generated assets."),
-    ] = _common.DEFAULT_ASSET_STORE_URL,
+        str | None,
+        cyclopts.Parameter(
+            group=ADVANCED_OPTIONS,
+            help="Asset store URL override; defaults to VIBEMON_STORAGE__ASSETS.",
+        ),
+    ] = None,
     bypass_credits: Annotated[
         bool,
         cyclopts.Parameter(group=ADVANCED_OPTIONS, negative="", help="Skip trainer generation credit checks."),
     ] = True,
 ) -> None:
+    storage = _common.load_script_settings(database_url=database_url, asset_store_url=asset_store_url)
     latitude, longitude = _resolve_location(location=location)
 
     asyncio.run(
@@ -103,8 +107,8 @@ def simulate_adoption(
             longitude=longitude,
             timestamp=born_at,
             candidate_lifecycle=lifecycle,
-            database_url=database_url,
-            asset_store_url=asset_store_url,
+            database_url=storage.storage.database,
+            asset_store_url=storage.storage.assets,
             nickname=nickname,
             core_identity=idea,
             bypass_credits=bypass_credits,
@@ -139,7 +143,6 @@ async def _run(
     core_identity: str | None,
     bypass_credits: bool,
 ) -> None:
-    os.environ["ASSET_STORE_URL"] = asset_store_url
     _common.ensure_local_blob_dir(asset_store_url)
     async with _common.session_scope(database_url=database_url) as sess:
         seed = _common.birth_seed(latitude=latitude, longitude=longitude, timestamp=timestamp)

@@ -1,4 +1,4 @@
-from __future__ import annotations
+"""Orchestrate GenAI calls that produce Vibemon names, sprites, and battle cries."""
 
 from collections.abc import Callable
 from typing import TYPE_CHECKING, Any, cast
@@ -6,11 +6,12 @@ import functools as ft
 import re
 
 from elevenlabs import AsyncElevenLabs
+import pydantic
 import pydantic_ai
 import structlog
 
-from app.genai import audio, image, prompts
-from app.settings import get_settings
+from app.genai import google, prompts
+from app.settings import Settings
 
 if TYPE_CHECKING:
     from app.domains.move import entity as move_entity
@@ -18,14 +19,24 @@ if TYPE_CHECKING:
     from app.domains.vibemon import identity as vibemon_identity
 
 _LOGGER = structlog.get_logger(__name__)
-RX_WORDS_ONLY = re.compile(r"[^\w-]")
+_RX_WORDS_ONLY = re.compile(r"[^\w-]")
+
+
+class VibemonSound(pydantic.BaseModel):
+    """Structured battle-cry brief passed to ElevenLabs sound generation."""
+
+    description: str = pydantic.Field(description="Cinematic sound effect description.")
+    duration: float = pydantic.Field(ge=0.5, le=4.0)
+
 
 type TextAgentFactory = Callable[[], Any]
-type ImageAgentFactory = Callable[[], image.ImageAgent]
+type ImageAgentFactory = Callable[[], google.ImageAgent]
 type ElevenLabsFactory = Callable[[], AsyncElevenLabs]
 
 
 class VibemonAssetGenerator:
+    """Generate names, sprite assets, and battle-cry audio for one Vibemon."""
+
     def __init__(
         self,
         *,
@@ -37,22 +48,19 @@ class VibemonAssetGenerator:
         self._image_agent_factory = image_agent_factory or _default_image_agent
         self._elevenlabs_factory = elevenlabs_factory or _default_elevenlabs
         self._text_agent: Any | None = None
-        self._image_agent: image.ImageAgent | None = None
+        self._image_agent: google.ImageAgent | None = None
         self._elevenlabs: AsyncElevenLabs | None = None
 
-    @property
     def _text_agent_client(self) -> Any:
         if self._text_agent is None:
             self._text_agent = self._text_agent_factory()
         return self._text_agent
 
-    @property
-    def _image_agent_client(self) -> image.ImageAgent:
+    def _image_agent_client(self) -> google.ImageAgent:
         if self._image_agent is None:
             self._image_agent = self._image_agent_factory()
         return self._image_agent
 
-    @property
     def _elevenlabs_client(self) -> AsyncElevenLabs:
         if self._elevenlabs is None:
             self._elevenlabs = self._elevenlabs_factory()
@@ -65,8 +73,8 @@ class VibemonAssetGenerator:
         visual_notes: str | None,
     ) -> str:
         prompt = prompts.render("species-name.mdc", identity=identity, moves=moves, visual_notes=visual_notes)
-        result = await self._text_agent_client.run(prompt.text)
-        name = RX_WORDS_ONLY.sub(repl="", string=result.output)
+        result = await self._text_agent_client().run(prompt.text)
+        name = _RX_WORDS_ONLY.sub(repl="", string=result.output)
         await _LOGGER.adebug(
             "Generated Vibemon name",
             name=name,
@@ -78,7 +86,7 @@ class VibemonAssetGenerator:
     async def generate_reference_image(self, vibemon: vibemon_entity.Vibemon) -> bytes:
         _require_aesthetic(vibemon)
         prompt = prompts.render("sprite-reference.mdc", vibemon=vibemon)
-        result = await self._image_agent_client.run(prompt.text)
+        result = await self._image_agent_client().run(prompt.text)
         output = cast(Any, result.output)
         await _LOGGER.adebug(
             "Generated Vibemon sprite reference",
@@ -91,7 +99,7 @@ class VibemonAssetGenerator:
     async def generate_sprite_sheet_image(self, vibemon: vibemon_entity.Vibemon, reference_image: bytes) -> bytes:
         _require_aesthetic(vibemon)
         prompt = prompts.render("sprite-sheet.mdc", vibemon=vibemon)
-        result = await self._image_agent_client.run(
+        result = await self._image_agent_client().run(
             [pydantic_ai.BinaryImage(data=reference_image, media_type="image/png"), prompt.text]
         )
         output = cast(Any, result.output)
@@ -105,7 +113,7 @@ class VibemonAssetGenerator:
 
     async def generate_battle_cry_audio(self, vibemon: vibemon_entity.Vibemon) -> bytes:
         prompt = prompts.render("battle-cry.mdc", vibemon=vibemon)
-        result = await self._text_agent_client.run(prompt.text, output_type=audio.VibemonSound)
+        result = await self._text_agent_client().run(prompt.text, output_type=VibemonSound)
         await _LOGGER.adebug(
             "Generated Vibemon battle cry",
             vibemon=vibemon.name,
@@ -113,7 +121,7 @@ class VibemonAssetGenerator:
             prompt_version=prompt.version,
             **result.output.model_dump(),
         )
-        stream = self._elevenlabs_client.text_to_sound_effects.convert(
+        stream = self._elevenlabs_client().text_to_sound_effects.convert(
             text=result.output.description,
             duration_seconds=result.output.duration,
         )
@@ -122,6 +130,7 @@ class VibemonAssetGenerator:
 
 @ft.cache
 def get_default_asset_generator() -> VibemonAssetGenerator:
+    """Process-wide asset generator wired from ``Settings.load()``."""
     return VibemonAssetGenerator()
 
 
@@ -131,15 +140,15 @@ def _require_aesthetic(vibemon: vibemon_entity.Vibemon) -> None:
 
 
 def _default_text_agent() -> Any:
-    settings = get_settings()
-    return pydantic_ai.Agent(settings.txt_ai_model)
+    settings = Settings.load()
+    return google.build_text_agent(settings.genai.text, settings.secrets)
 
 
-def _default_image_agent() -> image.ImageAgent:
-    settings = get_settings()
-    return image.build_image_agent(settings.img_ai_model)
+def _default_image_agent() -> google.ImageAgent:
+    settings = Settings.load()
+    return google.build_image_agent(settings.genai.image, settings.secrets)
 
 
 def _default_elevenlabs() -> AsyncElevenLabs:
-    settings = get_settings()
-    return AsyncElevenLabs(api_key=settings.eleven_labs_api_key.get_secret_value())
+    settings = Settings.load()
+    return AsyncElevenLabs(api_key=settings.secrets.eleven_labs.get_secret_value())

@@ -6,8 +6,8 @@ import datetime as dt
 import niquests
 import structlog
 
-from app import __project__
-from app.providers.api_hooks import LoggingHook, RateLimiterHook
+from app.providers._api.hooks import LoggingHook, RateLimiterHook
+from app.providers._api.policy import provider_default_headers
 
 from . import const, utils
 
@@ -36,12 +36,7 @@ class OverpassWaterClient(niquests.AsyncSession):
             ),
             **session_opts,
         )
-        self.headers.update(
-            {
-                "user-agent": f"{__project__.__name__} v{__project__.__version__} (+github/{__project__.__slug__})",
-                "accept": "application/json",
-            }
-        )
+        self.headers.update(provider_default_headers())
 
     async def proximity(self, latitude: float, longitude: float) -> dict[str, Any]:
         radius = const.SEARCH_RADIUS_M

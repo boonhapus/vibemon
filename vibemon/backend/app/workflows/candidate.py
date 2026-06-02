@@ -1,7 +1,5 @@
 """Candidate Vibemon lifecycle: generate → adopt / reject."""
 
-from __future__ import annotations
-
 import datetime as dt
 import uuid
 
@@ -41,7 +39,7 @@ async def generate_candidate(
     if not bypass_credits:
         credit_day, hold_id = await _reserve_credit(sess, trainer_id=trainer_id, now=now)
     try:
-        row = await workflows.birth_and_persist_vibemon(
+        row, provider_notes = await workflows.birth_and_persist_vibemon(
             sess,
             birth_seed=birth_seed,
             nickname=nickname,
@@ -54,6 +52,7 @@ async def generate_candidate(
             trainer_id,
             now,
             timeout=CANDIDATE_REVIEW_TIMEOUT,
+            provider_notes=provider_notes,
         )
         sess.add(review)
         repositories.add_history(

@@ -1,10 +1,7 @@
 """Rehearse a pure automated battle between two Vibemon."""
 
-from __future__ import annotations
-
 from typing import Annotated
 import asyncio
-import os
 import uuid
 
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -85,14 +82,21 @@ def simulate_battle(
         ),
     ] = "first_available",
     database_url: Annotated[
-        str,
-        cyclopts.Parameter(group=ADVANCED_OPTIONS, help="Database URL for loading existing Vibemon."),
-    ] = _common.default_database_url(),
+        str | None,
+        cyclopts.Parameter(
+            group=ADVANCED_OPTIONS,
+            help="Database URL override; defaults to VIBEMON_STORAGE__DATABASE.",
+        ),
+    ] = None,
     asset_store_url: Annotated[
-        str,
-        cyclopts.Parameter(group=ADVANCED_OPTIONS, help="Blob/object store URL for loaded assets."),
-    ] = _common.DEFAULT_ASSET_STORE_URL,
+        str | None,
+        cyclopts.Parameter(
+            group=ADVANCED_OPTIONS,
+            help="Asset store URL override; defaults to VIBEMON_STORAGE__ASSETS.",
+        ),
+    ] = None,
 ) -> None:
+    storage = _common.load_script_settings(database_url=database_url, asset_store_url=asset_store_url)
     asyncio.run(
         _run(
             vibemon_a_id=vibemon_a,
@@ -101,8 +105,8 @@ def simulate_battle(
             trainer_b_id=trainer_b or uuid.uuid7(),
             trainer_a_name=name_a,
             trainer_b_name=name_b,
-            database_url=database_url,
-            asset_store_url=asset_store_url,
+            database_url=storage.storage.database,
+            asset_store_url=storage.storage.assets,
             rng_seed=seed,
             move_policy=move_policy,
         )
@@ -122,7 +126,6 @@ async def _run(
     rng_seed: int | None,
     move_policy: _common.BattleMovePolicyT,
 ) -> None:
-    os.environ["ASSET_STORE_URL"] = asset_store_url
     _common.ensure_local_blob_dir(asset_store_url)
     async with _common.session_scope(database_url=database_url) as sess:
         vibemon_a, selected_vibemon_a_id = await _load_selected_battle_vibemon(sess, vibemon_a_id)

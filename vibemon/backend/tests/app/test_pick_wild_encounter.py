@@ -1,38 +1,22 @@
-from __future__ import annotations
-
-from collections.abc import AsyncGenerator
 import datetime as dt
 import uuid
 
 import pytest
 
 pytest.importorskip("sqlalchemy")
-pytest.importorskip("aiosqlite")
 
-from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker, create_async_engine
+from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.domains.adoption.types import CandidateReviewStatusT
 from app.domains.vibemon.disposition import VibemonDispositionT
 from app.domains.vibemon.types import VibemonLifecycleT
 from app.storage.database import models
 from app.workflows.wild_encounter import pick_wild_encounter
-
-
-@pytest.fixture
-async def sess() -> AsyncGenerator[AsyncSession]:
-    engine = create_async_engine("sqlite+aiosqlite:///:memory:")
-    try:
-        async with engine.begin() as conn:
-            await conn.run_sync(models.Base.metadata.create_all)
-        async_session = async_sessionmaker(engine, expire_on_commit=False)
-        async with async_session() as session:
-            yield session
-    finally:
-        await engine.dispose()
+from tests.conftest import TEST_TRAINER_ID
 
 
 def _wild_vibemon(vibemon_id: uuid.UUID, *, name: str, now: dt.datetime) -> models.Vibemon:
-    seed = models.BirthSeed(timestamp=now, geo_coords=[41.8781, -87.6298])
+    seed = models.BirthSeed(timestamp=now, geo_coords=[41.8781, -87.6298], trainer_id=TEST_TRAINER_ID)
     snapshot = models.BirthSnapshot(birth_seed=seed, provider_payloads={})
     row = models.Vibemon(
         id=vibemon_id,
@@ -70,6 +54,7 @@ def _wild_vibemon(vibemon_id: uuid.UUID, *, name: str, now: dt.datetime) -> mode
 @pytest.mark.asyncio
 async def test_pick_wild_encounter_ignores_pending_review_candidates(
     sess: AsyncSession,
+    test_trainer: object,
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     trainer_id = uuid.uuid7()

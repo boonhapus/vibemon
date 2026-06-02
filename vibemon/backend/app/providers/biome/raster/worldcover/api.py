@@ -9,8 +9,8 @@ from PIL import Image
 import niquests
 import structlog
 
-from app import __project__
-from app.providers.api_hooks import LoggingHook, RateLimiterHook, provider_retry_policy
+from app.providers._api.hooks import LoggingHook, RateLimiterHook
+from app.providers._api.policy import provider_default_headers, provider_retry_policy
 from app.providers.biome import const as biome_const
 
 from . import const
@@ -34,12 +34,7 @@ class TerrascopeWorldCoverClient(niquests.AsyncSession):
             retries=provider_retry_policy(),
             **session_opts,
         )
-        self.headers.update(
-            {
-                "user-agent": f"{__project__.__name__} v{__project__.__version__} (+github/{__project__.__slug__})",
-                "accept": "image/png",
-            }
-        )
+        self.headers.update(provider_default_headers(accept="image/png"))
 
     @staticmethod
     def _latlon_to_tile(latitude: float, longitude: float, zoom: int) -> tuple[int, int]:
@@ -73,9 +68,31 @@ class TerrascopeWorldCoverClient(niquests.AsyncSession):
             _LOGGER.warning("worldcover_unmapped_rgb", rgb=rgb, nearest=best_class.value, distance=best_distance)
         return best_class
 
+    @classmethod
+    def classify_tile_at_point(
+        cls,
+        image: Image.Image,
+        *,
+        latitude: float,
+        longitude: float,
+        tile_x: int,
+        tile_y: int,
+        zoom: int,
+    ) -> biome_const.WorldCoverClassT:
+        width, height = image.size
+        if width < 2 or height < 2:
+            return biome_const.WorldCoverClassT.PERMANENT_WATER
+        pixel_x, pixel_y = cls._pixel_in_tile(latitude, longitude, zoom, tile_x, tile_y, size=width)
+        pixel = image.getpixel((pixel_x, pixel_y))
+        if not isinstance(pixel, tuple):
+            raise RuntimeError("WorldCover tile pixel was not an RGBA tuple")
+        red, green, blue, alpha = pixel
+        if alpha < 10:
+            return biome_const.WorldCoverClassT.PERMANENT_WATER
+        return cls.decode_rgb((red, green, blue))
+
     async def sample_class(self, latitude: float, longitude: float) -> biome_const.WorldCoverClassT:
         tile_x, tile_y = self._latlon_to_tile(latitude, longitude, const.WORLDCOVER_ZOOM)
-        pixel_x, pixel_y = self._pixel_in_tile(latitude, longitude, const.WORLDCOVER_ZOOM, tile_x, tile_y)
         params = {
             "SERVICE": "WMTS",
             "REQUEST": "GetTile",
@@ -95,10 +112,11 @@ class TerrascopeWorldCoverClient(niquests.AsyncSession):
         if content is None:
             raise RuntimeError("WorldCover tile response had no content")
         image = Image.open(BytesIO(content)).convert("RGBA")
-        pixel = image.getpixel((pixel_x, pixel_y))
-        if not isinstance(pixel, tuple):
-            raise RuntimeError("WorldCover tile pixel was not an RGBA tuple")
-        red, green, blue, alpha = pixel
-        if alpha < 10:
-            return biome_const.WorldCoverClassT.PERMANENT_WATER
-        return self.decode_rgb((red, green, blue))
+        return self.classify_tile_at_point(
+            image,
+            latitude=latitude,
+            longitude=longitude,
+            tile_x=tile_x,
+            tile_y=tile_y,
+            zoom=const.WORLDCOVER_ZOOM,
+        )

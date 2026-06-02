@@ -1,6 +1,8 @@
-"""Replay persisted Vibemon births through current provider balance logic."""
+"""Replay persisted Vibemon births through current provider balance logic.
 
-from __future__ import annotations
+DEV-ONLY TOOLING: rebalances stored snapshots against current provider tuning.
+Do not treat this as a production migration or player-facing workflow.
+"""
 
 from collections.abc import Iterable
 from typing import Any
@@ -113,6 +115,7 @@ async def _replay_vibemon(
     seed = BirthSeed(
         timestamp=seed_row.timestamp,
         geo_coords=tuple(seed_row.geo_coords),
+        trainer_id=seed_row.trainer_id,
         providers=list(providers),
     )
     snapshot = generation_snapshot.BirthSnapshot(provider_payloads=row.birth_snapshot.provider_payloads)
@@ -168,13 +171,14 @@ def _summarize(before: Vibemon, after: Vibemon) -> RebalanceSummary:
 
 
 def _stats(identity: Identity) -> tuple[int, int, int, int, int, int]:
+    base = identity.base
     return (
-        identity.base_hp,
-        identity.base_attack,
-        identity.base_defense,
-        identity.base_sp_attack,
-        identity.base_sp_defense,
-        identity.base_speed,
+        base.hp,
+        base.attack,
+        base.defense,
+        base.sp_attack,
+        base.sp_defense,
+        base.speed,
     )
 
 
@@ -191,12 +195,13 @@ def _apply_identity(row: models.Identity, identity: Identity) -> None:
     row.visual_notes = identity.visual_notes
     row.provider_visual_notes = identity.provider_visual_notes
     row.elements = [element.value for element in identity.elements]
-    row.base_hp = identity.base_hp
-    row.base_attack = identity.base_attack
-    row.base_defense = identity.base_defense
-    row.base_sp_attack = identity.base_sp_attack
-    row.base_sp_defense = identity.base_sp_defense
-    row.base_speed = identity.base_speed
+    base = identity.base
+    row.base_hp = base.hp
+    row.base_attack = base.attack
+    row.base_defense = base.defense
+    row.base_sp_attack = base.sp_attack
+    row.base_sp_defense = base.sp_defense
+    row.base_speed = base.speed
     row.evo_seed = int(identity.evo_seed)
     row.is_radiant = identity.is_radiant
     row.generation = identity.generation

@@ -1,0 +1,137 @@
+[
+  {
+    "name": "guitar",
+    "weights": {
+      "rock": 0.3,
+      "ground": 0.3
+    },
+    "terms": [
+      "guitar",
+      "ukulele"
+    ]
+  },
+  {
+    "name": "piano",
+    "weights": {
+      "psychic": 0.3,
+      "water": 0.2
+    },
+    "terms": [
+      "piano"
+    ]
+  },
+  {
+    "name": "synth",
+    "weights": {
+      "electric": 0.4
+    },
+    "terms": [
+      "synth",
+      "synthesizer",
+      "digital",
+      "keyboard"
+    ]
+  },
+  {
+    "name": "drums",
+    "weights": {
+      "fighting": 0.3
+    },
+    "terms": [
+      "percussion"
+    ],
+    "patterns": [
+      "\\bdrums?\\b"
+    ]
+  },
+  {
+    "name": "violin",
+    "weights": {
+      "psychic": 0.3
+    },
+    "terms": [
+      "violin",
+      "viola",
+      "cello",
+      "string"
+    ]
+  },
+  {
+    "name": "acoustic",
+    "weights": {
+      "grass": 0.3,
+      "normal": 0.2
+    },
+    "terms": [
+      "acoustic",
+      "unplugged",
+      "organic"
+    ]
+  },
+  {
+    "name": "orchestral",
+    "weights": {
+      "dragon": 0.3
+    },
+    "terms": [
+      "orchestral",
+      "orchestra"
+    ],
+    "patterns": [
+      "\\bsymphon"
+    ]
+  },
+  {
+    "name": "bass",
+    "weights": {
+      "ground": 0.3
+    },
+    "terms": [
+      "bass"
+    ]
+  },
+  {
+    "name": "organ",
+    "weights": {
+      "ghost": 0.3
+    },
+    "terms": [
+      "organ"
+    ]
+  },
+  {
+    "name": "brass",
+    "weights": {
+      "fire": 0.3
+    },
+    "terms": [
+      "brass",
+      "trumpet",
+      "trombone",
+      "saxophone",
+      "sax"
+    ]
+  },
+  {
+    "name": "flute",
+    "weights": {
+      "flying": 0.3,
+      "water": 0.2
+    },
+    "terms": [
+      "flute",
+      "woodwind",
+      "reed"
+    ]
+  },
+  {
+    "name": "harp",
+    "weights": {
+      "fairy": 0.3,
+      "water": 0.2
+    },
+    "terms": [
+      "harp"
+    ]
+  }
+]

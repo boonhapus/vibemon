@@ -1,7 +1,5 @@
 """Trainer party domain rules."""
 
-from __future__ import annotations
-
 from app.core.errors import PartyFull
 
 MAX_PARTY_SIZE = 6

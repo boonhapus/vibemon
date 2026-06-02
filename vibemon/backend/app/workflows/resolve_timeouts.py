@@ -1,7 +1,5 @@
 """Resolve stale review and generation-hold timeouts."""
 
-from __future__ import annotations
-
 from typing import Any, cast
 import datetime as dt
 

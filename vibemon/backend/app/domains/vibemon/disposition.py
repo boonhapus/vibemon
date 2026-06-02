@@ -1,7 +1,5 @@
 """Gameplay availability state for Vibemon."""
 
-from __future__ import annotations
-
 import enum
 
 

@@ -1,7 +1,5 @@
 """Generate wild Vibemon supply."""
 
-from __future__ import annotations
-
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.time import resolve_clock
@@ -21,7 +19,7 @@ async def generate_wild_supply(
     christen: bool = False,
 ) -> PublicVibemon:
     now = resolve_clock()
-    row = await workflows.birth_and_persist_vibemon(
+    row, _provider_warnings = await workflows.birth_and_persist_vibemon(
         sess,
         birth_seed=birth_seed,
         nickname=nickname,

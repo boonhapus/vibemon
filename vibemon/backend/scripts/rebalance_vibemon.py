@@ -1,7 +1,5 @@
 """Replay existing Vibemon through current provider balance logic."""
 
-from __future__ import annotations
-
 from typing import Annotated
 import asyncio
 import enum
@@ -71,10 +69,14 @@ def rebalance_vibemon(
         cyclopts.Parameter(group=ADVANCED_OPTIONS, help="Optional path to write the JSON report."),
     ] = None,
     database_url: Annotated[
-        str,
-        cyclopts.Parameter(group=ADVANCED_OPTIONS, help="Database URL for persisted script output."),
-    ] = _common.default_database_url(),
+        str | None,
+        cyclopts.Parameter(
+            group=ADVANCED_OPTIONS,
+            help="Database URL override; defaults to VIBEMON_STORAGE__DATABASE.",
+        ),
+    ] = None,
 ) -> None:
+    storage = _common.load_script_settings(database_url=database_url)
     asyncio.run(
         _run(
             vibemon_id=vibemon,
@@ -84,7 +86,7 @@ def rebalance_vibemon(
             detail=detail,
             include_unchanged=include_unchanged,
             output=output,
-            database_url=database_url,
+            database_url=storage.storage.database,
         )
     )
 

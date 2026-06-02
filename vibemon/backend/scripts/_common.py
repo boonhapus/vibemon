@@ -1,19 +1,19 @@
 """Shared command-line plumbing for Vibemon rehearsal scripts."""
 
-from __future__ import annotations
-
-from collections.abc import AsyncGenerator
+from collections.abc import AsyncGenerator, Iterable
 from contextlib import asynccontextmanager
 from typing import Literal
 import dataclasses
 import datetime as dt
+import enum
 import json
 import os
 import pathlib
 import random
 import uuid
 
-from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker, create_async_engine
+from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
+import cyclopts
 import sqlalchemy as sa
 
 from app.core.ids import TrainerIdT
@@ -28,27 +28,65 @@ from app.domains.vibemon.schema import PublicVibemon
 from app.domains.vibemon.types import VibemonLifecycleT
 from app.providers.biome.provider import BiomeProvider
 from app.providers.climate.provider import ClimateProvider
+from app.providers.music.provider import MusicProvider
+from app.settings import Settings
+from app.storage.database import engine as db_engine
 from app.storage.database import mapper, models, repositories
 from app.workflows import _workflow_support as workflow_support
 from app.workflows.materialize_vibemon import MaterializeVibemon
 
 type BattleMovePolicyT = Literal["first_available", "best_damage", "stab_first", "status_aware", "random"]
+type ScriptProviderT = ClimateProvider | BiomeProvider | MusicProvider
 
-_REPO_ROOT = pathlib.Path(__file__).resolve().parents[3]
-_DEFAULT_GENERATED = _REPO_ROOT / ".generated"
-_DEFAULT_DATABASE_PATH = _REPO_ROOT / ".generated" / "database" / "vibemon.sqlite"
-DEFAULT_DATABASE_URL = f"sqlite+aiosqlite:///{_DEFAULT_DATABASE_PATH.as_posix()}"
-DEFAULT_ASSET_STORE_URL = f"file:///{(_DEFAULT_GENERATED / 'monstore').as_posix().lstrip('/')}"
+SCRIPT_ANONYMOUS_TRAINER_ID = uuid.UUID("01900000-0000-7000-8000-000000000002")
+_BUST_CACHE_ENV = "VIBEMON_BUST_CACHE"
 
 
-def load_repo_env() -> None:
-    from dotenv import load_dotenv
+class ProviderName(enum.StrEnum):
+    CLIMATE = "climate"
+    BIOME = "biome"
+    MUSIC = "music"
 
-    load_dotenv(_REPO_ROOT / ".env")
+
+DEFAULT_PROVIDERS: tuple[ProviderName, ...] = (ProviderName.CLIMATE, ProviderName.BIOME)
+
+_PROVIDER_TYPES: dict[ProviderName, type[ScriptProviderT]] = {
+    ProviderName.CLIMATE: ClimateProvider,
+    ProviderName.BIOME: BiomeProvider,
+    ProviderName.MUSIC: MusicProvider,
+}
 
 
-def default_database_url() -> str:
-    return os.getenv("VIBEMON_DATABASE_URL", DEFAULT_DATABASE_URL)
+def bust_cache_parameter(group: cyclopts.Group) -> cyclopts.Parameter:
+    return cyclopts.Parameter(
+        group=group,
+        negative="",
+        help="Force fresh provider HTTP responses and refresh cache entries.",
+    )
+
+
+def apply_cache_bust_flag(bust_cache: bool) -> None:
+    if bust_cache:
+        os.environ[_BUST_CACHE_ENV] = "1"
+
+
+def load_script_settings(
+    *,
+    database_url: str | None = None,
+    asset_store_url: str | None = None,
+    bust_cache: bool = False,
+) -> Settings:
+    """Load settings from env, applying optional CLI storage overrides."""
+    apply_cache_bust_flag(bust_cache)
+    Settings.load(refresh=True)
+    patch: dict[str, str] = {}
+    if database_url is not None:
+        patch["database"] = database_url
+    if asset_store_url is not None:
+        patch["assets"] = asset_store_url
+    if patch:
+        return Settings.load(storage=patch)
+    return Settings.load()
 
 
 def parse_datetime(value: str) -> dt.datetime:
@@ -58,16 +96,46 @@ def parse_datetime(value: str) -> dt.datetime:
     return parsed.astimezone(dt.UTC)
 
 
+def resolve_provider_names(
+    provider_names: Iterable[ProviderName | str] | None,
+) -> tuple[ProviderName, ...]:
+    if provider_names is None:
+        return DEFAULT_PROVIDERS
+    resolved = tuple(ProviderName(name) for name in provider_names)
+    if not resolved:
+        raise SystemExit("At least one --provider is required.")
+    return resolved
+
+
+def build_providers(provider_names: Iterable[ProviderName | str] | None = None) -> list[ScriptProviderT]:
+    return [_PROVIDER_TYPES[name]() for name in resolve_provider_names(provider_names)]
+
+
+def require_trainer_for_music(
+    provider_names: Iterable[ProviderName | str] | None,
+    *,
+    trainer_id: uuid.UUID | None,
+) -> None:
+    names = resolve_provider_names(provider_names)
+    if ProviderName.MUSIC in names and trainer_id is None:
+        raise SystemExit("--trainer with a linked Last.fm account is required when the music provider is selected.")
+
+
 def birth_seed(
     *,
     latitude: float,
     longitude: float,
     timestamp: str | None = None,
+    trainer_id: uuid.UUID | None = None,
+    provider_names: Iterable[ProviderName | str] | None = None,
 ) -> BirthSeed:
+    require_trainer_for_music(provider_names, trainer_id=trainer_id)
+    resolved_trainer_id = trainer_id or SCRIPT_ANONYMOUS_TRAINER_ID
     return BirthSeed(
         timestamp=parse_datetime(timestamp) if timestamp is not None else dt.datetime.now(tz=dt.UTC),
         geo_coords=(latitude, longitude),
-        providers=[ClimateProvider(), BiomeProvider()],
+        trainer_id=resolved_trainer_id,
+        providers=build_providers(provider_names),
     )
 
 
@@ -81,9 +149,8 @@ def random_longitude() -> float:
 
 @asynccontextmanager
 async def session_scope(*, database_url: str) -> AsyncGenerator[AsyncSession]:
-    if database_url == DEFAULT_DATABASE_URL:
-        _DEFAULT_DATABASE_PATH.parent.mkdir(parents=True, exist_ok=True)
-    engine = create_async_engine(database_url)
+    db_engine.ensure_sqlite_parent_dir(database_url)
+    engine = db_engine.create_async_database_engine(database_url)
     try:
         async with engine.begin() as conn:
             await conn.run_sync(models.Base.metadata.create_all)
@@ -135,7 +202,10 @@ async def ensure_trainer(
     return row
 
 
-async def load_public_vibemon(sess: AsyncSession, vibemon_id: uuid.UUID) -> PublicVibemon:
+async def load_public_vibemon(
+    sess: AsyncSession,
+    vibemon_id: uuid.UUID,
+) -> PublicVibemon:
     row = await repositories.load_vibemon(sess, vibemon_id)
     return await workflow_support.public_vibemon(row)
 

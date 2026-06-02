@@ -1,11 +1,9 @@
-from __future__ import annotations
-
 import random
 
 from app.domains.battle import entity as battle_entity
 from app.domains.move import entity as move_entity
 from app.domains.move import types as move_types
-from app.domains.vibemon.identity import Identity
+from app.domains.vibemon.identity import BaseStats, Identity
 from scripts import _common
 
 
@@ -38,11 +36,7 @@ def _vibemon(
         identity=Identity(
             name="Policy Test",
             elements=elements,
-            base_attack=90,
-            base_defense=60,
-            base_sp_attack=90,
-            base_sp_defense=60,
-            base_speed=60,
+            base=BaseStats(attack=90, defense=60, sp_attack=90, sp_defense=60, speed=60),
         ),
         moves=moves,
         level=50,

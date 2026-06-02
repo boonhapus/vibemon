@@ -1,7 +1,5 @@
 """Trainer generation-credit domain rules."""
 
-from __future__ import annotations
-
 from typing import Protocol
 import datetime as dt
 import uuid

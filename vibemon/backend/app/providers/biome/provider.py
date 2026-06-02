@@ -1,20 +1,21 @@
 """BiomeProvider: place-of-birth affinity from land cover, elevation, water, and solar phase."""
 
-from typing import Any, ClassVar
+from typing import ClassVar
 import asyncio
 import collections
-import functools as ft
 
 import structlog
 
 from app.core.math import clamp
 from app.domains.generation import types as generation_types
 from app.domains.generation.affinity import Affinity
+from app.domains.generation.ports import TrainerSecrets
 from app.domains.generation.seed import BirthSeed
 from app.domains.move.types import VibemonTypeT
 from app.domains.vibemon.identity import Identity
-from app.domains.vibemon.strength_formulas import base_stat_asymmetric_scaling, stat_ratio_from_grade
+from app.providers import schema as providers_schema
 from app.providers.base import VibeProvider
+from app.providers.biome import schema as biome_schema
 from app.providers.helpers import Signal, filter_element_types, pick_starter_moves
 
 from . import const
@@ -25,7 +26,7 @@ from .water.overpass import api as overpass_api
 _LOGGER = structlog.get_logger(__name__)
 
 
-class BiomeProvider(VibeProvider):
+class BiomeProvider(VibeProvider[biome_schema.BiomePayload]):
     """
     A Vibemon is born from the ground beneath its birthplace.
 
@@ -42,6 +43,7 @@ class BiomeProvider(VibeProvider):
     """
 
     name = "biome"
+    payload_type = biome_schema.BiomePayload
 
     exposed_elements: ClassVar[list[tuple[VibemonTypeT, str]]] = [
         (VibemonTypeT.NORMAL, "grassland, cropland, or suburban open land"),
@@ -68,6 +70,50 @@ class BiomeProvider(VibeProvider):
         self.worldcover = worldcover_api.TerrascopeWorldCoverClient()
         self.elevation = elevation_api.OpenMeteoElevationClient()
         self.water = overpass_api.OverpassWaterClient()
+
+    # ── INTERNAL HELPERS ──────────────────────────────────────────────────────────────
+
+    @classmethod
+    def balance_for_bst(
+        cls,
+        *,
+        land_cover: const.WorldCoverClassT,
+        built_up_fraction: float,
+        elevation_m: float,
+    ) -> providers_schema.BaseStatCenters:
+        archetype = land_cover.profile.stat_archetype
+        urbanity = clamp(built_up_fraction, minimum=0.0, maximum=1.0)
+        elevation_signal = Signal(
+            name="elevat",
+            attr="elevation_m",
+            raw=elevation_m,
+            min=-430.0,
+            med=350.0,
+            max=5100.0,
+        ).center
+
+        hp = const.STAT_TIER_CENTER[archetype["hp"]]
+        attack = const.STAT_TIER_CENTER[archetype["attack"]]
+        defense = const.STAT_TIER_CENTER[archetype["defense"]]
+        sp_attack = const.STAT_TIER_CENTER[archetype["sp_attack"]]
+        sp_defense = const.STAT_TIER_CENTER[archetype["sp_defense"]]
+        speed = const.STAT_TIER_CENTER[archetype["speed"]]
+
+        return providers_schema.BaseStatCenters(
+            hp=clamp(hp - 0.08 * urbanity, minimum=0.0, maximum=1.0),
+            attack=attack,
+            defense=clamp(defense + 0.08 * elevation_signal, minimum=0.0, maximum=1.0),
+            sp_attack=clamp(sp_attack + 0.08 * urbanity, minimum=0.0, maximum=1.0),
+            sp_defense=clamp(sp_defense - 0.08 * urbanity, minimum=0.0, maximum=1.0),
+            speed=clamp(speed + 0.08 * urbanity - 0.08 * elevation_signal, minimum=0.0, maximum=1.0),
+        )
+
+    def stat_centers(self, payload: biome_schema.BiomePayload) -> providers_schema.BaseStatCenters:
+        return self.balance_for_bst(
+            land_cover=const.WorldCoverClassT(payload.land_cover_class),
+            built_up_fraction=payload.built_up_fraction,
+            elevation_m=payload.elevation_m,
+        )
 
     @staticmethod
     def _built_up_fraction(land_cover: const.WorldCoverClassT) -> float:
@@ -147,35 +193,14 @@ class BiomeProvider(VibeProvider):
 
         return dict(score)
 
-    @classmethod
-    def _stat_centers(
-        cls,
+    # ── CORE PROTOCOL MEMBERS ─────────────────────────────────────────────────────────
+
+    async def fetch(
+        self,
+        seed: BirthSeed,
         *,
-        land_cover: const.WorldCoverClassT,
-        built_up_fraction: float,
-        elevation_m: float,
-    ) -> dict[str, float]:
-        archetype = land_cover.profile.stat_archetype
-        centers = {stat: const.STAT_TIER_CENTER[tier] for stat, tier in archetype.items()}
-
-        urbanity = clamp(built_up_fraction, minimum=0.0, maximum=1.0)
-        elevation_signal = Signal(
-            name="elevat",
-            attr="elevation_m",
-            raw=elevation_m,
-            min=-430.0,
-            med=350.0,
-            max=5100.0,
-        ).center
-
-        centers["speed"] = clamp(centers["speed"] + 0.08 * urbanity - 0.08 * elevation_signal, minimum=0.0, maximum=1.0)
-        centers["sp_attack"] = clamp(centers["sp_attack"] + 0.08 * urbanity, minimum=0.0, maximum=1.0)
-        centers["hp"] = clamp(centers["hp"] - 0.08 * urbanity, minimum=0.0, maximum=1.0)
-        centers["sp_defense"] = clamp(centers["sp_defense"] - 0.08 * urbanity, minimum=0.0, maximum=1.0)
-        centers["defense"] = clamp(centers["defense"] + 0.08 * elevation_signal, minimum=0.0, maximum=1.0)
-        return centers
-
-    async def fetch(self, seed: BirthSeed) -> dict[str, Any]:
+        secrets: TrainerSecrets | None = None,
+    ) -> biome_schema.BiomePayload:
         latitude, longitude = seed.geo_coords
         worldcover_task = asyncio.create_task(self.worldcover.sample_class(latitude, longitude))
         elevation_task = asyncio.create_task(self.elevation.point(latitude, longitude))
@@ -195,52 +220,44 @@ class BiomeProvider(VibeProvider):
             }
 
         built_up_fraction = self._built_up_fraction(land_cover)
-        return {
-            "land_cover_class": land_cover.value,
-            "built_up_fraction": built_up_fraction,
-            "elevation_m": elevation_m,
-            "solar_phase": seed.solar_phase.value,
-            **water,
-        }
+        return biome_schema.BiomePayload(
+            land_cover_class=land_cover.value,
+            built_up_fraction=built_up_fraction,
+            elevation_m=elevation_m,
+            solar_phase=seed.solar_phase.value,
+            nearest_marine_km=water.get("nearest_marine_km"),  # type: ignore[arg-type]
+            marine_feature=water.get("marine_feature"),  # type: ignore[arg-type]
+            nearest_inland_water_km=water.get("nearest_inland_water_km"),  # type: ignore[arg-type]
+            inland_feature=water.get("inland_feature"),  # type: ignore[arg-type]
+        )
 
-    async def synthesize(self, seed: BirthSeed, payload: dict[str, Any]) -> Affinity:
+    async def synthesize(self, seed: BirthSeed, payload: biome_schema.BiomePayload) -> Affinity:
         rng = seed.rng(f"provider.{self.name}.moves")
-        land_cover = const.WorldCoverClassT(payload["land_cover_class"])
-        built_up_fraction = float(payload["built_up_fraction"])
-        elevation_m = float(payload["elevation_m"])
-        solar_phase = generation_types.SolarPhase(payload["solar_phase"])
+        land_cover = const.WorldCoverClassT(payload.land_cover_class)
+        built_up_fraction = payload.built_up_fraction
+        elevation_m = payload.elevation_m
+        solar_phase = generation_types.SolarPhase(payload.solar_phase)
 
         rankings = self.determine_element_scores(
             land_cover=land_cover,
             built_up_fraction=built_up_fraction,
             elevation_m=elevation_m,
-            nearest_marine_km=payload.get("nearest_marine_km"),
-            marine_feature=payload.get("marine_feature"),
-            nearest_inland_water_km=payload.get("nearest_inland_water_km"),
-            inland_feature=payload.get("inland_feature"),
+            nearest_marine_km=payload.nearest_marine_km,
+            marine_feature=payload.marine_feature,
+            nearest_inland_water_km=payload.nearest_inland_water_km,
+            inland_feature=payload.inland_feature,
             solar_phase=solar_phase,
         )
-        local_elements = filter_element_types(rankings)
-        stats = self._stat_centers(
+        elements = filter_element_types(rankings)
+        normalized = self.balance_for_bst(
             land_cover=land_cover,
             built_up_fraction=built_up_fraction,
             elevation_m=elevation_m,
         )
-        ratio = ft.partial(stat_ratio_from_grade, elements=local_elements)
+        base_stats = normalized.scaled(elements=elements)
 
-        # fmt: off
-        # ruff: noqa: E501
-        affinity = Affinity(
-            identity=Identity(
-                name="__",
-                elements=local_elements,
-                base_hp=base_stat_asymmetric_scaling(ratio(stats["hp"], stat="hp"), stat="hp"),
-                base_attack=base_stat_asymmetric_scaling(ratio(stats["attack"], stat="attack"), stat="attack"),
-                base_defense=base_stat_asymmetric_scaling(ratio(stats["defense"], stat="defense"), stat="defense"),
-                base_sp_attack=base_stat_asymmetric_scaling(ratio(stats["sp_attack"], stat="sp_attack"), stat="sp_attack"),
-                base_sp_defense=base_stat_asymmetric_scaling(ratio(stats["sp_defense"], stat="sp_defense"), stat="sp_defense"),
-                base_speed=base_stat_asymmetric_scaling(ratio(stats["speed"], stat="speed"), stat="speed"),
-            ),
+        return Affinity(
+            identity=Identity(name="__", elements=elements, base=base_stats),
             visual_notes=land_cover.profile.flavor,
             intensity=const.INTENSITY,
             provider_id=self.name,
@@ -248,11 +265,8 @@ class BiomeProvider(VibeProvider):
             moves=pick_starter_moves(
                 moves=self.selectable_moves(),
                 rankings=rankings,
-                elements=local_elements,
+                elements=elements,
                 k=10,
                 rng=rng,
             ),
         )
-        # fmt: on
-
-        return affinity

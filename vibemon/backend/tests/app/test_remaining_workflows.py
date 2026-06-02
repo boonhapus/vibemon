@@ -1,6 +1,3 @@
-from __future__ import annotations
-
-from collections.abc import AsyncGenerator
 from types import SimpleNamespace
 import datetime as dt
 import uuid
@@ -8,23 +5,18 @@ import uuid
 import pytest
 
 pytest.importorskip("sqlalchemy")
-pytest.importorskip("aiosqlite")
 
-from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker, create_async_engine
+from sqlalchemy.ext.asyncio import AsyncSession
 import sqlalchemy as sa
 
 from app.domains.adoption.types import CandidateReviewStatusT
 from app.domains.encounter import tuning as encounter_tuning
 from app.domains.encounter.types import WildEncounterOutcomeT
-from app.domains.generation.affinity import Affinity
 from app.domains.generation.seed import BirthSeed
-from app.domains.move.entity import Move
-from app.domains.move.types import MoveCategoryT, MoveTargetT, VibemonTypeT
 from app.domains.trainer.credits import GENERATION_HOLD_TIMEOUT
 from app.domains.vibemon.assets import AssetKind
 from app.domains.vibemon.disposition import VibemonDispositionT
 from app.domains.vibemon.history import VibemonHistoryEventT
-from app.domains.vibemon.identity import Identity
 from app.domains.vibemon.types import VibemonLifecycleT
 from app.storage.blob import assets as blob_assets
 from app.storage.database import models
@@ -33,75 +25,21 @@ from app.workflows.generate_wild_supply import generate_wild_supply
 from app.workflows.prune_expired_assets import prune_expired_assets
 from app.workflows.resolve_timeouts import resolve_review_timeouts, resolve_stale_holds
 from app.workflows.wild_encounter import expire_wild, record_wild_encounter_outcome
-
-
-@pytest.fixture
-async def sess() -> AsyncGenerator[AsyncSession]:
-    engine = create_async_engine("sqlite+aiosqlite:///:memory:")
-    try:
-        async with engine.begin() as conn:
-            await conn.run_sync(models.Base.metadata.create_all)
-        async_session = async_sessionmaker(engine, expire_on_commit=False)
-        async with async_session() as session:
-            yield session
-    finally:
-        await engine.dispose()
-
-
-class FakeProvider:
-    name = "test-provider"
-
-    async def fetch(self, seed: BirthSeed) -> dict[str, str]:
-        return {"weather": "clear"}
-
-    async def synthesize(self, seed: BirthSeed, payload: dict[str, str]) -> Affinity:
-        return Affinity(
-            identity=Identity(
-                name="Testling",
-                elements=(VibemonTypeT.FIRE,),
-                base_hp=70,
-                base_attack=75,
-                base_defense=70,
-                base_sp_attack=80,
-                base_sp_defense=70,
-                base_speed=90,
-            ),
-            intensity=1.0,
-            provider_id=self.name,
-            element_rankings={VibemonTypeT.FIRE: 1.0},
-            moves=(
-                Move(
-                    id="test.ember",
-                    name="Ember",
-                    flavor_text="A tiny controlled flame.",
-                    type=VibemonTypeT.FIRE,
-                    category=MoveCategoryT.SPECIAL,
-                    power=40,
-                    accuracy=1.0,
-                    pp=25,
-                    target=MoveTargetT.SINGLE,
-                ),
-                Move(
-                    id="test.flare",
-                    name="Flare",
-                    flavor_text="A quick flash of heat.",
-                    type=VibemonTypeT.FIRE,
-                    category=MoveCategoryT.SPECIAL,
-                    power=50,
-                    accuracy=0.95,
-                    pp=20,
-                    target=MoveTargetT.SINGLE,
-                ),
-            ),
-        )
+from tests.conftest import TEST_TRAINER_ID
+from tests.providers.fake_provider import WorkflowFakeProvider as FakeProvider
 
 
 def _birth_seed(now: dt.datetime) -> BirthSeed:
-    return BirthSeed(timestamp=now, geo_coords=(41.8781, -87.6298), providers=[FakeProvider()])
+    return BirthSeed(
+        timestamp=now,
+        geo_coords=(41.8781, -87.6298),
+        trainer_id=TEST_TRAINER_ID,
+        providers=[FakeProvider()],
+    )
 
 
 def _wild_vibemon(vibemon_id: uuid.UUID, *, now: dt.datetime) -> models.Vibemon:
-    seed = models.BirthSeed(timestamp=now, geo_coords=[41.8781, -87.6298])
+    seed = models.BirthSeed(timestamp=now, geo_coords=[41.8781, -87.6298], trainer_id=TEST_TRAINER_ID)
     snapshot = models.BirthSnapshot(birth_seed=seed, provider_payloads={})
     row = models.Vibemon(
         id=vibemon_id,
@@ -139,6 +77,7 @@ def _wild_vibemon(vibemon_id: uuid.UUID, *, now: dt.datetime) -> models.Vibemon:
 @pytest.mark.asyncio
 async def test_generate_wild_supply_persists_wild_row(
     sess: AsyncSession,
+    test_trainer: object,
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     now = dt.datetime(2026, 5, 19, 12, 0, tzinfo=dt.UTC)
@@ -156,6 +95,7 @@ async def test_generate_wild_supply_persists_wild_row(
 @pytest.mark.asyncio
 async def test_reject_candidate_resolves_review_to_wild(
     sess: AsyncSession,
+    test_trainer: object,
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     trainer_id = uuid.uuid7()
@@ -188,6 +128,7 @@ async def test_reject_candidate_resolves_review_to_wild(
 @pytest.mark.asyncio
 async def test_record_wild_encounter_outcome_updates_history_and_adjustment(
     sess: AsyncSession,
+    test_trainer: object,
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     trainer_id = uuid.uuid7()
@@ -221,7 +162,9 @@ async def test_record_wild_encounter_outcome_updates_history_and_adjustment(
 
 
 @pytest.mark.asyncio
-async def test_expire_wild_and_prune_expired_assets(sess: AsyncSession, monkeypatch: pytest.MonkeyPatch) -> None:
+async def test_expire_wild_and_prune_expired_assets(
+    sess: AsyncSession, test_trainer: object, monkeypatch: pytest.MonkeyPatch
+) -> None:
     vibemon_id = uuid.uuid7()
     now = dt.datetime(2026, 5, 19, 12, 0, tzinfo=dt.UTC)
     stale_at = now - encounter_tuning.WILD_EXPIRATION_WINDOW - dt.timedelta(seconds=1)
@@ -266,6 +209,7 @@ async def test_expire_wild_and_prune_expired_assets(sess: AsyncSession, monkeypa
 @pytest.mark.asyncio
 async def test_resolve_timeouts_marks_reviews_and_clears_stale_holds(
     sess: AsyncSession,
+    test_trainer: object,
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     trainer_id = uuid.uuid7()

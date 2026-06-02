@@ -1,0 +1,1 @@
+"""Encrypted trainer secret storage."""
