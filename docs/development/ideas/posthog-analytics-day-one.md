@@ -1,6 +1,6 @@
 # PostHog Analytics from Day One
 
-**Status:** Adopted. Operational plan lives in `docs/development/plans/infrastructure-plan.md` (self-hosted PostHog section). This document remains as the rationale and event-taxonomy reference.
+**Status:** Adopted. Operational plan lives in `docs/development/plans/infrastructure-plan.md` (PostHog Cloud section). This document remains as the rationale and event-taxonomy reference.
 
 ## Premise
 Frontend decisions must be driven by observed user behavior, not intuition. Instrument from the first commit so we never ship a feature blind. Retrofitting analytics after launch loses the early-adopter signal — the most valuable cohort for shaping the product.
@@ -76,7 +76,7 @@ Engagement:
 - Define guardrail metrics (session length, churn) before shipping any experiment.
 
 ## Open Questions
-- Self-host vs. PostHog Cloud? Cloud is fine for MVP; revisit at scale or if PII enters the model.
+- Self-host vs. PostHog Cloud? **Cloud for v1** (see infrastructure plan). Revisit at scale or if PII enters the model.
 - Backend events: send via PostHog Python SDK from FastAPI, or push from frontend only?
 - Cost ceiling: free tier covers 1M events/month — battle events at scale could blow this. Sample non-critical events.
 - Privacy policy text — needed before public launch even with pseudonymous IDs.
