@@ -7,7 +7,14 @@
     "category": "physical",
     "power": 30,
     "accuracy": 1.0,
-    "pp": 30
+    "pp": 30,
+    "priority": 0,
+    "effects": [],
+    "behavior": {
+      "conditions": []
+    },
+    "target": "single",
+    "level_requirement": 1
   },
   {
     "id": "climate.dryline_feint",
@@ -18,6 +25,7 @@
     "power": 30,
     "accuracy": 1.0,
     "pp": 30,
+    "priority": 0,
     "effects": [
       {
         "chance": 0.2,
@@ -32,7 +40,12 @@
           }
         ]
       }
-    ]
+    ],
+    "behavior": {
+      "conditions": []
+    },
+    "target": "single",
+    "level_requirement": 1
   },
   {
     "id": "climate.cloud_count",
@@ -40,8 +53,10 @@
     "flavor_text": "You read cloud pacing to sharpen your timing.",
     "type": "normal",
     "category": "status",
+    "power": null,
     "accuracy": 1.0,
     "pp": 20,
+    "priority": 0,
     "effects": [
       {
         "chance": 1.0,
@@ -56,7 +71,12 @@
           }
         ]
       }
-    ]
+    ],
+    "behavior": {
+      "conditions": []
+    },
+    "target": "single",
+    "level_requirement": 1
   },
   {
     "id": "climate.gale_knuckle",
@@ -67,7 +87,13 @@
     "power": 40,
     "accuracy": 1.0,
     "pp": 30,
-    "priority": 1
+    "priority": 0,
+    "effects": [],
+    "behavior": {
+      "conditions": []
+    },
+    "target": "single",
+    "level_requirement": 1
   },
   {
     "id": "climate.frontline_clamp",
@@ -78,6 +104,7 @@
     "power": 30,
     "accuracy": 1.0,
     "pp": 30,
+    "priority": 0,
     "effects": [
       {
         "chance": 0.2,
@@ -92,7 +119,12 @@
           }
         ]
       }
-    ]
+    ],
+    "behavior": {
+      "conditions": []
+    },
+    "target": "single",
+    "level_requirement": 1
   },
   {
     "id": "climate.dewstill",
@@ -100,8 +132,10 @@
     "flavor_text": "You settle into dawn calm and recover battle composure.",
     "type": "normal",
     "category": "status",
+    "power": null,
     "accuracy": 1.0,
     "pp": 15,
+    "priority": 0,
     "effects": [
       {
         "chance": 1.0,
@@ -116,7 +150,12 @@
           }
         ]
       }
-    ]
+    ],
+    "behavior": {
+      "conditions": []
+    },
+    "target": "single",
+    "level_requirement": 1
   },
   {
     "id": "climate.haze_breaker",
@@ -126,7 +165,14 @@
     "category": "physical",
     "power": 30,
     "accuracy": 1.0,
-    "pp": 30
+    "pp": 30,
+    "priority": 0,
+    "effects": [],
+    "behavior": {
+      "conditions": []
+    },
+    "target": "single",
+    "level_requirement": 1
   },
   {
     "id": "climate.shelter_slam",
@@ -136,7 +182,14 @@
     "category": "physical",
     "power": 30,
     "accuracy": 1.0,
-    "pp": 30
+    "pp": 30,
+    "priority": 0,
+    "effects": [],
+    "behavior": {
+      "conditions": []
+    },
+    "target": "single",
+    "level_requirement": 1
   },
   {
     "id": "climate.isobar_ram",
@@ -147,6 +200,7 @@
     "power": 85,
     "accuracy": 0.95,
     "pp": 15,
+    "priority": 0,
     "effects": [
       {
         "chance": 0.3,
@@ -162,6 +216,10 @@
         ]
       }
     ],
+    "behavior": {
+      "conditions": []
+    },
+    "target": "single",
     "level_requirement": 40
   },
   {
@@ -170,9 +228,16 @@
     "flavor_text": "A wide sweep hidden in thin shoreline mist.",
     "type": "normal",
     "category": "physical",
-    "power": 45,
+    "power": 32,
     "accuracy": 1.0,
-    "pp": 25
+    "pp": 30,
+    "priority": 0,
+    "effects": [],
+    "behavior": {
+      "conditions": []
+    },
+    "target": "single",
+    "level_requirement": 1
   },
   {
     "id": "climate.jetstream_drill",
@@ -182,6 +247,13 @@
     "category": "physical",
     "power": 95,
     "accuracy": 0.95,
+    "pp": 10,
+    "priority": 0,
+    "effects": [],
+    "behavior": {
+      "conditions": []
+    },
+    "target": "single",
     "level_requirement": 42
   },
   {
@@ -190,8 +262,10 @@
     "flavor_text": "You track pressure shifts and blunt enemy offense.",
     "type": "normal",
     "category": "status",
+    "power": null,
     "accuracy": 1.0,
     "pp": 15,
+    "priority": 0,
     "effects": [
       {
         "chance": 1.0,
@@ -206,7 +280,12 @@
           }
         ]
       }
-    ]
+    ],
+    "behavior": {
+      "conditions": []
+    },
+    "target": "single",
+    "level_requirement": 1
   },
   {
     "id": "climate.monsoon_shoulder",
@@ -216,6 +295,8 @@
     "category": "physical",
     "power": 105,
     "accuracy": 0.9,
+    "pp": 10,
+    "priority": 0,
     "effects": [
       {
         "chance": 0.2,
@@ -231,6 +312,10 @@
         ]
       }
     ],
+    "behavior": {
+      "conditions": []
+    },
+    "target": "single",
     "level_requirement": 56
   },
   {
@@ -241,7 +326,14 @@
     "category": "physical",
     "power": 30,
     "accuracy": 1.0,
-    "pp": 30
+    "pp": 30,
+    "priority": 0,
+    "effects": [],
+    "behavior": {
+      "conditions": []
+    },
+    "target": "single",
+    "level_requirement": 1
   },
   {
     "id": "climate.stormglass_beam",
@@ -252,6 +344,12 @@
     "power": 120,
     "accuracy": 0.9,
     "pp": 5,
+    "priority": 0,
+    "effects": [],
+    "behavior": {
+      "conditions": []
+    },
+    "target": "single",
     "level_requirement": 74
   },
   {
@@ -262,7 +360,14 @@
     "category": "special",
     "power": 30,
     "accuracy": 1.0,
-    "pp": 30
+    "pp": 30,
+    "priority": 0,
+    "effects": [],
+    "behavior": {
+      "conditions": []
+    },
+    "target": "single",
+    "level_requirement": 1
   },
   {
     "id": "climate.cinder_draft",
@@ -273,6 +378,7 @@
     "power": 30,
     "accuracy": 1.0,
     "pp": 30,
+    "priority": 0,
     "effects": [
       {
         "chance": 0.2,
@@ -285,7 +391,12 @@
           }
         ]
       }
-    ]
+    ],
+    "behavior": {
+      "conditions": []
+    },
+    "target": "single",
+    "level_requirement": 1
   },
   {
     "id": "climate.heat_mirage",
@@ -293,8 +404,10 @@
     "flavor_text": "Shimmering heat saps the foe's focus.",
     "type": "fire",
     "category": "status",
+    "power": null,
     "accuracy": 1.0,
     "pp": 20,
+    "priority": 0,
     "effects": [
       {
         "chance": 1.0,
@@ -309,7 +422,12 @@
           }
         ]
       }
-    ]
+    ],
+    "behavior": {
+      "conditions": []
+    },
+    "target": "single",
+    "level_requirement": 1
   },
   {
     "id": "climate.ashline_scour",
@@ -320,6 +438,12 @@
     "power": 65,
     "accuracy": 1.0,
     "pp": 20,
+    "priority": 0,
+    "effects": [],
+    "behavior": {
+      "conditions": []
+    },
+    "target": "single",
     "level_requirement": 36
   },
   {
@@ -331,6 +455,12 @@
     "power": 70,
     "accuracy": 1.0,
     "pp": 15,
+    "priority": 0,
+    "effects": [],
+    "behavior": {
+      "conditions": []
+    },
+    "target": "single",
     "level_requirement": 36
   },
   {
@@ -341,7 +471,14 @@
     "category": "physical",
     "power": 30,
     "accuracy": 1.0,
-    "pp": 30
+    "pp": 30,
+    "priority": 0,
+    "effects": [],
+    "behavior": {
+      "conditions": []
+    },
+    "target": "single",
+    "level_requirement": 1
   },
   {
     "id": "climate.solar_lash",
@@ -349,9 +486,10 @@
     "flavor_text": "A noonlight whip of fire cracks across the field.",
     "type": "fire",
     "category": "special",
-    "power": 45,
+    "power": 32,
     "accuracy": 1.0,
-    "pp": 25,
+    "pp": 30,
+    "priority": 0,
     "effects": [
       {
         "chance": 0.2,
@@ -364,7 +502,12 @@
           }
         ]
       }
-    ]
+    ],
+    "behavior": {
+      "conditions": []
+    },
+    "target": "single",
+    "level_requirement": 1
   },
   {
     "id": "climate.red_sky_oath",
@@ -372,8 +515,10 @@
     "flavor_text": "A dusk oath that sharpens your fire output.",
     "type": "fire",
     "category": "status",
+    "power": null,
     "accuracy": 1.0,
     "pp": 15,
+    "priority": 0,
     "effects": [
       {
         "chance": 1.0,
@@ -388,7 +533,12 @@
           }
         ]
       }
-    ]
+    ],
+    "behavior": {
+      "conditions": []
+    },
+    "target": "single",
+    "level_requirement": 1
   },
   {
     "id": "climate.furnace_spiral",
@@ -399,6 +549,7 @@
     "power": 45,
     "accuracy": 1.0,
     "pp": 25,
+    "priority": 0,
     "effects": [
       {
         "chance": 0.3,
@@ -411,7 +562,12 @@
           }
         ]
       }
-    ]
+    ],
+    "behavior": {
+      "conditions": []
+    },
+    "target": "single",
+    "level_requirement": 1
   },
   {
     "id": "climate.scaldwind_arc",
@@ -421,7 +577,14 @@
     "category": "special",
     "power": 45,
     "accuracy": 1.0,
-    "pp": 25
+    "pp": 25,
+    "priority": 0,
+    "effects": [],
+    "behavior": {
+      "conditions": []
+    },
+    "target": "single",
+    "level_requirement": 1
   },
   {
     "id": "climate.drought_cannon",
@@ -431,6 +594,13 @@
     "category": "special",
     "power": 95,
     "accuracy": 0.95,
+    "pp": 10,
+    "priority": 0,
+    "effects": [],
+    "behavior": {
+      "conditions": []
+    },
+    "target": "single",
     "level_requirement": 44
   },
   {
@@ -439,8 +609,10 @@
     "flavor_text": "Thermal columns surge and sharpen your pace.",
     "type": "fire",
     "category": "status",
+    "power": null,
     "accuracy": 1.0,
     "pp": 15,
+    "priority": 0,
     "effects": [
       {
         "chance": 1.0,
@@ -455,7 +627,12 @@
           }
         ]
       }
-    ]
+    ],
+    "behavior": {
+      "conditions": []
+    },
+    "target": "single",
+    "level_requirement": 1
   },
   {
     "id": "climate.pyroclast_drop",
@@ -465,6 +642,8 @@
     "category": "special",
     "power": 105,
     "accuracy": 0.9,
+    "pp": 10,
+    "priority": 0,
     "effects": [
       {
         "chance": 0.2,
@@ -480,6 +659,10 @@
         ]
       }
     ],
+    "behavior": {
+      "conditions": []
+    },
+    "target": "single",
     "level_requirement": 56
   },
   {
@@ -490,6 +673,13 @@
     "category": "special",
     "power": 100,
     "accuracy": 0.95,
+    "pp": 10,
+    "priority": 0,
+    "effects": [],
+    "behavior": {
+      "conditions": []
+    },
+    "target": "single",
     "level_requirement": 68
   },
   {
@@ -501,6 +691,7 @@
     "power": 120,
     "accuracy": 1.0,
     "pp": 5,
+    "priority": 0,
     "effects": [
       {
         "chance": 1.0,
@@ -516,6 +707,10 @@
         ]
       }
     ],
+    "behavior": {
+      "conditions": []
+    },
+    "target": "single",
     "level_requirement": 76
   },
   {
@@ -526,7 +721,14 @@
     "category": "special",
     "power": 25,
     "accuracy": 1.0,
-    "pp": 35
+    "pp": 35,
+    "priority": 0,
+    "effects": [],
+    "behavior": {
+      "conditions": []
+    },
+    "target": "single",
+    "level_requirement": 1
   },
   {
     "id": "climate.rivulet_snap",
@@ -537,7 +739,13 @@
     "power": 40,
     "accuracy": 1.0,
     "pp": 30,
-    "priority": 1
+    "priority": 1,
+    "effects": [],
+    "behavior": {
+      "conditions": []
+    },
+    "target": "single",
+    "level_requirement": 1
   },
   {
     "id": "climate.fog_reservoir",
@@ -545,8 +753,10 @@
     "flavor_text": "Condensed fog forms a reserve that steadies you.",
     "type": "water",
     "category": "status",
+    "power": null,
     "accuracy": 1.0,
     "pp": 20,
+    "priority": 0,
     "effects": [
       {
         "chance": 1.0,
@@ -561,7 +771,12 @@
           }
         ]
       }
-    ]
+    ],
+    "behavior": {
+      "conditions": []
+    },
+    "target": "single",
+    "level_requirement": 1
   },
   {
     "id": "climate.tideknit_burst",
@@ -572,6 +787,12 @@
     "power": 65,
     "accuracy": 1.0,
     "pp": 20,
+    "priority": 0,
+    "effects": [],
+    "behavior": {
+      "conditions": []
+    },
+    "target": "single",
     "level_requirement": 36
   },
   {
@@ -583,6 +804,12 @@
     "power": 70,
     "accuracy": 1.0,
     "pp": 15,
+    "priority": 0,
+    "effects": [],
+    "behavior": {
+      "conditions": []
+    },
+    "target": "single",
     "level_requirement": 36
   },
   {
@@ -593,7 +820,14 @@
     "category": "special",
     "power": 30,
     "accuracy": 1.0,
-    "pp": 30
+    "pp": 30,
+    "priority": 0,
+    "effects": [],
+    "behavior": {
+      "conditions": []
+    },
+    "target": "single",
+    "level_requirement": 1
   },
   {
     "id": "climate.harbor_surge",
@@ -603,7 +837,14 @@
     "category": "special",
     "power": 30,
     "accuracy": 1.0,
-    "pp": 30
+    "pp": 30,
+    "priority": 0,
+    "effects": [],
+    "behavior": {
+      "conditions": []
+    },
+    "target": "single",
+    "level_requirement": 1
   },
   {
     "id": "climate.condense_burst",
@@ -613,7 +854,14 @@
     "category": "special",
     "power": 45,
     "accuracy": 1.0,
-    "pp": 25
+    "pp": 25,
+    "priority": 0,
+    "effects": [],
+    "behavior": {
+      "conditions": []
+    },
+    "target": "single",
+    "level_requirement": 1
   },
   {
     "id": "climate.undertow_pin",
@@ -624,6 +872,7 @@
     "power": 85,
     "accuracy": 0.95,
     "pp": 15,
+    "priority": 0,
     "effects": [
       {
         "chance": 0.3,
@@ -639,6 +888,10 @@
         ]
       }
     ],
+    "behavior": {
+      "conditions": []
+    },
+    "target": "single",
     "level_requirement": 40
   },
   {
@@ -649,7 +902,14 @@
     "category": "special",
     "power": 45,
     "accuracy": 1.0,
-    "pp": 25
+    "pp": 25,
+    "priority": 0,
+    "effects": [],
+    "behavior": {
+      "conditions": []
+    },
+    "target": "single",
+    "level_requirement": 1
   },
   {
     "id": "climate.monsoon_lance",
@@ -659,6 +919,13 @@
     "category": "special",
     "power": 95,
     "accuracy": 0.95,
+    "pp": 10,
+    "priority": 0,
+    "effects": [],
+    "behavior": {
+      "conditions": []
+    },
+    "target": "single",
     "level_requirement": 43
   },
   {
@@ -667,8 +934,10 @@
     "flavor_text": "A teamward flow that accelerates your side.",
     "type": "water",
     "category": "status",
+    "power": null,
     "accuracy": 1.0,
     "pp": 15,
+    "priority": 0,
     "effects": [
       {
         "chance": 1.0,
@@ -683,7 +952,12 @@
           }
         ]
       }
-    ]
+    ],
+    "behavior": {
+      "conditions": []
+    },
+    "target": "single",
+    "level_requirement": 1
   },
   {
     "id": "climate.rip_current_vault",
@@ -693,6 +967,8 @@
     "category": "physical",
     "power": 105,
     "accuracy": 0.9,
+    "pp": 10,
+    "priority": 0,
     "effects": [
       {
         "chance": 0.2,
@@ -708,6 +984,10 @@
         ]
       }
     ],
+    "behavior": {
+      "conditions": []
+    },
+    "target": "single",
     "level_requirement": 56
   },
   {
@@ -716,7 +996,10 @@
     "flavor_text": "A dark flood haze drags the foe's rhythm underwater.",
     "type": "water",
     "category": "status",
+    "power": null,
     "accuracy": 0.9,
+    "pp": 10,
+    "priority": 0,
     "effects": [
       {
         "chance": 1.0,
@@ -731,7 +1014,12 @@
           }
         ]
       }
-    ]
+    ],
+    "behavior": {
+      "conditions": []
+    },
+    "target": "single",
+    "level_requirement": 1
   },
   {
     "id": "climate.cyclone_siphon",
@@ -742,6 +1030,7 @@
     "power": 120,
     "accuracy": 1.0,
     "pp": 5,
+    "priority": 0,
     "effects": [
       {
         "chance": 1.0,
@@ -757,6 +1046,10 @@
         ]
       }
     ],
+    "behavior": {
+      "conditions": []
+    },
+    "target": "single",
     "level_requirement": 75
   },
   {
@@ -767,7 +1060,14 @@
     "category": "special",
     "power": 30,
     "accuracy": 1.0,
-    "pp": 30
+    "pp": 30,
+    "priority": 0,
+    "effects": [],
+    "behavior": {
+      "conditions": []
+    },
+    "target": "single",
+    "level_requirement": 1
   },
   {
     "id": "climate.wireflash_tap",
@@ -777,7 +1077,14 @@
     "category": "physical",
     "power": 30,
     "accuracy": 1.0,
-    "pp": 30
+    "pp": 30,
+    "priority": 0,
+    "effects": [],
+    "behavior": {
+      "conditions": []
+    },
+    "target": "single",
+    "level_requirement": 1
   },
   {
     "id": "climate.ion_read",
@@ -785,8 +1092,10 @@
     "flavor_text": "You read charge gradients to line up clean hits.",
     "type": "electric",
     "category": "status",
+    "power": null,
     "accuracy": 1.0,
     "pp": 20,
+    "priority": 0,
     "effects": [
       {
         "chance": 1.0,
@@ -801,7 +1110,12 @@
           }
         ]
       }
-    ]
+    ],
+    "behavior": {
+      "conditions": []
+    },
+    "target": "single",
+    "level_requirement": 1
   },
   {
     "id": "climate.stormclick",
@@ -812,7 +1126,13 @@
     "power": 40,
     "accuracy": 1.0,
     "pp": 30,
-    "priority": 1
+    "priority": 1,
+    "effects": [],
+    "behavior": {
+      "conditions": []
+    },
+    "target": "single",
+    "level_requirement": 1
   },
   {
     "id": "climate.radar_jolt",
@@ -823,6 +1143,12 @@
     "power": 70,
     "accuracy": 1.0,
     "pp": 15,
+    "priority": 0,
+    "effects": [],
+    "behavior": {
+      "conditions": []
+    },
+    "target": "single",
     "level_requirement": 36
   },
   {
@@ -834,6 +1160,12 @@
     "power": 70,
     "accuracy": 1.0,
     "pp": 15,
+    "priority": 0,
+    "effects": [],
+    "behavior": {
+      "conditions": []
+    },
+    "target": "single",
     "level_requirement": 36
   },
   {
@@ -845,6 +1177,12 @@
     "power": 75,
     "accuracy": 1.0,
     "pp": 15,
+    "priority": 0,
+    "effects": [],
+    "behavior": {
+      "conditions": []
+    },
+    "target": "single",
     "level_requirement": 36
   },
   {
@@ -855,7 +1193,14 @@
     "category": "special",
     "power": 45,
     "accuracy": 1.0,
-    "pp": 25
+    "pp": 25,
+    "priority": 0,
+    "effects": [],
+    "behavior": {
+      "conditions": []
+    },
+    "target": "single",
+    "level_requirement": 1
   },
   {
     "id": "climate.cloudbank_bolt",
@@ -866,6 +1211,7 @@
     "power": 45,
     "accuracy": 1.0,
     "pp": 25,
+    "priority": 0,
     "effects": [
       {
         "chance": 0.2,
@@ -878,7 +1224,12 @@
           }
         ]
       }
-    ]
+    ],
+    "behavior": {
+      "conditions": []
+    },
+    "target": "single",
+    "level_requirement": 1
   },
   {
     "id": "climate.neon_squall",
@@ -888,7 +1239,14 @@
     "category": "special",
     "power": 45,
     "accuracy": 1.0,
-    "pp": 25
+    "pp": 25,
+    "priority": 0,
+    "effects": [],
+    "behavior": {
+      "conditions": []
+    },
+    "target": "single",
+    "level_requirement": 1
   },
   {
     "id": "climate.peak_discharge",
@@ -898,6 +1256,13 @@
     "category": "special",
     "power": 95,
     "accuracy": 0.95,
+    "pp": 10,
+    "priority": 0,
+    "effects": [],
+    "behavior": {
+      "conditions": []
+    },
+    "target": "single",
     "level_requirement": 45
   },
   {
@@ -906,8 +1271,10 @@
     "flavor_text": "You overclock your storm grid for rapid action.",
     "type": "electric",
     "category": "status",
+    "power": null,
     "accuracy": 1.0,
     "pp": 15,
+    "priority": 0,
     "effects": [
       {
         "chance": 1.0,
@@ -922,7 +1289,12 @@
           }
         ]
       }
-    ]
+    ],
+    "behavior": {
+      "conditions": []
+    },
+    "target": "single",
+    "level_requirement": 1
   },
   {
     "id": "climate.lightning_shear",
@@ -932,6 +1304,8 @@
     "category": "special",
     "power": 105,
     "accuracy": 0.9,
+    "pp": 10,
+    "priority": 0,
     "effects": [
       {
         "chance": 0.2,
@@ -947,6 +1321,10 @@
         ]
       }
     ],
+    "behavior": {
+      "conditions": []
+    },
+    "target": "single",
     "level_requirement": 56
   },
   {
@@ -955,7 +1333,10 @@
     "flavor_text": "A pre-storm hush that sharply cuts enemy drive.",
     "type": "electric",
     "category": "status",
+    "power": null,
     "accuracy": 1.0,
+    "pp": 10,
+    "priority": 0,
     "effects": [
       {
         "chance": 1.0,
@@ -970,7 +1351,12 @@
           }
         ]
       }
-    ]
+    ],
+    "behavior": {
+      "conditions": []
+    },
+    "target": "single",
+    "level_requirement": 1
   },
   {
     "id": "climate.skybreaker_pulse",
@@ -981,6 +1367,7 @@
     "power": 120,
     "accuracy": 1.0,
     "pp": 5,
+    "priority": 0,
     "effects": [
       {
         "chance": 1.0,
@@ -996,6 +1383,10 @@
         ]
       }
     ],
+    "behavior": {
+      "conditions": []
+    },
+    "target": "single",
     "level_requirement": 77
   },
   {
@@ -1006,7 +1397,14 @@
     "category": "physical",
     "power": 25,
     "accuracy": 1.0,
-    "pp": 35
+    "pp": 35,
+    "priority": 0,
+    "effects": [],
+    "behavior": {
+      "conditions": []
+    },
+    "target": "single",
+    "level_requirement": 1
   },
   {
     "id": "climate.rootline_jab",
@@ -1016,7 +1414,14 @@
     "category": "physical",
     "power": 30,
     "accuracy": 1.0,
-    "pp": 30
+    "pp": 30,
+    "priority": 0,
+    "effects": [],
+    "behavior": {
+      "conditions": []
+    },
+    "target": "single",
+    "level_requirement": 1
   },
   {
     "id": "climate.canopy_listen",
@@ -1024,8 +1429,10 @@
     "flavor_text": "You read leaf-rustle patterns and brace into cover.",
     "type": "grass",
     "category": "status",
+    "power": null,
     "accuracy": 1.0,
     "pp": 20,
+    "priority": 0,
     "effects": [
       {
         "chance": 1.0,
@@ -1040,7 +1447,12 @@
           }
         ]
       }
-    ]
+    ],
+    "behavior": {
+      "conditions": []
+    },
+    "target": "single",
+    "level_requirement": 1
   },
   {
     "id": "climate.mossrush",
@@ -1051,6 +1463,12 @@
     "power": 65,
     "accuracy": 1.0,
     "pp": 20,
+    "priority": 0,
+    "effects": [],
+    "behavior": {
+      "conditions": []
+    },
+    "target": "single",
     "level_requirement": 36
   },
   {
@@ -1062,6 +1480,12 @@
     "power": 70,
     "accuracy": 1.0,
     "pp": 15,
+    "priority": 0,
+    "effects": [],
+    "behavior": {
+      "conditions": []
+    },
+    "target": "single",
     "level_requirement": 36
   },
   {
@@ -1073,6 +1497,12 @@
     "power": 70,
     "accuracy": 1.0,
     "pp": 15,
+    "priority": 0,
+    "effects": [],
+    "behavior": {
+      "conditions": []
+    },
+    "target": "single",
     "level_requirement": 36
   },
   {
@@ -1083,7 +1513,14 @@
     "category": "physical",
     "power": 45,
     "accuracy": 1.0,
-    "pp": 25
+    "pp": 25,
+    "priority": 0,
+    "effects": [],
+    "behavior": {
+      "conditions": []
+    },
+    "target": "single",
+    "level_requirement": 1
   },
   {
     "id": "climate.sporeburst_beam",
@@ -1094,6 +1531,7 @@
     "power": 45,
     "accuracy": 1.0,
     "pp": 25,
+    "priority": 0,
     "effects": [
       {
         "chance": 0.1,
@@ -1106,7 +1544,12 @@
           }
         ]
       }
-    ]
+    ],
+    "behavior": {
+      "conditions": []
+    },
+    "target": "single",
+    "level_requirement": 1
   },
   {
     "id": "climate.boggrip_slam",
@@ -1117,6 +1560,7 @@
     "power": 45,
     "accuracy": 1.0,
     "pp": 25,
+    "priority": 0,
     "effects": [
       {
         "chance": 0.3,
@@ -1131,7 +1575,12 @@
           }
         ]
       }
-    ]
+    ],
+    "behavior": {
+      "conditions": []
+    },
+    "target": "single",
+    "level_requirement": 1
   },
   {
     "id": "climate.hedgeburst",
@@ -1141,7 +1590,14 @@
     "category": "special",
     "power": 45,
     "accuracy": 1.0,
-    "pp": 25
+    "pp": 25,
+    "priority": 0,
+    "effects": [],
+    "behavior": {
+      "conditions": []
+    },
+    "target": "single",
+    "level_requirement": 1
   },
   {
     "id": "climate.monsoon_bloom",
@@ -1151,6 +1607,13 @@
     "category": "special",
     "power": 95,
     "accuracy": 0.95,
+    "pp": 10,
+    "priority": 0,
+    "effects": [],
+    "behavior": {
+      "conditions": []
+    },
+    "target": "single",
     "level_requirement": 46
   },
   {
@@ -1159,8 +1622,10 @@
     "flavor_text": "Trapped heat and moisture supercharge your growth.",
     "type": "grass",
     "category": "status",
+    "power": null,
     "accuracy": 1.0,
     "pp": 15,
+    "priority": 0,
     "effects": [
       {
         "chance": 1.0,
@@ -1175,7 +1640,12 @@
           }
         ]
       }
-    ]
+    ],
+    "behavior": {
+      "conditions": []
+    },
+    "target": "single",
+    "level_requirement": 1
   },
   {
     "id": "climate.bramble_surge",
@@ -1185,6 +1655,8 @@
     "category": "physical",
     "power": 105,
     "accuracy": 0.9,
+    "pp": 10,
+    "priority": 0,
     "effects": [
       {
         "chance": 0.2,
@@ -1200,6 +1672,10 @@
         ]
       }
     ],
+    "behavior": {
+      "conditions": []
+    },
+    "target": "single",
     "level_requirement": 56
   },
   {
@@ -1208,7 +1684,10 @@
     "flavor_text": "An orchard-thick fog nourishes your whole side.",
     "type": "grass",
     "category": "status",
+    "power": null,
     "accuracy": 1.0,
+    "pp": 10,
+    "priority": 0,
     "effects": [
       {
         "chance": 1.0,
@@ -1223,7 +1702,12 @@
           }
         ]
       }
-    ]
+    ],
+    "behavior": {
+      "conditions": []
+    },
+    "target": "single",
+    "level_requirement": 1
   },
   {
     "id": "climate.canopy_collapse",
@@ -1234,6 +1718,7 @@
     "power": 120,
     "accuracy": 0.85,
     "pp": 5,
+    "priority": 0,
     "effects": [
       {
         "chance": 0.1,
@@ -1249,6 +1734,10 @@
         ]
       }
     ],
+    "behavior": {
+      "conditions": []
+    },
+    "target": "single",
     "level_requirement": 78
   },
   {
@@ -1259,7 +1748,14 @@
     "category": "physical",
     "power": 45,
     "accuracy": 1.0,
-    "pp": 25
+    "pp": 25,
+    "priority": 0,
+    "effects": [],
+    "behavior": {
+      "conditions": []
+    },
+    "target": "single",
+    "level_requirement": 1
   },
   {
     "id": "climate.sleet_rake",
@@ -1270,7 +1766,13 @@
     "power": 40,
     "accuracy": 1.0,
     "pp": 30,
-    "priority": 1
+    "priority": 1,
+    "effects": [],
+    "behavior": {
+      "conditions": []
+    },
+    "target": "single",
+    "level_requirement": 1
   },
   {
     "id": "climate.whitecap_ram",
@@ -1281,6 +1783,12 @@
     "power": 65,
     "accuracy": 1.0,
     "pp": 20,
+    "priority": 0,
+    "effects": [],
+    "behavior": {
+      "conditions": []
+    },
+    "target": "single",
     "level_requirement": 36
   },
   {
@@ -1292,6 +1800,7 @@
     "power": 75,
     "accuracy": 0.95,
     "pp": 15,
+    "priority": 0,
     "effects": [
       {
         "chance": 0.15,
@@ -1305,6 +1814,10 @@
         ]
       }
     ],
+    "behavior": {
+      "conditions": []
+    },
+    "target": "single",
     "level_requirement": 36
   },
   {
@@ -1316,6 +1829,7 @@
     "power": 45,
     "accuracy": 1.0,
     "pp": 25,
+    "priority": 0,
     "effects": [
       {
         "chance": 0.3,
@@ -1330,7 +1844,12 @@
           }
         ]
       }
-    ]
+    ],
+    "behavior": {
+      "conditions": []
+    },
+    "target": "single",
+    "level_requirement": 1
   },
   {
     "id": "climate.ruin_icicle",
@@ -1341,6 +1860,7 @@
     "power": 45,
     "accuracy": 1.0,
     "pp": 25,
+    "priority": 0,
     "effects": [
       {
         "chance": 0.15,
@@ -1353,7 +1873,12 @@
           }
         ]
       }
-    ]
+    ],
+    "behavior": {
+      "conditions": []
+    },
+    "target": "single",
+    "level_requirement": 1
   },
   {
     "id": "climate.crystal_driftblade",
@@ -1364,6 +1889,7 @@
     "power": 45,
     "accuracy": 1.0,
     "pp": 25,
+    "priority": 0,
     "effects": [
       {
         "chance": 0.3,
@@ -1378,7 +1904,12 @@
           }
         ]
       }
-    ]
+    ],
+    "behavior": {
+      "conditions": []
+    },
+    "target": "single",
+    "level_requirement": 1
   },
   {
     "id": "climate.blue_hour_wave",
@@ -1388,7 +1919,14 @@
     "category": "special",
     "power": 45,
     "accuracy": 1.0,
-    "pp": 25
+    "pp": 25,
+    "priority": 0,
+    "effects": [],
+    "behavior": {
+      "conditions": []
+    },
+    "target": "single",
+    "level_requirement": 1
   },
   {
     "id": "climate.snowblind_oath",
@@ -1396,8 +1934,10 @@
     "flavor_text": "A vow in blizzard silence hardens survival instinct.",
     "type": "ice",
     "category": "status",
+    "power": null,
     "accuracy": 1.0,
     "pp": 15,
+    "priority": 0,
     "effects": [
       {
         "chance": 1.0,
@@ -1412,7 +1952,12 @@
           }
         ]
       }
-    ]
+    ],
+    "behavior": {
+      "conditions": []
+    },
+    "target": "single",
+    "level_requirement": 1
   },
   {
     "id": "climate.meltwatch",
@@ -1420,8 +1965,10 @@
     "flavor_text": "You redirect thaw currents to keep cold advantage.",
     "type": "ice",
     "category": "status",
+    "power": null,
     "accuracy": 1.0,
     "pp": 15,
+    "priority": 0,
     "effects": [
       {
         "chance": 1.0,
@@ -1436,7 +1983,12 @@
           }
         ]
       }
-    ]
+    ],
+    "behavior": {
+      "conditions": []
+    },
+    "target": "single",
+    "level_requirement": 1
   },
   {
     "id": "climate.avalanche_psalm",
@@ -1446,6 +1998,13 @@
     "category": "special",
     "power": 95,
     "accuracy": 0.95,
+    "pp": 10,
+    "priority": 0,
+    "effects": [],
+    "behavior": {
+      "conditions": []
+    },
+    "target": "single",
     "level_requirement": 42
   },
   {
@@ -1456,6 +2015,8 @@
     "category": "special",
     "power": 105,
     "accuracy": 0.9,
+    "pp": 10,
+    "priority": 0,
     "effects": [
       {
         "chance": 0.2,
@@ -1471,6 +2032,10 @@
         ]
       }
     ],
+    "behavior": {
+      "conditions": []
+    },
+    "target": "single",
     "level_requirement": 56
   },
   {
@@ -1481,6 +2046,13 @@
     "category": "physical",
     "power": 100,
     "accuracy": 0.95,
+    "pp": 10,
+    "priority": 0,
+    "effects": [],
+    "behavior": {
+      "conditions": []
+    },
+    "target": "single",
     "level_requirement": 56
   },
   {
@@ -1489,7 +2061,10 @@
     "flavor_text": "Frost-crown sigils orbit the user like winter stars.",
     "type": "ice",
     "category": "status",
+    "power": null,
     "accuracy": 1.0,
+    "pp": 10,
+    "priority": 0,
     "effects": [
       {
         "chance": 1.0,
@@ -1505,7 +2080,12 @@
           }
         ]
       }
-    ]
+    ],
+    "behavior": {
+      "conditions": []
+    },
+    "target": "single",
+    "level_requirement": 1
   },
   {
     "id": "climate.zero_lantern",
@@ -1516,6 +2096,7 @@
     "power": 120,
     "accuracy": 0.85,
     "pp": 5,
+    "priority": 0,
     "effects": [
       {
         "chance": 0.1,
@@ -1529,6 +2110,10 @@
         ]
       }
     ],
+    "behavior": {
+      "conditions": []
+    },
+    "target": "single",
     "level_requirement": 76
   },
   {
@@ -1539,7 +2124,14 @@
     "category": "physical",
     "power": 30,
     "accuracy": 1.0,
-    "pp": 30
+    "pp": 30,
+    "priority": 0,
+    "effects": [],
+    "behavior": {
+      "conditions": []
+    },
+    "target": "single",
+    "level_requirement": 1
   },
   {
     "id": "climate.banner_rush",
@@ -1550,7 +2142,13 @@
     "power": 40,
     "accuracy": 1.0,
     "pp": 30,
-    "priority": 1
+    "priority": 1,
+    "effects": [],
+    "behavior": {
+      "conditions": []
+    },
+    "target": "single",
+    "level_requirement": 1
   },
   {
     "id": "climate.knuckle_monsoon",
@@ -1561,6 +2159,7 @@
     "power": 70,
     "accuracy": 1.0,
     "pp": 15,
+    "priority": 0,
     "effects": [
       {
         "chance": 0.3,
@@ -1576,6 +2175,10 @@
         ]
       }
     ],
+    "behavior": {
+      "conditions": []
+    },
+    "target": "single",
     "level_requirement": 36
   },
   {
@@ -1586,7 +2189,14 @@
     "category": "physical",
     "power": 45,
     "accuracy": 1.0,
-    "pp": 25
+    "pp": 25,
+    "priority": 0,
+    "effects": [],
+    "behavior": {
+      "conditions": []
+    },
+    "target": "single",
+    "level_requirement": 1
   },
   {
     "id": "climate.gale_clinch",
@@ -1596,7 +2206,14 @@
     "category": "physical",
     "power": 45,
     "accuracy": 1.0,
-    "pp": 25
+    "pp": 25,
+    "priority": 0,
+    "effects": [],
+    "behavior": {
+      "conditions": []
+    },
+    "target": "single",
+    "level_requirement": 1
   },
   {
     "id": "climate.stone_dojo_kick",
@@ -1606,7 +2223,14 @@
     "category": "physical",
     "power": 45,
     "accuracy": 1.0,
-    "pp": 25
+    "pp": 25,
+    "priority": 0,
+    "effects": [],
+    "behavior": {
+      "conditions": []
+    },
+    "target": "single",
+    "level_requirement": 1
   },
   {
     "id": "climate.stance_of_four_seasons",
@@ -1614,8 +2238,10 @@
     "flavor_text": "Seasonal stances rotate offense and composure.",
     "type": "fighting",
     "category": "status",
+    "power": null,
     "accuracy": 1.0,
     "pp": 15,
+    "priority": 0,
     "effects": [
       {
         "chance": 1.0,
@@ -1631,7 +2257,12 @@
           }
         ]
       }
-    ]
+    ],
+    "behavior": {
+      "conditions": []
+    },
+    "target": "single",
+    "level_requirement": 1
   },
   {
     "id": "climate.crowd_roar_kick",
@@ -1641,7 +2272,14 @@
     "category": "physical",
     "power": 45,
     "accuracy": 1.0,
-    "pp": 25
+    "pp": 25,
+    "priority": 0,
+    "effects": [],
+    "behavior": {
+      "conditions": []
+    },
+    "target": "single",
+    "level_requirement": 1
   },
   {
     "id": "climate.dustline_strike",
@@ -1651,7 +2289,14 @@
     "category": "physical",
     "power": 45,
     "accuracy": 1.0,
-    "pp": 25
+    "pp": 25,
+    "priority": 0,
+    "effects": [],
+    "behavior": {
+      "conditions": []
+    },
+    "target": "single",
+    "level_requirement": 1
   },
   {
     "id": "climate.iron_breath_count",
@@ -1659,8 +2304,10 @@
     "flavor_text": "Controlled breath between blows restores grit.",
     "type": "fighting",
     "category": "status",
+    "power": null,
     "accuracy": 1.0,
     "pp": 15,
+    "priority": 0,
     "effects": [
       {
         "chance": 1.0,
@@ -1675,7 +2322,12 @@
           }
         ]
       }
-    ]
+    ],
+    "behavior": {
+      "conditions": []
+    },
+    "target": "single",
+    "level_requirement": 1
   },
   {
     "id": "climate.cyclone_backfist",
@@ -1685,6 +2337,13 @@
     "category": "physical",
     "power": 95,
     "accuracy": 0.95,
+    "pp": 10,
+    "priority": 0,
+    "effects": [],
+    "behavior": {
+      "conditions": []
+    },
+    "target": "single",
     "level_requirement": 44
   },
   {
@@ -1695,6 +2354,8 @@
     "category": "physical",
     "power": 105,
     "accuracy": 0.9,
+    "pp": 10,
+    "priority": 0,
     "effects": [
       {
         "chance": 0.2,
@@ -1710,6 +2371,10 @@
         ]
       }
     ],
+    "behavior": {
+      "conditions": []
+    },
+    "target": "single",
     "level_requirement": 56
   },
   {
@@ -1721,6 +2386,12 @@
     "power": 110,
     "accuracy": 0.85,
     "pp": 5,
+    "priority": 0,
+    "effects": [],
+    "behavior": {
+      "conditions": []
+    },
+    "target": "single",
     "level_requirement": 56
   },
   {
@@ -1729,7 +2400,10 @@
     "flavor_text": "Ascetic wind discipline lifts allies over hazards.",
     "type": "fighting",
     "category": "status",
+    "power": null,
     "accuracy": 1.0,
+    "pp": 10,
+    "priority": 0,
     "effects": [
       {
         "chance": 1.0,
@@ -1744,7 +2418,12 @@
           }
         ]
       }
-    ]
+    ],
+    "behavior": {
+      "conditions": []
+    },
+    "target": "single",
+    "level_requirement": 1
   },
   {
     "id": "climate.last_ember_roundhouse",
@@ -1755,6 +2434,7 @@
     "power": 115,
     "accuracy": 0.8,
     "pp": 5,
+    "priority": 0,
     "effects": [
       {
         "chance": 0.1,
@@ -1768,6 +2448,10 @@
         ]
       }
     ],
+    "behavior": {
+      "conditions": []
+    },
+    "target": "single",
     "level_requirement": 77
   },
   {
@@ -1778,7 +2462,14 @@
     "category": "special",
     "power": 25,
     "accuracy": 1.0,
-    "pp": 35
+    "pp": 35,
+    "priority": 0,
+    "effects": [],
+    "behavior": {
+      "conditions": []
+    },
+    "target": "single",
+    "level_requirement": 1
   },
   {
     "id": "climate.bog_needle",
@@ -1789,7 +2480,13 @@
     "power": 40,
     "accuracy": 1.0,
     "pp": 30,
-    "priority": 1
+    "priority": 1,
+    "effects": [],
+    "behavior": {
+      "conditions": []
+    },
+    "target": "single",
+    "level_requirement": 1
   },
   {
     "id": "climate.rotpetal_flick",
@@ -1800,6 +2497,7 @@
     "power": 65,
     "accuracy": 1.0,
     "pp": 15,
+    "priority": 0,
     "effects": [
       {
         "chance": 0.3,
@@ -1820,6 +2518,10 @@
         ]
       }
     ],
+    "behavior": {
+      "conditions": []
+    },
+    "target": "single",
     "level_requirement": 36
   },
   {
@@ -1831,6 +2533,12 @@
     "power": 65,
     "accuracy": 1.0,
     "pp": 20,
+    "priority": 0,
+    "effects": [],
+    "behavior": {
+      "conditions": []
+    },
+    "target": "single",
     "level_requirement": 36
   },
   {
@@ -1842,6 +2550,7 @@
     "power": 45,
     "accuracy": 1.0,
     "pp": 25,
+    "priority": 0,
     "effects": [
       {
         "chance": 0.1,
@@ -1854,7 +2563,12 @@
           }
         ]
       }
-    ]
+    ],
+    "behavior": {
+      "conditions": []
+    },
+    "target": "single",
+    "level_requirement": 1
   },
   {
     "id": "climate.pestilent_knell",
@@ -1865,6 +2579,7 @@
     "power": 45,
     "accuracy": 1.0,
     "pp": 25,
+    "priority": 0,
     "effects": [
       {
         "chance": 0.2,
@@ -1877,7 +2592,12 @@
           }
         ]
       }
-    ]
+    ],
+    "behavior": {
+      "conditions": []
+    },
+    "target": "single",
+    "level_requirement": 1
   },
   {
     "id": "climate.fume_reliquary",
@@ -1885,8 +2605,10 @@
     "flavor_text": "An antique vial leaks sacred miasma.",
     "type": "poison",
     "category": "status",
+    "power": null,
     "accuracy": 1.0,
     "pp": 20,
+    "priority": 0,
     "effects": [
       {
         "chance": 1.0,
@@ -1901,7 +2623,12 @@
           }
         ]
       }
-    ]
+    ],
+    "behavior": {
+      "conditions": []
+    },
+    "target": "single",
+    "level_requirement": 1
   },
   {
     "id": "climate.sump_bite",
@@ -1911,7 +2638,14 @@
     "category": "physical",
     "power": 45,
     "accuracy": 1.0,
-    "pp": 25
+    "pp": 25,
+    "priority": 0,
+    "effects": [],
+    "behavior": {
+      "conditions": []
+    },
+    "target": "single",
+    "level_requirement": 1
   },
   {
     "id": "climate.antidote_spit",
@@ -1921,7 +2655,14 @@
     "category": "special",
     "power": 45,
     "accuracy": 1.0,
-    "pp": 25
+    "pp": 25,
+    "priority": 0,
+    "effects": [],
+    "behavior": {
+      "conditions": []
+    },
+    "target": "single",
+    "level_requirement": 1
   },
   {
     "id": "climate.noxious_almanac",
@@ -1929,8 +2670,10 @@
     "flavor_text": "Plague omens help you predict and punish.",
     "type": "poison",
     "category": "status",
+    "power": null,
     "accuracy": 1.0,
     "pp": 15,
+    "priority": 0,
     "effects": [
       {
         "chance": 1.0,
@@ -1945,7 +2688,12 @@
           }
         ]
       }
-    ]
+    ],
+    "behavior": {
+      "conditions": []
+    },
+    "target": "single",
+    "level_requirement": 1
   },
   {
     "id": "climate.tar_eclipse",
@@ -1955,6 +2703,13 @@
     "category": "special",
     "power": 95,
     "accuracy": 0.95,
+    "pp": 10,
+    "priority": 0,
+    "effects": [],
+    "behavior": {
+      "conditions": []
+    },
+    "target": "single",
     "level_requirement": 45
   },
   {
@@ -1965,6 +2720,8 @@
     "category": "special",
     "power": 105,
     "accuracy": 0.9,
+    "pp": 10,
+    "priority": 0,
     "effects": [
       {
         "chance": 0.2,
@@ -1980,6 +2737,10 @@
         ]
       }
     ],
+    "behavior": {
+      "conditions": []
+    },
+    "target": "single",
     "level_requirement": 56
   },
   {
@@ -1990,7 +2751,14 @@
     "category": "special",
     "power": 45,
     "accuracy": 1.0,
-    "pp": 25
+    "pp": 25,
+    "priority": 0,
+    "effects": [],
+    "behavior": {
+      "conditions": []
+    },
+    "target": "single",
+    "level_requirement": 1
   },
   {
     "id": "climate.plague_weather",
@@ -1998,7 +2766,10 @@
     "flavor_text": "Sickly drizzle empowers corruption.",
     "type": "poison",
     "category": "status",
+    "power": null,
     "accuracy": 1.0,
+    "pp": 10,
+    "priority": 0,
     "effects": [
       {
         "chance": 1.0,
@@ -2013,7 +2784,12 @@
           }
         ]
       }
-    ]
+    ],
+    "behavior": {
+      "conditions": []
+    },
+    "target": "single",
+    "level_requirement": 1
   },
   {
     "id": "climate.crown_of_ichor",
@@ -2024,6 +2800,7 @@
     "power": 115,
     "accuracy": 0.8,
     "pp": 5,
+    "priority": 0,
     "effects": [
       {
         "chance": 0.1,
@@ -2037,6 +2814,10 @@
         ]
       }
     ],
+    "behavior": {
+      "conditions": []
+    },
+    "target": "single",
     "level_requirement": 78
   },
   {
@@ -2047,7 +2828,14 @@
     "category": "physical",
     "power": 30,
     "accuracy": 1.0,
-    "pp": 30
+    "pp": 30,
+    "priority": 0,
+    "effects": [],
+    "behavior": {
+      "conditions": []
+    },
+    "target": "single",
+    "level_requirement": 1
   },
   {
     "id": "climate.gravel_oath",
@@ -2058,6 +2846,12 @@
     "power": 65,
     "accuracy": 1.0,
     "pp": 20,
+    "priority": 0,
+    "effects": [],
+    "behavior": {
+      "conditions": []
+    },
+    "target": "single",
     "level_requirement": 36
   },
   {
@@ -2068,7 +2862,14 @@
     "category": "physical",
     "power": 45,
     "accuracy": 1.0,
-    "pp": 25
+    "pp": 25,
+    "priority": 0,
+    "effects": [],
+    "behavior": {
+      "conditions": []
+    },
+    "target": "single",
+    "level_requirement": 1
   },
   {
     "id": "climate.loam_cannon",
@@ -2078,7 +2879,14 @@
     "category": "special",
     "power": 45,
     "accuracy": 1.0,
-    "pp": 25
+    "pp": 25,
+    "priority": 0,
+    "effects": [],
+    "behavior": {
+      "conditions": []
+    },
+    "target": "single",
+    "level_requirement": 1
   },
   {
     "id": "climate.dry_season_ward",
@@ -2086,8 +2894,10 @@
     "flavor_text": "Heat drawn from soil hardens your footing.",
     "type": "ground",
     "category": "status",
+    "power": null,
     "accuracy": 1.0,
     "pp": 20,
+    "priority": 0,
     "effects": [
       {
         "chance": 1.0,
@@ -2102,7 +2912,12 @@
           }
         ]
       }
-    ]
+    ],
+    "behavior": {
+      "conditions": []
+    },
+    "target": "single",
+    "level_requirement": 1
   },
   {
     "id": "climate.tremor_reading",
@@ -2110,8 +2925,10 @@
     "flavor_text": "Micro-vibrations reveal where to set a firmer stance.",
     "type": "ground",
     "category": "status",
+    "power": null,
     "accuracy": 1.0,
     "pp": 15,
+    "priority": 0,
     "effects": [
       {
         "chance": 1.0,
@@ -2126,7 +2943,12 @@
           }
         ]
       }
-    ]
+    ],
+    "behavior": {
+      "conditions": []
+    },
+    "target": "single",
+    "level_requirement": 1
   },
   {
     "id": "climate.cairn_quake",
@@ -2137,6 +2959,7 @@
     "power": 45,
     "accuracy": 1.0,
     "pp": 25,
+    "priority": 0,
     "effects": [
       {
         "chance": 0.2,
@@ -2151,7 +2974,12 @@
           }
         ]
       }
-    ]
+    ],
+    "behavior": {
+      "conditions": []
+    },
+    "target": "single",
+    "level_requirement": 1
   },
   {
     "id": "climate.basin_collapse",
@@ -2161,6 +2989,13 @@
     "category": "physical",
     "power": 95,
     "accuracy": 0.95,
+    "pp": 10,
+    "priority": 0,
+    "effects": [],
+    "behavior": {
+      "conditions": []
+    },
+    "target": "single",
     "level_requirement": 44
   },
   {
@@ -2171,7 +3006,14 @@
     "category": "physical",
     "power": 30,
     "accuracy": 1.0,
-    "pp": 35
+    "pp": 35,
+    "priority": 0,
+    "effects": [],
+    "behavior": {
+      "conditions": []
+    },
+    "target": "single",
+    "level_requirement": 1
   },
   {
     "id": "climate.thermal_clip",
@@ -2181,7 +3023,14 @@
     "category": "physical",
     "power": 30,
     "accuracy": 1.0,
-    "pp": 30
+    "pp": 30,
+    "priority": 0,
+    "effects": [],
+    "behavior": {
+      "conditions": []
+    },
+    "target": "single",
+    "level_requirement": 1
   },
   {
     "id": "climate.skylark_dart",
@@ -2192,7 +3041,13 @@
     "power": 40,
     "accuracy": 1.0,
     "pp": 30,
-    "priority": 1
+    "priority": 1,
+    "effects": [],
+    "behavior": {
+      "conditions": []
+    },
+    "target": "single",
+    "level_requirement": 1
   },
   {
     "id": "climate.feather_squall",
@@ -2203,6 +3058,7 @@
     "power": 70,
     "accuracy": 1.0,
     "pp": 15,
+    "priority": 0,
     "effects": [
       {
         "chance": 0.3,
@@ -2218,6 +3074,10 @@
         ]
       }
     ],
+    "behavior": {
+      "conditions": []
+    },
+    "target": "single",
     "level_requirement": 36
   },
   {
@@ -2228,7 +3088,14 @@
     "category": "physical",
     "power": 30,
     "accuracy": 1.0,
-    "pp": 30
+    "pp": 30,
+    "priority": 0,
+    "effects": [],
+    "behavior": {
+      "conditions": []
+    },
+    "target": "single",
+    "level_requirement": 1
   },
   {
     "id": "climate.roostline_strike",
@@ -2238,7 +3105,14 @@
     "category": "physical",
     "power": 45,
     "accuracy": 1.0,
-    "pp": 25
+    "pp": 25,
+    "priority": 0,
+    "effects": [],
+    "behavior": {
+      "conditions": []
+    },
+    "target": "single",
+    "level_requirement": 1
   },
   {
     "id": "climate.tailwind_canticle",
@@ -2246,8 +3120,10 @@
     "flavor_text": "A wind hymn lifts ally footwork.",
     "type": "flying",
     "category": "status",
+    "power": null,
     "accuracy": 1.0,
     "pp": 20,
+    "priority": 0,
     "effects": [
       {
         "chance": 1.0,
@@ -2262,7 +3138,12 @@
           }
         ]
       }
-    ]
+    ],
+    "behavior": {
+      "conditions": []
+    },
+    "target": "single",
+    "level_requirement": 1
   },
   {
     "id": "climate.downdraft_denial",
@@ -2270,8 +3151,10 @@
     "flavor_text": "A sudden downdraft ruins jumps and lunges.",
     "type": "flying",
     "category": "status",
+    "power": null,
     "accuracy": 1.0,
     "pp": 20,
+    "priority": 0,
     "effects": [
       {
         "chance": 1.0,
@@ -2286,7 +3169,12 @@
           }
         ]
       }
-    ]
+    ],
+    "behavior": {
+      "conditions": []
+    },
+    "target": "single",
+    "level_requirement": 1
   },
   {
     "id": "climate.murmuration_strike",
@@ -2297,6 +3185,7 @@
     "power": 45,
     "accuracy": 1.0,
     "pp": 25,
+    "priority": 0,
     "effects": [
       {
         "chance": 0.3,
@@ -2311,7 +3200,12 @@
           }
         ]
       }
-    ]
+    ],
+    "behavior": {
+      "conditions": []
+    },
+    "target": "single",
+    "level_requirement": 1
   },
   {
     "id": "climate.jetstream_talons",
@@ -2321,7 +3215,14 @@
     "category": "physical",
     "power": 45,
     "accuracy": 1.0,
-    "pp": 25
+    "pp": 25,
+    "priority": 0,
+    "effects": [],
+    "behavior": {
+      "conditions": []
+    },
+    "target": "single",
+    "level_requirement": 1
   },
   {
     "id": "climate.cyclone_sickle",
@@ -2331,6 +3232,13 @@
     "category": "special",
     "power": 95,
     "accuracy": 0.95,
+    "pp": 10,
+    "priority": 0,
+    "effects": [],
+    "behavior": {
+      "conditions": []
+    },
+    "target": "single",
     "level_requirement": 45
   },
   {
@@ -2341,6 +3249,8 @@
     "category": "physical",
     "power": 105,
     "accuracy": 0.9,
+    "pp": 10,
+    "priority": 0,
     "effects": [
       {
         "chance": 0.2,
@@ -2356,6 +3266,10 @@
         ]
       }
     ],
+    "behavior": {
+      "conditions": []
+    },
+    "target": "single",
     "level_requirement": 56
   },
   {
@@ -2366,6 +3280,13 @@
     "category": "special",
     "power": 100,
     "accuracy": 0.95,
+    "pp": 10,
+    "priority": 0,
+    "effects": [],
+    "behavior": {
+      "conditions": []
+    },
+    "target": "single",
     "level_requirement": 56
   },
   {
@@ -2374,7 +3295,10 @@
     "flavor_text": "A sacred spiral summons favorable winds.",
     "type": "flying",
     "category": "status",
+    "power": null,
     "accuracy": 1.0,
+    "pp": 10,
+    "priority": 0,
     "effects": [
       {
         "chance": 1.0,
@@ -2389,7 +3313,12 @@
           }
         ]
       }
-    ]
+    ],
+    "behavior": {
+      "conditions": []
+    },
+    "target": "single",
+    "level_requirement": 1
   },
   {
     "id": "climate.aurora_dive",
@@ -2400,6 +3329,7 @@
     "power": 120,
     "accuracy": 0.85,
     "pp": 5,
+    "priority": 0,
     "effects": [
       {
         "chance": 0.1,
@@ -2415,6 +3345,10 @@
         ]
       }
     ],
+    "behavior": {
+      "conditions": []
+    },
+    "target": "single",
     "level_requirement": 78
   },
   {
@@ -2425,7 +3359,14 @@
     "category": "physical",
     "power": 30,
     "accuracy": 1.0,
-    "pp": 35
+    "pp": 35,
+    "priority": 0,
+    "effects": [],
+    "behavior": {
+      "conditions": []
+    },
+    "target": "single",
+    "level_requirement": 1
   },
   {
     "id": "climate.pollen_drift",
@@ -2435,7 +3376,14 @@
     "category": "special",
     "power": 45,
     "accuracy": 1.0,
-    "pp": 20
+    "pp": 20,
+    "priority": 0,
+    "effects": [],
+    "behavior": {
+      "conditions": []
+    },
+    "target": "single",
+    "level_requirement": 1
   },
   {
     "id": "climate.thunder_midge",
@@ -2446,6 +3394,7 @@
     "power": 70,
     "accuracy": 0.95,
     "pp": 15,
+    "priority": 0,
     "effects": [
       {
         "chance": 0.3,
@@ -2459,6 +3408,10 @@
         ]
       }
     ],
+    "behavior": {
+      "conditions": []
+    },
+    "target": "single",
     "level_requirement": 36
   },
   {
@@ -2469,7 +3422,14 @@
     "category": "physical",
     "power": 45,
     "accuracy": 1.0,
-    "pp": 25
+    "pp": 25,
+    "priority": 0,
+    "effects": [],
+    "behavior": {
+      "conditions": []
+    },
+    "target": "single",
+    "level_requirement": 1
   },
   {
     "id": "climate.swarm_sundart",
@@ -2479,7 +3439,14 @@
     "category": "physical",
     "power": 45,
     "accuracy": 1.0,
-    "pp": 25
+    "pp": 25,
+    "priority": 0,
+    "effects": [],
+    "behavior": {
+      "conditions": []
+    },
+    "target": "single",
+    "level_requirement": 1
   },
   {
     "id": "climate.raincarver_horn",
@@ -2489,7 +3456,14 @@
     "category": "physical",
     "power": 45,
     "accuracy": 1.0,
-    "pp": 25
+    "pp": 25,
+    "priority": 0,
+    "effects": [],
+    "behavior": {
+      "conditions": []
+    },
+    "target": "single",
+    "level_requirement": 1
   },
   {
     "id": "climate.humid_husk",
@@ -2499,6 +3473,8 @@
     "category": "physical",
     "power": 95,
     "accuracy": 0.9,
+    "pp": 10,
+    "priority": 0,
     "effects": [
       {
         "chance": 0.2,
@@ -2514,6 +3490,10 @@
         ]
       }
     ],
+    "behavior": {
+      "conditions": []
+    },
+    "target": "single",
     "level_requirement": 50
   },
   {
@@ -2525,6 +3505,7 @@
     "power": 112,
     "accuracy": 0.85,
     "pp": 5,
+    "priority": 0,
     "effects": [
       {
         "chance": 0.1,
@@ -2538,6 +3519,10 @@
         ]
       }
     ],
+    "behavior": {
+      "conditions": []
+    },
+    "target": "single",
     "level_requirement": 56
   },
   {
@@ -2549,7 +3534,13 @@
     "power": 40,
     "accuracy": 1.0,
     "pp": 30,
-    "priority": 1
+    "priority": 1,
+    "effects": [],
+    "behavior": {
+      "conditions": []
+    },
+    "target": "single",
+    "level_requirement": 1
   },
   {
     "id": "climate.cloudchitin_slam",
@@ -2559,6 +3550,13 @@
     "category": "physical",
     "power": 90,
     "accuracy": 0.9,
+    "pp": 10,
+    "priority": 0,
+    "effects": [],
+    "behavior": {
+      "conditions": []
+    },
+    "target": "single",
     "level_requirement": 57
   },
   {
@@ -2567,8 +3565,10 @@
     "flavor_text": "Morning mist around the brood accelerates the user's movement.",
     "type": "bug",
     "category": "status",
+    "power": null,
     "accuracy": 1.0,
     "pp": 20,
+    "priority": 0,
     "effects": [
       {
         "chance": 1.0,
@@ -2583,7 +3583,12 @@
           }
         ]
       }
-    ]
+    ],
+    "behavior": {
+      "conditions": []
+    },
+    "target": "single",
+    "level_requirement": 1
   },
   {
     "id": "climate.spore_barrage",
@@ -2594,6 +3599,7 @@
     "power": 70,
     "accuracy": 0.95,
     "pp": 15,
+    "priority": 0,
     "effects": [
       {
         "chance": 0.2,
@@ -2607,6 +3613,10 @@
         ]
       }
     ],
+    "behavior": {
+      "conditions": []
+    },
+    "target": "single",
     "level_requirement": 36
   },
   {
@@ -2617,7 +3627,14 @@
     "category": "physical",
     "power": 45,
     "accuracy": 1.0,
-    "pp": 25
+    "pp": 25,
+    "priority": 0,
+    "effects": [],
+    "behavior": {
+      "conditions": []
+    },
+    "target": "single",
+    "level_requirement": 1
   },
   {
     "id": "climate.brood_pressure",
@@ -2625,7 +3642,10 @@
     "flavor_text": "Rising swarm pressure hardens instinct and boosts attack rhythm.",
     "type": "bug",
     "category": "status",
+    "power": null,
     "accuracy": 1.0,
+    "pp": 10,
+    "priority": 0,
     "effects": [
       {
         "chance": 1.0,
@@ -2641,7 +3661,12 @@
           }
         ]
       }
-    ]
+    ],
+    "behavior": {
+      "conditions": []
+    },
+    "target": "single",
+    "level_requirement": 1
   },
   {
     "id": "climate.locust_eclipse",
@@ -2649,7 +3674,10 @@
     "flavor_text": "A sun-blotting cloud of wings strips away the target's defenses.",
     "type": "bug",
     "category": "status",
+    "power": null,
     "accuracy": 0.9,
+    "pp": 10,
+    "priority": 0,
     "effects": [
       {
         "chance": 1.0,
@@ -2665,7 +3693,12 @@
           }
         ]
       }
-    ]
+    ],
+    "behavior": {
+      "conditions": []
+    },
+    "target": "single",
+    "level_requirement": 1
   },
   {
     "id": "climate.pebble_drizzle",
@@ -2675,7 +3708,14 @@
     "category": "physical",
     "power": 25,
     "accuracy": 1.0,
-    "pp": 35
+    "pp": 35,
+    "priority": 0,
+    "effects": [],
+    "behavior": {
+      "conditions": []
+    },
+    "target": "single",
+    "level_requirement": 1
   },
   {
     "id": "climate.shale_gust",
@@ -2686,7 +3726,13 @@
     "power": 40,
     "accuracy": 1.0,
     "pp": 30,
-    "priority": 1
+    "priority": 1,
+    "effects": [],
+    "behavior": {
+      "conditions": []
+    },
+    "target": "single",
+    "level_requirement": 1
   },
   {
     "id": "climate.hailstone_maul",
@@ -2697,6 +3743,7 @@
     "power": 72,
     "accuracy": 0.95,
     "pp": 15,
+    "priority": 0,
     "effects": [
       {
         "chance": 0.3,
@@ -2712,6 +3759,10 @@
         ]
       }
     ],
+    "behavior": {
+      "conditions": []
+    },
+    "target": "single",
     "level_requirement": 36
   },
   {
@@ -2722,7 +3773,14 @@
     "category": "physical",
     "power": 45,
     "accuracy": 1.0,
-    "pp": 25
+    "pp": 25,
+    "priority": 0,
+    "effects": [],
+    "behavior": {
+      "conditions": []
+    },
+    "target": "single",
+    "level_requirement": 1
   },
   {
     "id": "climate.basalt_squall",
@@ -2732,7 +3790,14 @@
     "category": "physical",
     "power": 45,
     "accuracy": 1.0,
-    "pp": 25
+    "pp": 25,
+    "priority": 0,
+    "effects": [],
+    "behavior": {
+      "conditions": []
+    },
+    "target": "single",
+    "level_requirement": 1
   },
   {
     "id": "climate.gravel_wake",
@@ -2743,6 +3808,12 @@
     "power": 65,
     "accuracy": 1.0,
     "pp": 20,
+    "priority": 0,
+    "effects": [],
+    "behavior": {
+      "conditions": []
+    },
+    "target": "single",
     "level_requirement": 36
   },
   {
@@ -2753,7 +3824,14 @@
     "category": "physical",
     "power": 45,
     "accuracy": 1.0,
-    "pp": 25
+    "pp": 25,
+    "priority": 0,
+    "effects": [],
+    "behavior": {
+      "conditions": []
+    },
+    "target": "single",
+    "level_requirement": 1
   },
   {
     "id": "climate.monolith_tempest",
@@ -2763,7 +3841,14 @@
     "category": "physical",
     "power": 45,
     "accuracy": 1.0,
-    "pp": 25
+    "pp": 25,
+    "priority": 0,
+    "effects": [],
+    "behavior": {
+      "conditions": []
+    },
+    "target": "single",
+    "level_requirement": 1
   },
   {
     "id": "climate.strata_thunder",
@@ -2773,6 +3858,8 @@
     "category": "special",
     "power": 104,
     "accuracy": 0.85,
+    "pp": 10,
+    "priority": 0,
     "effects": [
       {
         "chance": 0.2,
@@ -2786,6 +3873,10 @@
         ]
       }
     ],
+    "behavior": {
+      "conditions": []
+    },
+    "target": "single",
     "level_requirement": 56
   },
   {
@@ -2797,6 +3888,7 @@
     "power": 120,
     "accuracy": 0.8,
     "pp": 5,
+    "priority": 0,
     "effects": [
       {
         "chance": 0.1,
@@ -2812,6 +3904,10 @@
         ]
       }
     ],
+    "behavior": {
+      "conditions": []
+    },
+    "target": "single",
     "level_requirement": 62
   },
   {
@@ -2820,8 +3916,10 @@
     "flavor_text": "A dense ridge of wind-packed grit rises to shield the user.",
     "type": "rock",
     "category": "status",
+    "power": null,
     "accuracy": 1.0,
     "pp": 20,
+    "priority": 0,
     "effects": [
       {
         "chance": 1.0,
@@ -2836,7 +3934,12 @@
           }
         ]
       }
-    ]
+    ],
+    "behavior": {
+      "conditions": []
+    },
+    "target": "single",
+    "level_requirement": 1
   },
   {
     "id": "climate.pressure_cairn_slam",
@@ -2846,7 +3949,14 @@
     "category": "physical",
     "power": 45,
     "accuracy": 1.0,
-    "pp": 25
+    "pp": 25,
+    "priority": 0,
+    "effects": [],
+    "behavior": {
+      "conditions": []
+    },
+    "target": "single",
+    "level_requirement": 1
   },
   {
     "id": "climate.scree_veil",
@@ -2854,8 +3964,10 @@
     "flavor_text": "A curtain of tumbling scree reinforces the user's stance.",
     "type": "rock",
     "category": "status",
+    "power": null,
     "accuracy": 1.0,
     "pp": 15,
+    "priority": 0,
     "effects": [
       {
         "chance": 1.0,
@@ -2870,7 +3982,12 @@
           }
         ]
       }
-    ]
+    ],
+    "behavior": {
+      "conditions": []
+    },
+    "target": "single",
+    "level_requirement": 1
   },
   {
     "id": "climate.tectonic_poise",
@@ -2878,7 +3995,10 @@
     "flavor_text": "The user grounds itself like bedrock, gaining striking stability.",
     "type": "rock",
     "category": "status",
+    "power": null,
     "accuracy": 1.0,
+    "pp": 10,
+    "priority": 0,
     "effects": [
       {
         "chance": 1.0,
@@ -2894,7 +4014,12 @@
           }
         ]
       }
-    ]
+    ],
+    "behavior": {
+      "conditions": []
+    },
+    "target": "single",
+    "level_requirement": 1
   },
   {
     "id": "climate.avalanche_crush",
@@ -2904,6 +4029,8 @@
     "category": "special",
     "power": 95,
     "accuracy": 0.9,
+    "pp": 10,
+    "priority": 0,
     "effects": [
       {
         "chance": 0.2,
@@ -2919,6 +4046,10 @@
         ]
       }
     ],
+    "behavior": {
+      "conditions": []
+    },
+    "target": "single",
     "level_requirement": 70
   },
   {
@@ -2929,7 +4060,14 @@
     "category": "physical",
     "power": 25,
     "accuracy": 1.0,
-    "pp": 35
+    "pp": 35,
+    "priority": 0,
+    "effects": [],
+    "behavior": {
+      "conditions": []
+    },
+    "target": "single",
+    "level_requirement": 1
   },
   {
     "id": "climate.lantern_chill",
@@ -2940,7 +4078,13 @@
     "power": 40,
     "accuracy": 1.0,
     "pp": 30,
-    "priority": 1
+    "priority": 1,
+    "effects": [],
+    "behavior": {
+      "conditions": []
+    },
+    "target": "single",
+    "level_requirement": 1
   },
   {
     "id": "climate.haunt_monsoon",
@@ -2951,6 +4095,7 @@
     "power": 70,
     "accuracy": 0.95,
     "pp": 15,
+    "priority": 0,
     "effects": [
       {
         "chance": 0.3,
@@ -2964,6 +4109,10 @@
         ]
       }
     ],
+    "behavior": {
+      "conditions": []
+    },
+    "target": "single",
     "level_requirement": 36
   },
   {
@@ -2974,7 +4123,14 @@
     "category": "special",
     "power": 45,
     "accuracy": 1.0,
-    "pp": 25
+    "pp": 25,
+    "priority": 0,
+    "effects": [],
+    "behavior": {
+      "conditions": []
+    },
+    "target": "single",
+    "level_requirement": 1
   },
   {
     "id": "climate.phantom_sleet",
@@ -2984,7 +4140,14 @@
     "category": "special",
     "power": 45,
     "accuracy": 1.0,
-    "pp": 25
+    "pp": 25,
+    "priority": 0,
+    "effects": [],
+    "behavior": {
+      "conditions": []
+    },
+    "target": "single",
+    "level_requirement": 1
   },
   {
     "id": "climate.murk_draft",
@@ -2994,7 +4157,14 @@
     "category": "special",
     "power": 45,
     "accuracy": 1.0,
-    "pp": 25
+    "pp": 25,
+    "priority": 0,
+    "effects": [],
+    "behavior": {
+      "conditions": []
+    },
+    "target": "single",
+    "level_requirement": 1
   },
   {
     "id": "climate.grave_mist",
@@ -3004,7 +4174,14 @@
     "category": "special",
     "power": 45,
     "accuracy": 1.0,
-    "pp": 25
+    "pp": 25,
+    "priority": 0,
+    "effects": [],
+    "behavior": {
+      "conditions": []
+    },
+    "target": "single",
+    "level_requirement": 1
   },
   {
     "id": "climate.eclipse_dirge",
@@ -3014,7 +4191,14 @@
     "category": "special",
     "power": 45,
     "accuracy": 1.0,
-    "pp": 25
+    "pp": 25,
+    "priority": 0,
+    "effects": [],
+    "behavior": {
+      "conditions": []
+    },
+    "target": "single",
+    "level_requirement": 1
   },
   {
     "id": "climate.soul_typhoon",
@@ -3024,6 +4208,8 @@
     "category": "special",
     "power": 104,
     "accuracy": 0.85,
+    "pp": 10,
+    "priority": 0,
     "effects": [
       {
         "chance": 0.2,
@@ -3039,6 +4225,10 @@
         ]
       }
     ],
+    "behavior": {
+      "conditions": []
+    },
+    "target": "single",
     "level_requirement": 56
   },
   {
@@ -3050,6 +4240,7 @@
     "power": 118,
     "accuracy": 0.8,
     "pp": 5,
+    "priority": 0,
     "effects": [
       {
         "chance": 0.1,
@@ -3063,6 +4254,10 @@
         ]
       }
     ],
+    "behavior": {
+      "conditions": []
+    },
+    "target": "single",
     "level_requirement": 64
   },
   {
@@ -3071,8 +4266,10 @@
     "flavor_text": "Shadows thicken into a cloak that hardens the user's spirit.",
     "type": "ghost",
     "category": "status",
+    "power": null,
     "accuracy": 1.0,
     "pp": 20,
+    "priority": 0,
     "effects": [
       {
         "chance": 1.0,
@@ -3087,7 +4284,12 @@
           }
         ]
       }
-    ]
+    ],
+    "behavior": {
+      "conditions": []
+    },
+    "target": "single",
+    "level_requirement": 1
   },
   {
     "id": "climate.cold_whisper",
@@ -3095,8 +4297,10 @@
     "flavor_text": "A winter whisper from behind saps the foe's will to strike.",
     "type": "ghost",
     "category": "status",
+    "power": null,
     "accuracy": 1.0,
     "pp": 20,
+    "priority": 0,
     "effects": [
       {
         "chance": 1.0,
@@ -3111,7 +4315,12 @@
           }
         ]
       }
-    ]
+    ],
+    "behavior": {
+      "conditions": []
+    },
+    "target": "single",
+    "level_requirement": 1
   },
   {
     "id": "climate.veil_of_drizzle",
@@ -3119,8 +4328,10 @@
     "flavor_text": "A fine spectral drizzle quiets the user's outline and steadies its guard.",
     "type": "ghost",
     "category": "status",
+    "power": null,
     "accuracy": 1.0,
     "pp": 15,
+    "priority": 0,
     "effects": [
       {
         "chance": 1.0,
@@ -3135,7 +4346,12 @@
           }
         ]
       }
-    ]
+    ],
+    "behavior": {
+      "conditions": []
+    },
+    "target": "single",
+    "level_requirement": 1
   },
   {
     "id": "climate.grief_barrage",
@@ -3145,6 +4361,13 @@
     "category": "special",
     "power": 85,
     "accuracy": 0.95,
+    "pp": 10,
+    "priority": 0,
+    "effects": [],
+    "behavior": {
+      "conditions": []
+    },
+    "target": "single",
     "level_requirement": 47
   },
   {
@@ -3155,6 +4378,8 @@
     "category": "special",
     "power": 90,
     "accuracy": 0.95,
+    "pp": 10,
+    "priority": 0,
     "effects": [
       {
         "chance": 0.2,
@@ -3168,6 +4393,10 @@
         ]
       }
     ],
+    "behavior": {
+      "conditions": []
+    },
+    "target": "single",
     "level_requirement": 73
   },
   {
@@ -3178,7 +4407,14 @@
     "category": "physical",
     "power": 45,
     "accuracy": 1.0,
-    "pp": 25
+    "pp": 25,
+    "priority": 0,
+    "effects": [],
+    "behavior": {
+      "conditions": []
+    },
+    "target": "single",
+    "level_requirement": 1
   },
   {
     "id": "climate.stormscale_bolt",
@@ -3188,7 +4424,14 @@
     "category": "special",
     "power": 30,
     "accuracy": 1.0,
-    "pp": 30
+    "pp": 30,
+    "priority": 0,
+    "effects": [],
+    "behavior": {
+      "conditions": []
+    },
+    "target": "single",
+    "level_requirement": 1
   },
   {
     "id": "climate.thunder_roost_dive",
@@ -3196,9 +4439,10 @@
     "flavor_text": "The user drops from thundercloud cover with a jolting impact.",
     "type": "dragon",
     "category": "physical",
-    "power": 78,
+    "power": 90,
     "accuracy": 0.95,
     "pp": 15,
+    "priority": 0,
     "effects": [
       {
         "chance": 0.3,
@@ -3212,6 +4456,10 @@
         ]
       }
     ],
+    "behavior": {
+      "conditions": []
+    },
+    "target": "single",
     "level_requirement": 36
   },
   {
@@ -3222,7 +4470,14 @@
     "category": "physical",
     "power": 45,
     "accuracy": 1.0,
-    "pp": 25
+    "pp": 25,
+    "priority": 0,
+    "effects": [],
+    "behavior": {
+      "conditions": []
+    },
+    "target": "single",
+    "level_requirement": 1
   },
   {
     "id": "climate.skycoil_crush",
@@ -3232,7 +4487,14 @@
     "category": "physical",
     "power": 45,
     "accuracy": 1.0,
-    "pp": 25
+    "pp": 25,
+    "priority": 0,
+    "effects": [],
+    "behavior": {
+      "conditions": []
+    },
+    "target": "single",
+    "level_requirement": 1
   },
   {
     "id": "climate.drake_dew_slash",
@@ -3243,6 +4505,12 @@
     "power": 68,
     "accuracy": 1.0,
     "pp": 20,
+    "priority": 0,
+    "effects": [],
+    "behavior": {
+      "conditions": []
+    },
+    "target": "single",
     "level_requirement": 36
   },
   {
@@ -3253,7 +4521,14 @@
     "category": "physical",
     "power": 45,
     "accuracy": 1.0,
-    "pp": 25
+    "pp": 25,
+    "priority": 0,
+    "effects": [],
+    "behavior": {
+      "conditions": []
+    },
+    "target": "single",
+    "level_requirement": 1
   },
   {
     "id": "climate.frontline_roar",
@@ -3263,7 +4538,14 @@
     "category": "special",
     "power": 45,
     "accuracy": 1.0,
-    "pp": 25
+    "pp": 25,
+    "priority": 0,
+    "effects": [],
+    "behavior": {
+      "conditions": []
+    },
+    "target": "single",
+    "level_requirement": 1
   },
   {
     "id": "climate.pressure_comet",
@@ -3273,6 +4555,8 @@
     "category": "special",
     "power": 108,
     "accuracy": 0.85,
+    "pp": 10,
+    "priority": 0,
     "effects": [
       {
         "chance": 0.2,
@@ -3288,6 +4572,10 @@
         ]
       }
     ],
+    "behavior": {
+      "conditions": []
+    },
+    "target": "single",
     "level_requirement": 56
   },
   {
@@ -3299,6 +4587,7 @@
     "power": 120,
     "accuracy": 0.75,
     "pp": 5,
+    "priority": 0,
     "effects": [
       {
         "chance": 0.1,
@@ -3314,6 +4603,10 @@
         ]
       }
     ],
+    "behavior": {
+      "conditions": []
+    },
+    "target": "single",
     "level_requirement": 66
   },
   {
@@ -3322,8 +4615,10 @@
     "flavor_text": "Warm rising air under the scales boosts swift movement.",
     "type": "dragon",
     "category": "status",
+    "power": null,
     "accuracy": 1.0,
     "pp": 20,
+    "priority": 0,
     "effects": [
       {
         "chance": 1.0,
@@ -3338,7 +4633,12 @@
           }
         ]
       }
-    ]
+    ],
+    "behavior": {
+      "conditions": []
+    },
+    "target": "single",
+    "level_requirement": 1
   },
   {
     "id": "climate.nimbus_crush",
@@ -3348,7 +4648,14 @@
     "category": "physical",
     "power": 45,
     "accuracy": 1.0,
-    "pp": 25
+    "pp": 25,
+    "priority": 0,
+    "effects": [],
+    "behavior": {
+      "conditions": []
+    },
+    "target": "single",
+    "level_requirement": 1
   },
   {
     "id": "climate.wyrm_focus",
@@ -3356,8 +4663,10 @@
     "flavor_text": "The user narrows its predatory intent beneath still skies.",
     "type": "dragon",
     "category": "status",
+    "power": null,
     "accuracy": 1.0,
     "pp": 15,
+    "priority": 0,
     "effects": [
       {
         "chance": 1.0,
@@ -3372,7 +4681,12 @@
           }
         ]
       }
-    ]
+    ],
+    "behavior": {
+      "conditions": []
+    },
+    "target": "single",
+    "level_requirement": 1
   },
   {
     "id": "climate.eye_of_squall",
@@ -3380,7 +4694,10 @@
     "flavor_text": "Within the storm's calm center, the user hones power and pace.",
     "type": "dragon",
     "category": "status",
+    "power": null,
     "accuracy": 1.0,
+    "pp": 10,
+    "priority": 0,
     "effects": [
       {
         "chance": 1.0,
@@ -3396,7 +4713,12 @@
           }
         ]
       }
-    ]
+    ],
+    "behavior": {
+      "conditions": []
+    },
+    "target": "single",
+    "level_requirement": 1
   },
   {
     "id": "climate.ancient_monsoon_wave",
@@ -3406,6 +4728,13 @@
     "category": "special",
     "power": 95,
     "accuracy": 0.9,
+    "pp": 10,
+    "priority": 0,
+    "effects": [],
+    "behavior": {
+      "conditions": []
+    },
+    "target": "single",
     "level_requirement": 71
   },
   {
@@ -3416,7 +4745,14 @@
     "category": "special",
     "power": 25,
     "accuracy": 1.0,
-    "pp": 35
+    "pp": 35,
+    "priority": 0,
+    "effects": [],
+    "behavior": {
+      "conditions": []
+    },
+    "target": "single",
+    "level_requirement": 1
   },
   {
     "id": "climate.gloom_front",
@@ -3426,7 +4762,14 @@
     "category": "physical",
     "power": 45,
     "accuracy": 1.0,
-    "pp": 30
+    "pp": 30,
+    "priority": 0,
+    "effects": [],
+    "behavior": {
+      "conditions": []
+    },
+    "target": "single",
+    "level_requirement": 1
   },
   {
     "id": "climate.night_barometer",
@@ -3434,8 +4777,10 @@
     "flavor_text": "The user reads the pressure of dusk and sharpens its strike timing.",
     "type": "dark",
     "category": "status",
+    "power": null,
     "accuracy": 1.0,
     "pp": 20,
+    "priority": 0,
     "effects": [
       {
         "chance": 1.0,
@@ -3450,7 +4795,12 @@
           }
         ]
       }
-    ]
+    ],
+    "behavior": {
+      "conditions": []
+    },
+    "target": "single",
+    "level_requirement": 1
   },
   {
     "id": "climate.eclipse_gust",
@@ -3461,7 +4811,13 @@
     "power": 40,
     "accuracy": 1.0,
     "pp": 30,
-    "priority": 1
+    "priority": 1,
+    "effects": [],
+    "behavior": {
+      "conditions": []
+    },
+    "target": "single",
+    "level_requirement": 1
   },
   {
     "id": "climate.midnight_squall",
@@ -3472,6 +4828,12 @@
     "power": 65,
     "accuracy": 0.9,
     "pp": 20,
+    "priority": 0,
+    "effects": [],
+    "behavior": {
+      "conditions": []
+    },
+    "target": "single",
     "level_requirement": 36
   },
   {
@@ -3483,6 +4845,7 @@
     "power": 45,
     "accuracy": 1.0,
     "pp": 25,
+    "priority": 0,
     "effects": [
       {
         "chance": 0.3,
@@ -3497,7 +4860,12 @@
           }
         ]
       }
-    ]
+    ],
+    "behavior": {
+      "conditions": []
+    },
+    "target": "single",
+    "level_requirement": 1
   },
   {
     "id": "climate.dusk_inversion",
@@ -3505,8 +4873,10 @@
     "flavor_text": "Twilight pressure flips around the user to thicken its guard.",
     "type": "dark",
     "category": "status",
+    "power": null,
     "accuracy": 1.0,
     "pp": 20,
+    "priority": 0,
     "effects": [
       {
         "chance": 1.0,
@@ -3521,7 +4891,12 @@
           }
         ]
       }
-    ]
+    ],
+    "behavior": {
+      "conditions": []
+    },
+    "target": "single",
+    "level_requirement": 1
   },
   {
     "id": "climate.smogfang_drive",
@@ -3531,7 +4906,14 @@
     "category": "physical",
     "power": 45,
     "accuracy": 1.0,
-    "pp": 25
+    "pp": 25,
+    "priority": 0,
+    "effects": [],
+    "behavior": {
+      "conditions": []
+    },
+    "target": "single",
+    "level_requirement": 1
   },
   {
     "id": "climate.moonless_torrent",
@@ -3541,7 +4923,14 @@
     "category": "special",
     "power": 45,
     "accuracy": 1.0,
-    "pp": 25
+    "pp": 25,
+    "priority": 0,
+    "effects": [],
+    "behavior": {
+      "conditions": []
+    },
+    "target": "single",
+    "level_requirement": 1
   },
   {
     "id": "climate.raven_strike",
@@ -3551,7 +4940,14 @@
     "category": "special",
     "power": 45,
     "accuracy": 1.0,
-    "pp": 25
+    "pp": 25,
+    "priority": 0,
+    "effects": [],
+    "behavior": {
+      "conditions": []
+    },
+    "target": "single",
+    "level_requirement": 1
   },
   {
     "id": "climate.black_ice_shear",
@@ -3562,6 +4958,12 @@
     "power": 80,
     "accuracy": 0.85,
     "pp": 15,
+    "priority": 0,
+    "effects": [],
+    "behavior": {
+      "conditions": []
+    },
+    "target": "single",
     "level_requirement": 40
   },
   {
@@ -3572,6 +4974,8 @@
     "category": "special",
     "power": 85,
     "accuracy": 0.85,
+    "pp": 10,
+    "priority": 0,
     "effects": [
       {
         "chance": 0.2,
@@ -3587,6 +4991,10 @@
         ]
       }
     ],
+    "behavior": {
+      "conditions": []
+    },
+    "target": "single",
     "level_requirement": 46
   },
   {
@@ -3595,8 +5003,10 @@
     "flavor_text": "Dense night rain steadies the user under pressure.",
     "type": "dark",
     "category": "status",
+    "power": null,
     "accuracy": 1.0,
     "pp": 15,
+    "priority": 0,
     "effects": [
       {
         "chance": 1.0,
@@ -3611,7 +5021,12 @@
           }
         ]
       }
-    ]
+    ],
+    "behavior": {
+      "conditions": []
+    },
+    "target": "single",
+    "level_requirement": 1
   },
   {
     "id": "climate.nocturne_drop",
@@ -3621,6 +5036,13 @@
     "category": "physical",
     "power": 90,
     "accuracy": 0.9,
+    "pp": 10,
+    "priority": 0,
+    "effects": [],
+    "behavior": {
+      "conditions": []
+    },
+    "target": "single",
     "level_requirement": 60
   },
   {
@@ -3631,6 +5053,13 @@
     "category": "special",
     "power": 95,
     "accuracy": 0.8,
+    "pp": 10,
+    "priority": 0,
+    "effects": [],
+    "behavior": {
+      "conditions": []
+    },
+    "target": "single",
     "level_requirement": 72
   },
   {
@@ -3641,7 +5070,14 @@
     "category": "special",
     "power": 25,
     "accuracy": 1.0,
-    "pp": 35
+    "pp": 35,
+    "priority": 0,
+    "effects": [],
+    "behavior": {
+      "conditions": []
+    },
+    "target": "single",
+    "level_requirement": 1
   },
   {
     "id": "climate.moondew_flick",
@@ -3651,7 +5087,14 @@
     "category": "physical",
     "power": 45,
     "accuracy": 1.0,
-    "pp": 30
+    "pp": 30,
+    "priority": 0,
+    "effects": [],
+    "behavior": {
+      "conditions": []
+    },
+    "target": "single",
+    "level_requirement": 1
   },
   {
     "id": "climate.lullaby_pulse",
@@ -3662,6 +5105,12 @@
     "power": 70,
     "accuracy": 1.0,
     "pp": 15,
+    "priority": 0,
+    "effects": [],
+    "behavior": {
+      "conditions": []
+    },
+    "target": "single",
     "level_requirement": 36
   },
   {
@@ -3672,7 +5121,14 @@
     "category": "special",
     "power": 30,
     "accuracy": 1.0,
-    "pp": 30
+    "pp": 30,
+    "priority": 0,
+    "effects": [],
+    "behavior": {
+      "conditions": []
+    },
+    "target": "single",
+    "level_requirement": 1
   },
   {
     "id": "climate.thistledown_rush",
@@ -3683,7 +5139,13 @@
     "power": 40,
     "accuracy": 1.0,
     "pp": 30,
-    "priority": 1
+    "priority": 1,
+    "effects": [],
+    "behavior": {
+      "conditions": []
+    },
+    "target": "single",
+    "level_requirement": 1
   },
   {
     "id": "climate.mirth_mist",
@@ -3694,6 +5156,7 @@
     "power": 45,
     "accuracy": 1.0,
     "pp": 25,
+    "priority": 0,
     "effects": [
       {
         "chance": 0.3,
@@ -3708,7 +5171,12 @@
           }
         ]
       }
-    ]
+    ],
+    "behavior": {
+      "conditions": []
+    },
+    "target": "single",
+    "level_requirement": 1
   },
   {
     "id": "climate.sunshower_ward",
@@ -3716,8 +5184,10 @@
     "flavor_text": "A warm sunshower ring shields the user with radiant poise.",
     "type": "fairy",
     "category": "status",
+    "power": null,
     "accuracy": 1.0,
     "pp": 20,
+    "priority": 0,
     "effects": [
       {
         "chance": 1.0,
@@ -3732,7 +5202,12 @@
           }
         ]
       }
-    ]
+    ],
+    "behavior": {
+      "conditions": []
+    },
+    "target": "single",
+    "level_requirement": 1
   },
   {
     "id": "climate.rainbow_draft",
@@ -3743,6 +5218,12 @@
     "power": 70,
     "accuracy": 0.9,
     "pp": 20,
+    "priority": 0,
+    "effects": [],
+    "behavior": {
+      "conditions": []
+    },
+    "target": "single",
     "level_requirement": 36
   },
   {
@@ -3753,7 +5234,14 @@
     "category": "physical",
     "power": 45,
     "accuracy": 1.0,
-    "pp": 25
+    "pp": 25,
+    "priority": 0,
+    "effects": [],
+    "behavior": {
+      "conditions": []
+    },
+    "target": "single",
+    "level_requirement": 1
   },
   {
     "id": "climate.dawn_veil_slash",
@@ -3763,7 +5251,14 @@
     "category": "physical",
     "power": 45,
     "accuracy": 1.0,
-    "pp": 25
+    "pp": 25,
+    "priority": 0,
+    "effects": [],
+    "behavior": {
+      "conditions": []
+    },
+    "target": "single",
+    "level_requirement": 1
   },
   {
     "id": "climate.aurora_prong",
@@ -3774,6 +5269,12 @@
     "power": 80,
     "accuracy": 0.85,
     "pp": 15,
+    "priority": 0,
+    "effects": [],
+    "behavior": {
+      "conditions": []
+    },
+    "target": "single",
     "level_requirement": 40
   },
   {
@@ -3784,6 +5285,8 @@
     "category": "special",
     "power": 85,
     "accuracy": 0.85,
+    "pp": 10,
+    "priority": 0,
     "effects": [
       {
         "chance": 0.2,
@@ -3797,6 +5300,10 @@
         ]
       }
     ],
+    "behavior": {
+      "conditions": []
+    },
+    "target": "single",
     "level_requirement": 46
   },
   {
@@ -3805,8 +5312,10 @@
     "flavor_text": "The user reads hopeful pressure lines to steady its guard.",
     "type": "fairy",
     "category": "status",
+    "power": null,
     "accuracy": 1.0,
     "pp": 15,
+    "priority": 0,
     "effects": [
       {
         "chance": 1.0,
@@ -3821,7 +5330,12 @@
           }
         ]
       }
-    ]
+    ],
+    "behavior": {
+      "conditions": []
+    },
+    "target": "single",
+    "level_requirement": 1
   },
   {
     "id": "climate.celestial_upwash",
@@ -3829,7 +5343,10 @@
     "flavor_text": "A sacred upwash of starlit rain lifts the user's spirit and speed.",
     "type": "fairy",
     "category": "status",
+    "power": null,
     "accuracy": 1.0,
+    "pp": 10,
+    "priority": 0,
     "effects": [
       {
         "chance": 1.0,
@@ -3844,7 +5361,12 @@
           }
         ]
       }
-    ]
+    ],
+    "behavior": {
+      "conditions": []
+    },
+    "target": "single",
+    "level_requirement": 1
   },
   {
     "id": "climate.mythic_weathering",
@@ -3854,6 +5376,8 @@
     "category": "special",
     "power": 95,
     "accuracy": 0.8,
+    "pp": 10,
+    "priority": 0,
     "effects": [
       {
         "chance": 0.1,
@@ -3867,6 +5391,10 @@
         ]
       }
     ],
+    "behavior": {
+      "conditions": []
+    },
+    "target": "single",
     "level_requirement": 72
   },
   {
@@ -3878,6 +5406,7 @@
     "power": 40,
     "accuracy": 1.0,
     "pp": 25,
+    "priority": 0,
     "effects": [
       {
         "chance": 0.3,
@@ -3892,7 +5421,12 @@
           }
         ]
       }
-    ]
+    ],
+    "behavior": {
+      "conditions": []
+    },
+    "target": "single",
+    "level_requirement": 1
   },
   {
     "id": "climate.saltflat_jab",
@@ -3903,7 +5437,13 @@
     "power": 30,
     "accuracy": 1.0,
     "pp": 30,
-    "priority": 1
+    "priority": 1,
+    "effects": [],
+    "behavior": {
+      "conditions": []
+    },
+    "target": "single",
+    "level_requirement": 1
   },
   {
     "id": "climate.feldspar_flick",
@@ -3914,6 +5454,7 @@
     "power": 35,
     "accuracy": 1.0,
     "pp": 25,
+    "priority": 0,
     "effects": [
       {
         "chance": 0.3,
@@ -3928,7 +5469,12 @@
           }
         ]
       }
-    ]
+    ],
+    "behavior": {
+      "conditions": []
+    },
+    "target": "single",
+    "level_requirement": 1
   },
   {
     "id": "climate.topsoil_scalp",
@@ -3939,6 +5485,7 @@
     "power": 70,
     "accuracy": 1.0,
     "pp": 15,
+    "priority": 0,
     "effects": [
       {
         "chance": 0.3,
@@ -3954,6 +5501,10 @@
         ]
       }
     ],
+    "behavior": {
+      "conditions": []
+    },
+    "target": "single",
     "level_requirement": 22
   },
   {
@@ -3964,6 +5515,13 @@
     "category": "physical",
     "power": 85,
     "accuracy": 1.0,
+    "pp": 10,
+    "priority": 0,
+    "effects": [],
+    "behavior": {
+      "conditions": []
+    },
+    "target": "single",
     "level_requirement": 38
   },
   {
@@ -3975,6 +5533,7 @@
     "power": 120,
     "accuracy": 0.85,
     "pp": 5,
+    "priority": 0,
     "effects": [
       {
         "chance": 1.0,
@@ -3987,6 +5546,10 @@
         ]
       }
     ],
+    "behavior": {
+      "conditions": []
+    },
+    "target": "single",
     "level_requirement": 72
   },
   {
@@ -3995,7 +5558,10 @@
     "flavor_text": "Mineral haze thickens until the whole field carries dry pressure.",
     "type": "ground",
     "category": "status",
+    "power": null,
     "accuracy": 1.0,
+    "pp": 10,
+    "priority": 0,
     "effects": [
       {
         "chance": 1.0,
@@ -4008,6 +5574,11 @@
           }
         ]
       }
-    ]
+    ],
+    "behavior": {
+      "conditions": []
+    },
+    "target": "single",
+    "level_requirement": 1
   }
 ]

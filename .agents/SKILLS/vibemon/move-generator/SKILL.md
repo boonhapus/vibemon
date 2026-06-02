@@ -181,9 +181,9 @@ In merge mode, resolve collisions per move with user input.
 
 ### Step B2.5 — Mandatory balance quality gate (BLOCKING)
 
-Every check below is **MUST-PASS**. Run `uv run .agents/skills/vibemon/move-generator/scripts/audit_moves.py <provider>` to verify metrics — the script exits non-zero on any HARD gate fail and prints a `VERDICT: PASS|FAIL` line. On any failure, revise the rendered set and re-run the gate before presenting completion. Do not ship a partially-passing batch.
+Every check below is **MUST-PASS**. Run `uv run .agents/skills/vibemon/provider-balance-analysis/scripts/audit_moves.py --provider <provider>` to verify metrics — the script exits non-zero on any HARD gate fail and prints a `VERDICT: PASS|FAIL` line. On any failure, revise the rendered set and re-run the gate before presenting completion. Do not ship a partially-passing batch.
 
-- **Batch Size (HARD)**: `N <= 100` per generation run to maintain quota accuracy. When auditing a provider whose move set aggregates several past runs, raise the cap with `--cap` (e.g. `uv run .../audit_moves.py climate --cap 300`); quota gates remain proportional.
+- **Batch Size (HARD)**: `N <= 100` per generation run to maintain quota accuracy. When auditing a provider whose move set aggregates several past runs, raise the cap with `--cap` (e.g. `uv run .../audit_moves.py --provider climate --cap 300`); quota gates remain proportional.
 - **L1 ratio (HARD)**: `|L1/N - 0.7| ≤ 0.05`. If outside this window, REJECT and rebalance — do not negotiate.
 - **Per-type L1 floor (HARD)**: every type's L1 share within `±15pp` of the batch L1 ratio.
 - **Level density**: keep `56-80` sparse and `81-100` trace unless explicitly requested otherwise.
@@ -241,4 +241,4 @@ After all checks pass, print the same batch summary block from Step A7 with real
 ## Reference
 
 - `references/move_balance_reference.md` (single source of truth for balancing and level placement)
-- `scripts/audit_moves.py` — gate generated moves data against the Step B2.5 HARD checks; prints A7 batch summary + per-gate `[PASS]/[FAIL]` and exits non-zero on any failure (run with `uv run .agents/skills/vibemon/move-generator/scripts/audit_moves.py [provider]`)
+- `../provider-balance-analysis/scripts/audit_moves.py` — gate provider `data/moves.json` against Step B2.5 HARD checks (`uv run .agents/skills/vibemon/provider-balance-analysis/scripts/audit_moves.py --provider <biome|climate|music>`)

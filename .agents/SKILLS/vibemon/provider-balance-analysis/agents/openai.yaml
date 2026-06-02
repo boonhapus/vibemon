@@ -1,4 +1,4 @@
 interface:
-  display_name: "Provider Balance Analysis"
-  short_description: "Rerun Vibemon provider balance analysis"
-  default_prompt: "Use provider-balance-analysis to rerun the provider balance report after balance or battle changes."
+  display_name: "Provider Move Balance"
+  short_description: "Audit provider move catalogs against balance gates"
+  default_prompt: "Use provider-balance-analysis to audit a provider move catalog (audit_moves.py --provider biome|climate|music)."

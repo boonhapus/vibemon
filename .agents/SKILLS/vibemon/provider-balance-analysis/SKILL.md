@@ -1,69 +1,59 @@
 ---
 name: provider-balance-analysis
-description: Rerun and interpret Vibemon provider balance analysis after changes to vibemon/backend/app/providers, vibemon/backend/app/domains/move, vibemon/backend/app/domains/vibemon, vibemon/backend/app/domains/battle, or database persistence shape. Use when assessing dominant or underperforming climate scenarios, provider contract health, generated type/stat/move ecology, or whether climate provider tuning is needed.
+description: Audit Vibemon provider move catalogs (data/moves.json) against move-generator Step B2.5 balance gates. Use after editing app/providers/*/data/moves.json or when validating a new provider move batch.
 ---
 
-# Provider Balance Analysis
+# Provider Move Balance
 
-Use this skill to rerun the self-contained provider balance analyzer bundled in this skill. The analyzer lives in this skill's `scripts/` directory and is independent of repo-local scratch scripts.
+Audit any provider move catalog under `vibemon/backend/app/providers/<name>/data/moves.json`.
 
-## Quick Run
+Providers are **discovered automatically** when `app/providers/<name>/data/moves.json` exists. No registry to update when adding a provider.
 
-From the repo root:
-
-```powershell
-uv run .agents/skills/vibemon/provider-balance-analysis/scripts/provider_analysis.py --battle-rounds 1 --format text --output provider_balance_report.txt
-```
-
-For JSON suitable for diffing:
+## Run
 
 ```powershell
-uv run .agents/skills/vibemon/provider-balance-analysis/scripts/provider_analysis.py --battle-rounds 1 --format json --output provider_balance_report.json
+uv run .agents/skills/vibemon/provider-balance-analysis/scripts/audit_moves.py --provider biome
+uv run .agents/skills/vibemon/provider-balance-analysis/scripts/audit_moves.py --provider climate
+uv run .agents/skills/vibemon/provider-balance-analysis/scripts/audit_moves.py --provider music
 ```
 
-For a fast smoke run:
+Accumulated catalogs (N > 120) default to `--cap 300`:
 
 ```powershell
-uv run .agents/skills/vibemon/provider-balance-analysis/scripts/provider_analysis.py --scenario-limit 4 --battle-rounds 1 --policies best_damage --format text
+uv run .agents/skills/vibemon/provider-balance-analysis/scripts/audit_moves.py --provider biome --cap 300
 ```
 
-## What The Script Covers
+Exit code is non-zero when any hard gate fails. Look for `VERDICT: PASS|FAIL`.
 
-The bundled analyzer creates synthetic climate payloads and checks:
+## Gates (Step B2.5)
 
-- provider contract behavior: exposed elements, replay determinism, `synthesize()` purity, persisted provenance columns,
-- climate move catalog: type/category/level distribution, effects, status access, priority, and condition usage,
-- generated affinities: element frequency, dual-type rate, BST, battle roles, stat spread, move-set quality,
-- battle impact: fixed-seed 1v1 simulations using `best_damage`, `stab_first`, `status_aware`, and `random` policies,
-- Pokemon benchmark gaps: four-move limit, abilities/items/weather/conditional mechanics, and provider-generated species differences.
+- Batch size, L1 ratio, per-type L1 share
+- Power-band quotas (spam through signature), capstone
+- Damaging rider budget, L1 damaging power caps
+- Priority budget and sparsity ladder
+- Sure-hit budget, early accuracy/evasion guard
+- §12 anti-patterns
 
-The script is offline: it uses synthetic provider payloads and should not call Open-Meteo.
+Detail tables: type distribution, level bands, category mix, power tiers, per-type riders, effect texture.
 
-## Interpreting Findings
+## Interpreting failures
 
-- Treat `dominant` and `weak` scenarios as investigation leads, not automatic balance bugs.
-- Before editing `vibemon/backend/app/providers/climate`, identify whether the cause is provider mapping, move catalog, battle engine behavior, or simulator assumptions.
-- A scenario matters most when it is both severe and prevalent. Synthetic edge cases with rare real-world frequency may be acceptable.
-- Check whether a result is caused by missing battle mechanics before tuning provider data. Weather moves, first-party scripts, and conditional priority may be intentionally unimplemented or not wired yet.
-- Compare reports before and after a tweak using the JSON output. Look for changes in win rates, role concentration, type frequency, STAB counts, and top findings.
+- **Power-band / early-stab ceiling** — catalog skewed low; add mid/workhorse moves or relabel power tiers.
+- **Rider budget** — too few or too many damaging moves with secondary effects vs ~30% target.
+- **Anti-patterns** — individual moves break power/accuracy/PP/status tradeoff rules; fix the move, not the gate.
 
-## When To Tune Climate
+Provider birth logic, stats, and battle outcomes are out of scope here — use existing battle simulation workflows for that.
 
-Consider updating `vibemon/backend/app/providers/climate` only if:
+## Adding a provider
 
-- the scenario is likely common in realistic births or too extreme when it occurs,
-- the issue remains after accounting for BST, move count, type matchup, and policy choice,
-- the root cause is climate-specific: signal thresholds, type scoring, stat signal mapping, intensity, or move assignment.
+1. Add `app/providers/<name>/data/moves.json`.
+2. Run `uv run .agents/skills/vibemon/provider-balance-analysis/scripts/audit_moves.py --provider <name>`.
 
-Prefer battle-system fixes when the finding points to inert mechanics, such as conditional priority not being applied or weather having no battle effect.
+`provider.py` is not required for discovery; only `data/moves.json` is scanned.
 
 ## Verification
 
-After changing the skill script, run:
-
 ```powershell
-uv run --with ruff --with-editable ./vibemon/backend --with sqlalchemy ruff check .agents/skills/vibemon/provider-balance-analysis
-uv run .agents/skills/vibemon/provider-balance-analysis/scripts/provider_analysis.py --scenario-limit 4 --battle-rounds 1 --policies best_damage --format json
+uv run --with ruff --with-editable ./vibemon/backend ruff check .agents/skills/vibemon/provider-balance-analysis
+uv run .agents/skills/vibemon/provider-balance-analysis/scripts/audit_moves.py --provider climate --cap 300
 ```
-
-After changing backend balance logic, rerun the full report and keep the old report available long enough to compare.
