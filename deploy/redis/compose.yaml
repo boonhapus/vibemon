@@ -6,19 +6,25 @@ services:
     image: redis:7-alpine
     container_name: vibemon-redis
     restart: unless-stopped
-    command: >
-      redis-server
-      --appendonly no
-      --maxmemory 2gb
-      --maxmemory-policy allkeys-lru
+    command:
+      - redis-server
+      - --appendonly
+      - "no"
+      - --maxmemory
+      - 2gb
+      - --maxmemory-policy
+      - allkeys-lru
+      - --requirepass
+      - ${REDIS_PASSWORD:?Set REDIS_PASSWORD in deploy/redis/.env}
     environment:
       TZ: UTC
+      REDIS_PASSWORD: ${REDIS_PASSWORD:?Set REDIS_PASSWORD in deploy/redis/.env}
     ports:
       - "${REDIS_PORT:-6379}:6379"
     volumes:
       - redis_data:/data
     healthcheck:
-      test: ["CMD", "redis-cli", "ping"]
+      test: ["CMD-SHELL", "redis-cli -a \"$$REDIS_PASSWORD\" ping | grep PONG"]
       interval: 5s
       timeout: 3s
       retries: 10

@@ -27,11 +27,14 @@ From the repo root:
 
 ```bash
 cd deploy/redis
-cp .env.example .env   # optional; defaults work for local dev
+cp .env.example .env   # set REDIS_PASSWORD, then start
 docker compose up -d
 docker compose ps
 docker compose logs -f redis
 ```
+
+`REDIS_PASSWORD` in `deploy/redis/.env` is required. Use the same value in repo-root
+`VIBEMON_STORAGE__CACHE` (see below).
 
 Stop (keep data):
 
@@ -48,10 +51,16 @@ docker compose up -d
 
 ## Connect from vibemon
 
-Set in repo-root `.env`:
+Set in repo-root `.env` (password must match `REDIS_PASSWORD` in `deploy/redis/.env`):
 
 ```bash
-VIBEMON_STORAGE__CACHE=redis://127.0.0.1:6379/0
+VIBEMON_STORAGE__CACHE=redis://:your-password@127.0.0.1:6379/0
+```
+
+Shared Mac services host (Tailscale / LAN — use the Mac's IP):
+
+```bash
+VIBEMON_STORAGE__CACHE=redis://:your-password@100.x.x.x:6379/0
 ```
 
 Restart backend processes or scripts so `Settings.load()` picks up the change.
@@ -65,19 +74,19 @@ Provider cache keys are namespaced by provider, for example:
 Inspect keys:
 
 ```bash
-docker compose exec redis redis-cli --scan --pattern 'musicbrainz_web_api:*' | head
+docker compose exec redis sh -c 'redis-cli -a "$REDIS_PASSWORD" --scan --pattern "musicbrainz_web_api:*"' | head
 ```
 
 Flush one provider namespace during dev (example):
 
 ```bash
-docker compose exec redis redis-cli --scan --pattern 'musicbrainz_web_api:*'
+docker compose exec redis sh -c 'redis-cli -a "$REDIS_PASSWORD" --scan --pattern "musicbrainz_web_api:*"'
 ```
 
 To wipe the entire cache database during local dev:
 
 ```bash
-docker compose exec redis redis-cli FLUSHDB
+docker compose exec redis sh -c 'redis-cli -a "$REDIS_PASSWORD" FLUSHDB'
 ```
 
 ## Configuration notes
@@ -95,9 +104,8 @@ Once `requirepass` (or an ACL password) is set, every connection must authentica
 of source IP. `protected-mode` is different: it blocks unauthenticated *remote* connections
 when no password is configured — it is not a LAN password bypass.
 
-Typical production pattern: private network + firewall on port 6379 + password in the cache URL
-(`redis://:password@host:6379/0`). Dev compose intentionally omits a password and publishes
-6379 to localhost only.
+Typical shared-host pattern: Tailscale or LAN firewall on port 6379 + password in the cache URL
+(`redis://:password@host:6379/0`). This compose requires `REDIS_PASSWORD` in `deploy/redis/.env`.
 
 ## Troubleshooting
 
@@ -106,4 +114,5 @@ Typical production pattern: private network + firewall on port 6379 + password i
 | `port 6379 already in use` | Set `REDIS_PORT=6380` in `.env` and use `@127.0.0.1:6380` in the cache URL |
 | Colima not running | `colima start` |
 | Empty `docker` command on Mac | `colima start` creates the daemon; ensure Docker CLI is installed |
+| `Authentication required` from Windows/Tailscale | Add password to URL: `redis://:password@host:6379/0`; must match `deploy/redis/.env` |
 | Cache still writing SQLite | Confirm `VIBEMON_STORAGE__CACHE` uses `redis://` and restart the process |
