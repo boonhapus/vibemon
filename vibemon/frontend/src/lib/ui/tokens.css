@@ -1,0 +1,84 @@
+:root {
+	--vm-cream: #f5f5dc;
+	/* Core palette — docs/development/COLORS.md */
+	--vm-parchment: #f0e7ce;
+	--vm-tobacco: #3d2b1f;
+	--vm-tobacco-black: #2a1e16;
+	--vm-mustard: #c9a23f;
+	--vm-burnt-orange: #c0542a;
+	--vm-sage-olive: #6e7540;
+	--vm-plum: #7c4d8a;
+	--vm-brass: #a68a4c;
+	--vm-panel-border: #6b4423;
+	--vm-panel-border-light: #a67c52;
+	--vm-panel-dialog-bg: #1a1224;
+	--vm-panel-dialog-text: var(--vm-parchment);
+	--vm-panel-command-bg: #e0cda8;
+	/* Status — docs/development/COLORS.md */
+	--vm-status-sage: #6b9b5a;
+	--vm-status-amber: #cc7a22;
+	--vm-status-brick: #a03020;
+
+	/* Legacy alias */
+	--vm-avocado: var(--vm-sage-olive);
+
+	/* Canonical: docs/development/DESIGN.md §3.1 — two in-app voices only */
+	--vm-font-title: 'Futura', 'Century Gothic', 'ITC Avant Garde', system-ui, sans-serif;
+	--vm-font-ui: 'Press Start 2P', monospace;
+
+	--vm-radius-sm: 4px;
+	--vm-radius-md: 8px;
+	--vm-radius-lg: 12px;
+
+	--vm-space-xs: 4px;
+	--vm-space-sm: 8px;
+	--vm-space-md: 16px;
+	--vm-space-lg: 24px;
+	--vm-space-xl: 32px;
+
+	/* HUD chrome scales with viewport so panels stay readable on full-screen scenes */
+	--vm-hud-name-width: 50vw;
+	--vm-hud-dialog-width: 70vw;
+	--vm-hud-surface-pad: clamp(12px, 2.2vw, 20px);
+	--vm-hud-font-name-label: clamp(1rem, 3.6vw, 1.5rem);
+	--vm-hud-font-name-slot: clamp(0.9375rem, 3.2vw, 1.35rem);
+	--vm-hud-font-dialog: clamp(1.0625rem, 3.4vw, 1.5rem);
+	--vm-hud-dialog-line-height: 1.85;
+	/* Fixed two-line text block — must not grow when copy wraps. */
+	--vm-hud-dialog-content-height: calc(2 * var(--vm-hud-font-dialog) * var(--vm-hud-dialog-line-height));
+	--vm-hud-slot-height: clamp(1.35rem, 3.4vw, 1.7rem);
+	/* Full GamePanel chrome + padded dialog content (matches DialogBox / hud-dialog-slot). */
+	--vm-hud-dialog-slot-height: calc(30px + 2 * var(--vm-hud-surface-pad) + var(--vm-hud-dialog-content-height));
+	--vm-hud-icon-slot-height: calc(var(--vm-hud-dialog-slot-height) * 0.7);
+	/* HUD nav icons share slot height; per-asset tuning for optical balance. */
+	--vm-hud-nav-icon-vibe-deck-aspect: 1174 / 663;
+	--vm-hud-nav-icon-settings-visual-scale: 0.86;
+	/* Shared HUD layout anchors — provider column and bottom dialog row. */
+	--vm-hud-rail-inset: clamp(1.25rem, 4vw, 2.5rem);
+	--vm-hud-bottom-inset: clamp(1.25rem, 5vh, 2.5rem);
+	--vm-hud-provider-column-width: min(42vw, 14rem);
+
+	/* Animation timing — docs/development/DESIGN.md §6.2 */
+	--anim-cel-fps: 12;
+	--anim-idle-duration: 3s;
+	--anim-attack-duration: 0.6s;
+	--anim-hurt-duration: 0.35s;
+	--anim-projectile-duration: 0.5s;
+	--anim-transition-duration: 0.7s;
+	--anim-transition-steps: 16;
+	--anim-action-steps: 12;
+	--anim-ui-reveal-steps: 8;
+	--anim-toast-duration: 360ms;
+	--anim-onboarding-cross-duration: 1.04s;
+}
+
+@keyframes vm-cursor-blink {
+	0%,
+	49% {
+		opacity: 1;
+	}
+	50%,
+	100% {
+		opacity: 0.25;
+	}
+}
