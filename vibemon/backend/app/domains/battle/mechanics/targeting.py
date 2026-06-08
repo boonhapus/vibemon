@@ -42,7 +42,7 @@ def resolve_targets(ctx: turn.Turn, use: turn.MoveUse) -> tuple[entity.BattleVib
     if use.action.targets:
         resolved: list[entity.BattleVibemon] = []
         for target_ref in use.action.targets:
-            resolved.append(cast(entity.BattleVibemon, trainer_for_id(ctx, target_ref.trainer).team[target_ref.slot]))
+            resolved.append(cast(entity.BattleVibemon, trainer_for_id(ctx, target_ref.trainer).crew[target_ref.slot]))
         return tuple(resolved)
 
     return (opposing_trainer(ctx, use.user_trainer).active_vibemon,)
