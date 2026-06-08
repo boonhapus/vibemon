@@ -1,41 +1,59 @@
-# Ideas: Geolocation Traversal & Simulation
+# Geolocation Traversal & Simulation
 
-## Period: Exploration & World Logic
+| | |
+| --- | --- |
+| **Status** | Idea |
+| **Priority** | Medium |
+| **Complexity** | Medium |
+| **Area** | Exploration & World Logic |
+| **Related** | [trainer-progression-and-economy.md](trainer-progression-and-economy.md), [achievement-system.md](achievement-system.md) |
 
-### Problem Statement
-Vibemon are tied to the real world. Their types, stats, and aesthetics are steered by real-world data (weather, coordinates, topography). Players need a way to explore new "Vibe-biomes" without necessarily physical travel, while maintaining the integrity of location-based generation.
+## Summary
 
----
+**Vibemon** are born from real-world context. Trainers explore new vibe-biomes by moving in the physical world, with **Simulated Travel** and traversal perks as earned shortcuts when remote types or aesthetics are out of local reach.
 
-## 1. Real-World Traversal
+## Problem
+
+**Vibemon** types, stats, and aesthetics are steered by real-world data (weather, coordinates, topography). Trainers need a way to encounter distant biomes without always traveling physically, while keeping location-based generation honest and intentional.
+
+## Concept
+
+A two-tier exploration model:
+
+1. **Real-world traversal** — primary path; **Birth Context** seeds from actual coordinates and local POI biomes.
+2. **Simulated travel** — time-limited in-game coordinate tuning (voucher-gated) that swaps **Birth Context** to a chosen remote location.
+3. **Traversal licenses** — Fly-style shortcuts to previously visited coordinates and map extensions that reveal vibe density before a visit.
+
+## Design
+
+### Real-world traversal
+
 The primary way to encounter new species is to move in the real world.
-- **Location-Based Seeding**: The `BirthContext` uses the trainer's actual latitude/longitude to pull local climate data.
-- **Biomes**: Points of interest (POIs) are mapped to real-world features:
-  - **Parks/Forests**: High Grass/Bug density.
-  - **Coastlines**: High Water density.
-  - **Urban Centers**: High Electric/Steel density.
 
----
+- **Location-based seeding**: **Birth Context** uses the trainer's actual latitude/longitude to pull local climate data.
+- **Biomes**: points of interest map to real-world features:
+  - **Parks/forests**: high Grass/Bug density.
+  - **Coastlines**: high Water density.
+  - **Urban centers**: high Electric/Steel density.
 
-## 2. Simulated Travel (The "Perk")
-To give players creative license and access to remote Vibemon, they can purchase or earn **Simulation Vouchers**.
+### Simulated travel
 
-### How it Works:
-- **Location Spoofing (In-Game Only)**: The trainer "tunes" their device to a distant coordinate (e.g., Tokyo, the Sahara, the Amazon).
-- **Duration**: The simulation lasts for X hours.
-- **Encounter Shift**: During this time, the generation engine (BirthContext) uses the *simulated* coordinates instead of the real ones.
-- **Creative License**: This allows trainers to hunt for specific types or aesthetics that aren't available in their local climate (e.g., a trainer in a desert simulation for Ice-types).
+Trainers purchase or earn **Simulation Vouchers** for creative license and remote hunting.
 
----
+- **Location spoofing (in-game only)**: the trainer "tunes" to a distant coordinate (e.g., Tokyo, the Sahara, the Amazon).
+- **Duration**: simulation lasts for a fixed window (hours TBD).
+- **Encounter shift**: during simulation, the generation engine uses simulated coordinates instead of real ones.
+- **Use case**: hunt types or aesthetics unavailable in local climate (e.g., Ice-types from a desert home base).
 
-## 3. HM Fly & Travel Licenses
+### HM Fly & travel licenses
+
 Special items or moves that simplify traversal.
-- **Fly**: Instead of walking, a trainer can "Fly" to a coordinate they have previously visited (saving the simulation voucher cost for that specific location).
-- **Map Extensions**: Purchases that reveal the "Vibe Density" of a real-world area before the trainer visits.
 
----
+- **Fly**: jump to a coordinate the trainer has previously visited (saves a simulation voucher for that location).
+- **Map extensions**: purchases that reveal **Vibe Density** of a real-world area before the trainer visits.
 
-**Priority**: Medium
-**Complexity**: Medium
-**Related Ideas**: trainer-progression-and-economy.md
+## Open Questions
 
+- Simulation voucher duration and cooldown defaults?
+- Fly unlock: first physical visit required, or also after simulated visit?
+- Geography bucket taxonomy alignment with achievement gates?

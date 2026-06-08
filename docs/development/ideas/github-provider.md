@@ -1,38 +1,48 @@
 # GitHub Provider
 
-A Vibemon is born from how a trainer builds. GitHub profile activity at birth
-time — languages, commit cadence, project longevity — folds into an `Affinity`
-for developer craft.
+| | |
+| --- | --- |
+| **Status** | Idea |
+| **Priority** | Low |
+| **Complexity** | Medium |
+| **Area** | Providers |
+| **Related** | — |
 
----
+## Summary
 
-## Data Sources
+A **Vibemon** is born from how a trainer builds. GitHub profile activity at birth time — languages, commit cadence, project longevity — folds into an **Affinity** for developer craft.
+
+## Problem
+
+Developers express sustained identity through code: language breadth, commit rhythm, PR quality, and project longevity. No current provider reads that craft signal at birth.
+
+## Concept
+
+Opt-in **GitHub Provider** via GraphQL (REST fallback) mapping repository and activity signals to element affinity from primary languages, six stat axes, and intensity from recent vs. baseline commit rate.
+
+## Design
+
+### Data sources
 
 **GitHub API** (v4 GraphQL, needs personal access token):
 
 - User profile (bio, created date, public repos)
-- Repositories (languages, stars, forks, archived status, created/pushed dates,
-  topics, description)
+- Repositories (languages, stars, forks, archived status, created/pushed dates, topics, description)
 - Commit activity (last 90d push cadence per repo, contribution calendar)
 - Pull requests (created, merged, closed, reviews given)
 - Issue activity (opened, commented)
 - Org memberships, pinned repos, sponsors
 
-**Public fallback:** Unauthed v3 REST (60 req/hr, no private repo data, no
-contribution calendar detail).
+**Public fallback:** Unauthed v3 REST (60 req/hr, no private repo data, no contribution calendar detail).
 
----
-
-## Secrets
+### Secrets
 
 | Key | Required | Purpose |
 | --- | -------- | ------- |
 | `github.token` | yes | GitHub personal access token |
 | `github.username` | yes | Target user |
 
----
-
-## Type → Language Mapping
+### Type mapping
 
 | Type | Languages |
 |------|-----------|
@@ -55,12 +65,9 @@ contribution calendar detail).
 | FAIRY | TypeScript, Ruby, Kotlin |
 | PSYCHIC | Python, Haskell, Lisp, Prolog |
 
-Languages not listed are bucketed by closest family (e.g. Clojure → PSYCHIC,
-R → GRASS, Julia → ELECTRIC).
+Languages not listed are bucketed by closest family (e.g. Clojure → PSYCHIC, R → GRASS, Julia → ELECTRIC).
 
----
-
-## Signal Design (6 stat axes)
+### Signal design (6 stat axes)
 
 | Stat | Signal | Data Source |
 |------|--------|------------|
@@ -71,16 +78,11 @@ R → GRASS, Julia → ELECTRIC).
 | Sp. Defense | Issue responsiveness | Mean time to first response on owned repos |
 | Speed | Recent velocity | Commits/day in last 14 days vs last 90 days |
 
----
+### Intensity
 
-## Intensity
+Ratio of recent (last 14d) vs baseline (last 90d) commit rate. A hackathon sprint yields high intensity. Zero activity across the window → floor intensity.
 
-Ratio of recent (last 14d) vs baseline (last 90d) commit rate. A hackathon
-sprint yields high intensity. Zero activity across the window → floor intensity.
-
----
-
-## Provider Notes
+### Provider notes
 
 | Condition | Note |
 | --------- | ---- |
@@ -89,16 +91,11 @@ sprint yields high intensity. Zero activity across the window → floor intensit
 | All repos archived | `"All repositories archived"` |
 | API rate-limited, degraded data | `"GitHub API rate limit reached"` |
 
----
+### Moves
 
-## Moves
+Development-themed move names in `data/moves.json` (e.g. Rebase, Squash, Hotfix, Code Review, Stack Overflow, Edge Case, Merge Conflict, Pair Program).
 
-Development-themed move names in `data/moves.json` (e.g. Rebase, Squash, Hotfix,
-Code Review, Stack Overflow, Edge Case, Merge Conflict, Pair Program).
-
----
-
-## Proposed Structure
+### Proposed structure
 
 ```
 providers/github/
@@ -114,9 +111,11 @@ providers/github/
     schema.py              # GitHub GraphQL response models
 ```
 
----
+### Wiring
 
-## Wiring
+Same opt-in pattern — gated behind secrets, registered in `scripts/_common.py` and `frontend/src/lib/domains/generation/provider-options.ts`.
 
-Same opt-in pattern — gated behind secrets, registered in `scripts/_common.py`
-and `frontend/src/lib/domains/generation/provider-options.ts`.
+## Open Questions
+
+- Private repo access in v1 or public-only?
+- Contribution calendar vs. commit API for Attack/Speed axes?

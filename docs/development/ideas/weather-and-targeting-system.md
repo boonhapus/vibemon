@@ -1,25 +1,38 @@
 # Weather and Multi-Target Battle Mechanics
 
-## Concept
+| | |
+| --- | --- |
+| **Status** | Deferred |
+| **Priority** | — |
+| **Complexity** | Medium |
+| **Area** | Battle |
+| **Related** | [move-interface-vs-pokemon.md](move-interface-vs-pokemon.md) |
 
-Add two related battle systems that the schema does not currently express:
+## Summary
 
-1. **Field weather** — a per-battle weather state that interacts with type damage, residual chip, and move properties.
-2. **Move targeting** — a per-move declaration of who the move can hit (self, single opponent, all opponents, all adjacent), enabling spread moves and self-targeted utility.
+Reintroduce field weather and explicit move targeting on the battle schema so climate-born **Vibemon** can project atmosphere onto the field and spread/self-target utility moves become expressible. Enums were prototyped then removed until engine consumers exist.
 
-Both were prototyped as enums (`types.WeatherT`, `types.MoveTargetT`) but removed because no field on `schema.Move`, `schema.MoveEffect`, or `schema.Battle` consumed them. They are tracked here so the design space is preserved.
+## Problem
 
-## Motivation
-
-The `climate` provider literally reads atmospheric data and folds it into Vibemon affinity. Battles born of that DNA should be able to *project* weather back onto the field — a Sandstorm-summoning rock-type, a Rain Dance ice/water duo, a Sunny Day fire mythic. None of this is possible today because:
+The **climate** provider reads atmospheric data into **Affinity**, but battles cannot reflect that DNA today:
 
 - `Battle` has no weather slot.
-- `MoveEffect` cannot set/clear weather.
-- Damage calculation in `app.balance.formulas` has no weather hook.
+- `MoveEffect` cannot set or clear weather.
+- Damage calculation has no weather hook.
+- Every move is implicitly single-target — fine for 1v1, a hard ceiling on tactical depth.
 
-Spread moves (Earthquake hits all adjacent, Surf hits both opponents in doubles) similarly cannot be expressed. Every move today is implicitly single-target — fine for 1v1 but a hard ceiling on tactical depth.
+Spread moves (Earthquake hits all adjacent, Surf hits both opponents in doubles) similarly cannot be declared.
 
-## Proposed Schema Changes
+## Concept
+
+Two related systems tracked together:
+
+1. **Field weather** — per-battle weather state interacting with type damage, residual chip, and move properties.
+2. **Move targeting** — per-move declaration of who the move can hit (self, single opponent, all opponents, all adjacent).
+
+Both were prototyped as enums (`types.WeatherT`, `types.MoveTargetT`) but removed because no field on `schema.Move`, `schema.MoveEffect`, or `schema.Battle` consumed them. Reintroduce with engine support, not orphan enums.
+
+## Design
 
 ### Weather state on the battle
 
@@ -59,7 +72,7 @@ class MoveEffect(_Static):
     recoil: float | None = None                 # NEW; fraction of damage dealt back as recoil
 ```
 
-`drain` and `recoil` cover the canon Vibemon archetypes (Giga Drain, Drain Punch, Flare Blitz, Wood Hammer, Brave Bird) that today have no schema slot.
+`drain` and `recoil` cover canon archetypes (Giga Drain, Drain Punch, Flare Blitz, Wood Hammer, Brave Bird) that today have no schema slot.
 
 ### Targeting on `Move`
 
@@ -76,34 +89,36 @@ class Move(_Static):
     target: types.MoveTargetT = types.MoveTargetT.SINGLE  # NEW
 ```
 
-`target_self` on `MoveEffect` becomes redundant for self-buff status moves once `Move.target` exists, but is kept for *secondary* self-effects on damaging moves (Overheat self-debuff is a rider on a single-target attack). Until doubles/triples land, anything other than `SINGLE` and `SELF` is engine-inert.
+`target_self` on `MoveEffect` becomes redundant for self-buff status moves once `Move.target` exists, but is kept for secondary self-effects on damaging moves (Overheat self-debuff on a single-target attack). Until doubles/triples land, anything other than `SINGLE` and `SELF` is engine-inert.
 
-## Battle Engine Hooks
+### Battle engine hooks
 
 `game_engine.py` needs three integration points:
 
-1. **Damage modifier** — type x weather multipliers (Rain x1.5 WATER, x0.5 FIRE; Sun mirrors; Sandstorm boosts ROCK Sp.Def, Hail boosts ICE defense).
+1. **Damage modifier** — type × weather multipliers (Rain ×1.5 WATER, ×0.5 FIRE; Sun mirrors; Sandstorm boosts ROCK Sp.Def, Hail boosts ICE defense).
 2. **End-of-turn residual** — Sandstorm chips non-{ROCK, GROUND, STEEL}; Hail chips non-ICE; Sun/Rain modify burn/freeze rates.
 3. **Move execution** — apply `weather_set` from `MoveEffect`, decrement `turns_remaining`, transition back to `CLEAR` at zero.
 
-Spread moves require the engine to iterate targets per `Move.target` rather than the implicit `defender` parameter. Single-target battles (the current shape) still work if `ALL_OPPONENTS` collapses to `SINGLE` while `team_size == 1`.
+Spread moves require the engine to iterate targets per `Move.target` rather than the implicit `defender` parameter. Single-target battles still work if `ALL_OPPONENTS` collapses to `SINGLE` while `crew_size == 1`.
 
-## Climate-Provider Flavor Hooks
+### Climate-provider flavor hooks
 
-Once weather lives on `Battle`, the `climate` plugin can ship moves like:
+Once weather lives on `Battle`, the **climate** plugin can ship moves like:
 
-- **Sun Loom** (FIRE, status, summons SUN, +Sp.Atk on user) — current real weather of the trainer's geo at birth could deterministically pick a "signature" weather move.
+- **Sun Loom** (FIRE, status, summons SUN, +Sp.Atk on user) — birth-weather at trainer geo could pick a signature weather move.
 - **Cyclone Vow** (FLYING, status, summons STRONG_WINDS) — ground immunity + flying-type damage interactions.
-- **Petrichor** (WATER, status, summons RAIN, restores HP) — ties drain/regen mechanics from `move-callbacks.md` to weather.
-- **Glacial Court** (ICE, status, summons HAIL, +Defense) — natural pair with the freeze status.
+- **Petrichor** (WATER, status, summons RAIN, restores HP) — ties drain/regen mechanics to weather.
+- **Glacial Court** (ICE, status, summons HAIL, +Defense) — natural pair with freeze status.
 
 ## Open Questions
 
-1. **Weather persistence across battles**: should the trainer's birth-weather seed any persistent buffs, or is weather strictly an in-battle effect? Default: in-battle only — keep `Battle` the only owner of `FieldWeather`.
-2. **Stacking with `move-callbacks.md`**: callbacks already need `battle` access. Once weather lives on `Battle`, callbacks naturally read it (Solar Beam = 0 power in rain, 150 in sun) without extra plumbing.
-3. **Doubles UX**: `ALL_OPPONENTS` and `ALL_ADJACENT` only diverge when adjacency matters (triples). For now they are spec sugar; the engine can collapse both to "every living opponent."
-4. **Weather-immunity types**: ROCK no chip in sandstorm; ICE no chip in hail; STEEL/GROUND mirror sandstorm. Encoded as a small dict in the residual hook, not on each Vibemon.
+1. **Weather persistence across battles**: should birth-weather seed persistent buffs, or is weather strictly in-battle? Default: in-battle only — `Battle` owns `FieldWeather`.
+2. **Stacking with move callbacks**: callbacks already need `battle` access; weather on `Battle` lets Solar Beam read rain/sun without extra plumbing.
+3. **Doubles UX**: `ALL_OPPONENTS` and `ALL_ADJACENT` only diverge when adjacency matters (triples). For now collapse both to "every living opponent."
+4. **Weather-immunity types**: ROCK no chip in sandstorm; ICE no chip in hail; STEEL/GROUND mirror sandstorm. Encode as a small dict in the residual hook, not per **Vibemon**.
 
-## Why Removed For Now
+## Anti-Goals
 
-`types.WeatherT` and `types.MoveTargetT` were defined but had zero call sites in schema, engine, or plugins. Dead enums rot — they accumulate `from app import types` references with no behavior, then get retro-fitted later in incompatible ways. Cleaner to delete them, write this design down, and re-introduce with engine support behind it.
+- Orphan enums without schema fields or engine call sites (why they were removed).
+- Cross-battle weather persistence without an explicit product decision.
+- Doubles-only targeting complexity before crew size > 1 ships.

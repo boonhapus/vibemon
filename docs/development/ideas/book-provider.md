@@ -1,33 +1,44 @@
 # Book Provider
 
-A Vibemon is born from the stories a trainer carries with them. Goodreads or
-StoryGraph reading history at birth time — shelves, ratings, genres, moods —
-folds into an `Affinity` for literary taste.
+| | |
+| --- | --- |
+| **Status** | Idea |
+| **Priority** | Low |
+| **Complexity** | Medium |
+| **Area** | Providers |
+| **Related** | [movie-provider.md](movie-provider.md), [tv-provider.md](tv-provider.md) |
 
----
+## Summary
 
-## Data Sources
+A **Vibemon** is born from the stories a trainer carries with them. Goodreads or StoryGraph reading history at birth time — shelves, ratings, genres, moods — folds into an **Affinity** for literary taste.
 
-**StoryGraph API** (preferred — rich mood/genre taxonomy, content warnings,
-pace tagging):
+## Problem
+
+Film and TV providers cover screen media; readers need a parallel signal from reading history with genre, pace, and mood taxonomy. StoryGraph offers richer tags; Goodreads offers broader adoption as fallback.
+
+## Concept
+
+Opt-in **Book Provider** preferring StoryGraph API with Goodreads fallback. Map reading signals to element affinity, six stat axes, and intensity from recent vs. baseline books-per-month rate.
+
+## Design
+
+### Data sources
+
+**StoryGraph API** (preferred — rich mood/genre taxonomy, content warnings, pace tagging):
 
 - Reading history (books logged, dates, editions)
 - Ratings, reviews, shelves
-- Per-book: genres, moods, pace (slow/medium/fast), tropes, content warnings,
-  page count, format, fiction/non-fiction, publication year
+- Per-book: genres, moods, pace (slow/medium/fast), tropes, content warnings, page count, format, fiction/non-fiction, publication year
 
-**Goodreads API** (fallback — broader adoption, but shallower taxonomy):
+**Goodreads API** (fallback — broader adoption, shallower taxonomy):
 
 - Read / currently-reading / to-read shelves
 - Ratings, reviews, shelves
 - Per-book: genres (user-shelved), page count, publication year, author, series
 
-**Open Library enrichment (optional):** Subject tags, Dewey decimal, first
-sentence, awards.
+**Open Library enrichment (optional):** Subject tags, Dewey decimal, first sentence, awards.
 
----
-
-## Secrets
+### Secrets
 
 | Key | Required | Purpose |
 | --- | -------- | ------- |
@@ -35,9 +46,7 @@ sentence, awards.
 | `books.user_id` | yes | Target user ID |
 | `books.source` | yes | `"storygraph"` or `"goodreads"` |
 
----
-
-## Type → Genre / Mood Mapping
+### Type mapping
 
 | Type | Signal Description |
 |------|-------------------|
@@ -60,9 +69,7 @@ sentence, awards.
 | FAIRY | children's, YA fantasy, whimsical, fairy tales |
 | PSYCHIC | philosophy, literary theory, dense classics |
 
----
-
-## Signal Design (6 stat axes)
+### Signal design (6 stat axes)
 
 | Stat | Signal | Data Source |
 |------|--------|------------|
@@ -73,16 +80,11 @@ sentence, awards.
 | Sp. Defense | Reread rate | Books logged more than once |
 | Speed | Books per month | Reading rate over last 6 months |
 
----
+### Intensity
 
-## Intensity
+Ratio of recent (last 90d) vs baseline (last year) books-per-month rate. A reading sprint (e.g. finishing a trilogy in a week) yields high intensity.
 
-Ratio of recent (last 90d) vs baseline (last year) books-per-month rate. A
-reading sprint (e.g. finishing a trilogy in a week) yields high intensity.
-
----
-
-## Provider Notes
+### Provider notes
 
 | Condition | Note |
 | --------- | ---- |
@@ -91,16 +93,11 @@ reading sprint (e.g. finishing a trilogy in a week) yields high intensity.
 | Reread fraction >30% | `"High reread loyalty"` |
 | Fallback to Goodreads | `"Using Goodreads source"` |
 
----
+### Moves
 
-## Moves
+Book-themed move names in `data/moves.json` (e.g. Dog-ear, Cliffhanger Chapter, Appendix, Epilogue, Marginalia, Bookmark, Chapter Break).
 
-Book-themed move names in `data/moves.json` (e.g. Dog-ear, Cliffhanger Chapter,
-Appendix, Epilogue, Marginalia, Bookmark, Chapter Break).
-
----
-
-## Proposed Structure
+### Proposed structure
 
 ```
 providers/book/
@@ -120,9 +117,11 @@ providers/book/
     schema.py              # Goodreads response models
 ```
 
----
+### Wiring
 
-## Wiring
+Same opt-in pattern — gated behind secrets, registered in `scripts/_common.py` and `frontend/src/lib/domains/generation/provider-options.ts`.
 
-Same opt-in pattern — gated behind secrets, registered in `scripts/_common.py`
-and `frontend/src/lib/domains/generation/provider-options.ts`.
+## Open Questions
+
+- StoryGraph-only for v1 or ship Goodreads fallback day one?
+- Open Library enrichment worth the latency?

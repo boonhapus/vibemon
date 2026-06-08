@@ -1,21 +1,43 @@
-# Ideas: Trainer Progression & World Economy
+# Trainer Progression & World Economy
 
-## Period: Meta-Progression & Risk Management
+| | |
+| --- | --- |
+| **Status** | Idea |
+| **Priority** | High |
+| **Complexity** | High |
+| **Area** | Meta-Progression & Economy |
+| **Related** | [geolocation-traversal-and-simulation.md](geolocation-traversal-and-simulation.md), [achievement-system.md](achievement-system.md), [generative-aesthetics-and-showcase.md](generative-aesthetics-and-showcase.md) |
 
-### Problem Statement
-Players need long-term goals beyond individual battles. This system introduces a unified economy and experience loop that rewards performance and enables meta-progression through specialized items.
+## Summary
 
----
+Introduce a unified XP loop, **Vibe Gold** wagering, and a shop so trainers have long-term goals beyond individual battles. Performance in battle and competitive risk feed meta-progression through evolution tiers and purchasable utility items.
 
-## 1. Experience & Evolution System
-Vibemon gain experience (XP) through battle performance.
+## Problem
 
-### XP Mechanics
-- **Round-Based XP**: XP is distributed per round won (fainting an opponent), not just at the end of a battle.
-- **Participation Bonus**: Any Vibemon that appeared in battle receives a share of the total XP.
-- **Alumni System**: Released Vibemon continue to exist in an "Alumni Roster," potentially gaining passive XP or being recruitable for special missions.
+Players need long-term goals beyond individual battles. Without a shared economy and experience curve, battle wins feel isolated and there is no structured way to reward sustained play or competitive risk-taking.
 
-### Evolution Tiers
+## Concept
+
+Three coupled systems:
+
+1. **Experience & evolution** — round-based XP, participation credit, and tier thresholds that unlock stats, moves, and visuals.
+2. **Vibe Gold & wagering** — optional pre-battle stakes with escrow and a win-probability hint so trainers can assess fairness.
+3. **Shop** — consumables and utility purchased with VG, including items that gate simulated travel and encounter boosts.
+
+## Design
+
+### Experience & evolution
+
+**Vibemon** gain experience (XP) through battle performance.
+
+**XP mechanics**
+
+- **Round-based XP**: XP is distributed per round won (fainting an opponent), not just at the end of a battle.
+- **Participation bonus**: Any **Vibemon** that appeared in battle receives a share of the total XP.
+- **Alumni system**: Released **Vibemon** continue to exist in an Alumni Roster, potentially gaining passive XP or being recruitable for special missions.
+
+**Evolution tiers**
+
 | Stage | Threshold | Rewards |
 |-------|-----------|---------|
 | **Novice** | 0 XP | Base stats, basic moves |
@@ -23,32 +45,30 @@ Vibemon gain experience (XP) through battle performance.
 | **Expert** | 3,000 XP | +20% stats, title change |
 | **Master** | 7,500 XP | +30% stats, visual upgrade |
 
----
+### Vibe Gold (VG) & wagering
 
-## 2. Vibe Gold (VG) & Wagering
 A risk-reward layer for competitive play.
 
-### The Wagering System
-Before a battle, trainers can negotiate stakes (Vibe Gold).
-- **Asymmetrical Stakes**: Allowed (e.g., 500 VG vs 100 VG).
-- **Win Probability Engine**: The system calculates a win probability (e.g., "70% chance to win") based on team BST, levels, and type advantages to help trainers assess the fairness of a wager.
-- **Escrow**: VG is locked at the start of the battle and awarded to the winner.
+**Wagering**
 
----
+- Before a battle, trainers can negotiate stakes (Vibe Gold).
+- **Asymmetrical stakes** are allowed (e.g., 500 VG vs 100 VG).
+- **Win probability engine**: the system calculates win probability from crew BST, levels, and type advantages so trainers can assess wager fairness.
+- **Escrow**: VG is locked at battle start and awarded to the winner.
 
-## 3. The In-Game Shop
-Items categorized into Consumables and Utility.
+### In-game shop
+
+Items categorized into consumables and utility.
 
 | Item | Cost (VG) | Effect |
 |------|-----------|--------|
-| **Rare Candy** | 1,000 | Increases Vibemon level by 1. |
+| **Rare Candy** | 1,000 | Increases **Vibemon** level by 1. |
 | **Teleport Capsule** | 200 | Return to home base instantly. |
 | **Mythical Increaser** | 5,000 | Boosts Mythical encounter odds for 4 hours. |
-| **Simulation Voucher** | 2,500 | Allows one instance of "Simulated Travel" (see Travel Idea). |
+| **Simulation Voucher** | 2,500 | One **Simulated Travel** session (see [geolocation idea](geolocation-traversal-and-simulation.md)). |
 
----
+## Open Questions
 
-**Priority**: High
-**Complexity**: High
-**Related Ideas**: move-callbacks.md, geolocation-traversal-and-simulation.md
-
+- Alumni passive XP vs. cosmetic-only alumni — which ships in v1?
+- Win-probability engine: show exact % or qualitative bands?
+- Shop inventory rotation vs. static catalog at launch?

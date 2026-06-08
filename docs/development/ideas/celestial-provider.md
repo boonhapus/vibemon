@@ -1,25 +1,32 @@
 # Celestial Provider
 
-A Vibemon is born from the sky above its birthplace. The trainer's birth moment
-— timestamp and coordinates already in BirthSeed — drives ephemeris calculation
-for planetary positions, then folds into an `Affinity` through two lenses:
-astronomical (observable sky facts) and astrological (symbolic chart).
+| | |
+| --- | --- |
+| **Status** | Idea |
+| **Priority** | Medium |
+| **Complexity** | Medium |
+| **Area** | Providers |
+| **Related** | [weather-and-targeting-system.md](weather-and-targeting-system.md) |
 
-Earth's place in the solar system is a **single computation**: planetary
-positions, Sun-Moon-Earth angles, ecliptic coordinates. From that shared data
-both layers derive their signals.
+## Summary
 
----
+A **Vibemon** is born from the sky above its birthplace. The trainer's birth moment — timestamp and coordinates already in **BirthSeed** — drives ephemeris calculation for planetary positions, then folds into an **Affinity** through astronomical (observable sky) and astrological (symbolic chart) lenses.
 
-## Data Sources
+## Problem
 
-None. Pure computation from existing BirthSeed fields (`timestamp`,
-`geo_coords`, `local_timezone`). Uses ephemeris routines (e.g. Swiss Ephemeris
-or `skyfield`) — zero external API calls, zero secrets, works offline.
+**Birth Context** already carries when and where a **Vibemon** is born, but that celestial moment is unused. Trainers get climate and biome from location; the sky at birth is a zero-API, offline-computable signal that adds depth without another OAuth integration.
 
----
+## Concept
 
-## Signals Derived from Same Planetary Data
+Earth's place in the solar system is a **single computation**: planetary positions, Sun-Moon-Earth angles, ecliptic coordinates. From that shared data both astronomy and astrology derive signals. No secrets, no external API — always available like climate and biome.
+
+## Design
+
+### Data sources
+
+None. Pure computation from existing **BirthSeed** fields (`timestamp`, `geo_coords`, `local_timezone`). Uses ephemeris routines (e.g. Swiss Ephemeris or `skyfield`) — zero external API calls, zero secrets, works offline.
+
+### Signals derived from same planetary data
 
 | Fact | Astronomy Reads | Astrology Reads |
 |------|----------------|-----------------|
@@ -30,11 +37,9 @@ or `skyfield`) — zero external API calls, zero secrets, works offline.
 | Planet pairs | Conjunctions visible in sky | Aspect network (trines, squares, oppositions) |
 | Horizon relation | Dusk/dawn/twilight phase | Angular house boundaries |
 
----
+### Type mapping
 
-## Type Mapping
-
-### From Astronomy (observable)
+**From astronomy (observable)**
 
 | Condition | Elements |
 |-----------|----------|
@@ -55,7 +60,7 @@ or `skyfield`) — zero external API calls, zero secrets, works offline.
 | Multiple planets visible simultaneously | PSYCHIC (stacked) |
 | No planets visible (deep night, overcast analog) | GHOST |
 
-### From Astrology (symbolic)
+**From astrology (symbolic)**
 
 | Zodiac Triplicity | Elements |
 |-------------------|----------|
@@ -73,9 +78,7 @@ or `skyfield`) — zero external API calls, zero secrets, works offline.
 | Many planets below horizon | GHOST, DARK, PSYCHIC |
 | Many planets above horizon | FLYING, FIRE, ELECTRIC |
 
----
-
-## Signal Design (6 stat axes)
+### Signal design (6 stat axes)
 
 | Stat | Signal | Computation |
 |------|--------|-------------|
@@ -86,23 +89,13 @@ or `skyfield`) — zero external API calls, zero secrets, works offline.
 | Sp. Defense | Lunar angularity | Moon house angularity × sign (emotional resilience) |
 | Speed | Mercury prominence | Mercury angularity × sign dignity (communication pace) |
 
-All signals use a two-layer calculation: astronomical weight (is the body
-visible? how high?) combined with astrological weight (house, sign, aspects).
+All signals use a two-layer calculation: astronomical weight (is the body visible? how high?) combined with astrological weight (house, sign, aspects).
 
----
+### Intensity
 
-## Intensity
+Ratio of angular planets (bodies near ASC/MC/DC/IC) to total planets. A chart with heavy angular concentration yields high intensity. A scattered chart yields low intensity. Also nudged by lunation: new moon + eclipse season amplifies.
 
-Ratio of angular planets (bodies near ASC/MC/DC/IC) to total planets. A
-chart with heavy angular concentration (all planets clustered near horizon or
-zenith) yields high intensity. A scattered chart (planets evenly distributed)
-yields low intensity.
-
-Also nudged by lunation: new moon + eclipse season amplifies.
-
----
-
-## Provider Notes
+### Provider notes
 
 | Condition | Note |
 | --------- | ---- |
@@ -111,16 +104,11 @@ Also nudged by lunation: new moon + eclipse season amplifies.
 | Eclipse season (±15d of node) | `"Eclipse window — amplified intensity"` |
 | Retrograde planets present | `"Retrograde influence"` |
 
----
+### Moves
 
-## Moves
+Celestial-themed move names in `data/moves.json` (e.g. Zenith, Nadir, Retrograde, Eclipse, Trine, Lunar Standstill, Rising Sign, Opposition).
 
-Celestial-themed move names in `data/moves.json` (e.g. Zenith, Nadir,
-Retrograde, Eclipse, Trine, Lunar Standstill, Rising Sign, Opposition).
-
----
-
-## Proposed Structure
+### Proposed structure
 
 ```
 providers/celestial/
@@ -138,9 +126,12 @@ providers/celestial/
   houses.py                # House cusp calculation (Placidus / equal / whole)
 ```
 
----
+### Wiring
 
-## Wiring
+Always available (no secrets needed). Added to the default provider list in `scripts/_common.py` and `provider-options.ts` like climate and biome.
 
-Always available (no secrets needed). Added to the default provider list in
-`scripts/_common.py` and `provider-options.ts` like climate and biome.
+## Open Questions
+
+- House system default: Placidus vs. equal vs. whole sign?
+- Astrology weight vs. astronomy weight in blended signals — product tone decision?
+- Eclipse season detection: ship in v1 or defer?

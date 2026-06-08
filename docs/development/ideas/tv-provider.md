@@ -1,27 +1,39 @@
 # TV Provider
 
-A Vibemon is born from the stories a trainer commits to across seasons. Trakt
-watch history at birth time — shows, episode pacing, genre loyalty — folds into
-an `Affinity` for episodic taste.
+| | |
+| --- | --- |
+| **Status** | Idea |
+| **Priority** | Low |
+| **Complexity** | Medium |
+| **Area** | Providers |
+| **Related** | [movie-provider.md](movie-provider.md), [book-provider.md](book-provider.md) |
 
----
+## Summary
 
-## Data Sources
+A **Vibemon** is born from the stories a trainer commits to across seasons. Trakt watch history at birth time — shows, episode pacing, genre loyalty — folds into an **Affinity** for episodic taste.
+
+## Problem
+
+Film diary history (Letterboxd) captures one-shot cinematic taste but misses serial commitment: binge pace, season completion, dropout, and catch-up latency. Trainers who live in TV need a provider that reads episodic behavior, not single-film events.
+
+## Concept
+
+Opt-in **TV Provider** using Trakt OAuth for watch history and optional TVDB enrichment. Map genre and consumption signals to element affinity, six stat axes, and intensity from recent vs. baseline episode rate — parallel to [Movie Provider](movie-provider.md) but episode-native.
+
+## Design
+
+### Data sources
 
 **Trakt API** (official, needs OAuth client ID + access token):
 
 - Watch history (episode-by-episode, timestamps, rewatching)
 - Show and episode ratings
 - DVR / collected / watchlist
-- Per-show metadata: genres, status, network, country, language, air day,
-  runtime, episode count, season count
+- Per-show metadata: genres, status, network, country, language, air day, runtime, episode count, season count
 
-**Enrichment (optional):** TVDB for extended genre tags, content ratings, and
-thematic classifications.
+**Enrichment (optional):** TVDB for extended genre tags, content ratings, and thematic classifications.
 
----
-
-## Why Separate from Movie Provider
+### Why separate from Movie Provider
 
 | Dimension | Movie | TV |
 |-----------|-------|-----|
@@ -33,18 +45,14 @@ thematic classifications.
 | Catch-up vs current | N/A | How recently a show aired vs when watched |
 | Data source | Letterboxd | Trakt (+ TVDB for enrichment) |
 
----
-
-## Secrets
+### Secrets
 
 | Key | Required | Purpose |
 | --- | -------- | ------- |
 | `trakt.client_id` | yes | Trakt API OAuth |
 | `trakt.access_token` | yes | Trakt API OAuth |
 
----
-
-## Type → Genre Mapping
+### Type mapping
 
 | Type | Signal Description |
 |------|-------------------|
@@ -67,9 +75,7 @@ thematic classifications.
 | FAIRY | animated comedies, magical girl, whimsical |
 | PSYCHIC | prestige dramas, anthology, experimental |
 
----
-
-## Signal Design (6 stat axes)
+### Signal design (6 stat axes)
 
 | Stat | Signal | Data Source |
 |------|--------|------------|
@@ -80,16 +86,11 @@ thematic classifications.
 | Sp. Defense | Catch-up latency | Time gap between air date and watch date (old = stable, fresh = reactive) |
 | Speed | Daily episode rate | Episodes/day averaged over last 30 days |
 
----
+### Intensity
 
-## Intensity
+Ratio of recent (last 30d) vs baseline (last year) episode-per-day rate. A weekend binge spike yields high intensity.
 
-Ratio of recent (last 30d) vs baseline (last year) episode-per-day rate. A
-weekend binge spike yields high intensity.
-
----
-
-## Provider Notes
+### Provider notes
 
 | Condition | Note |
 | --------- | ---- |
@@ -98,16 +99,11 @@ weekend binge spike yields high intensity.
 | High dropout rate (many started, few finished) | `"Low completion rate"` |
 | No enrichment available | `"TVDB enrichment unavailable"` |
 
----
+### Moves
 
-## Moves
+Episode-themed move names in `data/moves.json` (e.g. Binge Watch, Cliffhanger, Cold Open, Filler Arc, Season Finale, Double Episode).
 
-Episode-themed move names in `data/moves.json` (e.g. Binge Watch, Cliffhanger,
-Cold Open, Filler Arc, Season Finale, Double Episode).
-
----
-
-## Proposed Structure
+### Proposed structure
 
 ```
 providers/tv/
@@ -127,9 +123,11 @@ providers/tv/
     schema.py              # TVDB response models
 ```
 
----
+### Wiring
 
-## Wiring
+Same opt-in pattern — gated behind secrets, registered in `scripts/_common.py` and `frontend/src/lib/domains/generation/provider-options.ts`.
 
-Same opt-in pattern — gated behind secrets, registered in `scripts/_common.py`
-and `frontend/src/lib/domains/generation/provider-options.ts`.
+## Open Questions
+
+- TVDB enrichment required for v1 or optional polish?
+- Minimum episode count before provider contributes vs. **Provider Warning**?
