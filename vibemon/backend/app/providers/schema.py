@@ -43,6 +43,10 @@ class ProviderPayload(FrozenSchema):
     meta: ProviderPayloadMeta = ProviderPayloadMeta()
 
 
+class UnimplementedPayload(ProviderPayload):
+    """Placeholder payload for catalog-only provider stubs."""
+
+
 class BaseStatCenters(FrozenSchema):
     """
     Normalized middle-anchored unit intervals per base stat axis (0.0-1.0).

@@ -13,9 +13,11 @@ from app.domains.generation.ports import TrainerSecrets
 from app.domains.generation.seed import BirthSeed
 from app.domains.move.types import VibemonTypeT
 from app.domains.vibemon.identity import Identity
+from app.providers import catalog_schema as catalog
 from app.providers import schema as providers_schema
 from app.providers.base import VibeProvider
 from app.providers.biome import schema as biome_schema
+from app.providers.catalog_support import GEOLOCATION_REQUIREMENT
 from app.providers.helpers import Signal, filter_element_types, pick_starter_moves
 
 from . import const
@@ -30,16 +32,9 @@ class BiomeProvider(VibeProvider[biome_schema.BiomePayload]):
     """
     A Vibemon is born from the ground beneath its birthplace.
 
-    ESA WorldCover land cover, Open-Meteo elevation, and OSM water proximity fold
-    into an `Affinity` for the physical place.
-
-    Six stats start from land-cover archetype tiers: urbanity raises Speed and
-    Sp. Attack while lowering HP and Sp. Defense, elevation raises Defense and
-    lowers Speed, and Attack follows the class baseline.
-
-    A creature born in London streets reads differently from one in Amazon tree
-    cover or Sahara bare ground — elements and stats both emerge from where it
-    was born.
+    One raised on London pavement reads differently from one hatched in Amazon
+    canopy or Sahara scrub - linoleum suburbs, red-clay back roads, and river
+    mud all leave a different print underfoot.
     """
 
     name = "biome"
@@ -65,6 +60,15 @@ class BiomeProvider(VibeProvider[biome_schema.BiomePayload]):
         (VibemonTypeT.FAIRY, "moss/lichen groves and dawn or dusk solar phase"),
         (VibemonTypeT.PSYCHIC, "dawn stillness in forest or open land"),
     ]
+
+    display_label = "GROUND"
+    tagline = "Dirt, pavement, and what is underfoot."
+    data_sources = (
+        catalog.DataSourceInfo(name="ESA WorldCover", description="Land-cover classification underfoot."),
+        catalog.DataSourceInfo(name="Open-Meteo", description="Elevation at trainer coordinates."),
+        catalog.DataSourceInfo(name="OpenStreetMap", description="Water proximity via Overpass queries."),
+    )
+    requirements = (GEOLOCATION_REQUIREMENT,)
 
     def __init__(self) -> None:
         self.worldcover = worldcover_api.TerrascopeWorldCoverClient()

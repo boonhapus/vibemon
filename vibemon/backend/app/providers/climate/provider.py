@@ -14,8 +14,10 @@ from app.domains.generation.ports import TrainerSecrets
 from app.domains.generation.seed import BirthSeed
 from app.domains.move.types import VibemonTypeT
 from app.domains.vibemon.identity import Identity
+from app.providers import catalog_schema as catalog
 from app.providers import schema as providers_schema
 from app.providers.base import VibeProvider
+from app.providers.catalog_support import GEOLOCATION_REQUIREMENT
 from app.providers.helpers import Signal, filter_element_types, pick_starter_moves
 
 from . import schema as climate_schema
@@ -28,22 +30,16 @@ _LOGGER = structlog.get_logger(__name__)
 
 class ClimateProvider(VibeProvider[climate_schema.ClimatePayload]):
     """
-    A Vibemon is born from the sky above its birthplace.
+    A Vibemon carries the weather that was overhead when it hatched.
 
-    Open-Meteo's daily forecast at the trainer's coordinates becomes genetic
-    material, folding live weather signals into an `Affinity`.
-
-    Six continuous weather signals route directly to base stats: temperature (HP),
-    wind gusts (Attack), atmospheric obscurity (Defense), radiation (Sp. Attack),
-    precipitation (Sp. Defense), and sustained wind (Speed).
-
-    The result is that a creature born in a Death Valley heatwave has a
-    fundamentally different soul than one from an Andean snowstorm or London
-    fog—both stats and flavor emergent from the actual sky at birth.
+    Hatched under linoleum-bright desert noon, Highland drizzle, or pea-soup fog
+    over the boulevard - each one reads differently, the way a Sunday paper
+    weather box can change block to block.
     """
 
     name = "climate"
-    payload_type = climate_schema.ClimatePayload
+    display_label = "SKY"
+    tagline = "Heat, haze, and the air overhead."
 
     exposed_elements: ClassVar[list[tuple[VibemonTypeT, str]]] = [
         (VibemonTypeT.NORMAL, "overcast skies without precipitation"),
@@ -63,6 +59,16 @@ class ClimateProvider(VibeProvider[climate_schema.ClimatePayload]):
         (VibemonTypeT.DRAGON, "convective instability (CAPE)"),
         (VibemonTypeT.ELECTRIC, "thunderstorms"),
     ]
+
+    requirements = (GEOLOCATION_REQUIREMENT,)
+    data_sources = (
+        catalog.DataSourceInfo(
+            name="Open-Meteo",
+            description="Daily forecast and air-quality series at trainer coordinates.",
+        ),
+    )
+
+    payload_type = climate_schema.ClimatePayload
 
     def __init__(self) -> None:
         self.client = openmeteo_api.OpenMeteoClient()

@@ -18,6 +18,7 @@ from app.domains.generation.seed import BirthSeed
 from app.domains.move.types import VibemonTypeT
 from app.domains.trainer import types as trainer_types
 from app.domains.vibemon.identity import Identity
+from app.providers import catalog_schema as catalog
 from app.providers import schema as providers_schema
 from app.providers.base import VibeProvider
 from app.providers.helpers import Signal, filter_element_types, pick_starter_moves
@@ -37,20 +38,12 @@ class MusicProvider(VibeProvider[schema.MusicPayload]):
     """
     A Vibemon is born from the soundtrack of a trainer's life.
 
-    Last.fm top-track history at birth time is enriched with MusicBrainz genres
-    and tags, then ReccoBeats audio features where ISRC/Spotify IDs resolve.
-    The merged payload folds into an `Affinity` for personal taste.
-
-    Typing uses play-weighted MusicBrainz label rules (genre, mood,
-    instrument) across every resolved track. Tracks with ReccoBeats data also
-    contribute valence and major/minor key nudges. Base stats use only
-    ReccoBeats-covered tracks so thin audio coverage does not block tagging.
-
-    Six continuous audio signals route to base stats (via type-grade scaling):
-    track duration (HP), intensity (Attack), production (Defense), valence
-    (Sp. Attack), groove (Sp. Defense), and tempo (Speed). Intensity on the
-    Affinity itself compares recent 7-day vs prior-23-day top-chart play pace.
+    One hatched on late-night jazz 45s reads differently from one shaped by
+    garage-rock road tapes or Sunday folk on the kitchen radio - whatever was
+    in rotation when it arrived.
     """
+
+    implemented: ClassVar[bool] = False
 
     name = "music"
     payload_type = schema.MusicPayload
@@ -75,6 +68,24 @@ class MusicProvider(VibeProvider[schema.MusicPayload]):
         (VibemonTypeT.FAIRY, "dance pop, k-pop, sparkly pop, bright valence, and major keys"),
         (VibemonTypeT.PSYCHIC, "classical, jazz, contemplative genres, and minor-key depth"),
     ]
+
+    display_label = "MUSIC"
+    tagline = "Road tapes, 45s, and kitchen-radio rotation."
+    data_sources = (
+        catalog.DataSourceInfo(name="Last.fm", description="Recent top-track listening history."),
+        catalog.DataSourceInfo(name="MusicBrainz", description="Genre, mood, and instrument tags."),
+        catalog.DataSourceInfo(name="ReccoBeats", description="Audio features when track IDs resolve."),
+    )
+    requirements = (
+        catalog.OAuth2LinkRequirement(
+            id="lastfm.link",
+            label="Link Last.fm",
+            description="Connect listening history so birth can read recent top tracks.",
+            service="lastfm",
+            secret_kinds=(trainer_types.LASTFM_SESSION_KEY, trainer_types.LASTFM_USERNAME),
+            authorize_path="/lastfm/authorize",
+        ),
+    )
 
     def __init__(self) -> None:
         self.lastfm = LastFmAPIClient()
