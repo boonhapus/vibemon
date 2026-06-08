@@ -37,12 +37,12 @@ A temporary reservation preventing concurrent candidate generation for the same 
 **Trainer**:
 A player entity that can own and battle with **Vibemon**.
 
-**Party**:
-The trainer's active roster of **Owned** **Vibemon** used in battle.
-_Avoid_: Storage, box
+**Crew**:
+The trainer's active battle roster of **Owned** **Vibemon**.
+_Avoid_: Storage, box, party (external franchise term)
 
 **Battle Slot**:
-A position in a trainer's **Party**.
+A position in a trainer's **Crew**.
 
 **Owned**:
 Disposition where a **Vibemon** is assigned to a **Trainer**.
@@ -72,6 +72,36 @@ The action that removes trainer ownership and returns a **Vibemon** to **Wild**.
 **Catch**:
 A battle-time wild encounter action that attempts **Adoption**.
 _Status_: Deferred
+
+**Vibe Deck**:
+The trainer's always-carried field device — crew index, encounter reference, and capture interface. Combines the roles of a handheld index and portable storage in one object.
+_Avoid_: Pokédex (external franchise term), bag (too generic)
+_Visual spec_: `GEAR.md`
+
+**Vibe Cart**:
+The physical medium a stored **Vibemon** occupies. One cart holds at most one **Vibemon**. The same object exists before and after capture; only the label state changes.
+_Short form_: **Cart** (player UI once context is clear)
+_Avoid_: Cartridge (flavor text only), ball
+_Visual spec_: `GEAR.md`
+
+**Cart Folio**:
+The portable holder for the trainer's active **Crew** — typically six **Vibe Cart** slots on belt or in the **Vibe Deck**. Diegetic crew storage.
+_Avoid_: Box, PC, storage (remote depot semantics)
+_Visual spec_: `GEAR.md`
+
+**Blank Cart**:
+An unlabeled **Vibe Cart** consumed or attempted during wild **Catch**. A successful **Press** records the **Wild** **Vibemon** onto the cart; a failed attempt leaves the cart blank.
+_Avoid_: Empty ball
+
+**Press**:
+The player-facing wild **Catch** action — slot a **Blank Cart** into the **Vibe Deck** and attempt **Adoption** of the encounter **Vibemon**.
+_Avoid_: Throw
+_Status_: Deferred (with **Catch**)
+_Player copy_: Slot Cart, Press
+
+**Field Cart**:
+The default-tier **Blank Cart** consumable used in **Press**.
+_Tiers_: **Studio Cart**, **Master Cart** (same **Vibe Cart** silhouette; higher fidelity / odds — tuning in implementation docs)
 
 **Wild Pool**:
 The global population of encounter-eligible **Wild** **Vibemon**.
@@ -104,8 +134,8 @@ A named balancing value used in encounter selection and matching.
 **Member Strength**:
 A single-**Vibemon** battle-readiness estimate.
 
-**Party Strength**:
-A roster-level battle-readiness estimate derived from a trainer's **Party**.
+**Crew Strength**:
+A crew-level battle-readiness estimate derived from a trainer's **Crew**.
 
 **Lifecycle**:
 The asset/presentation realization state of a **Vibemon**.
@@ -217,9 +247,12 @@ The near-term user-facing surface under `vibemon/scripts`; scripts are thin adap
 - A **Vibemon** may have no gameplay **Disposition** only while an active **Candidate Review** exists.
 - **Adoption** assigns ownership; **Release** removes ownership.
 - **Catch** is an encounter-path action whose success results in **Adoption**.
+- **Press** is the player-facing **Catch** verb; it consumes or attempts a **Blank Cart** through the **Vibe Deck**.
+- A successful **Press** labels a **Vibe Cart** and places it in the **Cart Folio**; **Adoption** is the ownership outcome, not the object name.
+- **Crew** is a trainer's battle roster composed of **Battle Slots**; each occupied slot corresponds to one **Vibe Cart** in the **Cart Folio**.
+- Every **Trainer** carries a **Vibe Deck**; **Generation** / **Hatch** birth flows are separate from field **Press** capture.
 - **Wild Pool** contains encounter-eligible **Wild** **Vibemon**; **Wild Expiration** transitions stale entries to **Expired**.
-- **Party** is a trainer's battle roster composed of **Battle Slots**.
-- **Party Strength** is derived from per-member **Member Strength**.
+- **Crew Strength** is derived from per-member **Member Strength**.
 - **Lifecycle** states describe presentation readiness; **Service** describes orchestration.
 - **Move Catalog** stores approved **Move** definitions composed of **Effect** primitives.
 - **Birth** starts from **Birth Context**; each opted-in **Provider** adds a **Provider Observation** that synthesizes to an **Affinity**.
@@ -230,3 +263,5 @@ The near-term user-facing surface under `vibemon/scripts`; scripts are thin adap
 
 - "Soundtrack of birth" is evocative marketing for the **Music Provider**, not a domain object—the listening fingerprint is a **Provider Observation**, not part of **Birth Context**.
 - **Biome Provider** is the ground/place **Provider** (formerly referred to as geography in early plans); **Music Provider** is the taste/culture axis, not place or sky.
+- **Cartridge** is evocative hardware copy only; canonical domain and UI term is **Vibe Cart** / **Cart**.
+- **Hatch** / **Generation** presents a **Candidate** for **Adoption** at birth — not the same ritual or UI as wild **Press** onto a **Blank Cart**.

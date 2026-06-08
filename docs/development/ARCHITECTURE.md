@@ -29,7 +29,7 @@ vibemon/backend/app/
       types.py
     trainer/
       entity.py
-      party.py
+      crew.py
       credits.py
     adoption/
       candidate.py

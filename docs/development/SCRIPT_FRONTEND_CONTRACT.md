@@ -59,7 +59,7 @@ uv run --project vibemon/backend python -m vibemon.scripts.release_vibemon --tra
 Pick a wild encounter:
 
 ```powershell
-uv run --project vibemon/backend python -m vibemon.scripts.pick_wild_encounter --trainer-id <uuid> --latitude <float> --longitude <float> --party-strength <float>
+uv run --project vibemon/backend python -m vibemon.scripts.pick_wild_encounter --trainer-id <uuid> --latitude <float> --longitude <float> --crew-strength <float>
 ```
 
 Useful optional flag: `--desired-supply <int>`.
