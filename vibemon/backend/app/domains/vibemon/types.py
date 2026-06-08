@@ -35,7 +35,7 @@ class BattleRole(enum.Enum):
     DEFENSIVE_STALLER = "A slow but durable staller that outlasts opponents."
     UTILITY_PIVOT = "A balanced pivot that switches out to maintain momentum."
     UTILITY_CLERIC = "A support-focused role that heals and clears status."
-    UTILITY = "A balanced utility role that supports the team."
+    UTILITY = "A balanced utility role that supports the crew."
 
     @property
     def description(self) -> str:

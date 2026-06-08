@@ -50,7 +50,7 @@ class Vibemon(Schema):
     xp: int = 0
     evo_stage: types.EvolutionStageT = types.EvolutionStageT.BASE
     trainer_id: TrainerIdT | None = None
-    team_slot: int | None = None
+    crew_slot: int | None = None
     lifecycle: types.VibemonLifecycleT = types.VibemonLifecycleT.BORN
     aesthetic: Aesthetic | None = None
 

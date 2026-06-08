@@ -51,10 +51,11 @@ class PublicVibemon(FrozenSchema):
     lifecycle: VibemonLifecycleT
     disposition: VibemonDispositionT | None
     trainer_id: TrainerIdT | None = None
-    team_slot: int | None = None
+    crew_slot: int | None = None
     primary_color: brand.Color | None = None
     secondary_color: brand.Color | None = None
     background_color: brand.Color | None = None
     assets: tuple[PublicAsset, ...] = ()
+    birth_providers: tuple[str, ...] = ()
     candidate_review: CandidateReviewRead | None = None
     type_matchup: TypeMatchupSummary

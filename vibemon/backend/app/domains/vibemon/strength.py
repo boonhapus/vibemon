@@ -1,12 +1,12 @@
-"""Battle-readiness formulas for member and party strength."""
+"""Battle-readiness formulas for member and crew strength."""
 
 from collections.abc import Iterable
 from typing import Protocol
 
 from app.domains.vibemon.identity import BaseStats
 
-PARTY_MAX_BONUS_RATIO = 0.25
-PARTY_TOTAL_BONUS_RATIO = 0.10
+CREW_MAX_BONUS_RATIO = 0.25
+CREW_TOTAL_BONUS_RATIO = 0.10
 
 
 class StrengthIdentity(Protocol):
@@ -36,10 +36,10 @@ def member_strength(member: StrengthMember) -> float:
     return float(hp + attack + defense + sp_attack + sp_defense + speed)
 
 
-def party_strength(strengths: Iterable[float]) -> float:
+def crew_strength(strengths: Iterable[float]) -> float:
     values = [max(float(value), 0.0) for value in strengths]
     if not values:
         return 0.0
     total = sum(values)
     avg = total / len(values)
-    return avg + (max(values) * PARTY_MAX_BONUS_RATIO) + (total * PARTY_TOTAL_BONUS_RATIO)
+    return avg + (max(values) * CREW_MAX_BONUS_RATIO) + (total * CREW_TOTAL_BONUS_RATIO)
