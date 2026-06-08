@@ -1,5 +1,7 @@
 """Shared command-line plumbing for Vibemon rehearsal scripts."""
 
+import app._compat.httpx  # noqa: F401 — patch httpx annotations for google-genai on Python 3.14+
+
 from collections.abc import AsyncGenerator, Iterable
 from contextlib import asynccontextmanager
 from typing import Literal
@@ -286,12 +288,12 @@ def simulate_battle(
         battle_entity.BattleTrainer(
             id=trainer_id(trainer_a_id),
             username=trainer_a_name,
-            team=[vibemon_a],
+            crew=[vibemon_a],
         ),
         battle_entity.BattleTrainer(
             id=trainer_id(trainer_b_id),
             username=trainer_b_name,
-            team=[vibemon_b],
+            crew=[vibemon_b],
         ),
         rng=rng,
     )

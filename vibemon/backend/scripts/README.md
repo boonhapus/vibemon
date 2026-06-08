@@ -8,6 +8,23 @@ domain modules underneath it. Scripts are allowed to orchestrate those workflows
 in opinionated ways so we can manually exercise representative slices of the UX
 before the frontend exists.
 
+## Dev stack
+
+Run backend (Litestar) and frontend (Vite) together:
+
+```powershell
+cd vibemon/backend
+uv run dev
+```
+
+From repo root:
+
+```powershell
+uv run --project vibemon/backend dev
+```
+
+Options: `--backend-host`, `--backend-port` (default `127.0.0.1:8000`). Requires `pnpm` on `PATH` and repo-root `.env`.
+
 ## Patterns And Philosophy
 
 These scripts should stay small, semantic, and experience-oriented.
@@ -62,7 +79,7 @@ Integration rehearsal and database tooling:
 - `generate_vibemon.py`: create a Vibemon at a requested asset form and optional
   UX stage (`candidate`, `wild`, or `owned`).
 - `simulate_adoption.py`: rehearse trainer review behavior, including candidate
-  generation, adoption, rejection, party-full release swaps, and optional
+  generation, adoption, rejection, crew-full release swaps, and optional
   manifestation.
 - `simulate_wild_encounter.py`: rehearse searching the wild, selecting an
   encounter, optionally battling, and recording the encounter outcome.
@@ -72,6 +89,10 @@ Integration rehearsal and database tooling:
   through the current provider balance logic and optionally update their derived
   typing, stats, and active moves. **Dev-only tooling** — not a production player
   workflow.
+- `manifest_vibemon.py`: generate sprite sheets and pose assets for christened
+  Vibemon that are not yet manifested (run after bulk adoption or reference fixes).
+  Use `--reprocess` to re-chroma reference and pose PNGs from stored blobs without GenAI
+  (fixes opaque backgrounds on already-manifested rows).
 - `link_lastfm.py`: store a trainer Last.fm session for local music birth
   rehearsal, or print the browser web-auth URL.
 
