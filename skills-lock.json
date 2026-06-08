@@ -1,22 +1,16 @@
 {
   "version": 1,
   "skills": {
-    "frontend-design": {
-      "source": "anthropics/skills",
-      "sourceType": "github",
-      "skillPath": "skills/frontend-design/SKILL.md",
-      "computedHash": "516bd2154eb843a8240e43d5b285229129853114ad7075a5e141e1c08e408c84"
-    },
     "playwright-cli": {
       "source": "microsoft/playwright-cli",
       "sourceType": "github",
-      "skillPath": "skills/playwright-cli/SKILL.md",
+      "skillPath": ".agents/development/skills/playwright-cli/SKILL.md",
       "computedHash": "a07462654e72ec3b463aa0f3af744c320c57808505abe49e44845436e0050a1a"
     },
     "shadcn-svelte": {
       "source": "vercel-labs/json-render",
       "sourceType": "github",
-      "skillPath": "skills/shadcn-svelte/SKILL.md",
+      "skillPath": ".agents/development/skills/shadcn-svelte/SKILL.md",
       "computedHash": "fcb9b65f29baf8a2e03960d37bceff6a71203aeb962105cf6f78c697c71efc3c"
     },
     "svelte-code-writer": {
