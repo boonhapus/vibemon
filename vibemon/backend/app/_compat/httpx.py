@@ -16,3 +16,6 @@ def ensure_annotations() -> None:
     import ssl
 
     httpx_client.ssl = ssl
+
+
+ensure_annotations()
