@@ -113,7 +113,7 @@ class Vibemon(Base):
     evo_stage: Mapped[int]
     lifecycle: Mapped[str]
     disposition: Mapped[str | None]
-    team_slot: Mapped[int | None]
+    crew_slot: Mapped[int | None]
     trainer_id: Mapped[uuid.UUID | None]
     birth_snapshot_id: Mapped[uuid.UUID]
     wild_entered_at: Mapped[dt.datetime | None] = mapped_column(db_types.TIMESTAMPTZ)
@@ -134,31 +134,31 @@ class Vibemon(Base):
             ondelete="RESTRICT",
         ),
         CheckConstraint(
-            "team_slot IS NULL OR (team_slot >= 0 AND team_slot <= 5)",
-            name="ck_vibemon_team_slot",
+            "crew_slot IS NULL OR (crew_slot >= 0 AND crew_slot <= 5)",
+            name="ck_vibemon_crew_slot",
         ),
         CheckConstraint(
             "("
-            "disposition IS NULL AND trainer_id IS NULL AND team_slot IS NULL"
+            "disposition IS NULL AND trainer_id IS NULL AND crew_slot IS NULL"
             ") OR ("
-            "disposition = 'owned' AND trainer_id IS NOT NULL AND team_slot IS NOT NULL"
+            "disposition = 'owned' AND trainer_id IS NOT NULL AND crew_slot IS NOT NULL"
             ") OR ("
-            "disposition = 'wild' AND trainer_id IS NULL AND team_slot IS NULL"
+            "disposition = 'wild' AND trainer_id IS NULL AND crew_slot IS NULL"
             ") OR ("
             "disposition = 'expired' "
             "AND trainer_id IS NULL "
-            "AND team_slot IS NULL "
+            "AND crew_slot IS NULL "
             "AND expired_at IS NOT NULL"
             ")",
             name="ck_vibemon_disposition_shape",
         ),
         Index(
-            "uq_vibemon_team_slot",
+            "uq_vibemon_crew_slot",
             "trainer_id",
-            "team_slot",
+            "crew_slot",
             unique=True,
-            sqlite_where=text("team_slot IS NOT NULL"),
-            postgresql_where=text("team_slot IS NOT NULL"),
+            sqlite_where=text("crew_slot IS NOT NULL"),
+            postgresql_where=text("crew_slot IS NOT NULL"),
         ),
     )
 

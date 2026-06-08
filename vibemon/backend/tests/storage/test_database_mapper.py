@@ -77,7 +77,7 @@ async def test_vibemon_from_row_maps_identity_moves_and_assets() -> None:
         evo_stage=EvolutionStageT.STAGE_2.value,
         lifecycle=VibemonLifecycleT.MANIFESTED.value,
         disposition="owned",
-        team_slot=1,
+        crew_slot=1,
         trainer_id=trainer_id,
         birth_snapshot_id=uuid.uuid7(),
         wild_entered_at=None,
@@ -135,7 +135,7 @@ async def test_vibemon_from_row_maps_identity_moves_and_assets() -> None:
     assert vibemon.id == vibemon_id
     assert vibemon.nickname == "Blaze"
     assert vibemon.trainer_id == trainer_id
-    assert vibemon.team_slot == 1
+    assert vibemon.crew_slot == 1
     assert vibemon.lifecycle is VibemonLifecycleT.MANIFESTED
     assert vibemon.identity == _identity(generated_at)
     assert [move.id for move in vibemon.moves] == ["test.ember", "test.gust"]
@@ -184,7 +184,7 @@ def test_apply_vibemon_to_row_updates_mutable_projection_fields() -> None:
         evo_stage=EvolutionStageT.BASE.value,
         lifecycle=VibemonLifecycleT.BORN.value,
         disposition=None,
-        team_slot=None,
+        crew_slot=None,
         trainer_id=None,
         birth_snapshot_id=uuid.uuid7(),
         wild_entered_at=None,

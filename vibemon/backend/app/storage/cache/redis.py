@@ -4,6 +4,8 @@ from typing import cast, override
 from urllib.parse import urlsplit
 from urllib.request import url2pathname
 import base64
+import contextlib
+import contextvars
 import functools as ft
 import json
 import os
@@ -21,6 +23,7 @@ from app.settings import Settings
 _NAMESPACE_PATTERN = re.compile(r"^[A-Za-z_][A-Za-z0-9_]*$")
 _BUST_CACHE_ENV = "VIBEMON_BUST_CACHE"
 _FALSE_ENV_VALUES = {"", "0", "false", "no", "off"}
+_request_cache_bust = contextvars.ContextVar("request_cache_bust", default=False)
 
 
 def _validate_namespace(name: str) -> str:
@@ -158,6 +161,20 @@ def cache_busting_enabled() -> bool:
     return value.strip().lower() not in _FALSE_ENV_VALUES
 
 
+def cache_busting_active() -> bool:
+    return cache_busting_enabled() or _request_cache_bust.get()
+
+
+@contextlib.contextmanager
+def bypass_http_cache():
+    """Force HTTP cache misses for provider prefetch refresh within this context."""
+    token = _request_cache_bust.set(True)
+    try:
+        yield
+    finally:
+        _request_cache_bust.reset(token)
+
+
 def make_cache_backend(namespace: str) -> RedisBackend | SQLiteBackend | CacheBustingBackend:
     """Return a niquests-cache backend from ``Settings.load().storage.cache``."""
     cache_url = Settings.load().storage.cache
@@ -171,6 +188,6 @@ def make_cache_backend(namespace: str) -> RedisBackend | SQLiteBackend | CacheBu
             table_name=namespace,
         )
 
-    if cache_busting_enabled():
+    if cache_busting_active():
         return CacheBustingBackend(backend)
     return backend

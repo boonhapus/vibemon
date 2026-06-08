@@ -33,6 +33,14 @@ class MonStore:
         """Canonical storage key for one asset slot."""
         return f"{vibemon_id}/{assets.ASSET_VERSION}/{kind.value}"
 
+    @property
+    def scheme(self) -> str:
+        return self._scheme
+
+    def http_asset_url(self, key: str) -> str:
+        """Browser-fetchable URL for local or in-memory stores."""
+        return f"/api/assets/{key}"
+
     async def put(
         self,
         vibemon_id: uuid.UUID,
@@ -69,8 +77,7 @@ class MonStore:
         on memory stores are expected to read via :meth:`get`).
         """
         if self._scheme in const.UNSIGNABLE_SCHEMES:
-            base = self._asset_store_url.rstrip("/")
-            return f"{base}/{key}"
+            return self.http_asset_url(key)
 
         return await obstore.sign_async(self._store, "GET", key, expires_in)
 

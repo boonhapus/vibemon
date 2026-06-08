@@ -69,7 +69,7 @@ async def vibemon_from_row(row: models.Vibemon) -> Vibemon:
         xp=row.xp,
         evo_stage=EvolutionStageT(row.evo_stage),
         trainer_id=row.trainer_id,
-        team_slot=row.team_slot,
+        crew_slot=row.crew_slot,
         lifecycle=VibemonLifecycleT(row.lifecycle),
     )
     vibemon.aesthetic = Aesthetic.from_vibemon(vibemon)

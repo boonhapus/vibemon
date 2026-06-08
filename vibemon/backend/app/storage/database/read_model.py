@@ -48,6 +48,7 @@ class ReadModelAssembler:
         assets = await self._public_assets(row.assets)
         review = visible_review(row.candidate_reviews, reviewing_trainer_id)
         aesthetic = vibemon.aesthetic
+        birth_providers = tuple(sorted(row.birth_snapshot.provider_payloads.keys()))
         return PublicVibemon(
             id=vibemon.id,
             nickname=vibemon.nickname,
@@ -60,11 +61,12 @@ class ReadModelAssembler:
             lifecycle=vibemon.lifecycle,
             disposition=VibemonDispositionT(row.disposition) if row.disposition else None,
             trainer_id=row.trainer_id,
-            team_slot=row.team_slot,
+            crew_slot=row.crew_slot,
             primary_color=aesthetic.primary_color if aesthetic else None,
             secondary_color=aesthetic.secondary_color if aesthetic else None,
             background_color=aesthetic.background_color if aesthetic else None,
             assets=assets,
+            birth_providers=birth_providers,
             candidate_review=review,
             type_matchup=type_matchup(vibemon),
         )

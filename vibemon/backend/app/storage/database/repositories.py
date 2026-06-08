@@ -49,7 +49,7 @@ async def persist_new_vibemon(
         evo_stage=int(vibemon.evo_stage),
         lifecycle=vibemon.lifecycle.value,
         disposition=None,
-        team_slot=None,
+        crew_slot=None,
         trainer_id=None,
         birth_snapshot=snapshot_row,
         wild_entered_at=None,
@@ -187,6 +187,7 @@ async def load_vibemon(sess: AsyncSession, vibemon_id: uuid.UUID) -> models.Vibe
                 selectinload(models.Vibemon.moves).selectinload(models.VibemonMove.move),
                 selectinload(models.Vibemon.assets),
                 selectinload(models.Vibemon.candidate_reviews),
+                selectinload(models.Vibemon.birth_snapshot),
             )
             .where(models.Vibemon.id == vibemon_id)
             .execution_options(populate_existing=True)
@@ -196,6 +197,56 @@ async def load_vibemon(sess: AsyncSession, vibemon_id: uuid.UUID) -> models.Vibe
 
 async def lock_trainer(sess: AsyncSession, trainer_id: TrainerIdT) -> None:
     await sess.execute(sa.select(models.Trainer.id).where(models.Trainer.id == trainer_id).with_for_update())
+
+
+async def get_trainer_by_username(sess: AsyncSession, username: str) -> models.Trainer | None:
+    canonical = username.casefold()
+    return (
+        await sess.execute(sa.select(models.Trainer).where(models.Trainer.username == canonical))
+    ).scalar_one_or_none()
+
+
+async def count_owned_vibemons(sess: AsyncSession, trainer_id: TrainerIdT) -> int:
+    from app.domains.vibemon.disposition import VibemonDispositionT
+
+    return int(
+        (
+            await sess.execute(
+                sa.select(sa.func.count())
+                .select_from(models.Vibemon)
+                .where(
+                    models.Vibemon.trainer_id == trainer_id,
+                    models.Vibemon.disposition == VibemonDispositionT.OWNED.value,
+                )
+            )
+        ).scalar_one()
+    )
+
+
+async def load_owned_vibemons(sess: AsyncSession, trainer_id: TrainerIdT) -> list[models.Vibemon]:
+    from app.domains.vibemon.disposition import VibemonDispositionT
+
+    return list(
+        (
+            await sess.execute(
+                sa.select(models.Vibemon)
+                .options(
+                    selectinload(models.Vibemon.identity),
+                    selectinload(models.Vibemon.moves).selectinload(models.VibemonMove.move),
+                    selectinload(models.Vibemon.assets),
+                    selectinload(models.Vibemon.candidate_reviews),
+                    selectinload(models.Vibemon.birth_snapshot),
+                )
+                .where(
+                    models.Vibemon.trainer_id == trainer_id,
+                    models.Vibemon.disposition == VibemonDispositionT.OWNED.value,
+                )
+                .order_by(models.Vibemon.crew_slot)
+            )
+        )
+        .scalars()
+        .all()
+    )
 
 
 async def credit_day(
@@ -261,8 +312,8 @@ async def upsert_encounter_adjustment(
 async def list_eligible_wild_ids(
     sess: AsyncSession,
     *,
-    latitude: float,
-    longitude: float,
+    latitude: float | None = None,
+    longitude: float | None = None,
     limit: int,
     wild_pool: WildPoolService | None = None,
 ) -> list[uuid.UUID]:
@@ -278,11 +329,42 @@ async def list_eligible_wild_ids(
     candidates = [
         WildPoolCandidate(vibemon_id=vibemon_id, geo_coords=tuple(geo_coords)) for vibemon_id, geo_coords in rows
     ]
+    if latitude is None or longitude is None:
+        return [candidate.vibemon_id for candidate in candidates[:limit]]
     return (wild_pool or WildPoolService()).select_eligible_wild_ids(
         candidates,
         latitude=latitude,
         longitude=longitude,
         limit=limit,
+    )
+
+
+async def count_eligible_wild_near(
+    sess: AsyncSession,
+    *,
+    latitude: float,
+    longitude: float,
+) -> int:
+    rows = (
+        await sess.execute(
+            sa.select(models.Vibemon.id, models.BirthSeed.geo_coords)
+            .join(models.BirthSnapshot, models.BirthSnapshot.id == models.Vibemon.birth_snapshot_id)
+            .join(models.BirthSeed, models.BirthSeed.id == models.BirthSnapshot.birth_seed_id)
+            .where(*eligible_wild_predicates())
+        )
+    ).all()
+    candidates = [
+        WildPoolCandidate(vibemon_id=vibemon_id, geo_coords=tuple(geo_coords)) for vibemon_id, geo_coords in rows
+    ]
+    if not candidates:
+        return 0
+    return len(
+        WildPoolService().select_eligible_wild_ids(
+            candidates,
+            latitude=latitude,
+            longitude=longitude,
+            limit=len(candidates),
+        )
     )
 
 
@@ -341,6 +423,29 @@ async def is_wild_encounter_eligible(sess: AsyncSession, *, vibemon_id: uuid.UUI
             )
         )
     ).scalar_one_or_none() is not None
+
+
+async def count_eligible_wild(sess: AsyncSession) -> int:
+    return int(
+        (
+            await sess.execute(
+                sa.select(sa.func.count())
+                .select_from(models.Vibemon)
+                .where(*eligible_wild_predicates())
+            )
+        ).scalar_one()
+    )
+
+
+async def load_eligible_wild_summary(sess: AsyncSession) -> list[tuple[int, list[str]]]:
+    rows = (
+        await sess.execute(
+            sa.select(models.Vibemon.level, models.Identity.elements)
+            .join(models.Identity, models.Identity.vibemon_id == models.Vibemon.id)
+            .where(*eligible_wild_predicates())
+        )
+    ).all()
+    return [(int(level), list(elements)) for level, elements in rows]
 
 
 def eligible_wild_predicates() -> tuple[sa.ColumnElement[bool], ...]:
