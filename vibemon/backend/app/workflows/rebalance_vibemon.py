@@ -133,7 +133,7 @@ async def _replay_vibemon(
     )
     vibemon.lifecycle = before.lifecycle
     vibemon.trainer_id = before.trainer_id
-    vibemon.team_slot = before.team_slot
+    vibemon.crew_slot = before.crew_slot
     vibemon.identity = vibemon.identity.model_copy(
         update={
             "generation": row.identity.generation,

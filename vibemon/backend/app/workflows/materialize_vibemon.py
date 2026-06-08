@@ -2,10 +2,8 @@
 
 from typing import Protocol
 import asyncio
-import io
 import uuid
 
-from PIL import Image
 import structlog
 
 from app.domains.move.entity import Move
@@ -114,15 +112,17 @@ class MaterializeVibemon:
 
         raw_sheet_bytes = await self._generator.generate_sprite_sheet_image(vibemon, reference_bytes)
         sheet_bytes = sprite_assets.normalize_sheet_image(raw_sheet_bytes, vibemon)
-        sprite_assets.require_valid_sheet(sheet_bytes)
+        matte = aesthetic.background_color
+        sprite_assets.require_valid_sheet(sheet_bytes, bg_color=matte)
         sheet_ref = await self._put_asset(vibemon.id, AssetKind.SHEET, sheet_bytes)
         aesthetic.assets[AssetKind.SHEET] = sheet_ref
 
-        poses = sprite_assets.extract_sprites(image=sheet_bytes)
+        poses = sprite_assets.extract_sprites(image=sheet_bytes, bg_color=matte)
         pose_uploads = []
         for pose, image in poses.items():
             kind = ds_const.POSE_TO_ASSET[pose]
-            pose_uploads.append(self._put_asset(vibemon.id, kind, _encode_png(image)))
+            pose_bytes = sprite_assets.normalize_pose_image(image, vibemon)
+            pose_uploads.append(self._put_asset(vibemon.id, kind, pose_bytes))
 
         pose_refs = await asyncio.gather(*pose_uploads)
         for ref in pose_refs:
@@ -136,6 +136,50 @@ class MaterializeVibemon:
             id=str(vibemon.id),
             name=vibemon.name,
             lifecycle=vibemon.lifecycle,
+        )
+        return vibemon
+
+    async def reprocess_display_assets(self, vibemon: Vibemon) -> Vibemon:
+        """Re-chroma reference and pose PNGs from stored blobs without calling GenAI."""
+        aesthetic = _ensure_aesthetic(vibemon)
+        matte = aesthetic.background_color
+
+        reference_ref = aesthetic.assets.get(AssetKind.REFERENCE)
+        if reference_ref is not None:
+            reference_bytes = await self._get_asset(reference_ref.key)
+            normalized = sprite_assets.normalize_reference_image(reference_bytes, vibemon)
+            aesthetic.assets[AssetKind.REFERENCE] = await self._put_asset(
+                vibemon.id,
+                AssetKind.REFERENCE,
+                normalized,
+            )
+
+        sheet_ref = aesthetic.assets.get(AssetKind.SHEET)
+        if sheet_ref is not None:
+            sheet_bytes = await self._get_asset(sheet_ref.key)
+            sheet_bytes = sprite_assets.normalize_sheet_image(sheet_bytes, vibemon)
+            aesthetic.assets[AssetKind.SHEET] = await self._put_asset(
+                vibemon.id,
+                AssetKind.SHEET,
+                sheet_bytes,
+            )
+            poses = sprite_assets.extract_sprites(image=sheet_bytes, bg_color=matte)
+            pose_uploads = [
+                self._put_asset(
+                    vibemon.id,
+                    ds_const.POSE_TO_ASSET[pose],
+                    sprite_assets.normalize_pose_image(image, vibemon),
+                )
+                for pose, image in poses.items()
+            ]
+            pose_refs = await asyncio.gather(*pose_uploads)
+            for ref in pose_refs:
+                aesthetic.assets[ref.kind] = ref
+
+        await _LOGGER.ainfo(
+            "Reprocessed Vibemon display assets",
+            id=str(vibemon.id),
+            name=vibemon.name,
         )
         return vibemon
 
@@ -167,7 +211,3 @@ def _require_christen_assets(vibemon: Vibemon) -> None:
         raise ValueError(f"Vibemon {vibemon.id} missing christen refs: {missing}")
 
 
-def _encode_png(image: Image.Image) -> bytes:
-    buf = io.BytesIO()
-    image.save(buf, format="PNG")
-    return buf.getvalue()

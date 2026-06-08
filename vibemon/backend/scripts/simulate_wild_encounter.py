@@ -194,7 +194,7 @@ async def _simulate(
         trainer_id=_common.trainer_id(trainer_id),
         latitude=latitude,
         longitude=longitude,
-        party_strength=member_strength(hero_row),  # pyrefly: ignore
+        crew_strength=member_strength(hero_row),  # pyrefly: ignore
         desired_supply=desired_supply,
     )
     if selection is None:

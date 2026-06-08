@@ -86,7 +86,7 @@ async def resolve_candidate_to_wild(
 
 def mark_wild(row: models.Vibemon, now: dt.datetime) -> None:
     row.trainer_id = None
-    row.team_slot = None
+    row.crew_slot = None
     row.disposition = VibemonDispositionT.WILD.value
     row.wild_entered_at = now
     row.last_encountered_at = now

@@ -17,7 +17,7 @@ from tests.conftest import TEST_TRAINER_ID
 from tests.providers.fake_provider import WorkflowFakeProvider as FakeProvider
 
 
-async def test_adopt_candidate_claims_review_and_assigns_party_slot(
+async def test_adopt_candidate_claims_review_and_assigns_crew_slot(
     sess: AsyncSession,
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
@@ -62,9 +62,9 @@ async def test_adopt_candidate_claims_review_and_assigns_party_slot(
     )
 
     assert adopted.trainer_id == trainer_id
-    assert adopted.team_slot == 0
+    assert adopted.crew_slot == 0
     assert row.trainer_id == trainer_id
-    assert row.team_slot == 0
+    assert row.crew_slot == 0
     assert row.disposition == VibemonDispositionT.OWNED.value
     assert review.status == "adopted"
     assert review.resolution == "adopted"

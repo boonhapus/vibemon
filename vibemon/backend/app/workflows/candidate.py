@@ -6,14 +6,14 @@ import uuid
 from sqlalchemy.ext.asyncio import AsyncSession
 import sqlalchemy as sa
 
-from app.core.errors import CandidateReviewUnavailable, PartyFull
+from app.core.errors import CandidateReviewUnavailable, CrewFull
 from app.core.ids import TrainerIdT
 from app.core.time import resolve_clock
 from app.domains.adoption import policy as adoption_policy
 from app.domains.adoption.candidate import CANDIDATE_REVIEW_TIMEOUT
 from app.domains.adoption.types import CandidateReviewStatusT
 from app.domains.generation.seed import BirthSeed
-from app.domains.trainer import credits, party
+from app.domains.trainer import credits, crew
 from app.domains.vibemon.disposition import VibemonDispositionT
 from app.domains.vibemon.history import VibemonHistoryEventT
 from app.domains.vibemon.schema import PublicVibemon
@@ -104,7 +104,7 @@ async def adopt_candidate(
         workflows.release_to_wild(sess, plan.release, trainer_id, now)
     mapper.apply_vibemon_to_row(review.vibemon, vibemon)
     review.vibemon.trainer_id = trainer_id
-    review.vibemon.team_slot = plan.slot
+    review.vibemon.crew_slot = plan.slot
     review.vibemon.disposition = VibemonDispositionT.OWNED.value
     review.vibemon.wild_entered_at = None
     review.vibemon.last_encountered_at = None
@@ -171,17 +171,17 @@ async def _adoption_plan(
         .scalars()
         .all()
     )
-    used = {row.team_slot for row in rows if row.team_slot is not None}
+    used = {row.crew_slot for row in rows if row.crew_slot is not None}
     release = next((row for row in rows if row.id == release_vibemon_id), None) if release_vibemon_id else None
-    release_slot = release.team_slot if release is not None else None
-    slot = party.select_adoption_slot(
+    release_slot = release.crew_slot if release is not None else None
+    slot = crew.select_adoption_slot(
         owned_count=len(rows),
         used_slots=used,
         release_slot=release_slot,
     )
-    if len(rows) >= party.MAX_PARTY_SIZE and release is None:
-        raise PartyFull("Release Vibemon is not owned by this trainer.")
-    return _AdoptionPlan(slot=slot, release=release if len(rows) >= party.MAX_PARTY_SIZE else None)
+    if len(rows) >= crew.MAX_CREW_SIZE and release is None:
+        raise CrewFull("Release Vibemon is not owned by this trainer.")
+    return _AdoptionPlan(slot=slot, release=release if len(rows) >= crew.MAX_CREW_SIZE else None)
 
 
 async def _reserve_credit(

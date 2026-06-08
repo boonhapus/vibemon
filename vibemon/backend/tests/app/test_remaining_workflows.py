@@ -49,7 +49,7 @@ def _wild_vibemon(vibemon_id: uuid.UUID, *, now: dt.datetime) -> models.Vibemon:
         evo_stage=0,
         lifecycle=VibemonLifecycleT.BORN.value,
         disposition=VibemonDispositionT.WILD.value,
-        team_slot=None,
+        crew_slot=None,
         trainer_id=None,
         birth_snapshot=snapshot,
         wild_entered_at=now,

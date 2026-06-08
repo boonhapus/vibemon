@@ -24,9 +24,9 @@ async def pick_wild_encounter(
     sess: AsyncSession,
     *,
     trainer_id: TrainerIdT,
-    latitude: float,
-    longitude: float,
-    party_strength: float,
+    latitude: float | None = None,
+    longitude: float | None = None,
+    crew_strength: float,
     desired_supply: int = 12,
 ) -> EncounterSelection | None:
     encounter_service = WildEncounterService()
@@ -34,7 +34,7 @@ async def pick_wild_encounter(
         trainer_id=trainer_id,
         latitude=latitude,
         longitude=longitude,
-        party_strength=party_strength,
+        crew_strength=crew_strength,
         list_eligible_wild_ids=lambda lat, lon, limit: repositories.list_eligible_wild_ids(
             sess,
             latitude=lat,

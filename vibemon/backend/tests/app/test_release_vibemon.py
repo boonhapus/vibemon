@@ -67,10 +67,10 @@ async def test_release_vibemon_returns_owned_member_to_wild_supply(
     )
 
     assert released.trainer_id is None
-    assert released.team_slot is None
+    assert released.crew_slot is None
     assert released.disposition == VibemonDispositionT.WILD
     assert row.trainer_id is None
-    assert row.team_slot is None
+    assert row.crew_slot is None
     assert row.disposition == VibemonDispositionT.WILD.value
     released_at = (now + dt.timedelta(minutes=10)).replace(tzinfo=None)
     assert row.wild_entered_at == released_at

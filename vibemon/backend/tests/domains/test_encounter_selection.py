@@ -53,7 +53,7 @@ async def test_pick_encounter_tops_up_supply_and_revalidates_choice() -> None:
         trainer_id=uuid.uuid7(),
         latitude=41.8781,
         longitude=-87.6298,
-        party_strength=100,
+        crew_strength=100,
         list_eligible_wild_ids=list_eligible_wild_ids,
         load_candidates=load_candidates,
         revalidate_eligible=revalidate_eligible,
