@@ -1,0 +1,764 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Vibemon Cutout</title>
+    <style>
+      :root {
+        color-scheme: dark;
+        --bg: #11151c;
+        --panel: #1a2130;
+        --panel-2: #222b3d;
+        --text: #e8edf7;
+        --muted: #9aa8c0;
+        --accent: #6ea8ff;
+        --accent-2: #3dd68c;
+        --danger: #ff7b7b;
+        --border: #2d3952;
+        --header-h: 44px;
+        --sidebar-w: 292px;
+      }
+
+      * {
+        box-sizing: border-box;
+      }
+
+      html,
+      body {
+        height: 100%;
+        overflow: hidden;
+      }
+
+      body {
+        margin: 0;
+        font: 13px/1.35 "Segoe UI", system-ui, sans-serif;
+        background: var(--bg);
+        color: var(--text);
+      }
+
+      header {
+        height: var(--header-h);
+        padding: 0 14px;
+        border-bottom: 1px solid var(--border);
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        gap: 12px;
+      }
+
+      header h1 {
+        margin: 0;
+        font-size: 15px;
+        font-weight: 600;
+      }
+
+      header .meta {
+        display: flex;
+        align-items: center;
+        gap: 14px;
+        min-width: 0;
+      }
+
+      .status {
+        font-size: 12px;
+        color: var(--muted);
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        max-width: 42vw;
+      }
+
+      .status.error {
+        color: var(--danger);
+      }
+
+      .status.ok {
+        color: var(--accent-2);
+      }
+
+      main {
+        height: calc(100vh - var(--header-h));
+        display: grid;
+        grid-template-columns: var(--sidebar-w) 1fr;
+        min-height: 0;
+      }
+
+      aside {
+        border-right: 1px solid var(--border);
+        padding: 10px;
+        display: flex;
+        flex-direction: column;
+        gap: 8px;
+        background: var(--panel);
+        overflow: auto;
+        min-height: 0;
+      }
+
+      .workspace {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 8px;
+        padding: 8px;
+        min-height: 0;
+        height: 100%;
+      }
+
+      .card {
+        background: var(--panel);
+        border: 1px solid var(--border);
+        border-radius: 8px;
+        overflow: hidden;
+        display: grid;
+        grid-template-rows: auto 1fr;
+        min-height: 0;
+      }
+
+      .card-head {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        gap: 8px;
+        padding: 6px 10px;
+        font-size: 12px;
+        font-weight: 600;
+        border-bottom: 1px solid var(--border);
+        background: var(--panel-2);
+      }
+
+      .card-head .sub {
+        font-weight: 400;
+        color: var(--muted);
+        font-family: ui-monospace, Consolas, monospace;
+        font-size: 11px;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+      }
+
+      .viewport {
+        min-height: 0;
+        height: 100%;
+        background:
+          linear-gradient(45deg, #1b2230 25%, transparent 25%),
+          linear-gradient(-45deg, #1b2230 25%, transparent 25%),
+          linear-gradient(45deg, transparent 75%, #1b2230 75%),
+          linear-gradient(-45deg, transparent 75%, #1b2230 75%);
+        background-size: 14px 14px;
+        background-position: 0 0, 0 7px, 7px -7px, -7px 0;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        overflow: hidden;
+      }
+
+      canvas {
+        display: block;
+        cursor: crosshair;
+        image-rendering: auto;
+      }
+
+      .preview img {
+        max-width: 100%;
+        max-height: 100%;
+        display: block;
+        image-rendering: pixelated;
+      }
+
+      label {
+        display: grid;
+        gap: 4px;
+        font-size: 11px;
+        color: var(--muted);
+      }
+
+      .label-row {
+        display: flex;
+        align-items: center;
+        gap: 6px;
+      }
+
+      .tip {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        width: 14px;
+        height: 14px;
+        border-radius: 50%;
+        border: 1px solid var(--border);
+        color: var(--muted);
+        font-size: 10px;
+        cursor: help;
+        flex: 0 0 auto;
+      }
+
+      input[type="text"],
+      input[type="number"],
+      select {
+        width: 100%;
+        border: 1px solid var(--border);
+        border-radius: 6px;
+        background: #0f1420;
+        color: var(--text);
+        padding: 6px 8px;
+        font-size: 12px;
+      }
+
+      input[type="file"] {
+        width: 100%;
+        font-size: 11px;
+      }
+
+      .row {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 8px;
+      }
+
+      .checks {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 4px 8px;
+      }
+
+      .checks label {
+        display: flex;
+        align-items: center;
+        gap: 6px;
+      }
+
+      .checks input {
+        width: auto;
+      }
+
+      .model-note {
+        font-size: 11px;
+        color: var(--muted);
+        line-height: 1.35;
+        min-height: 2.7em;
+      }
+
+      .model-note strong {
+        color: var(--text);
+        font-weight: 600;
+      }
+
+      .actions {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 8px;
+        margin-top: auto;
+      }
+
+      button {
+        border: 0;
+        border-radius: 7px;
+        padding: 9px 10px;
+        font-weight: 600;
+        font-size: 12px;
+        cursor: pointer;
+      }
+
+      button:disabled {
+        opacity: 0.45;
+        cursor: not-allowed;
+      }
+
+      .primary {
+        background: var(--accent);
+        color: #08111f;
+      }
+
+      .secondary {
+        background: var(--panel-2);
+        color: var(--text);
+        border: 1px solid var(--border);
+      }
+
+      .placeholder {
+        color: var(--muted);
+        font-size: 12px;
+        padding: 12px;
+        text-align: center;
+      }
+
+      @media (max-width: 1100px) {
+        main {
+          grid-template-columns: 1fr;
+          grid-template-rows: auto 1fr;
+        }
+
+        aside {
+          border-right: 0;
+          border-bottom: 1px solid var(--border);
+          max-height: 42vh;
+        }
+
+        .workspace {
+          grid-template-columns: 1fr;
+          grid-template-rows: 1fr 1fr;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <header>
+      <h1>Vibemon Cutout</h1>
+      <div class="meta">
+        <div class="status" id="status">Load an image and draw a bbox around the subject.</div>
+        <div class="status" id="health"></div>
+      </div>
+    </header>
+
+    <main>
+      <aside>
+        <label>
+          <span class="label-row">
+            Repo path
+            <span class="tip" title="Repo-relative path to a source screenshot. Press Enter to load.">?</span>
+          </span>
+          <input id="sourcePath" type="text" placeholder="vibemon/frontend/static/.../trainer-source.png" />
+        </label>
+
+        <label>
+          <span class="label-row">
+            Upload
+            <span class="tip" title="Load any local image without saving it into the repo first.">?</span>
+          </span>
+          <input id="fileInput" type="file" accept="image/*" />
+        </label>
+
+        <label>
+          <span class="label-row">
+            Model
+            <span class="tip" id="modelTip" title="Loading model descriptions…">?</span>
+          </span>
+          <select id="model"></select>
+        </label>
+        <div class="model-note" id="modelNote">Pick a model to see size, speed, and use-case notes.</div>
+
+        <div class="row">
+          <label>
+            <span class="label-row">
+              Pad
+              <span class="tip" title="Extra transparent pixels added around the auto-cropped subject.">?</span>
+            </span>
+            <input id="pad" type="number" min="0" value="4" />
+          </label>
+          <label>
+            <span class="label-row">
+              Erode
+              <span class="tip" title="Alpha-matting erosion radius. Use 0 to preserve thin arms, hands, and hair.">?</span>
+            </span>
+            <input id="erodeSize" type="number" min="0" value="0" />
+          </label>
+        </div>
+
+        <div class="row">
+          <label>
+            <span class="label-row">
+              Crop alpha
+              <span class="tip" title="Minimum alpha value treated as subject when auto-cropping.">?</span>
+            </span>
+            <input id="cropAlpha" type="number" min="0" max="255" value="8" />
+          </label>
+          <label>
+            <span class="label-row">
+              Foreground
+              <span class="tip" title="Alpha-matting foreground threshold. Higher is stricter about definite subject pixels.">?</span>
+            </span>
+            <input id="foregroundThreshold" type="number" min="0" max="255" value="240" />
+          </label>
+        </div>
+
+        <div class="checks">
+          <label title="Refine edge bands for cleaner cutouts. Slower, and can eat thin limbs if erosion is high.">
+            <input id="matting" type="checkbox" checked /> Matting
+          </label>
+          <label title="Tighten the output to the subject's alpha bounds after rembg runs.">
+            <input id="autoCrop" type="checkbox" checked /> Auto-crop
+          </label>
+          <label title="Run rembg's built-in mask cleanup pass after segmentation.">
+            <input id="postProcess" type="checkbox" checked /> Post-process
+          </label>
+        </div>
+
+        <div class="actions">
+          <button class="primary" id="cutoutBtn" type="button">Cutout</button>
+          <button class="secondary" id="downloadBtn" type="button" disabled>Download</button>
+        </div>
+      </aside>
+
+      <section class="workspace">
+        <article class="card">
+          <div class="card-head">
+            <span>Source + bbox</span>
+            <span class="sub" id="bboxReadout">none</span>
+          </div>
+          <div class="viewport">
+            <canvas id="sourceCanvas"></canvas>
+          </div>
+        </article>
+
+        <article class="card">
+          <div class="card-head">
+            <span>Preview</span>
+            <span class="sub" id="previewMeta">—</span>
+          </div>
+          <div class="viewport preview">
+            <img id="previewImage" alt="Cutout preview" hidden />
+            <span class="placeholder" id="previewPlaceholder">Run cutout to preview.</span>
+          </div>
+        </article>
+      </section>
+    </main>
+
+    <script>
+      const sourceCanvas = document.getElementById("sourceCanvas");
+      const sourceCtx = sourceCanvas.getContext("2d");
+      const previewImage = document.getElementById("previewImage");
+      const previewPlaceholder = document.getElementById("previewPlaceholder");
+      const previewMeta = document.getElementById("previewMeta");
+      const statusEl = document.getElementById("status");
+      const healthEl = document.getElementById("health");
+      const bboxReadout = document.getElementById("bboxReadout");
+      const modelSelect = document.getElementById("model");
+      const modelNote = document.getElementById("modelNote");
+      const modelTip = document.getElementById("modelTip");
+
+      const state = {
+        image: null,
+        sourcePath: null,
+        displayScale: 1,
+        bbox: null,
+        dragging: false,
+        dragStart: null,
+        previewBlob: null,
+        models: [],
+      };
+
+      function setStatus(message, kind = "") {
+        statusEl.textContent = message;
+        statusEl.className = `status ${kind}`.trim();
+      }
+
+      function updateBboxReadout() {
+        if (!state.bbox) {
+          bboxReadout.textContent = "none";
+          return;
+        }
+        const { x, y, width, height } = state.bbox;
+        bboxReadout.textContent = `x=${x} y=${y} w=${width} h=${height}`;
+      }
+
+      function updateModelNote() {
+        const model = state.models.find((entry) => entry.id === modelSelect.value);
+        if (!model) {
+          modelNote.textContent = "Pick a model to see size, speed, and use-case notes.";
+          modelTip.title = modelTip.title;
+          return;
+        }
+        const note = model.note ? ` ${model.note}` : "";
+        modelNote.innerHTML =
+          `<strong>${model.label}</strong> · ${model.size} · ${model.speed} · ${model.quality}. ` +
+          `${model.best_for}${note}`;
+        modelTip.title =
+          `${model.label}\nSize: ${model.size}\nSpeed: ${model.speed}\nQuality: ${model.quality}\n` +
+          `Best for: ${model.best_for}${model.note ? `\nNote: ${model.note}` : ""}`;
+      }
+
+      function imageToDisplayCoords(x, y) {
+        return { x: x * state.displayScale, y: y * state.displayScale };
+      }
+
+      function displayToImageCoords(x, y) {
+        return {
+          x: Math.round(x / state.displayScale),
+          y: Math.round(y / state.displayScale),
+        };
+      }
+
+      function normalizeBBox(x0, y0, x1, y1) {
+        const left = Math.min(x0, x1);
+        const top = Math.min(y0, y1);
+        const right = Math.max(x0, x1);
+        const bottom = Math.max(y0, y1);
+        return {
+          x: left,
+          y: top,
+          width: Math.max(1, right - left),
+          height: Math.max(1, bottom - top),
+        };
+      }
+
+      function drawSource() {
+        sourceCtx.clearRect(0, 0, sourceCanvas.width, sourceCanvas.height);
+        if (!state.image) {
+          return;
+        }
+
+        sourceCtx.drawImage(state.image, 0, 0, sourceCanvas.width, sourceCanvas.height);
+
+        if (!state.bbox) {
+          return;
+        }
+
+        const topLeft = imageToDisplayCoords(state.bbox.x, state.bbox.y);
+        const size = imageToDisplayCoords(state.bbox.width, state.bbox.height);
+
+        sourceCtx.fillStyle = "rgba(8, 12, 20, 0.55)";
+        sourceCtx.fillRect(0, 0, sourceCanvas.width, topLeft.y);
+        sourceCtx.fillRect(0, topLeft.y, topLeft.x, size.y);
+        sourceCtx.fillRect(topLeft.x + size.x, topLeft.y, sourceCanvas.width, size.y);
+        sourceCtx.fillRect(0, topLeft.y + size.y, sourceCanvas.width, sourceCanvas.height);
+
+        sourceCtx.strokeStyle = "#6ea8ff";
+        sourceCtx.lineWidth = 2;
+        sourceCtx.strokeRect(topLeft.x, topLeft.y, size.x, size.y);
+      }
+
+      function fitImageToCanvas() {
+        if (!state.image) {
+          return;
+        }
+        const viewport = sourceCanvas.parentElement;
+        const maxWidth = viewport.clientWidth;
+        const maxHeight = viewport.clientHeight;
+        if (!maxWidth || !maxHeight) {
+          return;
+        }
+        const scale = Math.min(maxWidth / state.image.width, maxHeight / state.image.height);
+        state.displayScale = scale;
+        sourceCanvas.width = Math.max(1, Math.floor(state.image.width * scale));
+        sourceCanvas.height = Math.max(1, Math.floor(state.image.height * scale));
+        drawSource();
+      }
+
+      async function loadImageFromBlob(blob, sourcePath = null) {
+        const url = URL.createObjectURL(blob);
+        const image = new Image();
+        await new Promise((resolve, reject) => {
+          image.onload = resolve;
+          image.onerror = reject;
+          image.src = url;
+        });
+        URL.revokeObjectURL(url);
+        state.image = image;
+        state.sourcePath = sourcePath;
+        state.bbox = {
+          x: Math.round(image.width * 0.55),
+          y: Math.round(image.height * 0.02),
+          width: Math.round(image.width * 0.42),
+          height: Math.round(image.height * 0.62),
+        };
+        requestAnimationFrame(fitImageToCanvas);
+        updateBboxReadout();
+        setStatus("Image loaded. Drag a tight bbox around the trainer only.");
+      }
+
+      async function loadFromPath(path) {
+        const response = await fetch(`/api/source?path=${encodeURIComponent(path)}`);
+        if (!response.ok) {
+          const payload = await response.json();
+          throw new Error(payload.error || "Failed to load source image.");
+        }
+        const blob = await response.blob();
+        await loadImageFromBlob(blob, path);
+      }
+
+      function canvasPoint(event) {
+        const rect = sourceCanvas.getBoundingClientRect();
+        return {
+          x: event.clientX - rect.left,
+          y: event.clientY - rect.top,
+        };
+      }
+
+      function currentOptions() {
+        return {
+          model: modelSelect.value,
+          matting: document.getElementById("matting").checked,
+          pad: Number(document.getElementById("pad").value),
+          erode_size: Number(document.getElementById("erodeSize").value),
+          crop_alpha_threshold: Number(document.getElementById("cropAlpha").value),
+          foreground_threshold: Number(document.getElementById("foregroundThreshold").value),
+          auto_crop: document.getElementById("autoCrop").checked,
+          post_process_mask: document.getElementById("postProcess").checked,
+          bbox: state.bbox
+            ? [state.bbox.x, state.bbox.y, state.bbox.width, state.bbox.height]
+            : null,
+        };
+      }
+
+      async function imageBase64FromState() {
+        if (state.sourcePath) {
+          return { path: state.sourcePath };
+        }
+        const scratch = document.createElement("canvas");
+        scratch.width = state.image.width;
+        scratch.height = state.image.height;
+        scratch.getContext("2d").drawImage(state.image, 0, 0);
+        const blob = await new Promise((resolve) => scratch.toBlob(resolve, "image/png"));
+        const buffer = await blob.arrayBuffer();
+        const bytes = new Uint8Array(buffer);
+        let binary = "";
+        for (const byte of bytes) {
+          binary += String.fromCharCode(byte);
+        }
+        return { image_base64: `data:image/png;base64,${btoa(binary)}` };
+      }
+
+      async function runCutout() {
+        if (!state.image) {
+          setStatus("Load an image first.", "error");
+          return;
+        }
+        if (!state.bbox) {
+          setStatus("Draw a bounding box first.", "error");
+          return;
+        }
+
+        setStatus("Running cutout…");
+        const payload = {
+          ...currentOptions(),
+          ...(await imageBase64FromState()),
+        };
+
+        const response = await fetch("/api/cutout", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(payload),
+        });
+        const result = await response.json();
+        if (!response.ok) {
+          throw new Error(result.error || "Cutout failed.");
+        }
+
+        const bytes = Uint8Array.from(atob(result.image_base64), (char) => char.charCodeAt(0));
+        state.previewBlob = new Blob([bytes], { type: "image/png" });
+        previewImage.src = URL.createObjectURL(state.previewBlob);
+        previewImage.hidden = false;
+        previewPlaceholder.hidden = true;
+        document.getElementById("downloadBtn").disabled = false;
+        previewMeta.textContent = `${result.width}×${result.height} · ${result.duration_ms} ms`;
+
+        setStatus(`Cutout ready (${result.width}×${result.height}) in ${result.duration_ms} ms.`, "ok");
+      }
+
+      async function loadModels() {
+        const response = await fetch("/api/models");
+        const payload = await response.json();
+        state.models = payload.models || [];
+        modelSelect.innerHTML = "";
+        for (const model of state.models) {
+          const option = document.createElement("option");
+          option.value = model.id;
+          option.textContent = model.label;
+          option.title =
+            `${model.size} · ${model.speed} · ${model.quality}. ${model.best_for}` +
+            (model.note ? ` ${model.note}` : "");
+          modelSelect.appendChild(option);
+        }
+        modelSelect.value = "isnet-anime";
+        updateModelNote();
+      }
+
+      sourceCanvas.addEventListener("mousedown", (event) => {
+        if (!state.image) {
+          return;
+        }
+        state.dragging = true;
+        state.dragStart = canvasPoint(event);
+        const imagePoint = displayToImageCoords(state.dragStart.x, state.dragStart.y);
+        state.bbox = { x: imagePoint.x, y: imagePoint.y, width: 1, height: 1 };
+        drawSource();
+        updateBboxReadout();
+      });
+
+      sourceCanvas.addEventListener("mousemove", (event) => {
+        if (!state.dragging || !state.dragStart) {
+          return;
+        }
+        const current = canvasPoint(event);
+        const start = displayToImageCoords(state.dragStart.x, state.dragStart.y);
+        const end = displayToImageCoords(current.x, current.y);
+        state.bbox = normalizeBBox(start.x, start.y, end.x, end.y);
+        drawSource();
+        updateBboxReadout();
+      });
+
+      window.addEventListener("mouseup", () => {
+        state.dragging = false;
+        state.dragStart = null;
+      });
+
+      document.getElementById("sourcePath").addEventListener("keydown", async (event) => {
+        if (event.key !== "Enter") {
+          return;
+        }
+        event.preventDefault();
+        try {
+          const path = document.getElementById("sourcePath").value.trim();
+          if (!path) {
+            setStatus("Enter a repo-relative source path.", "error");
+            return;
+          }
+          await loadFromPath(path);
+        } catch (error) {
+          setStatus(error.message, "error");
+        }
+      });
+
+      document.getElementById("fileInput").addEventListener("change", async (event) => {
+        const file = event.target.files?.[0];
+        if (!file) {
+          return;
+        }
+        try {
+          await loadImageFromBlob(file);
+          state.sourcePath = null;
+        } catch (error) {
+          setStatus(error.message, "error");
+        }
+      });
+
+      document.getElementById("cutoutBtn").addEventListener("click", async () => {
+        try {
+          await runCutout();
+        } catch (error) {
+          setStatus(error.message, "error");
+        }
+      });
+
+      document.getElementById("downloadBtn").addEventListener("click", () => {
+        if (!state.previewBlob) {
+          return;
+        }
+        const link = document.createElement("a");
+        link.href = URL.createObjectURL(state.previewBlob);
+        link.download = "cutout.png";
+        link.click();
+      });
+
+      modelSelect.addEventListener("change", updateModelNote);
+
+      const resizeObserver = new ResizeObserver(() => {
+        fitImageToCanvas();
+      });
+      resizeObserver.observe(sourceCanvas.parentElement);
+
+      window.addEventListener("resize", fitImageToCanvas);
+
+      Promise.all([
+        fetch("/api/health").then((response) => response.json()),
+        loadModels(),
+      ])
+        .then(([health]) => {
+          healthEl.textContent = `Repo: ${health.repo_root}`;
+        })
+        .catch(() => {
+          healthEl.textContent = "Server unavailable";
+        });
+    </script>
+  </body>
+</html>
