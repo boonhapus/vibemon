@@ -31,11 +31,16 @@ class Trainer(Base):
 
     id: Mapped[uuid.UUID] = mapped_column(primary_key=True, default=uuid.uuid7)
     username: Mapped[str] = mapped_column(unique=True)
+    reference_detected_facing: Mapped[str | None]
 
     vibemons: Mapped[list[Vibemon]] = relationship(back_populates="trainer")
     candidate_reviews: Mapped[list[CandidateReview]] = relationship(back_populates="trainer")
     generation_credit_days: Mapped[list[GenerationCreditDay]] = relationship(back_populates="trainer")
     secrets: Mapped[list[TrainerSecret]] = relationship(back_populates="trainer")
+    assets: Mapped[list[TrainerAsset]] = relationship(
+        back_populates="trainer",
+        cascade="all, delete-orphan",
+    )
 
 
 class TrainerSecret(Base):
@@ -119,6 +124,7 @@ class Vibemon(Base):
     wild_entered_at: Mapped[dt.datetime | None] = mapped_column(db_types.TIMESTAMPTZ)
     last_encountered_at: Mapped[dt.datetime | None] = mapped_column(db_types.TIMESTAMPTZ)
     expired_at: Mapped[dt.datetime | None] = mapped_column(db_types.TIMESTAMPTZ)
+    reference_detected_facing: Mapped[str | None]
 
     __table_args__ = (
         ForeignKeyConstraint(
@@ -322,10 +328,13 @@ class VibemonAsset(Base):
     id: Mapped[uuid.UUID] = mapped_column(primary_key=True, default=uuid.uuid7)
     vibemon_id: Mapped[uuid.UUID]
     kind: Mapped[str]
+    selected_revision: Mapped[int]
+    max_revision: Mapped[int]
     object_key: Mapped[str] = mapped_column(unique=True)
     content_type: Mapped[str]
     byte_size: Mapped[int]
     sha256: Mapped[str]
+    display_anchor: Mapped[dict[str, Any] | None] = mapped_column(db_types.JSON_STORE, nullable=True)
     created_at: Mapped[dt.datetime] = mapped_column(db_types.TIMESTAMPTZ)
     updated_at: Mapped[dt.datetime] = mapped_column(db_types.TIMESTAMPTZ)
 
@@ -342,6 +351,34 @@ class VibemonAsset(Base):
     vibemon: Mapped[Vibemon] = relationship(back_populates="assets")
 
 
+class TrainerAsset(Base):
+    __tablename__ = "trainer_asset"
+
+    id: Mapped[uuid.UUID] = mapped_column(primary_key=True, default=uuid.uuid7)
+    trainer_id: Mapped[uuid.UUID]
+    kind: Mapped[str]
+    selected_revision: Mapped[int]
+    max_revision: Mapped[int]
+    object_key: Mapped[str] = mapped_column(unique=True)
+    content_type: Mapped[str]
+    byte_size: Mapped[int]
+    sha256: Mapped[str]
+    created_at: Mapped[dt.datetime] = mapped_column(db_types.TIMESTAMPTZ)
+    updated_at: Mapped[dt.datetime] = mapped_column(db_types.TIMESTAMPTZ)
+
+    __table_args__ = (
+        ForeignKeyConstraint(
+            ["trainer_id"],
+            ["trainer.id"],
+            name="fk_trainer_asset_trainer",
+            ondelete="CASCADE",
+        ),
+        UniqueConstraint("trainer_id", "kind", name="uq_trainer_asset_slot"),
+    )
+
+    trainer: Mapped[Trainer] = relationship(back_populates="assets")
+
+
 class CandidateReview(Base):
     __tablename__ = "candidate_review"
 
@@ -353,6 +390,7 @@ class CandidateReview(Base):
     timeout_at: Mapped[dt.datetime] = mapped_column(db_types.TIMESTAMPTZ)
     resolved_at: Mapped[dt.datetime | None] = mapped_column(db_types.TIMESTAMPTZ)
     resolution: Mapped[str | None]
+    reference_facing: Mapped[str | None]
     provider_notes: Mapped[list[dict[str, str]]] = mapped_column(db_types.JSON_STORE, default=list)
 
     __table_args__ = (

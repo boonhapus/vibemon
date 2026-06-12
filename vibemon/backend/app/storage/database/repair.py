@@ -16,16 +16,12 @@ async def _reassign_trainer_rows(
     from_id: uuid.UUID,
     to_id: uuid.UUID,
 ) -> None:
-    await sess.execute(
-        sa.update(models.Vibemon).where(models.Vibemon.trainer_id == from_id).values(trainer_id=to_id)
-    )
+    await sess.execute(sa.update(models.Vibemon).where(models.Vibemon.trainer_id == from_id).values(trainer_id=to_id))
     await sess.execute(
         sa.update(models.BirthSeed).where(models.BirthSeed.trainer_id == from_id).values(trainer_id=to_id)
     )
     await sess.execute(
-        sa.update(models.CandidateReview)
-        .where(models.CandidateReview.trainer_id == from_id)
-        .values(trainer_id=to_id)
+        sa.update(models.CandidateReview).where(models.CandidateReview.trainer_id == from_id).values(trainer_id=to_id)
     )
 
     for secret in (

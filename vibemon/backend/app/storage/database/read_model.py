@@ -6,9 +6,10 @@ import datetime as dt
 from app.core.ids import TrainerIdT
 from app.domains.adoption import schema as adoption_schema
 from app.domains.adoption.types import CandidateReviewStatusT
+from app.domains.generation.types import ProviderWarning
 from app.domains.move.catalog import TYPE_AFFINITIES, get_element_effectiveness
 from app.domains.move.types import VibemonTypeT
-from app.domains.vibemon.assets import AssetKind
+from app.domains.vibemon.assets import AssetKind, SpriteAnchor
 from app.domains.vibemon.disposition import VibemonDispositionT
 from app.domains.vibemon.entity import Vibemon
 from app.domains.vibemon.schema import (
@@ -18,7 +19,6 @@ from app.domains.vibemon.schema import (
     TypeDefenseSummary,
     TypeMatchupSummary,
 )
-from app.providers import schema as providers_schema
 from app.storage.database import models
 
 PUBLIC_ASSET_URL_TTL = dt.timedelta(minutes=15)
@@ -78,9 +78,12 @@ class ReadModelAssembler:
                 PublicAsset(
                     kind=AssetKind(asset.kind),
                     url=await self._asset_urler(asset.object_key, PUBLIC_ASSET_URL_TTL),
+                    selected_revision=asset.selected_revision,
+                    max_revision=asset.max_revision,
                     content_type=asset.content_type,
                     byte_size=asset.byte_size,
                     sha256=asset.sha256,
+                    anchor=SpriteAnchor.model_validate(asset.display_anchor) if asset.display_anchor else None,
                 )
             )
         return tuple(public)
@@ -111,8 +114,8 @@ def visible_review(
     return None
 
 
-def _provider_notes(raw: list[dict[str, str]]) -> tuple[providers_schema.ProviderNote, ...]:
-    return tuple(providers_schema.ProviderNote.model_validate(item) for item in raw)
+def _provider_notes(raw: list[dict[str, str]]) -> tuple[ProviderWarning, ...]:
+    return tuple(ProviderWarning.model_validate(item) for item in raw)
 
 
 def type_matchup(vibemon: Vibemon) -> TypeMatchupSummary:

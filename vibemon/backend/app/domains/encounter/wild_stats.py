@@ -23,13 +23,13 @@ class WildStatsRead(Schema):
 
 def level_bucket_label(level: int) -> str:
     if level <= 5:
-        return "1–5"
+        return "1-5"
     if level <= 10:
-        return "6–10"
+        return "6-10"
     if level <= 15:
-        return "11–15"
+        return "11-15"
     if level <= 20:
-        return "16–20"
+        return "16-20"
     return "21+"
 
 
@@ -47,7 +47,7 @@ def build_wild_stats(rows: list[tuple[int, list[str]]]) -> WildStatsRead:
         by_type=[WildTypeCount(type=type_name, count=count) for type_name, count in type_counts.most_common()],
         level_buckets=[
             WildLevelBucket(label=label, count=level_counts[label])
-            for label in ("1–5", "6–10", "11–15", "16–20", "21+")
+            for label in ("1-5", "6-10", "11-15", "16-20", "21+")
             if level_counts[label] > 0
         ],
     )

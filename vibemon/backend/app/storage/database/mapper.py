@@ -2,9 +2,12 @@
 
 import uuid
 
+from app.core.ids import TrainerIdT
 from app.domains.move.entity import EffectGroup, Move, MoveBehavior
 from app.domains.move.types import MoveCategoryT, MoveTargetT, VibemonTypeT
-from app.domains.vibemon.assets import AssetKind, AssetRef
+from app.domains.sprite import types as sprite_types
+from app.domains.vibemon.assets import AssetKind, AssetRef, SpriteAnchor
+from app.domains.vibemon.disposition import VibemonDispositionT
 from app.domains.vibemon.entity import Aesthetic, Vibemon
 from app.domains.vibemon.identity import BaseStats, Identity
 from app.domains.vibemon.types import EvolutionStageT, VibemonLifecycleT
@@ -39,6 +42,25 @@ def apply_vibemon_to_row(row: models.Vibemon, vibemon: Vibemon) -> None:
     row.evo_stage = int(vibemon.evo_stage)
     row.lifecycle = vibemon.lifecycle.value
     row.identity.name = vibemon.identity.name
+    row.reference_detected_facing = (
+        vibemon.reference_detected_facing.value if vibemon.reference_detected_facing is not None else None
+    )
+
+
+def apply_adopted_vibemon_to_row(
+    row: models.Vibemon,
+    vibemon: Vibemon,
+    *,
+    trainer_id: TrainerIdT,
+    crew_slot: int,
+) -> None:
+    """Persist an adopted Vibemon: domain fields plus Owned disposition transition."""
+    apply_vibemon_to_row(row, vibemon)
+    row.trainer_id = trainer_id
+    row.crew_slot = crew_slot
+    row.disposition = VibemonDispositionT.OWNED.value
+    row.wild_entered_at = None
+    row.last_encountered_at = None
 
 
 async def vibemon_from_row(row: models.Vibemon) -> Vibemon:
@@ -71,6 +93,11 @@ async def vibemon_from_row(row: models.Vibemon) -> Vibemon:
         trainer_id=row.trainer_id,
         crew_slot=row.crew_slot,
         lifecycle=VibemonLifecycleT(row.lifecycle),
+        reference_detected_facing=(
+            sprite_types.SpriteFacing(row.reference_detected_facing)
+            if row.reference_detected_facing is not None
+            else None
+        ),
     )
     vibemon.aesthetic = Aesthetic.from_vibemon(vibemon)
     vibemon.aesthetic.assets = {AssetKind(asset.kind): asset_ref(row.id, asset) for asset in row.assets}
@@ -103,8 +130,10 @@ def asset_ref(vibemon_id: uuid.UUID, row: models.VibemonAsset) -> AssetRef:
     return AssetRef(
         vibemon_id=vibemon_id,
         kind=AssetKind(row.kind),
+        revision=row.selected_revision,
         key=row.object_key,
         content_type=row.content_type,
         byte_size=row.byte_size,
         sha256=row.sha256,
+        anchor=SpriteAnchor.model_validate(row.display_anchor) if row.display_anchor else None,
     )
