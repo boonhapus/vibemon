@@ -4,12 +4,12 @@ from typing import ClassVar
 
 from app.domains.move.types import VibemonTypeT
 from app.providers import catalog_schema as catalog
-from app.providers.catalog_support import UnimplementedProvider
+from app.providers.base import UnimplementedProvider
 
 
 class FitnessProvider(UnimplementedProvider):
     """
-    A Vibemon is born from the trainer's body in the weeks before birth.
+    A Vibemon carries the rhythm your body was keeping before it hatched.
 
     One hatched after deep recovery weeks reads differently from one shaped by
     high-strain training blocks - same wrist, different rhythm, different
@@ -19,9 +19,18 @@ class FitnessProvider(UnimplementedProvider):
     name = "fitness"
     display_label = "FITNESS"
     tagline = "Sleep, strain, and the week before hatching."
-    data_sources = (
-        catalog.DataSourceInfo(name="Wearables and health platforms", description="Whoop, Oura, Strava, and peers."),
-    )
+
+    exposed_elements: ClassVar[list[tuple[VibemonTypeT, str]]] = [
+        (VibemonTypeT.NORMAL, "balanced activity and steady recovery"),
+        (VibemonTypeT.FIGHTING, "high strain and impact training blocks"),
+        (VibemonTypeT.GRASS, "outdoor endurance and long steady sessions"),
+        (VibemonTypeT.WATER, "fluid mobility and low-impact recovery"),
+        (VibemonTypeT.ICE, "cold exposure and low resting trends"),
+        (VibemonTypeT.BUG, "high-frequency short sessions"),
+        (VibemonTypeT.STEEL, "strength blocks and disciplined routines"),
+        (VibemonTypeT.PSYCHIC, "meditative recovery and sleep depth"),
+    ]
+
     requirements = (
         catalog.SecretGroupRequirement(
             id="fitness.platform",
@@ -55,13 +64,6 @@ class FitnessProvider(UnimplementedProvider):
             ),
         ),
     )
-    exposed_elements: ClassVar[list[tuple[VibemonTypeT, str]]] = [
-        (VibemonTypeT.NORMAL, "balanced activity and steady recovery"),
-        (VibemonTypeT.FIGHTING, "high strain and impact training blocks"),
-        (VibemonTypeT.GRASS, "outdoor endurance and long steady sessions"),
-        (VibemonTypeT.WATER, "fluid mobility and low-impact recovery"),
-        (VibemonTypeT.ICE, "cold exposure and low resting trends"),
-        (VibemonTypeT.BUG, "high-frequency short sessions"),
-        (VibemonTypeT.STEEL, "strength blocks and disciplined routines"),
-        (VibemonTypeT.PSYCHIC, "meditative recovery and sleep depth"),
-    ]
+    data_sources = (
+        catalog.DataSourceInfo(name="Wearables and health platforms", description="Whoop, Oura, Strava, and peers."),
+    )

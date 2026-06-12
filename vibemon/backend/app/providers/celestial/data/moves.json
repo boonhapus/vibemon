@@ -1,0 +1,3806 @@
+[
+  {
+    "id": "celestial.gnomon_tick",
+    "name": "Gnomon Tick",
+    "flavor_text": "The sundial shadow snaps forward at solar noon\u2014a needle of charged shade.",
+    "type": "electric",
+    "category": "physical",
+    "accuracy": 1.0,
+    "pp": 30,
+    "priority": 1,
+    "effects": [],
+    "behavior": {
+      "conditions": []
+    },
+    "target": "single",
+    "level_requirement": 1,
+    "power": 28
+  },
+  {
+    "id": "celestial.insolation_tap",
+    "name": "Insolation Tap",
+    "flavor_text": "Raw solar flux tapped straight from the ephemeris instant at hatch.",
+    "type": "electric",
+    "category": "physical",
+    "accuracy": 1.0,
+    "pp": 30,
+    "priority": 0,
+    "effects": [
+      {
+        "chance": 0.15,
+        "trigger": "on_hit",
+        "effects": [
+          {
+            "kind": "stat",
+            "target": "target",
+            "changes": {
+              "speed": -1
+            }
+          }
+        ]
+      }
+    ],
+    "behavior": {
+      "conditions": []
+    },
+    "target": "single",
+    "level_requirement": 1,
+    "power": 28
+  },
+  {
+    "id": "celestial.air_mass_spark",
+    "name": "Air Mass Spark",
+    "flavor_text": "A dry, sun-heated air parcel discharges along the birth meridian.",
+    "type": "electric",
+    "category": "physical",
+    "accuracy": 1.0,
+    "pp": 25,
+    "priority": 0,
+    "effects": [],
+    "behavior": {
+      "conditions": []
+    },
+    "target": "single",
+    "level_requirement": 1,
+    "power": 44
+  },
+  {
+    "id": "celestial.photosphere_nip",
+    "name": "Photosphere Nip",
+    "flavor_text": "A grazing touch of the sun's visible shell\u2014hot enough to sting.",
+    "type": "electric",
+    "category": "special",
+    "accuracy": 1.0,
+    "pp": 25,
+    "priority": 0,
+    "effects": [],
+    "behavior": {
+      "conditions": []
+    },
+    "target": "single",
+    "level_requirement": 1,
+    "power": 44
+  },
+  {
+    "id": "celestial.convection_cell",
+    "name": "Convection Cell",
+    "flavor_text": "Rising thermals under open daylight braid into a charged updraft loop.",
+    "type": "electric",
+    "category": "special",
+    "accuracy": 1.0,
+    "pp": 30,
+    "priority": 0,
+    "effects": [],
+    "behavior": {
+      "conditions": []
+    },
+    "target": "single",
+    "level_requirement": 1,
+    "power": 28
+  },
+  {
+    "id": "celestial.analemma_whip",
+    "name": "Analemma Whip",
+    "flavor_text": "The sun's annual figure-eight path lashes out as a charged filament.",
+    "type": "electric",
+    "category": "physical",
+    "accuracy": 1.0,
+    "pp": 30,
+    "priority": 0,
+    "effects": [
+      {
+        "chance": 0.1,
+        "trigger": "on_hit",
+        "effects": [
+          {
+            "kind": "status",
+            "target": "target",
+            "status": "sleep"
+          }
+        ]
+      }
+    ],
+    "behavior": {
+      "conditions": []
+    },
+    "target": "single",
+    "level_requirement": 1,
+    "power": 28
+  },
+  {
+    "id": "celestial.declination_arc",
+    "name": "Declination Arc",
+    "flavor_text": "The sun's declination traces a charged arc across the hatch sky dome.",
+    "type": "electric",
+    "category": "physical",
+    "accuracy": 1.0,
+    "pp": 30,
+    "priority": 0,
+    "effects": [],
+    "behavior": {
+      "conditions": []
+    },
+    "target": "single",
+    "level_requirement": 1,
+    "power": 28
+  },
+  {
+    "id": "celestial.albedo_flash",
+    "name": "Albedo Flash",
+    "flavor_text": "Daylight ricochets off bright surfaces and returns as secondary discharge.",
+    "type": "electric",
+    "category": "physical",
+    "accuracy": 1.0,
+    "pp": 20,
+    "priority": 0,
+    "effects": [
+      {
+        "chance": 0.15,
+        "trigger": "on_hit",
+        "effects": [
+          {
+            "kind": "stat",
+            "target": "target",
+            "changes": {
+              "defense": -1
+            }
+          }
+        ]
+      }
+    ],
+    "behavior": {
+      "conditions": []
+    },
+    "target": "single",
+    "level_requirement": 24,
+    "power": 72
+  },
+  {
+    "id": "celestial.heliograph_ping",
+    "name": "Heliograph Ping",
+    "flavor_text": "Sunlight mirrored through the ephemeris arrives as a coded daylight pulse.",
+    "type": "electric",
+    "category": "special",
+    "accuracy": 1.0,
+    "pp": 30,
+    "priority": 0,
+    "effects": [
+      {
+        "chance": 0.2,
+        "trigger": "on_hit",
+        "effects": [
+          {
+            "kind": "status",
+            "target": "target",
+            "status": "paralysis"
+          }
+        ]
+      }
+    ],
+    "behavior": {
+      "conditions": []
+    },
+    "target": "single",
+    "level_requirement": 1,
+    "power": 28
+  },
+  {
+    "id": "celestial.solar_constant",
+    "name": "Solar Constant",
+    "flavor_text": "Unfiltered daylight at the ephemeris instant pours at fixed irradiance.",
+    "type": "electric",
+    "category": "special",
+    "accuracy": 1.0,
+    "pp": 15,
+    "priority": 0,
+    "effects": [],
+    "behavior": {
+      "conditions": []
+    },
+    "target": "single",
+    "level_requirement": 38,
+    "power": 88
+  },
+  {
+    "id": "celestial.culmination_strike",
+    "name": "Culmination Strike",
+    "flavor_text": "The sun crosses local meridian at maximum altitude\u2014peak charge releases.",
+    "type": "electric",
+    "category": "special",
+    "accuracy": 1.0,
+    "pp": 15,
+    "priority": 0,
+    "effects": [],
+    "behavior": {
+      "conditions": []
+    },
+    "target": "single",
+    "level_requirement": 48,
+    "power": 88
+  },
+  {
+    "id": "celestial.magnetopause_breach",
+    "name": "Magnetopause Breach",
+    "flavor_text": "The solar wind tears through the magnetopause in one daylight superstorm.",
+    "type": "electric",
+    "category": "special",
+    "accuracy": 1.0,
+    "pp": 15,
+    "priority": 0,
+    "effects": [],
+    "behavior": {
+      "conditions": []
+    },
+    "target": "single",
+    "level_requirement": 62,
+    "power": 88
+  },
+  {
+    "id": "celestial.noon_fixation",
+    "name": "Noon Fixation",
+    "flavor_text": "The chart locks on solar culmination and hoards daylight charge in the body.",
+    "type": "electric",
+    "category": "status",
+    "accuracy": 1.0,
+    "pp": 20,
+    "priority": 0,
+    "effects": [
+      {
+        "chance": 1.0,
+        "trigger": "on_use",
+        "effects": [
+          {
+            "kind": "stat",
+            "target": "self",
+            "changes": {
+              "sp_attack": 1
+            }
+          }
+        ]
+      }
+    ],
+    "behavior": {
+      "conditions": []
+    },
+    "target": "single",
+    "level_requirement": 1,
+    "power": null
+  },
+  {
+    "id": "celestial.gnomon_calibrate",
+    "name": "Gnomon Calibrate",
+    "flavor_text": "The birth sundial realigns to true solar time, sharpening sky rhythm.",
+    "type": "electric",
+    "category": "status",
+    "accuracy": 1.0,
+    "pp": 20,
+    "priority": 0,
+    "effects": [
+      {
+        "chance": 1.0,
+        "trigger": "on_use",
+        "effects": [
+          {
+            "kind": "stat",
+            "target": "self",
+            "changes": {
+              "speed": 1
+            }
+          }
+        ]
+      }
+    ],
+    "behavior": {
+      "conditions": []
+    },
+    "target": "single",
+    "level_requirement": 1,
+    "power": null
+  },
+  {
+    "id": "celestial.culmination_rite",
+    "name": "Culmination Rite",
+    "flavor_text": "A ceremonial lock on upper culmination concentrates charge until discharge.",
+    "type": "electric",
+    "category": "status",
+    "accuracy": 1.0,
+    "pp": 20,
+    "priority": 0,
+    "effects": [
+      {
+        "chance": 1.0,
+        "trigger": "on_use",
+        "effects": [
+          {
+            "kind": "stat",
+            "target": "self",
+            "changes": {
+              "sp_attack": 2
+            }
+          }
+        ]
+      },
+      {
+        "chance": 1.0,
+        "trigger": "after_damage",
+        "effects": [
+          {
+            "kind": "recoil",
+            "ratio": 0.1
+          }
+        ]
+      }
+    ],
+    "behavior": {
+      "conditions": []
+    },
+    "target": "single",
+    "level_requirement": 1,
+    "power": null
+  },
+  {
+    "id": "celestial.ascendant_shear",
+    "name": "Ascendant Shear",
+    "flavor_text": "The rising sign's first degree cuts the air like a blade at birth.",
+    "type": "flying",
+    "category": "physical",
+    "accuracy": 1.0,
+    "pp": 30,
+    "priority": 1,
+    "effects": [],
+    "behavior": {
+      "conditions": []
+    },
+    "target": "single",
+    "level_requirement": 1,
+    "power": 40
+  },
+  {
+    "id": "celestial.third_house_breeze",
+    "name": "Third House Breeze",
+    "flavor_text": "Gemini's house stirs a restless, chatty wind\u2014light but constant.",
+    "type": "flying",
+    "category": "special",
+    "accuracy": 1.0,
+    "pp": 30,
+    "priority": 0,
+    "effects": [
+      {
+        "chance": 0.15,
+        "trigger": "on_hit",
+        "effects": [
+          {
+            "kind": "stat",
+            "target": "target",
+            "changes": {
+              "speed": -1
+            }
+          }
+        ]
+      }
+    ],
+    "behavior": {
+      "conditions": []
+    },
+    "target": "single",
+    "level_requirement": 1,
+    "power": 28
+  },
+  {
+    "id": "celestial.ecliptic_lift",
+    "name": "Ecliptic Lift",
+    "flavor_text": "The birth chart's ecliptic plane tilts and throws the foe along the zodiac belt.",
+    "type": "flying",
+    "category": "physical",
+    "accuracy": 1.0,
+    "pp": 25,
+    "priority": 0,
+    "effects": [],
+    "behavior": {
+      "conditions": []
+    },
+    "target": "single",
+    "level_requirement": 1,
+    "power": 44
+  },
+  {
+    "id": "celestial.mutable_crosswind",
+    "name": "Mutable Crosswind",
+    "flavor_text": "Mutable square winds collide in a gust that shifts each beat.",
+    "type": "flying",
+    "category": "physical",
+    "accuracy": 1.0,
+    "pp": 25,
+    "priority": 0,
+    "effects": [
+      {
+        "chance": 0.2,
+        "trigger": "on_hit",
+        "effects": [
+          {
+            "kind": "stat",
+            "target": "target",
+            "changes": {
+              "attack": -1
+            }
+          }
+        ]
+      }
+    ],
+    "behavior": {
+      "conditions": []
+    },
+    "target": "single",
+    "level_requirement": 1,
+    "power": 44
+  },
+  {
+    "id": "celestial.right_ascension_drift",
+    "name": "Right Ascension Drift",
+    "flavor_text": "The foe is pushed along the celestial equator's coordinate grid.",
+    "type": "flying",
+    "category": "special",
+    "accuracy": 1.0,
+    "pp": 30,
+    "priority": 0,
+    "effects": [],
+    "behavior": {
+      "conditions": []
+    },
+    "target": "single",
+    "level_requirement": 1,
+    "power": 28
+  },
+  {
+    "id": "celestial.seventh_house_gust",
+    "name": "Seventh House Gust",
+    "flavor_text": "Libra's house exhales a balanced, partnership-testing gale.",
+    "type": "flying",
+    "category": "physical",
+    "accuracy": 1.0,
+    "pp": 30,
+    "priority": 0,
+    "effects": [],
+    "behavior": {
+      "conditions": []
+    },
+    "target": "single",
+    "level_requirement": 1,
+    "power": 28
+  },
+  {
+    "id": "celestial.air_triplicity_surge",
+    "name": "Air Triplicity Surge",
+    "flavor_text": "Gemini, Libra, and Aquarius winds stack into one sustained jet.",
+    "type": "flying",
+    "category": "special",
+    "accuracy": 1.0,
+    "pp": 20,
+    "priority": 0,
+    "effects": [],
+    "behavior": {
+      "conditions": []
+    },
+    "target": "single",
+    "level_requirement": 26,
+    "power": 72
+  },
+  {
+    "id": "celestial.cardinal_ingress",
+    "name": "Cardinal Ingress",
+    "flavor_text": "The sun enters an air sign and the whole sky lunges on a seasonal hinge.",
+    "type": "flying",
+    "category": "physical",
+    "accuracy": 1.0,
+    "pp": 20,
+    "priority": 0,
+    "effects": [],
+    "behavior": {
+      "conditions": []
+    },
+    "target": "single",
+    "level_requirement": 34,
+    "power": 72
+  },
+  {
+    "id": "celestial.eleventh_house_draft",
+    "name": "Eleventh House Draft",
+    "flavor_text": "Aquarius pulls cold upper air down in an unpredictable downdraft.",
+    "type": "flying",
+    "category": "special",
+    "accuracy": 1.0,
+    "pp": 15,
+    "priority": 0,
+    "effects": [
+      {
+        "chance": 0.1,
+        "trigger": "on_hit",
+        "effects": [
+          {
+            "kind": "status",
+            "target": "target",
+            "status": "freeze"
+          }
+        ]
+      }
+    ],
+    "behavior": {
+      "conditions": []
+    },
+    "target": "single",
+    "level_requirement": 22,
+    "power": 88
+  },
+  {
+    "id": "celestial.zodiacal_latitude",
+    "name": "Zodiacal Latitude",
+    "flavor_text": "The foe is sheared across the ecliptic's north-south offset at hatch latitude.",
+    "type": "flying",
+    "category": "special",
+    "accuracy": 1.0,
+    "pp": 25,
+    "priority": 0,
+    "effects": [],
+    "behavior": {
+      "conditions": []
+    },
+    "target": "single",
+    "level_requirement": 1,
+    "power": 44
+  },
+  {
+    "id": "celestial.barometric_rise",
+    "name": "Barometric Rise",
+    "flavor_text": "Air-sign pressure collapses upward into a single thunderhead column.",
+    "type": "flying",
+    "category": "special",
+    "accuracy": 1.0,
+    "pp": 15,
+    "priority": 0,
+    "effects": [],
+    "behavior": {
+      "conditions": []
+    },
+    "target": "single",
+    "level_requirement": 50,
+    "power": 88
+  },
+  {
+    "id": "celestial.apogee_plunge",
+    "name": "Apogee Plunge",
+    "flavor_text": "The chart's air-sign apex drops from orbital high point with no ground beneath.",
+    "type": "flying",
+    "category": "physical",
+    "accuracy": 1.0,
+    "pp": 15,
+    "priority": 0,
+    "effects": [],
+    "behavior": {
+      "conditions": []
+    },
+    "target": "single",
+    "level_requirement": 58,
+    "power": 88
+  },
+  {
+    "id": "celestial.triplicity_blessing",
+    "name": "Triplicity Blessing",
+    "flavor_text": "Air-element dignity lightens the body to match the chart's dominant triplicity.",
+    "type": "flying",
+    "category": "status",
+    "accuracy": 1.0,
+    "pp": 20,
+    "priority": 0,
+    "effects": [
+      {
+        "chance": 1.0,
+        "trigger": "on_use",
+        "effects": [
+          {
+            "kind": "stat",
+            "target": "self",
+            "changes": {
+              "sp_attack": 1
+            }
+          }
+        ]
+      }
+    ],
+    "behavior": {
+      "conditions": []
+    },
+    "target": "single",
+    "level_requirement": 1,
+    "power": null
+  },
+  {
+    "id": "celestial.rising_degree",
+    "name": "Rising Degree",
+    "flavor_text": "The ascendant's exact degree marks the field, sharpening reflex to the horizon.",
+    "type": "flying",
+    "category": "status",
+    "accuracy": 1.0,
+    "pp": 20,
+    "priority": 0,
+    "effects": [
+      {
+        "chance": 1.0,
+        "trigger": "on_use",
+        "effects": [
+          {
+            "kind": "stat",
+            "target": "self",
+            "changes": {
+              "speed": 1
+            }
+          }
+        ]
+      }
+    ],
+    "behavior": {
+      "conditions": []
+    },
+    "target": "single",
+    "level_requirement": 1,
+    "power": null
+  },
+  {
+    "id": "celestial.house_cusp_tailwind",
+    "name": "House Cusp Tailwind",
+    "flavor_text": "A favorable wind opens at the cusp between two houses.",
+    "type": "flying",
+    "category": "status",
+    "accuracy": 1.0,
+    "pp": 20,
+    "priority": 0,
+    "effects": [
+      {
+        "chance": 1.0,
+        "trigger": "on_use",
+        "effects": [
+          {
+            "kind": "stat",
+            "target": "self",
+            "changes": {
+              "speed": 1
+            }
+          }
+        ]
+      }
+    ],
+    "behavior": {
+      "conditions": []
+    },
+    "target": "single",
+    "level_requirement": 1,
+    "power": null
+  },
+  {
+    "id": "celestial.bortle_void",
+    "name": "Bortle Void",
+    "flavor_text": "Light pollution drops to zero until only planet-bare night remains.",
+    "type": "ghost",
+    "category": "special",
+    "accuracy": 1.0,
+    "pp": 30,
+    "priority": 0,
+    "effects": [],
+    "behavior": {
+      "conditions": []
+    },
+    "target": "single",
+    "level_requirement": 1,
+    "power": 28
+  },
+  {
+    "id": "celestial.sidereal_hush",
+    "name": "Sidereal Hush",
+    "flavor_text": "Fixed stars hold their breath; only the ephemeris clock ticks in the void.",
+    "type": "ghost",
+    "category": "special",
+    "accuracy": 1.0,
+    "pp": 25,
+    "priority": 0,
+    "effects": [],
+    "behavior": {
+      "conditions": []
+    },
+    "target": "single",
+    "level_requirement": 1,
+    "power": 44
+  },
+  {
+    "id": "celestial.planet_desert",
+    "name": "Planet Desert",
+    "flavor_text": "No visible planets\u2014only bare night between the constellations.",
+    "type": "ghost",
+    "category": "physical",
+    "accuracy": 1.0,
+    "pp": 25,
+    "priority": 0,
+    "effects": [
+      {
+        "chance": 0.15,
+        "trigger": "on_hit",
+        "effects": [
+          {
+            "kind": "stat",
+            "target": "target",
+            "changes": {
+              "defense": -1
+            }
+          }
+        ]
+      }
+    ],
+    "behavior": {
+      "conditions": []
+    },
+    "target": "single",
+    "level_requirement": 1,
+    "power": 44
+  },
+  {
+    "id": "celestial.astronomical_dark",
+    "name": "Astronomical Dark",
+    "flavor_text": "The sun sits far enough below the horizon that even twilight's ghost is gone.",
+    "type": "ghost",
+    "category": "special",
+    "accuracy": 1.0,
+    "pp": 30,
+    "priority": 0,
+    "effects": [],
+    "behavior": {
+      "conditions": []
+    },
+    "target": "single",
+    "level_requirement": 1,
+    "power": 28
+  },
+  {
+    "id": "celestial.circumpolar_drift",
+    "name": "Circumpolar Drift",
+    "flavor_text": "Stars that never set wheel overhead, disorienting anyone who watches.",
+    "type": "ghost",
+    "category": "special",
+    "accuracy": 1.0,
+    "pp": 30,
+    "priority": 0,
+    "effects": [
+      {
+        "chance": 0.15,
+        "trigger": "on_hit",
+        "effects": [
+          {
+            "kind": "status",
+            "target": "target",
+            "status": "sleep"
+          }
+        ]
+      }
+    ],
+    "behavior": {
+      "conditions": []
+    },
+    "target": "single",
+    "level_requirement": 1,
+    "power": 28
+  },
+  {
+    "id": "celestial.meridian_midnight",
+    "name": "Meridian Midnight",
+    "flavor_text": "Local midnight on the birth meridian\u2014when the chart's night side faces the void.",
+    "type": "ghost",
+    "category": "physical",
+    "accuracy": 1.0,
+    "pp": 25,
+    "priority": 0,
+    "effects": [],
+    "behavior": {
+      "conditions": []
+    },
+    "target": "single",
+    "level_requirement": 1,
+    "power": 44
+  },
+  {
+    "id": "celestial.ephemeris_blank",
+    "name": "Ephemeris Blank",
+    "flavor_text": "The sky chart prints empty where planets should be\u2014a hollow reading made lethal.",
+    "type": "ghost",
+    "category": "special",
+    "accuracy": 1.0,
+    "pp": 20,
+    "priority": 0,
+    "effects": [],
+    "behavior": {
+      "conditions": []
+    },
+    "target": "single",
+    "level_requirement": 26,
+    "power": 72
+  },
+  {
+    "id": "celestial.star_field_gap",
+    "name": "Star Field Gap",
+    "flavor_text": "A void opens between constellations and cold seeps through the gap.",
+    "type": "ghost",
+    "category": "special",
+    "accuracy": 1.0,
+    "pp": 30,
+    "priority": 0,
+    "effects": [
+      {
+        "chance": 0.15,
+        "trigger": "on_hit",
+        "effects": [
+          {
+            "kind": "stat",
+            "target": "target",
+            "changes": {
+              "sp_defense": -1
+            }
+          }
+        ]
+      }
+    ],
+    "behavior": {
+      "conditions": []
+    },
+    "target": "single",
+    "level_requirement": 1,
+    "power": 28
+  },
+  {
+    "id": "celestial.anti_twilight",
+    "name": "Anti-Twilight",
+    "flavor_text": "The last photon has left; what remains is absence of light itself.",
+    "type": "ghost",
+    "category": "physical",
+    "accuracy": 1.0,
+    "pp": 20,
+    "priority": 0,
+    "effects": [],
+    "behavior": {
+      "conditions": []
+    },
+    "target": "single",
+    "level_requirement": 36,
+    "power": 72
+  },
+  {
+    "id": "celestial.azimuthal_void",
+    "name": "Azimuthal Void",
+    "flavor_text": "Horizontal coordinates collapse\u2014every compass bearing points into the same nowhere.",
+    "type": "ghost",
+    "category": "special",
+    "accuracy": 1.0,
+    "pp": 15,
+    "priority": 0,
+    "effects": [],
+    "behavior": {
+      "conditions": []
+    },
+    "target": "single",
+    "level_requirement": 44,
+    "power": 88
+  },
+  {
+    "id": "celestial.pre_dawn_black",
+    "name": "Pre-Dawn Black",
+    "flavor_text": "The hour before astronomical dawn when the sky is darkest and unreadable.",
+    "type": "ghost",
+    "category": "physical",
+    "accuracy": 0.85,
+    "pp": 10,
+    "priority": 0,
+    "effects": [
+      {
+        "chance": 0.1,
+        "trigger": "on_hit",
+        "effects": [
+          {
+            "kind": "status",
+            "target": "target",
+            "status": "poison"
+          }
+        ]
+      }
+    ],
+    "behavior": {
+      "conditions": []
+    },
+    "target": "single",
+    "level_requirement": 54,
+    "power": 108
+  },
+  {
+    "id": "celestial.occulted_sky",
+    "name": "Occulted Sky",
+    "flavor_text": "Every wanderer hidden\u2014the ephemeris shows a sky with nothing left to anchor the living.",
+    "type": "ghost",
+    "category": "special",
+    "accuracy": 1.0,
+    "pp": 15,
+    "priority": 0,
+    "effects": [],
+    "behavior": {
+      "conditions": []
+    },
+    "target": "single",
+    "level_requirement": 60,
+    "power": 88
+  },
+  {
+    "id": "celestial.planet_bare_vigil",
+    "name": "Planet-Bare Vigil",
+    "flavor_text": "The Vibemon watches a sky with no wanderers and grows harder to pinpoint.",
+    "type": "ghost",
+    "category": "status",
+    "accuracy": 1.0,
+    "pp": 20,
+    "priority": 0,
+    "effects": [
+      {
+        "chance": 1.0,
+        "trigger": "on_use",
+        "effects": [
+          {
+            "kind": "stat",
+            "target": "self",
+            "changes": {
+              "defense": 1
+            }
+          }
+        ]
+      }
+    ],
+    "behavior": {
+      "conditions": []
+    },
+    "target": "single",
+    "level_requirement": 1,
+    "power": null
+  },
+  {
+    "id": "celestial.deep_night_anchor",
+    "name": "Deep Night Anchor",
+    "flavor_text": "The chart pins itself to astronomical midnight in the stillest hour.",
+    "type": "ghost",
+    "category": "status",
+    "accuracy": 1.0,
+    "pp": 20,
+    "priority": 0,
+    "effects": [
+      {
+        "chance": 1.0,
+        "trigger": "on_use",
+        "effects": [
+          {
+            "kind": "stat",
+            "target": "self",
+            "changes": {
+              "sp_defense": 1
+            }
+          }
+        ]
+      }
+    ],
+    "behavior": {
+      "conditions": []
+    },
+    "target": "single",
+    "level_requirement": 1,
+    "power": null
+  },
+  {
+    "id": "celestial.lunar_node_shade",
+    "name": "Lunar Node Shade",
+    "flavor_text": "The moon's orbital node casts a directionless shadow on motion.",
+    "type": "ghost",
+    "category": "status",
+    "accuracy": 1.0,
+    "pp": 20,
+    "priority": 0,
+    "effects": [
+      {
+        "chance": 1.0,
+        "trigger": "on_hit",
+        "effects": [
+          {
+            "kind": "stat",
+            "target": "target",
+            "changes": {
+              "speed": -1
+            }
+          }
+        ]
+      }
+    ],
+    "behavior": {
+      "conditions": []
+    },
+    "target": "single",
+    "level_requirement": 1,
+    "power": null
+  },
+  {
+    "id": "celestial.nautical_dusk",
+    "name": "Nautical Dusk",
+    "flavor_text": "The sun drops twelve degrees below the horizon\u2014the first true night window.",
+    "type": "dark",
+    "category": "physical",
+    "accuracy": 1.0,
+    "pp": 30,
+    "priority": 1,
+    "effects": [],
+    "behavior": {
+      "conditions": []
+    },
+    "target": "single",
+    "level_requirement": 1,
+    "power": 40
+  },
+  {
+    "id": "celestial.gloaming_band",
+    "name": "Gloaming Band",
+    "flavor_text": "A thin strip of half-light between day and night hides intent.",
+    "type": "dark",
+    "category": "special",
+    "accuracy": 1.0,
+    "pp": 30,
+    "priority": 0,
+    "effects": [
+      {
+        "chance": 0.15,
+        "trigger": "on_hit",
+        "effects": [
+          {
+            "kind": "stat",
+            "target": "target",
+            "changes": {
+              "sp_defense": -1
+            }
+          }
+        ]
+      }
+    ],
+    "behavior": {
+      "conditions": []
+    },
+    "target": "single",
+    "level_requirement": 1,
+    "power": 28
+  },
+  {
+    "id": "celestial.penumbra_creep",
+    "name": "Penumbra Creep",
+    "flavor_text": "The partial shadow of an eclipse slides forward before totality arrives.",
+    "type": "dark",
+    "category": "special",
+    "accuracy": 1.0,
+    "pp": 25,
+    "priority": 0,
+    "effects": [],
+    "behavior": {
+      "conditions": []
+    },
+    "target": "single",
+    "level_requirement": 1,
+    "power": 44
+  },
+  {
+    "id": "celestial.umbra_ingress",
+    "name": "Umbra Ingress",
+    "flavor_text": "First contact\u2014the moon's full shadow begins to swallow the sun's edge.",
+    "type": "dark",
+    "category": "physical",
+    "accuracy": 1.0,
+    "pp": 25,
+    "priority": 0,
+    "effects": [],
+    "behavior": {
+      "conditions": []
+    },
+    "target": "single",
+    "level_requirement": 1,
+    "power": 52
+  },
+  {
+    "id": "celestial.syzygy_bite",
+    "name": "Syzygy Bite",
+    "flavor_text": "Sun, moon, and earth align; something in the alignment takes a savage bite.",
+    "type": "dark",
+    "category": "physical",
+    "accuracy": 1.0,
+    "pp": 30,
+    "priority": 0,
+    "effects": [
+      {
+        "chance": 0.15,
+        "trigger": "on_hit",
+        "effects": [
+          {
+            "kind": "stat",
+            "target": "target",
+            "changes": {
+              "attack": -1
+            }
+          }
+        ]
+      }
+    ],
+    "behavior": {
+      "conditions": []
+    },
+    "target": "single",
+    "level_requirement": 1,
+    "power": 28
+  },
+  {
+    "id": "celestial.contact_second",
+    "name": "Contact Second",
+    "flavor_text": "The diamond ring collapses\u2014totality begins and the chart goes dark.",
+    "type": "dark",
+    "category": "special",
+    "accuracy": 1.0,
+    "pp": 25,
+    "priority": 0,
+    "effects": [],
+    "behavior": {
+      "conditions": []
+    },
+    "target": "single",
+    "level_requirement": 1,
+    "power": 44
+  },
+  {
+    "id": "celestial.saros_return",
+    "name": "Saros Return",
+    "flavor_text": "An eclipse family repeats on the saros cycle\u2014the same shadow returns.",
+    "type": "dark",
+    "category": "special",
+    "accuracy": 1.0,
+    "pp": 20,
+    "priority": 0,
+    "effects": [],
+    "behavior": {
+      "conditions": []
+    },
+    "target": "single",
+    "level_requirement": 26,
+    "power": 72
+  },
+  {
+    "id": "celestial.besselian_limit",
+    "name": "Besselian Limit",
+    "flavor_text": "Darkness shears along the geometric edge where totality ends.",
+    "type": "dark",
+    "category": "physical",
+    "accuracy": 1.0,
+    "pp": 25,
+    "priority": 0,
+    "effects": [],
+    "behavior": {
+      "conditions": []
+    },
+    "target": "single",
+    "level_requirement": 1,
+    "power": 44
+  },
+  {
+    "id": "celestial.danjon_gloom",
+    "name": "Danjon Gloom",
+    "flavor_text": "At deep totality the moon's shadow turns flat and colorless.",
+    "type": "dark",
+    "category": "special",
+    "accuracy": 1.0,
+    "pp": 20,
+    "priority": 0,
+    "effects": [
+      {
+        "chance": 0.15,
+        "trigger": "on_hit",
+        "effects": [
+          {
+            "kind": "stat",
+            "target": "target",
+            "changes": {
+              "sp_attack": -1
+            }
+          }
+        ]
+      }
+    ],
+    "behavior": {
+      "conditions": []
+    },
+    "target": "single",
+    "level_requirement": 22,
+    "power": 72
+  },
+  {
+    "id": "celestial.totality_slit",
+    "name": "Totality Slit",
+    "flavor_text": "A blade-thin corridor of full eclipse opens directly over the foe.",
+    "type": "dark",
+    "category": "special",
+    "accuracy": 1.0,
+    "pp": 25,
+    "priority": 0,
+    "effects": [],
+    "behavior": {
+      "conditions": []
+    },
+    "target": "single",
+    "level_requirement": 1,
+    "power": 52
+  },
+  {
+    "id": "celestial.path_of_totality",
+    "name": "Path of Totality",
+    "flavor_text": "The narrow geographic band where the eclipse is total\u2014the chart's darkest corridor.",
+    "type": "dark",
+    "category": "special",
+    "accuracy": 0.85,
+    "pp": 10,
+    "priority": 0,
+    "effects": [],
+    "behavior": {
+      "conditions": []
+    },
+    "target": "single",
+    "level_requirement": 46,
+    "power": 108
+  },
+  {
+    "id": "celestial.antumbra_crown",
+    "name": "Antumbra Crown",
+    "flavor_text": "An annular eclipse's ring of fire collapses inward\u2014the antumbral crown descends.",
+    "type": "dark",
+    "category": "special",
+    "accuracy": 1.0,
+    "pp": 15,
+    "priority": 0,
+    "effects": [],
+    "behavior": {
+      "conditions": []
+    },
+    "target": "single",
+    "level_requirement": 64,
+    "power": 88
+  },
+  {
+    "id": "celestial.eclipse_window",
+    "name": "Eclipse Window",
+    "flavor_text": "The brief minutes when sun and moon overlap\u2014darkness is authorized to accumulate.",
+    "type": "dark",
+    "category": "status",
+    "accuracy": 1.0,
+    "pp": 20,
+    "priority": 0,
+    "effects": [
+      {
+        "chance": 1.0,
+        "trigger": "on_use",
+        "effects": [
+          {
+            "kind": "stat",
+            "target": "self",
+            "changes": {
+              "attack": 1
+            }
+          }
+        ]
+      }
+    ],
+    "behavior": {
+      "conditions": []
+    },
+    "target": "single",
+    "level_requirement": 1,
+    "power": null
+  },
+  {
+    "id": "celestial.nautical_night",
+    "name": "Nautical Night",
+    "flavor_text": "The sun sits twelve to eighteen degrees below the horizon\u2014sailors' night, stable and concealing.",
+    "type": "dark",
+    "category": "status",
+    "accuracy": 1.0,
+    "pp": 20,
+    "priority": 0,
+    "effects": [
+      {
+        "chance": 1.0,
+        "trigger": "on_use",
+        "effects": [
+          {
+            "kind": "stat",
+            "target": "self",
+            "changes": {
+              "defense": 1
+            }
+          }
+        ]
+      }
+    ],
+    "behavior": {
+      "conditions": []
+    },
+    "target": "single",
+    "level_requirement": 1,
+    "power": null
+  },
+  {
+    "id": "celestial.astronomical_dusk",
+    "name": "Astronomical Dusk",
+    "flavor_text": "The sun reaches eighteen degrees below the horizon and footing in the light ends.",
+    "type": "dark",
+    "category": "status",
+    "accuracy": 1.0,
+    "pp": 20,
+    "priority": 0,
+    "effects": [
+      {
+        "chance": 1.0,
+        "trigger": "on_hit",
+        "effects": [
+          {
+            "kind": "stat",
+            "target": "target",
+            "changes": {
+              "defense": -1
+            }
+          }
+        ]
+      }
+    ],
+    "behavior": {
+      "conditions": []
+    },
+    "target": "single",
+    "level_requirement": 1,
+    "power": null
+  },
+  {
+    "id": "celestial.nautical_dawn_glimmer",
+    "name": "Nautical Dawn Glimmer",
+    "flavor_text": "First coherent photons after nautical twilight ends, refracted through a dawn chart.",
+    "type": "psychic",
+    "category": "special",
+    "accuracy": 1.0,
+    "pp": 30,
+    "priority": 0,
+    "effects": [],
+    "behavior": {
+      "conditions": []
+    },
+    "target": "single",
+    "level_requirement": 1,
+    "power": 28
+  },
+  {
+    "id": "celestial.ephemeris_murmur",
+    "name": "Ephemeris Murmur",
+    "flavor_text": "A faint telepathic echo of computed ephemeris positions at birth.",
+    "type": "psychic",
+    "category": "special",
+    "accuracy": 1.0,
+    "pp": 30,
+    "priority": 0,
+    "effects": [
+      {
+        "chance": 0.15,
+        "trigger": "on_hit",
+        "effects": [
+          {
+            "kind": "stat",
+            "target": "target",
+            "changes": {
+              "sp_defense": -1
+            }
+          }
+        ]
+      }
+    ],
+    "behavior": {
+      "conditions": []
+    },
+    "target": "single",
+    "level_requirement": 1,
+    "power": 28
+  },
+  {
+    "id": "celestial.gibbous_margin",
+    "name": "Gibbous Margin",
+    "flavor_text": "Strikes from the bright limb of a waxing gibbous just below full.",
+    "type": "psychic",
+    "category": "special",
+    "accuracy": 1.0,
+    "pp": 25,
+    "priority": 0,
+    "effects": [],
+    "behavior": {
+      "conditions": []
+    },
+    "target": "single",
+    "level_requirement": 1,
+    "power": 44
+  },
+  {
+    "id": "celestial.lunar_libration",
+    "name": "Lunar Libration",
+    "flavor_text": "Oscillating moon-face torque translated into mind shear.",
+    "type": "psychic",
+    "category": "special",
+    "accuracy": 1.0,
+    "pp": 25,
+    "priority": 0,
+    "effects": [],
+    "behavior": {
+      "conditions": []
+    },
+    "target": "single",
+    "level_requirement": 1,
+    "power": 44
+  },
+  {
+    "id": "celestial.first_light_parallax",
+    "name": "First Light Parallax",
+    "flavor_text": "Shifting dawn sightlines disorient the target's depth perception.",
+    "type": "psychic",
+    "category": "special",
+    "accuracy": 1.0,
+    "pp": 25,
+    "priority": 0,
+    "effects": [
+      {
+        "chance": 0.2,
+        "trigger": "on_hit",
+        "effects": [
+          {
+            "kind": "status",
+            "target": "target",
+            "status": "sleep"
+          }
+        ]
+      }
+    ],
+    "behavior": {
+      "conditions": []
+    },
+    "target": "single",
+    "level_requirement": 1,
+    "power": 44
+  },
+  {
+    "id": "celestial.syzygy_drift",
+    "name": "Syzygy Drift",
+    "flavor_text": "Aligned Sun-Moon-Earth geometry pushes psychic pressure along the syzygy axis.",
+    "type": "psychic",
+    "category": "special",
+    "accuracy": 1.0,
+    "pp": 25,
+    "priority": 0,
+    "effects": [],
+    "behavior": {
+      "conditions": []
+    },
+    "target": "single",
+    "level_requirement": 1,
+    "power": 44
+  },
+  {
+    "id": "celestial.azimuth_whisper",
+    "name": "Azimuth Whisper",
+    "flavor_text": "Whispers an inward bearing that steadies the user's mental horizon.",
+    "type": "psychic",
+    "category": "status",
+    "accuracy": 1.0,
+    "pp": 20,
+    "priority": 0,
+    "effects": [
+      {
+        "chance": 1.0,
+        "trigger": "on_use",
+        "effects": [
+          {
+            "kind": "stat",
+            "target": "self",
+            "changes": {
+              "sp_defense": 1
+            }
+          }
+        ]
+      }
+    ],
+    "behavior": {
+      "conditions": []
+    },
+    "target": "single",
+    "level_requirement": 1,
+    "power": null
+  },
+  {
+    "id": "celestial.waning_penumbra",
+    "name": "Waning Penumbra",
+    "flavor_text": "A partial lunar shadow dulls reaction time without full occultation.",
+    "type": "psychic",
+    "category": "status",
+    "accuracy": 1.0,
+    "pp": 20,
+    "priority": 0,
+    "effects": [
+      {
+        "chance": 1.0,
+        "trigger": "on_hit",
+        "effects": [
+          {
+            "kind": "stat",
+            "target": "target",
+            "changes": {
+              "speed": -1
+            }
+          }
+        ]
+      }
+    ],
+    "behavior": {
+      "conditions": []
+    },
+    "target": "single",
+    "level_requirement": 1,
+    "power": null
+  },
+  {
+    "id": "celestial.conjunction_focus",
+    "name": "Conjunction Focus",
+    "flavor_text": "Stacked planetary longitudes sharpen mental acuity.",
+    "type": "psychic",
+    "category": "status",
+    "accuracy": 1.0,
+    "pp": 20,
+    "priority": 0,
+    "effects": [
+      {
+        "chance": 1.0,
+        "trigger": "on_use",
+        "effects": [
+          {
+            "kind": "stat",
+            "target": "self",
+            "changes": {
+              "sp_attack": 1
+            }
+          }
+        ]
+      }
+    ],
+    "behavior": {
+      "conditions": []
+    },
+    "target": "single",
+    "level_requirement": 1,
+    "power": null
+  },
+  {
+    "id": "celestial.altitude_pulse",
+    "name": "Altitude Pulse",
+    "flavor_text": "Solar altitude at dawn modulates a resonant psychic pulse.",
+    "type": "psychic",
+    "category": "special",
+    "accuracy": 1.0,
+    "pp": 25,
+    "priority": 0,
+    "effects": [
+      {
+        "chance": 0.25,
+        "trigger": "on_hit",
+        "effects": [
+          {
+            "kind": "stat",
+            "target": "target",
+            "changes": {
+              "sp_defense": -1
+            }
+          }
+        ]
+      }
+    ],
+    "behavior": {
+      "conditions": []
+    },
+    "target": "single",
+    "level_requirement": 1,
+    "power": 44
+  },
+  {
+    "id": "celestial.dawn_cotangent",
+    "name": "Dawn Cotangent",
+    "flavor_text": "A tangent to the solar depression angle snaps forward before full dawn.",
+    "type": "psychic",
+    "category": "special",
+    "accuracy": 1.0,
+    "pp": 30,
+    "priority": 1,
+    "effects": [],
+    "behavior": {
+      "conditions": []
+    },
+    "target": "single",
+    "level_requirement": 1,
+    "power": 40
+  },
+  {
+    "id": "celestial.horizon_refraction",
+    "name": "Horizon Refraction",
+    "flavor_text": "Bent dawn rays through low atmosphere become a focused beam.",
+    "type": "psychic",
+    "category": "physical",
+    "accuracy": 1.0,
+    "pp": 15,
+    "priority": 0,
+    "effects": [],
+    "behavior": {
+      "conditions": []
+    },
+    "target": "single",
+    "level_requirement": 24,
+    "power": 88
+  },
+  {
+    "id": "celestial.perigee_mindwave",
+    "name": "Perigee Mindwave",
+    "flavor_text": "Closest lunar approach amplifies telepathic amplitude.",
+    "type": "psychic",
+    "category": "special",
+    "accuracy": 1.0,
+    "pp": 15,
+    "priority": 0,
+    "effects": [
+      {
+        "chance": 0.1,
+        "trigger": "on_hit",
+        "effects": [
+          {
+            "kind": "stat",
+            "target": "target",
+            "changes": {
+              "sp_defense": -1
+            }
+          }
+        ]
+      }
+    ],
+    "behavior": {
+      "conditions": []
+    },
+    "target": "single",
+    "level_requirement": 41,
+    "power": 88
+  },
+  {
+    "id": "celestial.optical_twilight_shear",
+    "name": "Optical Twilight Shear",
+    "flavor_text": "Shears perception along the civil twilight optical boundary.",
+    "type": "psychic",
+    "category": "physical",
+    "accuracy": 0.85,
+    "pp": 10,
+    "priority": 0,
+    "effects": [
+      {
+        "chance": 0.15,
+        "trigger": "on_hit",
+        "effects": [
+          {
+            "kind": "status",
+            "target": "target",
+            "status": "paralysis"
+          }
+        ]
+      }
+    ],
+    "behavior": {
+      "conditions": []
+    },
+    "target": "single",
+    "level_requirement": 53,
+    "power": 108
+  },
+  {
+    "id": "celestial.total_lunar_occultation",
+    "name": "Total Lunar Occultation",
+    "flavor_text": "The moon's umbra fully occults the target's psyche under near-full illumination.",
+    "type": "psychic",
+    "category": "special",
+    "accuracy": 0.8,
+    "pp": 5,
+    "priority": 0,
+    "effects": [],
+    "behavior": {
+      "conditions": []
+    },
+    "target": "single",
+    "level_requirement": 62,
+    "power": 126
+  },
+  {
+    "id": "celestial.civil_twilight_kiss",
+    "name": "Civil Twilight Kiss",
+    "flavor_text": "The last legal photons above civil twilight brush the foe with gentle force.",
+    "type": "fairy",
+    "category": "physical",
+    "accuracy": 1.0,
+    "pp": 30,
+    "priority": 0,
+    "effects": [],
+    "behavior": {
+      "conditions": []
+    },
+    "target": "single",
+    "level_requirement": 1,
+    "power": 28
+  },
+  {
+    "id": "celestial.golden_hour_fleck",
+    "name": "Golden Hour Fleck",
+    "flavor_text": "Warm fringe sparkle during solar depression between minus six and zero degrees.",
+    "type": "fairy",
+    "category": "special",
+    "accuracy": 1.0,
+    "pp": 30,
+    "priority": 0,
+    "effects": [],
+    "behavior": {
+      "conditions": []
+    },
+    "target": "single",
+    "level_requirement": 1,
+    "power": 28
+  },
+  {
+    "id": "celestial.nadir_charm",
+    "name": "Nadir Charm",
+    "flavor_text": "Charm drawn from the nadir opposite the twilight zenith.",
+    "type": "fairy",
+    "category": "special",
+    "accuracy": 1.0,
+    "pp": 25,
+    "priority": 0,
+    "effects": [],
+    "behavior": {
+      "conditions": []
+    },
+    "target": "single",
+    "level_requirement": 1,
+    "power": 44
+  },
+  {
+    "id": "celestial.blue_hour_filigree",
+    "name": "Blue Hour Filigree",
+    "flavor_text": "Deep twilight lace-light woven along the ecliptic.",
+    "type": "fairy",
+    "category": "special",
+    "accuracy": 1.0,
+    "pp": 25,
+    "priority": 0,
+    "effects": [],
+    "behavior": {
+      "conditions": []
+    },
+    "target": "single",
+    "level_requirement": 1,
+    "power": 44
+  },
+  {
+    "id": "celestial.solar_depression_gleam",
+    "name": "Solar Depression Gleam",
+    "flavor_text": "Sub-zero solar depression glow bewitches the target.",
+    "type": "fairy",
+    "category": "physical",
+    "accuracy": 1.0,
+    "pp": 25,
+    "priority": 0,
+    "effects": [
+      {
+        "chance": 0.2,
+        "trigger": "on_hit",
+        "effects": [
+          {
+            "kind": "stat",
+            "target": "target",
+            "changes": {
+              "attack": -1
+            }
+          }
+        ]
+      }
+    ],
+    "behavior": {
+      "conditions": []
+    },
+    "target": "single",
+    "level_requirement": 1,
+    "power": 44
+  },
+  {
+    "id": "celestial.twilight_belt_prance",
+    "name": "Twilight Belt Prance",
+    "flavor_text": "A playful stride along the belt where civil and nautical boundaries meet.",
+    "type": "fairy",
+    "category": "physical",
+    "accuracy": 1.0,
+    "pp": 25,
+    "priority": 0,
+    "effects": [],
+    "behavior": {
+      "conditions": []
+    },
+    "target": "single",
+    "level_requirement": 1,
+    "power": 44
+  },
+  {
+    "id": "celestial.zenith_distance",
+    "name": "Zenith Distance",
+    "flavor_text": "Angular distance from zenith grants fleet footing in fairy geometry.",
+    "type": "fairy",
+    "category": "status",
+    "accuracy": 1.0,
+    "pp": 20,
+    "priority": 0,
+    "effects": [
+      {
+        "chance": 1.0,
+        "trigger": "on_use",
+        "effects": [
+          {
+            "kind": "stat",
+            "target": "self",
+            "changes": {
+              "speed": 1
+            }
+          }
+        ]
+      }
+    ],
+    "behavior": {
+      "conditions": []
+    },
+    "target": "single",
+    "level_requirement": 1,
+    "power": null
+  },
+  {
+    "id": "celestial.antiscia_screen",
+    "name": "Antiscia Screen",
+    "flavor_text": "Mirror points across the solstitial colure cast a concealing veil.",
+    "type": "fairy",
+    "category": "status",
+    "accuracy": 1.0,
+    "pp": 20,
+    "priority": 0,
+    "effects": [
+      {
+        "chance": 1.0,
+        "trigger": "on_use",
+        "effects": [
+          {
+            "kind": "stat",
+            "target": "self",
+            "changes": {
+              "defense": 1
+            }
+          }
+        ]
+      }
+    ],
+    "behavior": {
+      "conditions": []
+    },
+    "target": "single",
+    "level_requirement": 1,
+    "power": null
+  },
+  {
+    "id": "celestial.dusk_embrace",
+    "name": "Dusk Embrace",
+    "flavor_text": "Civil dusk folds the user in restorative twilight warmth.",
+    "type": "fairy",
+    "category": "status",
+    "accuracy": 1.0,
+    "pp": 20,
+    "priority": 0,
+    "effects": [
+      {
+        "chance": 1.0,
+        "trigger": "on_use",
+        "effects": [
+          {
+            "kind": "heal",
+            "target": "self",
+            "ratio": 0.5
+          }
+        ]
+      }
+    ],
+    "behavior": {
+      "conditions": []
+    },
+    "target": "single",
+    "level_requirement": 1,
+    "power": null
+  },
+  {
+    "id": "celestial.ecliptic_petal",
+    "name": "Ecliptic Petal",
+    "flavor_text": "Petals scatter along the ecliptic plane at evening civil twilight.",
+    "type": "fairy",
+    "category": "special",
+    "accuracy": 1.0,
+    "pp": 20,
+    "priority": 0,
+    "effects": [],
+    "behavior": {
+      "conditions": []
+    },
+    "target": "single",
+    "level_requirement": 22,
+    "power": 72
+  },
+  {
+    "id": "celestial.subsolar_drift",
+    "name": "Subsolar Drift",
+    "flavor_text": "Glides beneath the subsolar point where twilight still lingers.",
+    "type": "fairy",
+    "category": "special",
+    "accuracy": 1.0,
+    "pp": 20,
+    "priority": 0,
+    "effects": [],
+    "behavior": {
+      "conditions": []
+    },
+    "target": "single",
+    "level_requirement": 22,
+    "power": 72
+  },
+  {
+    "id": "celestial.belt_of_venus_shimmer",
+    "name": "Belt of Venus Shimmer",
+    "flavor_text": "The rose band's backscatter after sunset washes the foe.",
+    "type": "fairy",
+    "category": "special",
+    "accuracy": 1.0,
+    "pp": 20,
+    "priority": 0,
+    "effects": [
+      {
+        "chance": 0.15,
+        "trigger": "on_hit",
+        "effects": [
+          {
+            "kind": "stat",
+            "target": "target",
+            "changes": {
+              "speed": -1
+            }
+          }
+        ]
+      }
+    ],
+    "behavior": {
+      "conditions": []
+    },
+    "target": "single",
+    "level_requirement": 22,
+    "power": 72
+  },
+  {
+    "id": "celestial.hour_angle_waltz",
+    "name": "Hour-Angle Waltz",
+    "flavor_text": "Timed rotation about the celestial pole unbalances the foe.",
+    "type": "fairy",
+    "category": "special",
+    "accuracy": 1.0,
+    "pp": 15,
+    "priority": 0,
+    "effects": [
+      {
+        "chance": 0.2,
+        "trigger": "on_hit",
+        "effects": [
+          {
+            "kind": "stat",
+            "target": "target",
+            "changes": {
+              "attack": -1
+            }
+          }
+        ]
+      }
+    ],
+    "behavior": {
+      "conditions": []
+    },
+    "target": "single",
+    "level_requirement": 44,
+    "power": 88
+  },
+  {
+    "id": "celestial.solstice_fringe_crown",
+    "name": "Solstice Fringe Crown",
+    "flavor_text": "A crowned burst of midsummer twilight fringe radiance.",
+    "type": "fairy",
+    "category": "physical",
+    "accuracy": 0.85,
+    "pp": 10,
+    "priority": 0,
+    "effects": [],
+    "behavior": {
+      "conditions": []
+    },
+    "target": "single",
+    "level_requirement": 51,
+    "power": 108
+  },
+  {
+    "id": "celestial.great_circle_benediction",
+    "name": "Great Circle Benediction",
+    "flavor_text": "A great-circle arc of civil twilight blessing collapses into devastating fairy light.",
+    "type": "fairy",
+    "category": "physical",
+    "accuracy": 0.8,
+    "pp": 5,
+    "priority": 0,
+    "effects": [],
+    "behavior": {
+      "conditions": []
+    },
+    "target": "single",
+    "level_requirement": 57,
+    "power": 126
+  },
+  {
+    "id": "celestial.solstice_ember",
+    "name": "Solstice Ember",
+    "flavor_text": "First heat from midsummer solar depression at the twilight fringe.",
+    "type": "fire",
+    "category": "physical",
+    "accuracy": 1.0,
+    "pp": 30,
+    "priority": 0,
+    "effects": [
+      {
+        "chance": 0.1,
+        "trigger": "on_hit",
+        "effects": [
+          {
+            "kind": "status",
+            "target": "target",
+            "status": "burn"
+          }
+        ]
+      }
+    ],
+    "behavior": {
+      "conditions": []
+    },
+    "target": "single",
+    "level_requirement": 1,
+    "power": 28
+  },
+  {
+    "id": "celestial.aries_ascendant_spark",
+    "name": "Aries Ascendant Spark",
+    "flavor_text": "Ignition keyed to Aries on the ascendant in the natal chart.",
+    "type": "fire",
+    "category": "physical",
+    "accuracy": 1.0,
+    "pp": 30,
+    "priority": 0,
+    "effects": [],
+    "behavior": {
+      "conditions": []
+    },
+    "target": "single",
+    "level_requirement": 1,
+    "power": 28
+  },
+  {
+    "id": "celestial.fringe_combustion",
+    "name": "Fringe Combustion",
+    "flavor_text": "Combustion where midsummer twilight meets open horizon haze.",
+    "type": "fire",
+    "category": "physical",
+    "accuracy": 1.0,
+    "pp": 25,
+    "priority": 0,
+    "effects": [
+      {
+        "chance": 0.2,
+        "trigger": "on_hit",
+        "effects": [
+          {
+            "kind": "status",
+            "target": "target",
+            "status": "burn"
+          }
+        ]
+      }
+    ],
+    "behavior": {
+      "conditions": []
+    },
+    "target": "single",
+    "level_requirement": 1,
+    "power": 44
+  },
+  {
+    "id": "celestial.leo_culmination",
+    "name": "Leo Culmination",
+    "flavor_text": "Fire-sign Sun at upper culmination unleashed as flame.",
+    "type": "fire",
+    "category": "special",
+    "accuracy": 1.0,
+    "pp": 25,
+    "priority": 0,
+    "effects": [],
+    "behavior": {
+      "conditions": []
+    },
+    "target": "single",
+    "level_requirement": 1,
+    "power": 44
+  },
+  {
+    "id": "celestial.sagittarius_arc",
+    "name": "Sagittarius Arc",
+    "flavor_text": "An ecliptic arc through Sagittarius traced in fire.",
+    "type": "fire",
+    "category": "physical",
+    "accuracy": 1.0,
+    "pp": 25,
+    "priority": 0,
+    "effects": [],
+    "behavior": {
+      "conditions": []
+    },
+    "target": "single",
+    "level_requirement": 1,
+    "power": 44
+  },
+  {
+    "id": "celestial.midsummer_penumbra",
+    "name": "Midsummer Penumbra",
+    "flavor_text": "Heated penumbra at solstice twilight scorches without full daylight.",
+    "type": "fire",
+    "category": "special",
+    "accuracy": 1.0,
+    "pp": 20,
+    "priority": 0,
+    "effects": [],
+    "behavior": {
+      "conditions": []
+    },
+    "target": "single",
+    "level_requirement": 22,
+    "power": 72
+  },
+  {
+    "id": "celestial.ephemeris_flame",
+    "name": "Ephemeris Flame",
+    "flavor_text": "Chart-derived fire lines from Mars or Sun ephemeris ignite.",
+    "type": "fire",
+    "category": "special",
+    "accuracy": 1.0,
+    "pp": 25,
+    "priority": 0,
+    "effects": [],
+    "behavior": {
+      "conditions": []
+    },
+    "target": "single",
+    "level_requirement": 1,
+    "power": 44
+  },
+  {
+    "id": "celestial.right_ascension_burn",
+    "name": "Right Ascension Burn",
+    "flavor_text": "Coordinates sealed in right ascension superheat special output.",
+    "type": "fire",
+    "category": "status",
+    "accuracy": 1.0,
+    "pp": 20,
+    "priority": 0,
+    "effects": [
+      {
+        "chance": 1.0,
+        "trigger": "on_use",
+        "effects": [
+          {
+            "kind": "stat",
+            "target": "self",
+            "changes": {
+              "sp_attack": 1
+            }
+          }
+        ]
+      }
+    ],
+    "behavior": {
+      "conditions": []
+    },
+    "target": "single",
+    "level_requirement": 1,
+    "power": null
+  },
+  {
+    "id": "celestial.stellium_kindle",
+    "name": "Stellium Kindle",
+    "flavor_text": "Clustered fire-sign bodies in one sign ignite physical drive.",
+    "type": "fire",
+    "category": "status",
+    "accuracy": 1.0,
+    "pp": 20,
+    "priority": 0,
+    "effects": [
+      {
+        "chance": 1.0,
+        "trigger": "on_use",
+        "effects": [
+          {
+            "kind": "stat",
+            "target": "self",
+            "changes": {
+              "attack": 1
+            }
+          }
+        ]
+      }
+    ],
+    "behavior": {
+      "conditions": []
+    },
+    "target": "single",
+    "level_requirement": 1,
+    "power": null
+  },
+  {
+    "id": "celestial.solar_depression_haze",
+    "name": "Solar Depression Haze",
+    "flavor_text": "Hot particulate haze at low solar depression slows foes.",
+    "type": "fire",
+    "category": "status",
+    "accuracy": 1.0,
+    "pp": 20,
+    "priority": 0,
+    "effects": [
+      {
+        "chance": 1.0,
+        "trigger": "on_hit",
+        "effects": [
+          {
+            "kind": "stat",
+            "target": "target",
+            "changes": {
+              "speed": -1
+            }
+          }
+        ]
+      }
+    ],
+    "behavior": {
+      "conditions": []
+    },
+    "target": "single",
+    "level_requirement": 1,
+    "power": null
+  },
+  {
+    "id": "celestial.twilight_friction",
+    "name": "Twilight Friction",
+    "flavor_text": "Contact friction at the twilight fringe snaps forward.",
+    "type": "fire",
+    "category": "physical",
+    "accuracy": 1.0,
+    "pp": 30,
+    "priority": 1,
+    "effects": [],
+    "behavior": {
+      "conditions": []
+    },
+    "target": "single",
+    "level_requirement": 1,
+    "power": 40
+  },
+  {
+    "id": "celestial.analemma_scorch",
+    "name": "Analemma Scorch",
+    "flavor_text": "The sun's analemma loop burned as a sigil.",
+    "type": "fire",
+    "category": "physical",
+    "accuracy": 1.0,
+    "pp": 20,
+    "priority": 0,
+    "effects": [],
+    "behavior": {
+      "conditions": []
+    },
+    "target": "single",
+    "level_requirement": 22,
+    "power": 72
+  },
+  {
+    "id": "celestial.perihelion_blaze",
+    "name": "Perihelion Blaze",
+    "flavor_text": "Closest solar approach concentrates chromospheric heat.",
+    "type": "fire",
+    "category": "physical",
+    "accuracy": 1.0,
+    "pp": 20,
+    "priority": 0,
+    "effects": [],
+    "behavior": {
+      "conditions": []
+    },
+    "target": "single",
+    "level_requirement": 39,
+    "power": 72
+  },
+  {
+    "id": "celestial.fire_sign_grand_trine",
+    "name": "Fire Sign Grand Trine",
+    "flavor_text": "Three fire-sign chart points in one-twenty harmony erupt.",
+    "type": "fire",
+    "category": "physical",
+    "accuracy": 0.85,
+    "pp": 10,
+    "priority": 0,
+    "effects": [
+      {
+        "chance": 0.15,
+        "trigger": "on_hit",
+        "effects": [
+          {
+            "kind": "status",
+            "target": "target",
+            "status": "burn"
+          }
+        ]
+      }
+    ],
+    "behavior": {
+      "conditions": []
+    },
+    "target": "single",
+    "level_requirement": 48,
+    "power": 108
+  },
+  {
+    "id": "celestial.solstice_inferno_occultation",
+    "name": "Solstice Inferno Occultation",
+    "flavor_text": "Midsummer Sun occulted by fringe geometry erupts as chromospheric inferno.",
+    "type": "fire",
+    "category": "special",
+    "accuracy": 1.0,
+    "pp": 15,
+    "priority": 0,
+    "effects": [],
+    "behavior": {
+      "conditions": []
+    },
+    "target": "single",
+    "level_requirement": 59,
+    "power": 88
+  },
+  {
+    "id": "celestial.waxing_crescent_sprout",
+    "name": "Waxing Crescent Sprout",
+    "flavor_text": "First growth under a waxing crescent at twilight fringe.",
+    "type": "grass",
+    "category": "physical",
+    "accuracy": 1.0,
+    "pp": 30,
+    "priority": 0,
+    "effects": [
+      {
+        "chance": 0.15,
+        "trigger": "on_hit",
+        "effects": [
+          {
+            "kind": "stat",
+            "target": "target",
+            "changes": {
+              "speed": -1
+            }
+          }
+        ]
+      }
+    ],
+    "behavior": {
+      "conditions": []
+    },
+    "target": "single",
+    "level_requirement": 1,
+    "power": 28
+  },
+  {
+    "id": "celestial.crescent_selenelion",
+    "name": "Crescent Selenelion",
+    "flavor_text": "Rare selenelion geometry where crescent moon meets horizon growth.",
+    "type": "grass",
+    "category": "special",
+    "accuracy": 1.0,
+    "pp": 30,
+    "priority": 0,
+    "effects": [],
+    "behavior": {
+      "conditions": []
+    },
+    "target": "single",
+    "level_requirement": 1,
+    "power": 28
+  },
+  {
+    "id": "celestial.twilight_fringe_vine",
+    "name": "Twilight Fringe Vine",
+    "flavor_text": "Vines exploit photosynthetic fringe light.",
+    "type": "grass",
+    "category": "physical",
+    "accuracy": 1.0,
+    "pp": 25,
+    "priority": 0,
+    "effects": [],
+    "behavior": {
+      "conditions": []
+    },
+    "target": "single",
+    "level_requirement": 1,
+    "power": 44
+  },
+  {
+    "id": "celestial.lunar_elongation_lash",
+    "name": "Lunar Elongation Lash",
+    "flavor_text": "A whip tied to Moon-Sun elongation under waxing phase.",
+    "type": "grass",
+    "category": "physical",
+    "accuracy": 1.0,
+    "pp": 25,
+    "priority": 0,
+    "effects": [],
+    "behavior": {
+      "conditions": []
+    },
+    "target": "single",
+    "level_requirement": 1,
+    "power": 52
+  },
+  {
+    "id": "celestial.waxing_gibbous_tendril",
+    "name": "Waxing Gibbous Tendril",
+    "flavor_text": "Tendrils swell with waxing gibbous illumination.",
+    "type": "grass",
+    "category": "physical",
+    "accuracy": 1.0,
+    "pp": 25,
+    "priority": 0,
+    "effects": [],
+    "behavior": {
+      "conditions": []
+    },
+    "target": "single",
+    "level_requirement": 1,
+    "power": 44
+  },
+  {
+    "id": "celestial.ephemeris_pollen",
+    "name": "Ephemeris Pollen",
+    "flavor_text": "Chart-timed pollen burst at twilight fringe.",
+    "type": "grass",
+    "category": "special",
+    "accuracy": 1.0,
+    "pp": 25,
+    "priority": 0,
+    "effects": [
+      {
+        "chance": 0.25,
+        "trigger": "on_hit",
+        "effects": [
+          {
+            "kind": "status",
+            "target": "target",
+            "status": "poison"
+          }
+        ]
+      }
+    ],
+    "behavior": {
+      "conditions": []
+    },
+    "target": "single",
+    "level_requirement": 1,
+    "power": 44
+  },
+  {
+    "id": "celestial.phase_angle_root",
+    "name": "Phase Angle Root",
+    "flavor_text": "Roots anchor to lunar phase angle geometry.",
+    "type": "grass",
+    "category": "physical",
+    "accuracy": 1.0,
+    "pp": 25,
+    "priority": 0,
+    "effects": [],
+    "behavior": {
+      "conditions": []
+    },
+    "target": "single",
+    "level_requirement": 1,
+    "power": 44
+  },
+  {
+    "id": "celestial.selenographic_bloom",
+    "name": "Selenographic Bloom",
+    "flavor_text": "Lunar surface feature map blooms as protective foliage.",
+    "type": "grass",
+    "category": "status",
+    "accuracy": 1.0,
+    "pp": 20,
+    "priority": 0,
+    "effects": [
+      {
+        "chance": 1.0,
+        "trigger": "on_use",
+        "effects": [
+          {
+            "kind": "stat",
+            "target": "self",
+            "changes": {
+              "defense": 1
+            }
+          }
+        ]
+      }
+    ],
+    "behavior": {
+      "conditions": []
+    },
+    "target": "single",
+    "level_requirement": 1,
+    "power": null
+  },
+  {
+    "id": "celestial.terminator_garden",
+    "name": "Terminator Garden",
+    "flavor_text": "Cultivates along the lunar terminator line, sapping vigor.",
+    "type": "grass",
+    "category": "status",
+    "accuracy": 1.0,
+    "pp": 20,
+    "priority": 0,
+    "effects": [
+      {
+        "chance": 0.85,
+        "trigger": "on_hit",
+        "effects": [
+          {
+            "kind": "status",
+            "target": "target",
+            "status": "bad_poison"
+          }
+        ]
+      }
+    ],
+    "behavior": {
+      "conditions": []
+    },
+    "target": "single",
+    "level_requirement": 1,
+    "power": null
+  },
+  {
+    "id": "celestial.waxing_sap_rite",
+    "name": "Waxing Sap Rite",
+    "flavor_text": "Increasing moon sap ceremony restores and hardens.",
+    "type": "grass",
+    "category": "status",
+    "accuracy": 1.0,
+    "pp": 20,
+    "priority": 0,
+    "effects": [
+      {
+        "chance": 1.0,
+        "trigger": "on_use",
+        "effects": [
+          {
+            "kind": "stat",
+            "target": "self",
+            "changes": {
+              "sp_defense": 1
+            }
+          }
+        ]
+      },
+      {
+        "chance": 1.0,
+        "trigger": "on_use",
+        "effects": [
+          {
+            "kind": "heal",
+            "target": "self",
+            "ratio": 0.25
+          }
+        ]
+      }
+    ],
+    "behavior": {
+      "conditions": []
+    },
+    "target": "single",
+    "level_requirement": 1,
+    "power": null
+  },
+  {
+    "id": "celestial.fringe_chlorophyll",
+    "name": "Fringe Chlorophyll",
+    "flavor_text": "Chlorophyll surge in twilight fringe illuminance.",
+    "type": "grass",
+    "category": "physical",
+    "accuracy": 1.0,
+    "pp": 20,
+    "priority": 0,
+    "effects": [],
+    "behavior": {
+      "conditions": []
+    },
+    "target": "single",
+    "level_requirement": 22,
+    "power": 72
+  },
+  {
+    "id": "celestial.crescent_quadrature",
+    "name": "Crescent Quadrature",
+    "flavor_text": "Ninety-degree lunar elongation triggers quadrature growth surge.",
+    "type": "grass",
+    "category": "special",
+    "accuracy": 1.0,
+    "pp": 20,
+    "priority": 0,
+    "effects": [],
+    "behavior": {
+      "conditions": []
+    },
+    "target": "single",
+    "level_requirement": 22,
+    "power": 72
+  },
+  {
+    "id": "celestial.lunar_perigee_grove",
+    "name": "Lunar Perigee Grove",
+    "flavor_text": "Closest-approach moon pulls a dense grove strike.",
+    "type": "grass",
+    "category": "special",
+    "accuracy": 1.0,
+    "pp": 20,
+    "priority": 0,
+    "effects": [
+      {
+        "chance": 0.2,
+        "trigger": "on_hit",
+        "effects": [
+          {
+            "kind": "stat",
+            "target": "target",
+            "changes": {
+              "speed": -1
+            }
+          }
+        ]
+      }
+    ],
+    "behavior": {
+      "conditions": []
+    },
+    "target": "single",
+    "level_requirement": 37,
+    "power": 72
+  },
+  {
+    "id": "celestial.occultation_overgrowth",
+    "name": "Occultation Overgrowth",
+    "flavor_text": "Plants erupt as the waxing moon occults remaining twilight.",
+    "type": "grass",
+    "category": "special",
+    "accuracy": 0.85,
+    "pp": 10,
+    "priority": 0,
+    "effects": [],
+    "behavior": {
+      "conditions": []
+    },
+    "target": "single",
+    "level_requirement": 50,
+    "power": 108
+  },
+  {
+    "id": "celestial.selenelion_canopy_eclipse",
+    "name": "Selenelion Canopy Eclipse",
+    "flavor_text": "Impossible selenelion geometry collapses into crushing canopy.",
+    "type": "grass",
+    "category": "physical",
+    "accuracy": 1.0,
+    "pp": 15,
+    "priority": 0,
+    "effects": [],
+    "behavior": {
+      "conditions": []
+    },
+    "target": "single",
+    "level_requirement": 61,
+    "power": 88
+  },
+  {
+    "id": "celestial.waning_filament",
+    "name": "Waning Filament",
+    "flavor_text": "A hair-thin waning-crescent reflection threads across civil-dusk fringe water.",
+    "type": "water",
+    "category": "physical",
+    "accuracy": 1.0,
+    "pp": 30,
+    "priority": 0,
+    "effects": [],
+    "behavior": {
+      "conditions": []
+    },
+    "target": "single",
+    "level_requirement": 1,
+    "power": 28
+  },
+  {
+    "id": "celestial.pisces_elongation",
+    "name": "Pisces Elongation",
+    "flavor_text": "Moon-Sun elongation past one-eighty opens a Pisces-sector channel.",
+    "type": "water",
+    "category": "special",
+    "accuracy": 1.0,
+    "pp": 25,
+    "priority": 0,
+    "effects": [],
+    "behavior": {
+      "conditions": []
+    },
+    "target": "single",
+    "level_requirement": 1,
+    "power": 44
+  },
+  {
+    "id": "celestial.cancerian_sextile",
+    "name": "Cancerian Sextile",
+    "flavor_text": "Natal Moon in Cancer forms a sixty-degree sextile to the hatch Sun.",
+    "type": "water",
+    "category": "special",
+    "accuracy": 1.0,
+    "pp": 25,
+    "priority": 0,
+    "effects": [
+      {
+        "chance": 0.2,
+        "trigger": "on_hit",
+        "effects": [
+          {
+            "kind": "stat",
+            "target": "target",
+            "changes": {
+              "speed": -1
+            }
+          }
+        ]
+      }
+    ],
+    "behavior": {
+      "conditions": []
+    },
+    "target": "single",
+    "level_requirement": 1,
+    "power": 44
+  },
+  {
+    "id": "celestial.scorpio_drain",
+    "name": "Scorpio Drain",
+    "flavor_text": "Waning gibbous light pulls brackish runoff backward like an ebbing bore.",
+    "type": "water",
+    "category": "special",
+    "accuracy": 1.0,
+    "pp": 30,
+    "priority": 0,
+    "effects": [
+      {
+        "chance": 0.3,
+        "trigger": "on_hit",
+        "effects": [
+          {
+            "kind": "stat",
+            "target": "target",
+            "changes": {
+              "speed": -1
+            }
+          }
+        ]
+      }
+    ],
+    "behavior": {
+      "conditions": []
+    },
+    "target": "single",
+    "level_requirement": 1,
+    "power": 28
+  },
+  {
+    "id": "celestial.crescent_refraction",
+    "name": "Crescent Refraction",
+    "flavor_text": "The last waning crescent refracts through nautical-twilight moisture.",
+    "type": "water",
+    "category": "special",
+    "accuracy": 1.0,
+    "pp": 30,
+    "priority": 1,
+    "effects": [],
+    "behavior": {
+      "conditions": []
+    },
+    "target": "single",
+    "level_requirement": 1,
+    "power": 40
+  },
+  {
+    "id": "celestial.brackish_fringe",
+    "name": "Brackish Fringe",
+    "flavor_text": "Civil-dusk fringe haze salts the chart's water houses.",
+    "type": "water",
+    "category": "physical",
+    "accuracy": 1.0,
+    "pp": 25,
+    "priority": 0,
+    "effects": [],
+    "behavior": {
+      "conditions": []
+    },
+    "target": "single",
+    "level_requirement": 1,
+    "power": 44
+  },
+  {
+    "id": "celestial.humid_horizon",
+    "name": "Humid Horizon",
+    "flavor_text": "Ephemeris humidity along the horizon condenses waning-moon dew.",
+    "type": "water",
+    "category": "special",
+    "accuracy": 1.0,
+    "pp": 25,
+    "priority": 0,
+    "effects": [],
+    "behavior": {
+      "conditions": []
+    },
+    "target": "single",
+    "level_requirement": 1,
+    "power": 44
+  },
+  {
+    "id": "celestial.ecliptic_seep",
+    "name": "Ecliptic Seep",
+    "flavor_text": "Bodies near the ecliptic weep through water-sign placements.",
+    "type": "water",
+    "category": "special",
+    "accuracy": 1.0,
+    "pp": 25,
+    "priority": 0,
+    "effects": [
+      {
+        "chance": 0.25,
+        "trigger": "on_hit",
+        "effects": [
+          {
+            "kind": "stat",
+            "target": "target",
+            "changes": {
+              "defense": -1
+            }
+          }
+        ]
+      }
+    ],
+    "behavior": {
+      "conditions": []
+    },
+    "target": "single",
+    "level_requirement": 1,
+    "power": 52
+  },
+  {
+    "id": "celestial.nautical_sheet",
+    "name": "Nautical Sheet",
+    "flavor_text": "Flat nautical-twilight mist dulls the foe's offensive read of the chart.",
+    "type": "water",
+    "category": "status",
+    "accuracy": 1.0,
+    "pp": 20,
+    "priority": 0,
+    "effects": [
+      {
+        "chance": 1.0,
+        "trigger": "on_hit",
+        "effects": [
+          {
+            "kind": "stat",
+            "target": "target",
+            "changes": {
+              "attack": -1
+            }
+          }
+        ]
+      }
+    ],
+    "behavior": {
+      "conditions": []
+    },
+    "target": "single",
+    "level_requirement": 1,
+    "power": null
+  },
+  {
+    "id": "celestial.tidal_almanac",
+    "name": "Tidal Almanac",
+    "flavor_text": "An ephemeris tide table etched at hatch aligns waning-phase flow.",
+    "type": "water",
+    "category": "status",
+    "accuracy": 1.0,
+    "pp": 20,
+    "priority": 0,
+    "effects": [
+      {
+        "chance": 1.0,
+        "trigger": "on_use",
+        "effects": [
+          {
+            "kind": "stat",
+            "target": "self",
+            "changes": {
+              "sp_defense": 1
+            }
+          }
+        ]
+      }
+    ],
+    "behavior": {
+      "conditions": []
+    },
+    "target": "single",
+    "level_requirement": 1,
+    "power": null
+  },
+  {
+    "id": "celestial.node_tide",
+    "name": "Node Tide",
+    "flavor_text": "The moon's node tugs an anomalous swell across the birth chart.",
+    "type": "water",
+    "category": "special",
+    "accuracy": 1.0,
+    "pp": 15,
+    "priority": 0,
+    "effects": [],
+    "behavior": {
+      "conditions": []
+    },
+    "target": "single",
+    "level_requirement": 26,
+    "power": 88
+  },
+  {
+    "id": "celestial.opposition_surge",
+    "name": "Opposition Surge",
+    "flavor_text": "Sun-Moon opposition at civil dusk floods the battlefield.",
+    "type": "water",
+    "category": "physical",
+    "accuracy": 1.0,
+    "pp": 15,
+    "priority": 0,
+    "effects": [],
+    "behavior": {
+      "conditions": []
+    },
+    "target": "single",
+    "level_requirement": 44,
+    "power": 88
+  },
+  {
+    "id": "celestial.eclipse_wash",
+    "name": "Eclipse Wash",
+    "flavor_text": "Penumbral lunar-eclipse tint sweeps the waning disk.",
+    "type": "water",
+    "category": "special",
+    "accuracy": 0.85,
+    "pp": 10,
+    "priority": 0,
+    "effects": [
+      {
+        "chance": 0.2,
+        "trigger": "on_hit",
+        "effects": [
+          {
+            "kind": "stat",
+            "target": "target",
+            "changes": {
+              "accuracy": -1
+            }
+          }
+        ]
+      }
+    ],
+    "behavior": {
+      "conditions": []
+    },
+    "target": "single",
+    "level_requirement": 50,
+    "power": 108
+  },
+  {
+    "id": "celestial.descendant_brine",
+    "name": "Descendant Brine",
+    "flavor_text": "Seventh-house cusp outflow traps the foe in a salt-laced pool.",
+    "type": "water",
+    "category": "status",
+    "accuracy": 1.0,
+    "pp": 20,
+    "priority": 0,
+    "effects": [
+      {
+        "chance": 1.0,
+        "trigger": "on_hit",
+        "effects": [
+          {
+            "kind": "stat",
+            "target": "target",
+            "changes": {
+              "speed": -1
+            }
+          }
+        ]
+      }
+    ],
+    "behavior": {
+      "conditions": []
+    },
+    "target": "single",
+    "level_requirement": 36,
+    "power": null
+  },
+  {
+    "id": "celestial.waning_syzygy",
+    "name": "Waning Syzygy",
+    "flavor_text": "Grand waning syzygy at civil-dusk fringe empties the ephemeris into one tidal bore.",
+    "type": "water",
+    "category": "special",
+    "accuracy": 1.0,
+    "pp": 15,
+    "priority": 0,
+    "effects": [],
+    "behavior": {
+      "conditions": []
+    },
+    "target": "single",
+    "level_requirement": 58,
+    "power": 88
+  },
+  {
+    "id": "celestial.solstice_rime",
+    "name": "Solstice Rime",
+    "flavor_text": "Midwinter Sun rides its lowest arc; civil twilight freezes dew into rime.",
+    "type": "ice",
+    "category": "special",
+    "accuracy": 1.0,
+    "pp": 30,
+    "priority": 0,
+    "effects": [],
+    "behavior": {
+      "conditions": []
+    },
+    "target": "single",
+    "level_requirement": 1,
+    "power": 28
+  },
+  {
+    "id": "celestial.apogee_frost",
+    "name": "Apogee Frost",
+    "flavor_text": "Waning moon at lunar apogee thins heat into a focused cold beam.",
+    "type": "ice",
+    "category": "special",
+    "accuracy": 1.0,
+    "pp": 25,
+    "priority": 0,
+    "effects": [],
+    "behavior": {
+      "conditions": []
+    },
+    "target": "single",
+    "level_requirement": 1,
+    "power": 44
+  },
+  {
+    "id": "celestial.capricorn_square",
+    "name": "Capricorn Square",
+    "flavor_text": "Saturn in Capricorn squares the hatch Sun, locking midwinter cold into ninety degrees.",
+    "type": "ice",
+    "category": "special",
+    "accuracy": 1.0,
+    "pp": 25,
+    "priority": 0,
+    "effects": [],
+    "behavior": {
+      "conditions": []
+    },
+    "target": "single",
+    "level_requirement": 1,
+    "power": 44
+  },
+  {
+    "id": "celestial.gibbous_hoarfrost",
+    "name": "Gibbous Hoarfrost",
+    "flavor_text": "Waning gibbous glaze spreads across nautical-twilight stone.",
+    "type": "ice",
+    "category": "special",
+    "accuracy": 1.0,
+    "pp": 30,
+    "priority": 0,
+    "effects": [
+      {
+        "chance": 0.25,
+        "trigger": "on_hit",
+        "effects": [
+          {
+            "kind": "status",
+            "target": "target",
+            "status": "freeze"
+          }
+        ]
+      }
+    ],
+    "behavior": {
+      "conditions": []
+    },
+    "target": "single",
+    "level_requirement": 1,
+    "power": 28
+  },
+  {
+    "id": "celestial.blue_hour_needle",
+    "name": "Blue Hour Needle",
+    "flavor_text": "The blue-hour band sharpens into an ice needle fired before full dark.",
+    "type": "ice",
+    "category": "physical",
+    "accuracy": 1.0,
+    "pp": 30,
+    "priority": 1,
+    "effects": [],
+    "behavior": {
+      "conditions": []
+    },
+    "target": "single",
+    "level_requirement": 1,
+    "power": 40
+  },
+  {
+    "id": "celestial.antarctic_fringe",
+    "name": "Antarctic Fringe",
+    "flavor_text": "Midwinter waning moonlight along the polar twilight fringe condenses into cold.",
+    "type": "ice",
+    "category": "physical",
+    "accuracy": 1.0,
+    "pp": 25,
+    "priority": 0,
+    "effects": [],
+    "behavior": {
+      "conditions": []
+    },
+    "target": "single",
+    "level_requirement": 1,
+    "power": 44
+  },
+  {
+    "id": "celestial.waning_quadrant",
+    "name": "Waning Quadrant",
+    "flavor_text": "Last-quarter moon occupies the northwestern quadrant as cutting sleet.",
+    "type": "ice",
+    "category": "special",
+    "accuracy": 1.0,
+    "pp": 30,
+    "priority": 0,
+    "effects": [],
+    "behavior": {
+      "conditions": []
+    },
+    "target": "single",
+    "level_requirement": 1,
+    "power": 28
+  },
+  {
+    "id": "celestial.frozen_elongation",
+    "name": "Frozen Elongation",
+    "flavor_text": "Moon-Sun elongation past one-eighty slows molecular drift.",
+    "type": "ice",
+    "category": "special",
+    "accuracy": 1.0,
+    "pp": 25,
+    "priority": 0,
+    "effects": [
+      {
+        "chance": 0.25,
+        "trigger": "on_hit",
+        "effects": [
+          {
+            "kind": "stat",
+            "target": "target",
+            "changes": {
+              "speed": -1
+            }
+          }
+        ]
+      }
+    ],
+    "behavior": {
+      "conditions": []
+    },
+    "target": "single",
+    "level_requirement": 1,
+    "power": 44
+  },
+  {
+    "id": "celestial.crystalline_almanac",
+    "name": "Crystalline Almanac",
+    "flavor_text": "A frozen ephemeris almanac plates armor with twilight ice lattice.",
+    "type": "ice",
+    "category": "status",
+    "accuracy": 1.0,
+    "pp": 20,
+    "priority": 0,
+    "effects": [
+      {
+        "chance": 1.0,
+        "trigger": "on_use",
+        "effects": [
+          {
+            "kind": "stat",
+            "target": "self",
+            "changes": {
+              "defense": 1
+            }
+          }
+        ]
+      }
+    ],
+    "behavior": {
+      "conditions": []
+    },
+    "target": "single",
+    "level_requirement": 1,
+    "power": null
+  },
+  {
+    "id": "celestial.nival_ephemeris",
+    "name": "Nival Ephemeris",
+    "flavor_text": "Midwinter ephemeris tables exhale nival breath across the field.",
+    "type": "ice",
+    "category": "status",
+    "accuracy": 1.0,
+    "pp": 20,
+    "priority": 0,
+    "effects": [
+      {
+        "chance": 1.0,
+        "trigger": "on_hit",
+        "effects": [
+          {
+            "kind": "stat",
+            "target": "target",
+            "changes": {
+              "speed": -1
+            }
+          }
+        ]
+      }
+    ],
+    "behavior": {
+      "conditions": []
+    },
+    "target": "single",
+    "level_requirement": 1,
+    "power": null
+  },
+  {
+    "id": "celestial.node_rime",
+    "name": "Node Rime",
+    "flavor_text": "Lunar node binding at midwinter frosts the target in syzygy shadow.",
+    "type": "ice",
+    "category": "special",
+    "accuracy": 1.0,
+    "pp": 15,
+    "priority": 0,
+    "effects": [],
+    "behavior": {
+      "conditions": []
+    },
+    "target": "single",
+    "level_requirement": 30,
+    "power": 88
+  },
+  {
+    "id": "celestial.occultation_shard",
+    "name": "Occultation Shard",
+    "flavor_text": "A minor stellar occultation splinters starlight into razor ice.",
+    "type": "ice",
+    "category": "physical",
+    "accuracy": 1.0,
+    "pp": 15,
+    "priority": 0,
+    "effects": [
+      {
+        "chance": 0.2,
+        "trigger": "on_hit",
+        "effects": [
+          {
+            "kind": "stat",
+            "target": "target",
+            "changes": {
+              "sp_defense": -1
+            }
+          }
+        ]
+      }
+    ],
+    "behavior": {
+      "conditions": []
+    },
+    "target": "single",
+    "level_requirement": 46,
+    "power": 88
+  },
+  {
+    "id": "celestial.penumbra_glacier",
+    "name": "Penumbra Glacier",
+    "flavor_text": "Penumbra of a midwinter lunar eclipse creeps as slow glacier cold.",
+    "type": "ice",
+    "category": "special",
+    "accuracy": 0.85,
+    "pp": 10,
+    "priority": 0,
+    "effects": [
+      {
+        "chance": 0.15,
+        "trigger": "on_hit",
+        "effects": [
+          {
+            "kind": "status",
+            "target": "target",
+            "status": "freeze"
+          }
+        ]
+      }
+    ],
+    "behavior": {
+      "conditions": []
+    },
+    "target": "single",
+    "level_requirement": 54,
+    "power": 108
+  },
+  {
+    "id": "celestial.penumbra_veil",
+    "name": "Penumbra Veil",
+    "flavor_text": "Eclipse penumbra drapes the waning disk, fogging special offenses.",
+    "type": "ice",
+    "category": "status",
+    "accuracy": 1.0,
+    "pp": 20,
+    "priority": 0,
+    "effects": [
+      {
+        "chance": 1.0,
+        "trigger": "on_hit",
+        "effects": [
+          {
+            "kind": "stat",
+            "target": "target",
+            "changes": {
+              "sp_attack": -1
+            }
+          }
+        ]
+      }
+    ],
+    "behavior": {
+      "conditions": []
+    },
+    "target": "single",
+    "level_requirement": 34,
+    "power": null
+  },
+  {
+    "id": "celestial.midwinter_syzygy",
+    "name": "Midwinter Syzygy",
+    "flavor_text": "Solstice syzygy flash-freezes the entire midwinter ephemeris into one calving event.",
+    "type": "ice",
+    "category": "special",
+    "accuracy": 0.8,
+    "pp": 5,
+    "priority": 0,
+    "effects": [],
+    "behavior": {
+      "conditions": []
+    },
+    "target": "single",
+    "level_requirement": 60,
+    "power": 126
+  },
+  {
+    "id": "celestial.cusp_chip",
+    "name": "Cusp Chip",
+    "flavor_text": "A flake spalls from the first-house Placidus cusp\u2014ascendant bedrock made throwable.",
+    "type": "rock",
+    "category": "physical",
+    "accuracy": 1.0,
+    "pp": 30,
+    "priority": 0,
+    "effects": [],
+    "behavior": {
+      "conditions": []
+    },
+    "target": "single",
+    "level_requirement": 1,
+    "power": 28
+  },
+  {
+    "id": "celestial.taurus_bearing",
+    "name": "Taurus Bearing",
+    "flavor_text": "Sun in Taurus loads mass along the ecliptic like a bearing stone.",
+    "type": "rock",
+    "category": "physical",
+    "accuracy": 1.0,
+    "pp": 25,
+    "priority": 0,
+    "effects": [],
+    "behavior": {
+      "conditions": []
+    },
+    "target": "single",
+    "level_requirement": 1,
+    "power": 44
+  },
+  {
+    "id": "celestial.virgo_angle",
+    "name": "Virgo Angle",
+    "flavor_text": "Ascendant in Virgo maps to a fault line cut at exact house-cusp longitude.",
+    "type": "rock",
+    "category": "physical",
+    "accuracy": 1.0,
+    "pp": 25,
+    "priority": 0,
+    "effects": [],
+    "behavior": {
+      "conditions": []
+    },
+    "target": "single",
+    "level_requirement": 1,
+    "power": 52
+  },
+  {
+    "id": "celestial.capricorn_load",
+    "name": "Capricorn Load",
+    "flavor_text": "Saturn-ruled cardinal earth raises a slab from the hatch coordinates.",
+    "type": "rock",
+    "category": "physical",
+    "accuracy": 1.0,
+    "pp": 25,
+    "priority": 0,
+    "effects": [],
+    "behavior": {
+      "conditions": []
+    },
+    "target": "single",
+    "level_requirement": 1,
+    "power": 44
+  },
+  {
+    "id": "celestial.succedent_shard",
+    "name": "Succedent Shard",
+    "flavor_text": "Second-house succedent cusp sheds debris like settling alluvium.",
+    "type": "rock",
+    "category": "physical",
+    "accuracy": 1.0,
+    "pp": 30,
+    "priority": 0,
+    "effects": [
+      {
+        "chance": 0.3,
+        "trigger": "on_hit",
+        "effects": [
+          {
+            "kind": "stat",
+            "target": "target",
+            "changes": {
+              "defense": -1
+            }
+          }
+        ]
+      }
+    ],
+    "behavior": {
+      "conditions": []
+    },
+    "target": "single",
+    "level_requirement": 1,
+    "power": 28
+  },
+  {
+    "id": "celestial.ic_foundation",
+    "name": "IC Foundation",
+    "flavor_text": "Fourth-house IC cusp thrusts upward from the nadir meridian.",
+    "type": "rock",
+    "category": "physical",
+    "accuracy": 1.0,
+    "pp": 30,
+    "priority": 1,
+    "effects": [],
+    "behavior": {
+      "conditions": []
+    },
+    "target": "single",
+    "level_requirement": 1,
+    "power": 40
+  },
+  {
+    "id": "celestial.placidus_fault",
+    "name": "Placidus Fault",
+    "flavor_text": "Placidus house-division lines grind the foe along cusp geometry.",
+    "type": "rock",
+    "category": "physical",
+    "accuracy": 1.0,
+    "pp": 25,
+    "priority": 0,
+    "effects": [],
+    "behavior": {
+      "conditions": []
+    },
+    "target": "single",
+    "level_requirement": 1,
+    "power": 44
+  },
+  {
+    "id": "celestial.domicile_flint",
+    "name": "Domicile Flint",
+    "flavor_text": "Saturn domiciled in Capricorn strikes flint against chart bedrock.",
+    "type": "rock",
+    "category": "physical",
+    "accuracy": 1.0,
+    "pp": 30,
+    "priority": 0,
+    "effects": [],
+    "behavior": {
+      "conditions": []
+    },
+    "target": "single",
+    "level_requirement": 1,
+    "power": 28
+  },
+  {
+    "id": "celestial.exaltation_slab",
+    "name": "Exaltation Slab",
+    "flavor_text": "Moon exalted in Taurus drops a dense slab from the midheaven arc.",
+    "type": "rock",
+    "category": "physical",
+    "accuracy": 1.0,
+    "pp": 20,
+    "priority": 0,
+    "effects": [
+      {
+        "chance": 0.25,
+        "trigger": "on_hit",
+        "effects": [
+          {
+            "kind": "stat",
+            "target": "target",
+            "changes": {
+              "speed": -1
+            }
+          }
+        ]
+      }
+    ],
+    "behavior": {
+      "conditions": []
+    },
+    "target": "single",
+    "level_requirement": 22,
+    "power": 72
+  },
+  {
+    "id": "celestial.angular_keystones",
+    "name": "Angular Keystones",
+    "flavor_text": "Houses one, four, seven, and ten lock as angular keystones.",
+    "type": "rock",
+    "category": "status",
+    "accuracy": 1.0,
+    "pp": 20,
+    "priority": 0,
+    "effects": [
+      {
+        "chance": 1.0,
+        "trigger": "on_use",
+        "effects": [
+          {
+            "kind": "stat",
+            "target": "self",
+            "changes": {
+              "defense": 1
+            }
+          }
+        ]
+      }
+    ],
+    "behavior": {
+      "conditions": []
+    },
+    "target": "single",
+    "level_requirement": 1,
+    "power": null
+  },
+  {
+    "id": "celestial.stellium_mortar",
+    "name": "Stellium Mortar",
+    "flavor_text": "Three earth-sign placements grind into mortar that seals movement.",
+    "type": "rock",
+    "category": "status",
+    "accuracy": 1.0,
+    "pp": 20,
+    "priority": 0,
+    "effects": [
+      {
+        "chance": 1.0,
+        "trigger": "on_hit",
+        "effects": [
+          {
+            "kind": "stat",
+            "target": "target",
+            "changes": {
+              "speed": -1
+            }
+          }
+        ]
+      }
+    ],
+    "behavior": {
+      "conditions": []
+    },
+    "target": "single",
+    "level_requirement": 1,
+    "power": null
+  },
+  {
+    "id": "celestial.descendant_rampart",
+    "name": "Descendant Rampart",
+    "flavor_text": "Seventh-house descendant cusp erects a stone rampart along the horizon axis.",
+    "type": "rock",
+    "category": "physical",
+    "accuracy": 1.0,
+    "pp": 20,
+    "priority": 0,
+    "effects": [],
+    "behavior": {
+      "conditions": []
+    },
+    "target": "single",
+    "level_requirement": 22,
+    "power": 72
+  },
+  {
+    "id": "celestial.trine_buttress",
+    "name": "Trine Buttress",
+    "flavor_text": "One-twenty earth trine between Taurus, Virgo, and Capricorn braces then slams.",
+    "type": "rock",
+    "category": "physical",
+    "accuracy": 1.0,
+    "pp": 20,
+    "priority": 0,
+    "effects": [
+      {
+        "chance": 0.15,
+        "trigger": "on_hit",
+        "effects": [
+          {
+            "kind": "stat",
+            "target": "target",
+            "changes": {
+              "sp_defense": -1
+            }
+          }
+        ]
+      }
+    ],
+    "behavior": {
+      "conditions": []
+    },
+    "target": "single",
+    "level_requirement": 42,
+    "power": 72
+  },
+  {
+    "id": "celestial.square_colonnade",
+    "name": "Square Colonnade",
+    "flavor_text": "Ninety-degree square between earth-sign luminaries collapses a colonnade of cusps.",
+    "type": "rock",
+    "category": "physical",
+    "accuracy": 0.85,
+    "pp": 10,
+    "priority": 0,
+    "effects": [
+      {
+        "chance": 0.2,
+        "trigger": "on_hit",
+        "effects": [
+          {
+            "kind": "stat",
+            "target": "target",
+            "changes": {
+              "defense": -1
+            }
+          }
+        ]
+      }
+    ],
+    "behavior": {
+      "conditions": []
+    },
+    "target": "single",
+    "level_requirement": 50,
+    "power": 108
+  },
+  {
+    "id": "celestial.house_cusp_cataclysm",
+    "name": "House Cusp Cataclysm",
+    "flavor_text": "All angular and succedent Placidus cusps fracture at once into one earth-sign cataclysm.",
+    "type": "rock",
+    "category": "physical",
+    "accuracy": 0.8,
+    "pp": 5,
+    "priority": 0,
+    "effects": [],
+    "behavior": {
+      "conditions": []
+    },
+    "target": "single",
+    "level_requirement": 58,
+    "power": 126
+  }
+]

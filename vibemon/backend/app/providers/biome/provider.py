@@ -1,4 +1,4 @@
-"""BiomeProvider: place-of-birth affinity from land cover, elevation, water, and solar phase."""
+"""BiomeProvider: place-of-birth affinity from land cover, elevation, and water."""
 
 from typing import ClassVar
 import asyncio
@@ -7,8 +7,8 @@ import collections
 import structlog
 
 from app.core.math import clamp
-from app.domains.generation import types as generation_types
 from app.domains.generation.affinity import Affinity
+from app.domains.generation.merge import filter_element_types
 from app.domains.generation.ports import TrainerSecrets
 from app.domains.generation.seed import BirthSeed
 from app.domains.move.types import VibemonTypeT
@@ -17,8 +17,7 @@ from app.providers import catalog_schema as catalog
 from app.providers import schema as providers_schema
 from app.providers.base import VibeProvider
 from app.providers.biome import schema as biome_schema
-from app.providers.catalog_support import GEOLOCATION_REQUIREMENT
-from app.providers.helpers import Signal, filter_element_types, pick_starter_moves
+from app.providers.helpers import Signal, pick_starter_moves
 
 from . import const
 from .raster.elevation import api as elevation_api
@@ -30,15 +29,16 @@ _LOGGER = structlog.get_logger(__name__)
 
 class BiomeProvider(VibeProvider[biome_schema.BiomePayload]):
     """
-    A Vibemon is born from the ground beneath its birthplace.
+    A Vibemon carries a little of the land where it first opened its eyes.
 
-    One raised on London pavement reads differently from one hatched in Amazon
-    canopy or Sahara scrub - linoleum suburbs, red-clay back roads, and river
-    mud all leave a different print underfoot.
+    One hatched in Amazon canopy reads differently from one raised on Sahara
+    scrub or London pavement - red-clay back roads, river mud, and linoleum
+    suburbs all leave a different print underfoot.
     """
 
     name = "biome"
-    payload_type = biome_schema.BiomePayload
+    display_label = "GROUND"
+    tagline = "Dirt, pavement, and what is underfoot."
 
     exposed_elements: ClassVar[list[tuple[VibemonTypeT, str]]] = [
         (VibemonTypeT.NORMAL, "grassland, cropland, or suburban open land"),
@@ -55,20 +55,19 @@ class BiomeProvider(VibeProvider[biome_schema.BiomePayload]):
         (VibemonTypeT.GHOST, "tree cover shade and built-up historical footprint"),
         (VibemonTypeT.DRAGON, "high elevation wilderness and isolated terrain"),
         (VibemonTypeT.ELECTRIC, "built-up urban fabric"),
-        (VibemonTypeT.DARK, "built-up districts and nocturnal solar phase"),
+        (VibemonTypeT.DARK, "built-up districts and industrial shadow"),
         (VibemonTypeT.STEEL, "built-up industrial clusters"),
-        (VibemonTypeT.FAIRY, "moss/lichen groves and dawn or dusk solar phase"),
-        (VibemonTypeT.PSYCHIC, "dawn stillness in forest or open land"),
+        (VibemonTypeT.FAIRY, "moss/lichen groves and shaded understory"),
     ]
 
-    display_label = "GROUND"
-    tagline = "Dirt, pavement, and what is underfoot."
+    requirements = (catalog.GEOLOCATION_REQUIREMENT,)
     data_sources = (
         catalog.DataSourceInfo(name="ESA WorldCover", description="Land-cover classification underfoot."),
         catalog.DataSourceInfo(name="Open-Meteo", description="Elevation at trainer coordinates."),
         catalog.DataSourceInfo(name="OpenStreetMap", description="Water proximity via Overpass queries."),
     )
-    requirements = (GEOLOCATION_REQUIREMENT,)
+
+    payload_type = biome_schema.BiomePayload
 
     def __init__(self) -> None:
         self.worldcover = worldcover_api.TerrascopeWorldCoverClient()
@@ -140,14 +139,10 @@ class BiomeProvider(VibeProvider[biome_schema.BiomePayload]):
         marine_feature: str | None,
         nearest_inland_water_km: float | None,
         inland_feature: str | None,
-        solar_phase: generation_types.SolarPhase,
     ) -> dict[VibemonTypeT, float]:
         score: collections.defaultdict[VibemonTypeT, float] = collections.defaultdict(float)
 
         for element, weight in land_cover.profile.base_weights.items():
-            score[element] += weight
-
-        for element, weight in const.SOLAR_PHASE_BONUS[solar_phase].items():
             score[element] += weight
 
         urbanity = clamp(built_up_fraction, minimum=0.0, maximum=1.0)
@@ -197,6 +192,53 @@ class BiomeProvider(VibeProvider[biome_schema.BiomePayload]):
 
         return dict(score)
 
+    @classmethod
+    def visual_notes(cls, payload: biome_schema.BiomePayload) -> str:
+        """Summarize land-cover, elevation, and water signals as short creature-visual cues."""
+        land_cover = const.WorldCoverClassT(payload.land_cover_class)
+        parts: list[str] = [land_cover.profile.visual_base]
+
+        elevation_signal = Signal(
+            name="elevat",
+            attr="elevation_m",
+            raw=payload.elevation_m,
+            min=-430.0,
+            med=350.0,
+            max=5100.0,
+        ).center
+
+        if elevation_signal >= const.HIGH_ELEVATION_VISUAL_THRESHOLD:
+            parts.append(const.HIGH_ELEVATION_VISUAL)
+        elif elevation_signal <= const.LOW_ELEVATION_VISUAL_THRESHOLD:
+            parts.append(const.LOW_ELEVATION_VISUAL)
+
+        if land_cover not in const.LAND_COVERS_WITH_WATER_BASE:
+            water_gate = land_cover.profile.water_proximity_gate
+            marine_score = (
+                cls._proximity_score(payload.nearest_marine_km, reach_km=const.MARINE_WATER_REACH_KM) * water_gate
+            )
+            inland_score = (
+                cls._proximity_score(payload.nearest_inland_water_km, reach_km=const.INLAND_WATER_REACH_KM) * water_gate
+            )
+
+            if marine_score >= const.WATER_VISUAL_THRESHOLD and marine_score >= inland_score:
+                if payload.marine_feature in {"coastline", "bay"}:
+                    parts.append(const.MARINE_COAST_VISUAL)
+                else:
+                    parts.append(const.MARINE_OPEN_VISUAL)
+            elif inland_score >= const.WATER_VISUAL_THRESHOLD:
+                inland_feature = payload.inland_feature
+                if inland_feature in {"river", "stream"}:
+                    parts.append(const.INLAND_RIVER_VISUAL)
+                elif inland_feature == "canal":
+                    parts.append(const.INLAND_CANAL_VISUAL)
+                elif inland_feature in {"lake", "water"}:
+                    parts.append(const.INLAND_LAKE_VISUAL)
+                else:
+                    parts.append(const.INLAND_WATER_VISUAL)
+
+        return "; ".join(parts)
+
     # ── CORE PROTOCOL MEMBERS ─────────────────────────────────────────────────────────
 
     async def fetch(
@@ -228,7 +270,6 @@ class BiomeProvider(VibeProvider[biome_schema.BiomePayload]):
             land_cover_class=land_cover.value,
             built_up_fraction=built_up_fraction,
             elevation_m=elevation_m,
-            solar_phase=seed.solar_phase.value,
             nearest_marine_km=water.get("nearest_marine_km"),  # type: ignore[arg-type]
             marine_feature=water.get("marine_feature"),  # type: ignore[arg-type]
             nearest_inland_water_km=water.get("nearest_inland_water_km"),  # type: ignore[arg-type]
@@ -240,7 +281,6 @@ class BiomeProvider(VibeProvider[biome_schema.BiomePayload]):
         land_cover = const.WorldCoverClassT(payload.land_cover_class)
         built_up_fraction = payload.built_up_fraction
         elevation_m = payload.elevation_m
-        solar_phase = generation_types.SolarPhase(payload.solar_phase)
 
         rankings = self.determine_element_scores(
             land_cover=land_cover,
@@ -250,7 +290,6 @@ class BiomeProvider(VibeProvider[biome_schema.BiomePayload]):
             marine_feature=payload.marine_feature,
             nearest_inland_water_km=payload.nearest_inland_water_km,
             inland_feature=payload.inland_feature,
-            solar_phase=solar_phase,
         )
         elements = filter_element_types(rankings)
         normalized = self.balance_for_bst(
@@ -262,7 +301,7 @@ class BiomeProvider(VibeProvider[biome_schema.BiomePayload]):
 
         return Affinity(
             identity=Identity(name="__", elements=elements, base=base_stats),
-            visual_notes=land_cover.profile.flavor,
+            visual_notes=self.visual_notes(payload),
             intensity=const.INTENSITY,
             provider_id=self.name,
             element_rankings=rankings,

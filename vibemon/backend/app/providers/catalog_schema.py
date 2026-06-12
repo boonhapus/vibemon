@@ -20,6 +20,14 @@ class GeolocationRequirement(Schema):
     description: str
 
 
+GEOLOCATION_REQUIREMENT = GeolocationRequirement(
+    id="geolocation",
+    label="Location access",
+    description="Uses your coordinates for signals at birth time.",
+)
+"""Shared requirement for providers that read signals at the trainer's coordinates."""
+
+
 class TrainerSecretsRequirement(Schema):
     kind: Literal[provider_types.RequirementKindT.TRAINER_SECRETS] = provider_types.RequirementKindT.TRAINER_SECRETS
     id: str

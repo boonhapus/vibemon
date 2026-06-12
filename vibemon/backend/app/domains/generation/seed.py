@@ -1,7 +1,7 @@
 """Deterministic Vibemon birth seed helpers."""
 
 from collections.abc import Iterable
-from typing import TYPE_CHECKING, Any
+from typing import TYPE_CHECKING, Annotated, Any
 import asyncio
 import datetime as dt
 import hashlib
@@ -16,7 +16,7 @@ import pydantic
 from app.core.schema import FrozenSchema
 
 from . import types
-from .ports import TrainerSecrets
+from .ports import BirthProvider, TrainerSecrets
 from .snapshot import BirthSnapshot
 
 if TYPE_CHECKING:
@@ -30,7 +30,7 @@ class BirthSeed(FrozenSchema):
     geo_coords: tuple[float, float]
     trainer_id: uuid.UUID
     local_timezone: dt.timezone = dt.UTC
-    providers: list[Any]
+    providers: list[Annotated[BirthProvider, pydantic.SkipValidation]]
 
     @pydantic.field_validator("timestamp")
     @classmethod

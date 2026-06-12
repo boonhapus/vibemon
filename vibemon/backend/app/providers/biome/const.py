@@ -1,10 +1,9 @@
-"""Biome provider constants: WorldCover taxonomy, scoring tables, and flavor text."""
+"""Biome provider constants: WorldCover taxonomy, scoring tables, and visual cues."""
 
 from dataclasses import dataclass
 from typing import Final, Literal, Self
 import enum
 
-from app.domains.generation import types as generation_types
 from app.domains.move.types import VibemonTypeT
 
 type StatTierT = Literal["+", "0", "-"]
@@ -12,10 +11,10 @@ type StatTierT = Literal["+", "0", "-"]
 
 @dataclass(frozen=True, slots=True)
 class WorldCoverProfile:
-    """Per-class WorldCover scoring, flavor, and raster legend metadata."""
+    """Per-class WorldCover scoring, visual base cue, and raster legend metadata."""
 
     rgb: tuple[int, int, int]
-    flavor: str
+    visual_base: str
     stat_archetype: dict[str, StatTierT]
     base_weights: dict[VibemonTypeT, float]
     water_proximity_gate: float
@@ -56,7 +55,7 @@ class WorldCoverClassT(enum.StrEnum):
 WORLD_COVER_PROFILES: Final[dict[WorldCoverClassT, WorldCoverProfile]] = {
     WorldCoverClassT.TREE_COVER: WorldCoverProfile(
         rgb=(0, 100, 0),
-        flavor="born under a green cathedral of leaves",
+        visual_base="moss-flecked bark plates, dappled leaf-shadow markings",
         stat_archetype={
             "hp": "+",
             "sp_defense": "+",
@@ -76,7 +75,7 @@ WORLD_COVER_PROFILES: Final[dict[WorldCoverClassT, WorldCoverProfile]] = {
     ),
     WorldCoverClassT.SHRUBLAND: WorldCoverProfile(
         rgb=(255, 187, 34),
-        flavor="born among sun-warmed scrub and thicket",
+        visual_base="sun-bleached tuft fringe, thorny ridge spines",
         stat_archetype={
             "attack": "+",
             "defense": "+",
@@ -95,7 +94,7 @@ WORLD_COVER_PROFILES: Final[dict[WorldCoverClassT, WorldCoverProfile]] = {
     ),
     WorldCoverClassT.GRASSLAND: WorldCoverProfile(
         rgb=(255, 255, 76),
-        flavor="born in open meadow wind and grazing light",
+        visual_base="golden blade fringe, wind-combed flank stripes",
         stat_archetype={
             "speed": "+",
             "attack": "+",
@@ -114,7 +113,7 @@ WORLD_COVER_PROFILES: Final[dict[WorldCoverClassT, WorldCoverProfile]] = {
     ),
     WorldCoverClassT.CROPLAND: WorldCoverProfile(
         rgb=(240, 150, 255),
-        flavor="born where rows and furrows shape the horizon",
+        visual_base="furrow-striped hide, loam-dusted joints",
         stat_archetype={
             "hp": "+",
             "defense": "+",
@@ -133,7 +132,7 @@ WORLD_COVER_PROFILES: Final[dict[WorldCoverClassT, WorldCoverProfile]] = {
     ),
     WorldCoverClassT.BUILT_UP: WorldCoverProfile(
         rgb=(250, 0, 0),
-        flavor="born in the hum of streets and stone",
+        visual_base="concrete-grey plating, soot-dark joint lines",
         stat_archetype={
             "speed": "+",
             "sp_attack": "+",
@@ -153,7 +152,7 @@ WORLD_COVER_PROFILES: Final[dict[WorldCoverClassT, WorldCoverProfile]] = {
     ),
     WorldCoverClassT.BARE_SPARSE: WorldCoverProfile(
         rgb=(180, 180, 180),
-        flavor="born in the wide bone-dry quiet",
+        visual_base="cracked clay hide, pale dust-veiled joints",
         stat_archetype={
             "attack": "+",
             "speed": "+",
@@ -172,7 +171,7 @@ WORLD_COVER_PROFILES: Final[dict[WorldCoverClassT, WorldCoverProfile]] = {
     ),
     WorldCoverClassT.SNOW_ICE: WorldCoverProfile(
         rgb=(240, 240, 240),
-        flavor="born where the wind stops being warm",
+        visual_base="frost-rimmed plates, pale ice-crystal sheen",
         stat_archetype={
             "defense": "+",
             "sp_defense": "+",
@@ -190,7 +189,7 @@ WORLD_COVER_PROFILES: Final[dict[WorldCoverClassT, WorldCoverProfile]] = {
     ),
     WorldCoverClassT.PERMANENT_WATER: WorldCoverProfile(
         rgb=(0, 100, 200),
-        flavor="born at the mirror of still water",
+        visual_base="sleek wet gloss, ripple-light belly markings",
         stat_archetype={
             "sp_attack": "+",
             "speed": "+",
@@ -208,7 +207,7 @@ WORLD_COVER_PROFILES: Final[dict[WorldCoverClassT, WorldCoverProfile]] = {
     ),
     WorldCoverClassT.HERBACEOUS_WETLAND: WorldCoverProfile(
         rgb=(0, 150, 160),
-        flavor="born where reeds drink standing water",
+        visual_base="reed-fiber tufts, marsh-dark underbelly",
         stat_archetype={
             "sp_defense": "+",
             "sp_attack": "+",
@@ -227,7 +226,7 @@ WORLD_COVER_PROFILES: Final[dict[WorldCoverClassT, WorldCoverProfile]] = {
     ),
     WorldCoverClassT.MANGROVES: WorldCoverProfile(
         rgb=(0, 207, 117),
-        flavor="born where roots hold salt and tide",
+        visual_base="salt-crusted root stilts, brine-stained bark plates",
         stat_archetype={
             "hp": "+",
             "sp_attack": "+",
@@ -246,7 +245,7 @@ WORLD_COVER_PROFILES: Final[dict[WorldCoverClassT, WorldCoverProfile]] = {
     ),
     WorldCoverClassT.MOSS_LICHEN: WorldCoverProfile(
         rgb=(250, 230, 160),
-        flavor="born on slow stone dressed in lichen",
+        visual_base="lichen-spotted stone plates, slow moss cuffs",
         stat_archetype={
             "sp_defense": "+",
             "defense": "+",
@@ -268,13 +267,6 @@ WORLD_COVER_PROFILES: Final[dict[WorldCoverClassT, WorldCoverProfile]] = {
 assert set(WORLD_COVER_PROFILES) == set(WorldCoverClassT)
 
 STAT_TIER_CENTER: Final[dict[StatTierT, float]] = {"+": 0.75, "0": 0.5, "-": 0.25}
-
-SOLAR_PHASE_BONUS: Final[dict[generation_types.SolarPhase, dict[VibemonTypeT, float]]] = {
-    generation_types.SolarPhase.DAWN: {VibemonTypeT.FAIRY: 0.20, VibemonTypeT.PSYCHIC: 0.15},
-    generation_types.SolarPhase.DAY: {VibemonTypeT.FIRE: 0.15, VibemonTypeT.FLYING: 0.15},
-    generation_types.SolarPhase.DUSK: {VibemonTypeT.GHOST: 0.20, VibemonTypeT.FAIRY: 0.15},
-    generation_types.SolarPhase.NIGHT: {VibemonTypeT.DARK: 0.25, VibemonTypeT.GHOST: 0.20},
-}
 
 URBAN_ELEMENT_WEIGHTS: Final[dict[VibemonTypeT, float]] = {
     VibemonTypeT.STEEL: 0.35,
@@ -299,6 +291,28 @@ HIGH_ELEVATION_ELEMENT_WEIGHTS: Final[dict[VibemonTypeT, float]] = {
 }
 
 INTENSITY: Final[float] = 0.5
+
+# Visual-note composition thresholds (elevation uses the same Signal as scoring).
+HIGH_ELEVATION_VISUAL_THRESHOLD: Final[float] = 0.62
+HIGH_ELEVATION_VISUAL: Final[str] = "wind-scored ridge edges, thin-air frost tips"
+LOW_ELEVATION_VISUAL_THRESHOLD: Final[float] = 0.28
+LOW_ELEVATION_VISUAL: Final[str] = "lowland-soft belly, river-plain dampness"
+
+WATER_VISUAL_THRESHOLD: Final[float] = 0.45
+MARINE_COAST_VISUAL: Final[str] = "salt-spray patina, tide-line bleaching"
+MARINE_OPEN_VISUAL: Final[str] = "coastal salt-crystal flecks"
+INLAND_RIVER_VISUAL: Final[str] = "river-damp sheen, silt-dark belly"
+INLAND_CANAL_VISUAL: Final[str] = "canal-stain streaks, iron-rust edging"
+INLAND_LAKE_VISUAL: Final[str] = "still-water mirror flecks"
+INLAND_WATER_VISUAL: Final[str] = "freshwater damp sheen"
+
+LAND_COVERS_WITH_WATER_BASE: Final[frozenset[WorldCoverClassT]] = frozenset(
+    {
+        WorldCoverClassT.PERMANENT_WATER,
+        WorldCoverClassT.HERBACEOUS_WETLAND,
+        WorldCoverClassT.MANGROVES,
+    }
+)
 
 MARINE_WATER_REACH_KM: Final[float] = 50.0
 INLAND_WATER_REACH_KM: Final[float] = 15.0

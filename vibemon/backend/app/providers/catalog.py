@@ -1,60 +1,14 @@
-"""Provider catalog registry and requirement evaluation."""
+"""Per-trainer requirement evaluation for catalog Providers."""
 
 from typing import Any
-import inspect
 import uuid
 
 from app.core.errors import ProviderConfigRequired, ProviderNotImplemented
 from app.domains.generation.ports import TrainerSecrets
 from app.providers import catalog_schema as catalog
+from app.providers import registry
 from app.providers import types as provider_types
 from app.providers.base import VibeProvider
-from app.providers.biome.provider import BiomeProvider
-from app.providers.books.provider import BooksProvider
-from app.providers.celestial.provider import CelestialProvider
-from app.providers.climate.provider import ClimateProvider
-from app.providers.fitness.provider import FitnessProvider
-from app.providers.music.provider import MusicProvider
-from app.providers.video.provider import VideoProvider
-
-CATALOG_PROVIDER_TYPES: tuple[type[VibeProvider[Any]], ...] = (
-    ClimateProvider,
-    BiomeProvider,
-    CelestialProvider,
-    MusicProvider,
-    VideoProvider,
-    BooksProvider,
-    FitnessProvider,
-)
-
-_PROVIDER_BY_NAME: dict[str, type[VibeProvider[Any]]] = {cls.name: cls for cls in CATALOG_PROVIDER_TYPES}
-
-
-def get_catalog_provider(name: str) -> type[VibeProvider[Any]]:
-    try:
-        return _PROVIDER_BY_NAME[name]
-    except KeyError as exc:
-        msg = f"Unknown provider {name!r}."
-        raise KeyError(msg) from exc
-
-
-def list_catalog_entries() -> tuple[catalog.ProviderCatalogEntry, ...]:
-    return tuple(cls.catalog_entry() for cls in CATALOG_PROVIDER_TYPES)
-
-
-def _lore_from_docstring(doc: str | None) -> tuple[str, ...]:
-    if doc is None:
-        return ()
-    paragraphs = [paragraph.strip() for paragraph in doc.split("\n\n") if paragraph.strip()]
-    cleaned: list[str] = []
-    for paragraph in paragraphs:
-        lines = [line.strip() for line in paragraph.splitlines() if line.strip()]
-        if not lines:
-            continue
-        if lines[0].startswith("────"):
-            continue
-        cleaned.append(" ".join(lines))
-    return tuple(cleaned)
 
 
 async def _secret_kinds_satisfied(
@@ -178,10 +132,10 @@ async def list_provider_statuses(
     geolocation: tuple[float, float] | None,
 ) -> tuple[catalog.ProviderStatus, ...]:
     statuses: list[catalog.ProviderStatus] = []
-    for provider_cls in CATALOG_PROVIDER_TYPES:
+    for registration in registry.REGISTRATIONS:
         statuses.append(
             await evaluate_provider_status(
-                provider_cls,
+                registration.provider_type,
                 trainer_id=trainer_id,
                 secrets=secrets,
                 geolocation=geolocation,
@@ -208,28 +162,3 @@ async def ensure_requirements_met(
     )
     if not status.ready:
         raise ProviderConfigRequired(f"Provider {provider_cls.name!r} is missing required configuration.")
-
-
-def bind_catalog_methods() -> None:
-    """Attach catalog helpers to ``VibeProvider`` without import cycles at class body time."""
-
-    @classmethod
-    def catalog_entry(cls: type[VibeProvider[Any]]) -> catalog.ProviderCatalogEntry:
-        elements = tuple(
-            catalog.ProviderElement(type=element.value, signal=signal) for element, signal in cls.exposed_elements
-        )
-        return catalog.ProviderCatalogEntry(
-            id=cls.name,
-            label=cls.display_label,
-            tagline=cls.tagline,
-            lore=_lore_from_docstring(inspect.getdoc(cls)),
-            data_sources=cls.data_sources,
-            elements=elements,
-            requirements=cls.requirements,
-            implemented=cls.implemented,
-        )
-
-    VibeProvider.catalog_entry = catalog_entry  # type: ignore[attr-defined]
-
-
-bind_catalog_methods()
