@@ -7,6 +7,8 @@ The look deliberately blends two directions. From the authentic handheld traditi
 
 We are explicitly *not* chasing hardware-accurate harshness (no aggressive scanlines, no loud primary-color UI) and *not* chasing modern illustration (no soft-focus, no depth-of-field blur, no high-detail painterly sprites). Cozy means **simple, warm, and readable**; nostalgic means **familiar conventions plus a whisper of analog texture**.
 
+Quick reference: `VOICE.md` for player-facing copy and tone.
+
 ## 2. Color Palette
 The palette is mid-century at heart — drawn from period interior design and Kodachrome film — but tuned toward **desaturated warmth** rather than the era's louder moments. Every color below lives inside a single locked set (§2.0); nothing is sampled outside it.
 
@@ -340,7 +342,7 @@ The soundtrack leans into **Library Music**, mellow **Soft-Psych**, gentle **Jaz
 * **Instrumentation:** Hammond B3 with a slow Leslie as a signature warm color, supported by mellow electric piano, round-toned bass, brushed/damped drums, lightly warmed rhythm guitar, soft Mellotron pads, and sparse analog synth blips.
 * **Composition:** Relaxed 4/4 with a gentle forward lilt, short memorable hooks, and compact A/B/A loop forms. The B section adds warmth and color, not drama.
 * **Looping:** A short intro plus a separate loop. Loops may carry a subtle tape-seam artifact when musically apt, but the runtime loop must feel intentional and never distracting.
-* **Tone Guardrails:** Keep playful from tipping into comedic. Avoid circus colors, cartoon novelty, cinematic risers, EDM drops, metal aggression, dense jazz-funk frenzy, and pristine chiptune. **Warmth over tension, space over density.**
+* **Tone Guardrails:** Keep playful from tipping into comedic. Avoid circus colors, cartoon novelty, cinematic risers, EDM drops, metal aggression, dense jazz-funk frenzy, and pristine chiptune. **Warmth over tension, space over density.** Copy guardrails: `VOICE.md`.
 
 ### 7.5 Soundtrack Hierarchy
 Each cue has a role on the emotional ladder, but the whole ladder sits in the **cozy register** — intensity rises through *liveliness, warmth, and arrangement density*, not through tension or aggression. Every cue shares the instrumentation pool, processing chain, and harmonic language of §7.1.
@@ -370,4 +372,4 @@ Trainers do not throw spheres. They carry a **Vibe Deck** on the belt and store 
 
 Wild capture presentation: slot **Blank Cart** → **Press** → stepped reel pulse → labeled cart returns to folio. Use plastic thunk + warm blip SFX (§7.3). **Hatch** / **Generation** birth rituals stay separate from field capture.
 
-Full visual tokens, tier names, player copy, and concept-art prompt anchors: **`GEAR.md`**. Domain definitions: **`CONTEXT.md`**.
+Full visual tokens, tier names, player copy, and concept-art prompt anchors: **`GEAR.md`**. Domain definitions: **`CONTEXT.md`**. Copy tone: **`VOICE.md`**.

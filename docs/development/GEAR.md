@@ -1,6 +1,6 @@
 # Trainer Gear & Capture Media
 
-Visual tokens and iconography for the trainer's field equipment. Domain meaning and player-facing copy live in `CONTEXT.md`; locked hex values live in `COLORS.md` and `DESIGN.md` §2.
+Visual tokens and iconography for the trainer's field equipment. Domain meaning in `CONTEXT.md`; player-facing tone in `VOICE.md`; capture strings in §Player-Facing Copy below; locked hex values in `COLORS.md` and `DESIGN.md` §2.
 
 ## Canonical Objects
 
@@ -63,13 +63,15 @@ Same **Vibe Cart** shape at every tier — differentiate with label stock and su
 
 | Part | Color |
 | :--- | :--- |
-| Body | **Parchment Cream** |
+| Upper body (label hood) | **Parchment Cream** |
+| Lower body (capture shell) | **Grape Plum** |
 | Outline | **Tobacco Brown** |
-| Accent stripe / notch | **Grape Plum** |
 | Contact pins (optional) | **Soft Mustard** |
 | Label fill (occupied) | Type color or **Warm Parchment** |
 
-**Icon sizes:** Design for legibility at 16×16 and 32×32 — rect + circle reads at a glance; avoid hemisphere or button-center silhouettes.
+**Two-tone rule:** Every **Vibe Cart** reads as two large color blocks — cream hood above, plum shell below — with a circular label window in the cream zone. Avoid monochrome one-color bodies; tier variants change label stock and texture, not the two-tone split.
+
+**Icon sizes:** Design for legibility at 16×16 and 32×32 — cream circle on plum rect reads at a glance; avoid hemisphere or button-center silhouettes.
 
 ## Cart Folio — Visual Tokens
 
@@ -90,12 +92,17 @@ Same **Vibe Cart** shape at every tier — differentiate with label stock and su
 
 ## Concept Art Prompt Anchor
 
-Saved gear prompts live under `vibemon/frontend/asset-prompts/game/` (mirrors `static/game/`). Format and workflow: **`ASSET-PROMPTS.md`**.
+Saved gear prompts live under `vibemon/frontend/asset-prompts/game/`:
 
-Append to gear reference prompts for pipeline consistency:
+- `sprites/` — hero/reference poses (transparent PNGs under `static/game/sprites/`)
+- `icons/` — HUD-scale reframes (`static/game/icons/`); gear icons reference their sprite via `reference_asset` in frontmatter
+
+Regenerate with `uv run --project vibemon/backend python scripts/generate_static_assets.py` (all non-approved assets), or one gear object with `… generate_static_assets.py vibe-deck` (sprite + icon).
+
+Append to gear reference prompts for pipeline consistency (keep in sync with `vibemon/frontend/asset-prompts/base-style.md` and backend `_style/rendering.j2`):
 
 ```text
-In a high-quality, illustrative pixel art concept style. Render with thick, distinct dark brown pixelated outlines defining the silhouette. Apply a subtle but continuous coarse watercolor paper canvas texture over the entire image surface. The shading must use a grainy, speckled, wash effect (not flat pixels). The color palette is slightly muted and desaturated. Isolated on a clean, solid white background, presented in a static, detailed sprite pose.
+In a cozy handheld pixel art sprite style. Render with thick, distinct dark brown pixelated outlines defining the silhouette. Use 2–3 flat tone steps per color zone with soft stepped edges. Apply whisper-level paper grain and subtle dither on large flat surfaces only — not heavy crosshatch or stipple across entire fills. The color palette is slightly muted and desaturated. Isolated on a clean, solid white background, presented in a static, detailed sprite pose.
 ```
 
 **Vibe Deck (closed, facing right) — base prompt:**

@@ -6,7 +6,7 @@
 | **Priority** | Low |
 | **Complexity** | Medium |
 | **Area** | Visual Identity & Pride |
-| **Related** | [trainer-progression-and-economy.md](trainer-progression-and-economy.md), [achievement-system.md](achievement-system.md), [sprite-anatomy-system.md](sprite-anatomy-system.md) |
+| **Related** | [vibe-gold-economy.md](vibe-gold-economy.md), [achievement-system.md](achievement-system.md), [sprite-anatomy-system.md](sprite-anatomy-system.md) |
 
 ## Summary
 

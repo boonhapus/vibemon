@@ -6,7 +6,7 @@
 | **Priority** | Medium |
 | **Complexity** | Medium |
 | **Area** | Exploration & World Logic |
-| **Related** | [trainer-progression-and-economy.md](trainer-progression-and-economy.md), [achievement-system.md](achievement-system.md) |
+| **Related** | [vibe-gold-economy.md](vibe-gold-economy.md), [achievement-system.md](achievement-system.md) |
 
 ## Summary
 

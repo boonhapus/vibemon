@@ -1,6 +1,6 @@
 # Vibemon Context
 
-Canonical vocabulary for Vibemon domain conversations. This file defines meaning and boundaries for domain terms; implementation choices, tuning numbers, and rollout plans belong elsewhere.
+Canonical vocabulary for Vibemon domain conversations. This file defines meaning and boundaries for domain terms; implementation choices, tuning numbers, and rollout plans belong elsewhere. Player-facing tone and copy guardrails: `VOICE.md`.
 
 ## Language
 
