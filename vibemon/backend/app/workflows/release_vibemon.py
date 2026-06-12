@@ -10,8 +10,8 @@ from app.core.ids import TrainerIdT
 from app.core.time import resolve_clock
 from app.domains.vibemon.disposition import VibemonDispositionT
 from app.domains.vibemon.schema import PublicVibemon
-from app.storage.database import models, repositories
-from app.workflows import _workflow_support as workflows
+from app.storage.database import models, vibemon_repo
+from app.workflows import public_projection, wild_disposition
 
 
 async def release_vibemon(
@@ -34,7 +34,7 @@ async def release_vibemon(
     ).scalar_one_or_none()
     if row is None:
         raise ReleaseUnavailable("Vibemon is not owned by this trainer.")
-    workflows.release_to_wild(sess, row, trainer_id, now)
+    wild_disposition.release_to_wild(sess, row, trainer_id, now)
     await sess.flush()
-    loaded = await repositories.load_vibemon(sess, vibemon_id)
-    return await workflows.public_vibemon(loaded, reviewing_trainer_id=trainer_id)
+    loaded = await vibemon_repo.load_vibemon(sess, vibemon_id)
+    return await public_projection.public_vibemon(loaded, reviewing_trainer_id=trainer_id)

@@ -13,7 +13,7 @@ from app.domains.adoption.types import CandidateReviewStatusT
 from app.domains.trainer.credits import GENERATION_HOLD_TIMEOUT
 from app.domains.vibemon.history import VibemonHistoryEventT
 from app.storage.database import models
-from app.workflows import _workflow_support as workflows
+from app.workflows import wild_disposition
 
 
 async def resolve_review_timeouts(
@@ -35,7 +35,7 @@ async def resolve_review_timeouts(
         .all()
     )
     for review in reviews:
-        await workflows.resolve_candidate_to_wild(
+        await wild_disposition.resolve_candidate_to_wild(
             sess,
             review,
             now,

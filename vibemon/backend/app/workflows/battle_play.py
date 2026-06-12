@@ -10,7 +10,7 @@ from app.core.errors import BattleUnavailable
 from app.core.ids import TrainerIdT
 from app.domains.battle import actions, ai, engine, entity, events
 from app.domains.battle.entity import BattleVibemon
-from app.storage.database import mapper, repositories
+from app.storage.database import mapper, vibemon_repo, wild_pool_repo
 
 
 @dataclass(frozen=True, slots=True)
@@ -44,7 +44,7 @@ class BattleSessionRegistry:
 
 
 async def load_battle_vibemon(sess: AsyncSession, vibemon_id: uuid.UUID) -> BattleVibemon:
-    row = await repositories.load_vibemon(sess, vibemon_id)
+    row = await vibemon_repo.load_vibemon(sess, vibemon_id)
     vibemon = await mapper.vibemon_from_row(row)
     combatant = BattleVibemon(**vibemon.model_dump())
     if not combatant.battle_moves:
@@ -65,11 +65,11 @@ async def start_wild_battle(
     hero_vibemon_id: uuid.UUID,
     wild_vibemon_id: uuid.UUID,
 ) -> ActiveBattle:
-    hero_row = await repositories.load_vibemon(sess, hero_vibemon_id)
+    hero_row = await vibemon_repo.load_vibemon(sess, hero_vibemon_id)
     if hero_row.trainer_id != trainer_id:
         raise BattleUnavailable("That Vibemon is not in your crew.")
 
-    if not await repositories.is_wild_encounter_eligible(sess, vibemon_id=wild_vibemon_id):
+    if not await wild_pool_repo.is_wild_encounter_eligible(sess, vibemon_id=wild_vibemon_id):
         raise BattleUnavailable("That Wild Vibemon is no longer available.")
 
     hero = await load_battle_vibemon(sess, hero_vibemon_id)
@@ -102,9 +102,7 @@ def submit_player_turn(
     if battle.concluded:
         raise BattleUnavailable("Battle is already over.")
 
-    player_trainer = (
-        battle.trainer_a if session.player_trainer_id == battle.trainer_a.id else battle.trainer_b
-    )
+    player_trainer = battle.trainer_a if session.player_trainer_id == battle.trainer_a.id else battle.trainer_b
     wild_trainer = battle.trainer_b if player_trainer is battle.trainer_a else battle.trainer_a
 
     player_move = actions.MoveAction(trainer=player_trainer.id, move_name=move_name)
