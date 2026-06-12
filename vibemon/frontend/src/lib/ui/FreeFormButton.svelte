@@ -11,6 +11,7 @@
 		onmouseleave,
 		onfocus,
 		onblur,
+		oncontextmenu,
 		disabled = false,
 		ariaLabel,
 		class: className = '',
@@ -25,6 +26,7 @@
 		onmouseleave?: (event: MouseEvent) => void;
 		onfocus?: (event: FocusEvent) => void;
 		onblur?: (event: FocusEvent) => void;
+		oncontextmenu?: (event: MouseEvent) => void;
 		disabled?: boolean;
 		ariaLabel: string;
 		class?: string;
@@ -46,6 +48,7 @@
 	{onmouseleave}
 	{onfocus}
 	{onblur}
+	{oncontextmenu}
 	{disabled}
 	aria-label={ariaLabel}
 >

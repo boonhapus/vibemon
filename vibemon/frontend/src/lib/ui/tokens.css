@@ -8,23 +8,36 @@
 	--vm-burnt-orange: #c0542a;
 	--vm-sage-olive: #6e7540;
 	--vm-plum: #7c4d8a;
+	--vm-dusk-indigo: #524870;
+	--vm-pewter: #8a8c8e;
 	--vm-brass: #a68a4c;
 	--vm-panel-border: #6b4423;
 	--vm-panel-border-light: #a67c52;
-	--vm-panel-dialog-bg: #1a1224;
-	--vm-panel-dialog-text: var(--vm-parchment);
+	--vm-panel-dialog-bg: var(--vm-panel-command-bg);
+	--vm-panel-dialog-text: var(--vm-tobacco-black);
 	--vm-panel-command-bg: #e0cda8;
 	/* Status — docs/development/COLORS.md */
 	--vm-status-sage: #6b9b5a;
 	--vm-status-amber: #cc7a22;
 	--vm-status-brick: #a03020;
 
-	/* Legacy alias */
-	--vm-avocado: var(--vm-sage-olive);
-
-	/* Canonical: docs/development/DESIGN.md §3.1 — two in-app voices only */
+	/* Canonical: docs/development/DESIGN.md §3.1 — three in-app voices:
+	   title  = mid-century display (logo, title screens, large moments)
+	   ui     = chunky bitmap (labels, buttons, ALL-CAPS chrome)
+	   body   = friendly rounded bitmap (dialog, hints, descriptions) */
 	--vm-font-title: 'Futura', 'Century Gothic', 'ITC Avant Garde', system-ui, sans-serif;
 	--vm-font-ui: 'Press Start 2P', monospace;
+	--vm-font-body: 'Pixelify Sans', 'Press Start 2P', monospace;
+
+	/* Type ramp — pair with the spacing rules below; don't invent sizes inline.
+	   Title→subtitle gap: --vm-space-xs. Between text blocks: --vm-space-md.
+	   Body line-height ≥ 1.5 — bitmap faces need air to stay readable. */
+	--vm-text-title: clamp(1.5rem, 4vw, 2.25rem);
+	--vm-text-heading: clamp(0.875rem, 2.6vw, 1.125rem);
+	--vm-text-body: clamp(1.0625rem, 3vw, 1.375rem);
+	--vm-text-caption: clamp(0.8125rem, 2.2vw, 1rem);
+	--vm-leading-tight: 1.3;
+	--vm-leading-body: 1.55;
 
 	--vm-radius-sm: 4px;
 	--vm-radius-md: 8px;
@@ -42,21 +55,53 @@
 	--vm-hud-surface-pad: clamp(12px, 2.2vw, 20px);
 	--vm-hud-font-name-label: clamp(1rem, 3.6vw, 1.5rem);
 	--vm-hud-font-name-slot: clamp(0.9375rem, 3.2vw, 1.35rem);
-	--vm-hud-font-dialog: clamp(1.0625rem, 3.4vw, 1.5rem);
-	--vm-hud-dialog-line-height: 1.85;
+	--vm-hud-font-dialog: clamp(1.1875rem, 3.6vw, 1.625rem);
+	/* DialogBox speaks in the UI voice (Press Start 2P) — wider glyphs, so it runs
+	   smaller than --vm-hud-font-dialog while filling the same two-line block. */
+	--vm-hud-font-dialog-ui: clamp(0.8125rem, 2.6vw, 1.125rem);
+	/* Body voice (Pixelify) is more compact than Press Start — 1.6 keeps two
+	   lines airy without the old 1.85 stilt. */
+	--vm-hud-dialog-line-height: 1.6;
 	/* Fixed two-line text block — must not grow when copy wraps. */
 	--vm-hud-dialog-content-height: calc(2 * var(--vm-hud-font-dialog) * var(--vm-hud-dialog-line-height));
 	--vm-hud-slot-height: clamp(1.35rem, 3.4vw, 1.7rem);
 	/* Full GamePanel chrome + padded dialog content (matches DialogBox / hud-dialog-slot). */
 	--vm-hud-dialog-slot-height: calc(30px + 2 * var(--vm-hud-surface-pad) + var(--vm-hud-dialog-content-height));
 	--vm-hud-icon-slot-height: calc(var(--vm-hud-dialog-slot-height) * 0.7);
-	/* HUD nav icons share slot height; per-asset tuning for optical balance. */
-	--vm-hud-nav-icon-vibe-deck-aspect: 1174 / 663;
-	--vm-hud-nav-icon-settings-visual-scale: 0.86;
+	/* HUD nav icons share slot height; per-asset tuning for optical balance.
+	   vibe-deck@96.png is trimmed to content — 76×63 true pixels (pixelsnap). */
+	--vm-hud-nav-icon-vibe-deck-aspect: 76 / 63;
+	/* Diegetic cabinet bezel width (DESIGN.md §5.2) — global so fixed-position
+	   chrome (toasts, corner controls) can stay inside the screen glass. */
+	--vm-bezel-w: clamp(10px, 1.8vw, 24px);
+
+	/* Cabinet wood grain — shared by SceneFrame bezel, corner plate, and settings knob. */
+	--vm-cabinet-wood-grain:
+		repeating-linear-gradient(0deg, rgb(20 12 8 / 0.14) 0 1px, transparent 1px 7px),
+		repeating-linear-gradient(0deg, rgb(240 231 206 / 0.045) 0 2px, transparent 2px 11px),
+		linear-gradient(180deg, #4a3428, #3d2b1f 35%, #2f2117);
+	--vm-cabinet-wood-grain-corner:
+		repeating-linear-gradient(0deg, rgb(20 12 8 / 0.12) 0 1px, transparent 1px 7px),
+		repeating-linear-gradient(0deg, rgb(240 231 206 / 0.04) 0 2px, transparent 2px 11px),
+		linear-gradient(145deg, #4a3428, #3d2b1f 55%, #2f2117);
+
 	/* Shared HUD layout anchors — provider column and bottom dialog row. */
 	--vm-hud-rail-inset: clamp(1.25rem, 4vw, 2.5rem);
 	--vm-hud-bottom-inset: clamp(1.25rem, 5vh, 2.5rem);
 	--vm-hud-provider-column-width: min(42vw, 14rem);
+	/* Candidate review panel — replaces the jack bay while reviewing a hatch.
+	   The scene stretches it across the open sky right of the mon column;
+	   this only caps runaway growth on ultra-wide screens. */
+	--vm-hud-candidate-panel-max-width: 37rem;
+	/* Vertical footprint of the signal patch panel (7 provider rows + plate chrome). */
+	--vm-hud-provider-rail-min-height: 22.5rem;
+	/* Candidate readout covers the provider rail footprint it swaps in for and
+	   runs longer — viewport-capped so the bottom dialog row stays clear. */
+	--vm-hud-candidate-panel-min-height: max(var(--vm-hud-provider-rail-min-height), min(27rem, 62vh));
+	/* Right HUD rail: wood lip + parchment plate, inset from cabinet bezel. */
+	--vm-hud-rail-width: calc(var(--vm-hud-provider-column-width) + var(--vm-hud-panel-rail-thickness));
+	--vm-hud-candidate-rail-max-width: calc(var(--vm-hud-candidate-panel-max-width) + var(--vm-hud-panel-rail-thickness));
+	--vm-hud-panel-rail-thickness: 8px;
 
 	/* Animation timing — docs/development/DESIGN.md §6.2 */
 	--anim-cel-fps: 12;
@@ -70,6 +115,11 @@
 	--anim-ui-reveal-steps: 8;
 	--anim-toast-duration: 360ms;
 	--anim-onboarding-cross-duration: 1.04s;
+
+	/* Screen-space post-process — docs/development/DESIGN.md §4
+	   0 = off, ~0.10 = whisper, 1 = strong grain */
+	--vm-film-grain-opacity: 0.10;
+	--vm-vignette-strength: 0.22;
 }
 
 @keyframes vm-cursor-blink {

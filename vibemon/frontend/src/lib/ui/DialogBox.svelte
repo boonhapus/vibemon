@@ -109,7 +109,6 @@
 		width: var(--vm-hud-dialog-width);
 	}
 	:global(.dialog-box .game-panel__content) {
-		background-image: none;
 		padding-left: calc(var(--vm-hud-surface-pad, var(--vm-space-md)) + 10px);
 	}
 	.dialog-box__content {
@@ -136,8 +135,11 @@
 		flex: 1;
 		min-width: 0;
 		font-family: var(--vm-font-ui);
-		font-size: var(--vm-hud-font-dialog);
-		line-height: var(--vm-hud-dialog-line-height);
+		font-weight: 400;
+		font-size: var(--vm-hud-font-dialog-ui);
+		/* Length line-height: two lines exactly fill the fixed dialog block, so the
+		   typing effect never reflows the panel. */
+		line-height: calc(var(--vm-hud-dialog-content-height) / 2);
 		color: inherit;
 	}
 	:global(.dialog-box__cursor) {

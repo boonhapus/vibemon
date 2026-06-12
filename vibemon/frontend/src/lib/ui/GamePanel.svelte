@@ -39,6 +39,10 @@
 		--panel-hairline-w: 4px;
 		--panel-bevel: var(--vm-panel-border-light);
 		--panel-bevel-w: 10px;
+		/* Two-tone bevel — light catches top/left, shade falls bottom/right.
+		   Mixed from the bevel color itself so every tone stays on-palette. */
+		--panel-bevel-light: color-mix(in srgb, var(--panel-bevel) 72%, var(--vm-parchment));
+		--panel-bevel-dark: color-mix(in srgb, var(--panel-bevel) 76%, var(--vm-tobacco));
 		--panel-inner-trim: transparent;
 		--panel-inner-trim-w: 0px;
 		--panel-surface: var(--vm-parchment);
@@ -80,7 +84,25 @@
 
 	.game-panel__surface {
 		padding: var(--panel-bevel-w);
-		background: var(--panel-bevel);
+		/* Flat edge bands — light catches top/left, shade falls bottom/right;
+		   the dither checker on top gives the linen/print feel (DESIGN.md §3.2). */
+		background-color: var(--panel-bevel-dark);
+		background-image:
+			repeating-conic-gradient(
+				rgb(61 43 31 / 0.06) 0% 25%,
+				transparent 0% 50%
+			),
+			linear-gradient(var(--panel-bevel-light), var(--panel-bevel-light)),
+			linear-gradient(var(--panel-bevel-light), var(--panel-bevel-light));
+		background-repeat: repeat, no-repeat, no-repeat;
+		background-position:
+			0 0,
+			0 0,
+			0 0;
+		background-size:
+			4px 4px,
+			100% var(--panel-bevel-w),
+			var(--panel-bevel-w) 100%;
 		--panel-chamfer: var(--panel-bevel-outer);
 	}
 
@@ -88,6 +110,7 @@
 		position: relative;
 		padding: var(--vm-hud-surface-pad, var(--vm-space-md));
 		min-height: 100%;
+		font-family: var(--vm-font-ui);
 		background-color: var(--panel-surface);
 		box-shadow: inset 0 0 0 var(--panel-inner-trim-w) var(--panel-inner-trim);
 		background-image:
@@ -106,15 +129,35 @@
 	.game-panel__inset,
 	.game-panel__surface,
 	.game-panel__content {
+		/* Pixel-rounded corner: two stair-steps of --panel-step instead of a
+		   straight 45° chamfer — GBA dialog-box corners, not a cut crate edge. */
+		--panel-step: calc(var(--panel-chamfer) / 2);
 		clip-path: polygon(
-			var(--panel-chamfer) 0,
-			calc(100% - var(--panel-chamfer)) 0,
-			100% var(--panel-chamfer),
-			100% calc(100% - var(--panel-chamfer)),
-			calc(100% - var(--panel-chamfer)) 100%,
-			var(--panel-chamfer) 100%,
-			0 calc(100% - var(--panel-chamfer)),
-			0 var(--panel-chamfer)
+			/* top-left */
+			calc(var(--panel-step) * 2) 0,
+			/* top edge → top-right */
+			calc(100% - var(--panel-step) * 2) 0,
+			calc(100% - var(--panel-step) * 2) var(--panel-step),
+			calc(100% - var(--panel-step)) var(--panel-step),
+			calc(100% - var(--panel-step)) calc(var(--panel-step) * 2),
+			100% calc(var(--panel-step) * 2),
+			/* right edge → bottom-right */
+			100% calc(100% - var(--panel-step) * 2),
+			calc(100% - var(--panel-step)) calc(100% - var(--panel-step) * 2),
+			calc(100% - var(--panel-step)) calc(100% - var(--panel-step)),
+			calc(100% - var(--panel-step) * 2) calc(100% - var(--panel-step)),
+			calc(100% - var(--panel-step) * 2) 100%,
+			/* bottom edge → bottom-left */
+			calc(var(--panel-step) * 2) 100%,
+			calc(var(--panel-step) * 2) calc(100% - var(--panel-step)),
+			var(--panel-step) calc(100% - var(--panel-step)),
+			var(--panel-step) calc(100% - var(--panel-step) * 2),
+			0 calc(100% - var(--panel-step) * 2),
+			/* left edge → top-left */
+			0 calc(var(--panel-step) * 2),
+			var(--panel-step) calc(var(--panel-step) * 2),
+			var(--panel-step) var(--panel-step),
+			calc(var(--panel-step) * 2) var(--panel-step)
 		);
 	}
 
@@ -123,6 +166,13 @@
 		inset: var(--panel-accent-inset);
 		z-index: 2;
 		pointer-events: none;
+		/* Clamps are heavy hardware — reserved for the hero dialog box.
+		   Status/command panels stay clean (cozy restraint, DESIGN.md §3.2). */
+		display: none;
+	}
+
+	.game-panel--dialog .game-panel__corners {
+		display: block;
 	}
 
 	/* L-clamps at each corner */
@@ -181,5 +231,16 @@
 		display: flex;
 		align-items: flex-start;
 		padding-right: calc(var(--vm-hud-font-name-slot) + var(--vm-space-sm));
+	}
+
+	/* Match DialogBox — Press Start 2P in the fixed two-line HUD slot. */
+	:global(.game-panel.hud-dialog-slot .game-panel__content > p) {
+		margin: 0;
+		flex: 1;
+		min-width: 0;
+		font-size: var(--vm-hud-font-dialog-ui);
+		font-weight: 400;
+		line-height: calc(var(--vm-hud-dialog-content-height) / 2);
+		color: inherit;
 	}
 </style>

@@ -20,8 +20,10 @@
 <style>
 	.game-toast {
 		position: fixed;
-		top: clamp(1rem, 4vh, 1.75rem);
-		right: clamp(1rem, 4vw, 2rem);
+		/* Float inside the screen glass: clear the cabinet bezel plus a sliver of
+		   canvas, mirroring the register dialog's relationship to the frame. */
+		top: calc(var(--vm-bezel-w, 16px) + clamp(0.75rem, 3vh, 1.5rem));
+		right: calc(var(--vm-bezel-w, 16px) + clamp(0.75rem, 3vw, 1.5rem));
 		left: auto;
 		z-index: 100;
 		max-width: 30vw;
@@ -51,7 +53,6 @@
 
 	.game-toast__text {
 		margin: 0;
-		font-family: var(--vm-font-ui);
 		font-size: clamp(0.8125rem, 2.6vw, 1rem);
 		line-height: 1.75;
 		color: inherit;

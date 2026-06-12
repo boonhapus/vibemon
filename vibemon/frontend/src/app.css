@@ -13,6 +13,8 @@
 *::before,
 *::after {
 	box-sizing: border-box;
+	user-select: none;
+	-webkit-user-select: none;
 }
 
 html {
@@ -22,4 +24,12 @@ html {
 body {
 	margin: 0;
 	min-height: 100vh;
+}
+
+/* Tactile lift for icons sitting directly on the scene/bezel (DESIGN.md §3.2).
+   Opt-in — skip inside panels that already carry their own shadow. Override
+   --vm-icon-shadow per context to roughly track the icon's display size. */
+.vm-icon--raised {
+	--vm-icon-shadow: 2px;
+	filter: drop-shadow(0 var(--vm-icon-shadow) 0 rgb(42 30 22 / 0.18));
 }
