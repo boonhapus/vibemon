@@ -1,6 +1,7 @@
 <script lang="ts">
 	import { goto } from '$app/navigation';
 
+	import { showMobileViewportGuide } from '$lib/domains/game/mobileViewportGuideStore.svelte';
 	import { clearPendingUsername } from '$lib/domains/trainer/trainerRegisterStore.svelte';
 	import FreeFormButton from '$lib/ui/FreeFormButton.svelte';
 	import GameModal from '$lib/ui/GameModal.svelte';
@@ -16,6 +17,7 @@
 		{ id: 'profile', label: 'Profile', available: false },
 		{ id: 'audio', label: 'Audio', available: false },
 		{ id: 'controls', label: 'Controls', available: false },
+		{ id: 'screen-setup', label: 'Screen setup', available: true },
 		{ id: 'sign-out', label: 'Sign out', available: true }
 	];
 
@@ -33,6 +35,11 @@
 
 	function handleOptionClick(option: SettingsOption) {
 		if (!option.available) return;
+		if (option.id === 'screen-setup') {
+			close();
+			showMobileViewportGuide({ force: true });
+			return;
+		}
 		if (option.id === 'sign-out') {
 			signOut();
 		}
@@ -105,6 +112,20 @@
 	.settings-modal__option-item,
 	:global(.settings-modal__option-button) {
 		width: 100%;
+	}
+
+	/* Match GameButton's tactile feel: lift on hover, settle on press. */
+	.settings-modal__option-item :global(.settings-modal__option-button:not(:disabled):hover),
+	.settings-modal__option-item :global(.settings-modal__option-button:not(:disabled):focus-visible) {
+		transform: translateY(-1px);
+	}
+
+	.settings-modal__option-item :global(.settings-modal__option-button:not(:disabled):active) {
+		transform: translateY(1px);
+	}
+
+	.settings-modal__option-item :global(.settings-modal__option-button:disabled) {
+		cursor: not-allowed;
 	}
 
 	:global(.settings-modal__option-panel) {

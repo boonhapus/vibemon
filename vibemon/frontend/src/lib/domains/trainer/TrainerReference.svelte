@@ -1,6 +1,6 @@
 <script lang="ts">
 	let {
-		spriteSrc = '/game/sprites/trainer.png',
+		spriteSrc = '/game/sprites/trainer@128.png',
 		mirrored = false,
 		class: className = ''
 	}: {
@@ -10,20 +10,24 @@
 	} = $props();
 
 	let rootClass = $derived(
-		['trainer-portrait', mirrored && 'trainer-portrait--mirrored', className].filter(Boolean).join(' ')
+		['trainer-reference', mirrored && 'trainer-reference--mirrored', className].filter(Boolean).join(' ')
 	);
 </script>
 
 <div class={rootClass} aria-hidden="true">
-	<div class="trainer-portrait__platform">
-		<div class="trainer-portrait__platform-core"></div>
+	<div class="trainer-reference__platform">
+		<div class="trainer-reference__platform-core"></div>
 	</div>
-	<img class="trainer-portrait__sprite" src={spriteSrc} alt="" decoding="async" />
+	<img class="trainer-reference__sprite" src={spriteSrc} alt="" decoding="async" />
 </div>
 
 <style>
-	.trainer-portrait {
+	.trainer-reference {
+		/* Sprite is a true 128px grid (pixelsnap). Quantize display height to a
+		   whole multiple of 128 CSS px so each source pixel maps to an integer
+		   number of CSS px — fractional scales shimmer (DESIGN.md §5.2). */
 		--sprite-h: clamp(22rem, 50vh, 36rem);
+		--sprite-h: round(nearest, clamp(22rem, 50vh, 36rem), 128px);
 		--sprite-w: calc(var(--sprite-h) * 0.56);
 		--platform-w: calc(var(--sprite-h) * 0.82);
 		--platform-h: clamp(2rem, 4.5vw, 3rem);
@@ -41,7 +45,7 @@
 		padding-bottom: calc(var(--platform-h) * 0.32);
 	}
 
-	.trainer-portrait__platform {
+	.trainer-reference__platform {
 		position: absolute;
 		bottom: calc(var(--platform-h) * 0.32);
 		left: 50%;
@@ -56,7 +60,7 @@
 	}
 
 	/* Defined oval under the feet — crisp center, soft outer dissolve */
-	.trainer-portrait__platform-core {
+	.trainer-reference__platform-core {
 		position: absolute;
 		inset: -30% -20%;
 		border-radius: 50%;
@@ -93,7 +97,7 @@
 	}
 
 	/* Outer feather — light blur only on the dissolve band */
-	.trainer-portrait__platform::before {
+	.trainer-reference__platform::before {
 		content: '';
 		position: absolute;
 		inset: -44% -28%;
@@ -126,7 +130,7 @@
 	}
 
 	/* Pixel-dither on the outer edge only */
-	.trainer-portrait__platform::after {
+	.trainer-reference__platform::after {
 		content: '';
 		position: absolute;
 		inset: -38% -24%;
@@ -162,27 +166,28 @@
 		);
 	}
 
-	.trainer-portrait__sprite {
+	.trainer-reference__sprite {
 		position: relative;
 		z-index: 1;
 		height: var(--sprite-h);
 		width: auto;
 		margin-bottom: calc(var(--platform-h) * -0.06);
-		transform: translateY(-2%);
+		backface-visibility: visible;
+		transform: perspective(600px)
+			translateX(var(--sprite-foot-nudge-x, 0%))
+			translateY(calc(-2% + var(--sprite-foot-nudge-y, 0%)))
+			rotateY(0deg);
+		transform-origin: center bottom;
 		image-rendering: pixelated;
 		image-rendering: crisp-edges;
 		user-select: none;
 		pointer-events: none;
 	}
 
-	.trainer-portrait--mirrored .trainer-portrait__sprite {
-		transform: translateY(-2%) scaleX(-1);
-	}
-
-	@media (max-width: 480px) {
-		.trainer-portrait {
-			--sprite-h: clamp(16rem, 42vh, 24rem);
-			--platform-h: clamp(1.65rem, 3.8vw, 2.35rem);
-		}
+	.trainer-reference--mirrored .trainer-reference__sprite {
+		transform: perspective(600px)
+			translateX(var(--sprite-foot-nudge-x, 0%))
+			translateY(calc(-2% + var(--sprite-foot-nudge-y, 0%)))
+			rotateY(180deg);
 	}
 </style>

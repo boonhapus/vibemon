@@ -1,8 +1,8 @@
 <script lang="ts">
 	import ElementBadge from '$lib/ui/ElementBadge.svelte';
 	import FreeFormButton from '$lib/ui/FreeFormButton.svelte';
+	import GameButton from '$lib/ui/GameButton.svelte';
 	import GameModal from '$lib/ui/GameModal.svelte';
-	import GamePanel from '$lib/ui/GamePanel.svelte';
 
 	import { providerConfigModalStore } from './providerConfigModalStore.svelte';
 	import type { ProviderRequirement, RequirementStatusEntry } from './providerApi';
@@ -58,10 +58,13 @@
 		if (!iso) return null;
 		const parsed = new Date(iso);
 		if (Number.isNaN(parsed.getTime())) return null;
-		return parsed.toLocaleString(undefined, {
+		const month = parsed.toLocaleString('en-US', { month: 'short' });
+		const day = String(parsed.getDate()).padStart(2, '0');
+		const time = parsed.toLocaleString(undefined, {
 			hour: 'numeric',
 			minute: '2-digit'
 		});
+		return `${month} ${day} ${time}`;
 	}
 
 	function requirementStatusLabel(displayStatus: RequirementStatusEntry['status']): string {
@@ -219,28 +222,24 @@
 
 					<div class="provider-config-modal__actions">
 						<div class="provider-config-modal__action-row">
-							<FreeFormButton
+							<GameButton
+								variant={enabled ? 'secondary' : 'primary'}
 								class="provider-config-modal__action-button provider-config-modal__action-button--primary"
 								ariaLabel={enabled ? 'Disable provider' : 'Enable provider'}
 								disabled={enabled ? !canDisable || fetching : !canEnable}
 								onclick={handlePrimaryAction}
 							>
-								<GamePanel tone="command" class="provider-config-modal__action-panel">
-									<span class="provider-config-modal__action-label">
-										{enabled ? 'Disable' : 'Enable'}
-									</span>
-								</GamePanel>
-							</FreeFormButton>
-							<FreeFormButton
+								{enabled ? 'Disable' : 'Enable'}
+							</GameButton>
+							<GameButton
+								variant="secondary"
 								class="provider-config-modal__action-button"
 								ariaLabel="Force refresh provider data"
 								disabled={!canRefresh}
 								onclick={() => providerConfigModalStore.handlers.onRefresh?.()}
 							>
-								<GamePanel tone="command" class="provider-config-modal__action-panel">
-									<span class="provider-config-modal__action-label">Refresh</span>
-								</GamePanel>
-							</FreeFormButton>
+								Refresh
+							</GameButton>
 						</div>
 					</div>
 				</div>
@@ -506,27 +505,14 @@
 		gap: clamp(0.45rem, 1.2vw, 0.65rem);
 	}
 
-	:global(.provider-config-modal__action-button) {
+	.provider-config-modal__action-row :global(.provider-config-modal__action-button) {
 		flex: 1 1 0;
 		min-width: 0;
-	}
-
-	:global(.provider-config-modal__action-button--primary) {
-		flex: 1.35 1 0;
-	}
-
-	:global(.provider-config-modal__action-panel) {
-		width: 100%;
-	}
-
-	.provider-config-modal__action-label {
-		display: block;
-		font-family: var(--vm-font-ui);
 		font-size: clamp(0.6875rem, 2vw, 0.875rem);
-		line-height: 1.5;
-		letter-spacing: 0.06em;
-		text-align: center;
-		color: inherit;
+	}
+
+	.provider-config-modal__action-row :global(.provider-config-modal__action-button--primary) {
+		flex: 1.35 1 0;
 	}
 
 	.provider-config-modal__coming-soon {

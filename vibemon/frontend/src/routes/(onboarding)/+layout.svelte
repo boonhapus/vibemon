@@ -1,36 +1,127 @@
 <script lang="ts">
-	import { afterNavigate } from '$app/navigation';
+	import { browser } from '$app/environment';
+	import { afterNavigate, goto } from '$app/navigation';
 	import { page } from '$app/state';
-	import { setContext, type Snippet } from 'svelte';
+	import { onMount, setContext, type Snippet } from 'svelte';
 	import { prefersReducedMotion } from 'svelte/motion';
 
 	import HatchlingSilhouette from '$lib/domains/trainer/HatchlingSilhouette.svelte';
 	import ProviderConfigModal from '$lib/domains/trainer/ProviderConfigModal.svelte';
 	import { providerConfigModalStore } from '$lib/domains/trainer/providerConfigModalStore.svelte';
 	import SettingsModal from '$lib/domains/trainer/SettingsModal.svelte';
-	import TrainerPortrait from '$lib/domains/trainer/TrainerPortrait.svelte';
-	import TrainerPortraitCamera from '$lib/domains/trainer/TrainerPortraitCamera.svelte';
+	import { uploadTrainerReferenceWithSession } from '$lib/domains/trainer/trainerApi';
+	import {
+		bootstrapHatchSceneOnce,
+		clearHatchBootstrapCache,
+		clearHatchSceneState,
+		persistHatchSceneState,
+		restoreHatchSceneState
+	} from '$lib/domains/trainer/hatchSceneStore';
+	import { readPendingUsername } from '$lib/domains/trainer/trainerRegisterStore.svelte';
+	import {
+		applyTrainerReferenceUrl,
+		createTrainerOnboardingUi,
+		type TrainerOnboardingUi
+	} from '$lib/domains/trainer/trainerOnboardingUi';
+	import {
+		createHatchFlowActions,
+		createHatchFlowState,
+		hatchControlsBlocked,
+		HATCH_FLOW_KEY,
+		releaseDisabled,
+		type HatchFlowState
+	} from '$lib/domains/trainer/hatchFlow';
+	import {
+		createProviderSelectionState,
+		PROVIDER_SELECTION_KEY,
+		type ProviderSelectionState
+	} from '$lib/domains/trainer/providerSelection';
+	import AdoptNicknameModal from '$lib/domains/trainer/AdoptNicknameModal.svelte';
+	import HatchCandidatePanel from '$lib/domains/trainer/HatchCandidatePanel.svelte';
+	import HatchSceneDepth from '$lib/domains/trainer/HatchSceneDepth.svelte';
+	import SettingsNavButton from '$lib/domains/trainer/SettingsNavButton.svelte';
+	import { readHatchDevOverrides } from '$lib/domains/trainer/devOverrides';
+	import TrainerReference from '$lib/domains/trainer/TrainerReference.svelte';
+	import TrainerReferenceCamera from '$lib/domains/trainer/TrainerReferenceCamera.svelte';
 	import GameToast from '$lib/ui/GameToast.svelte';
+	import { showGameToast } from '$lib/ui/toastStore.svelte';
 	import SceneFrame from '$lib/ui/SceneFrame.svelte';
 
 	const ONBOARDING_UI_KEY = 'trainer-onboarding-ui';
 
 	let { children }: { children: Snippet } = $props();
 
-	let onboardingUi = $state({
-		portraitHintVisible: false,
-		hatchHintVisible: false,
-		settingsOpen: false
-	});
-	setContext(ONBOARDING_UI_KEY, onboardingUi);
+	let onboardingUi = $state(createTrainerOnboardingUi());
+	let hatchFlow = $state(createHatchFlowState());
+	let providerSelection = $state(createProviderSelectionState());
+	let hatchSceneRestored = $state(false);
+
+	setContext<TrainerOnboardingUi>(ONBOARDING_UI_KEY, onboardingUi);
+	setContext<HatchFlowState>(HATCH_FLOW_KEY, hatchFlow);
+	setContext<ProviderSelectionState>(PROVIDER_SELECTION_KEY, providerSelection);
 
 	let isRegister = $derived(page.url.pathname.endsWith('/register'));
 	let isHatch = $derived(page.url.pathname.endsWith('/hatch'));
-	let crossing = $state<'none' | 'forward' | 'back'>('none');
+	let hatchDevOverrides = $derived(
+		isHatch ? readHatchDevOverrides(page.url.searchParams) : { bypassCredits: false }
+	);
 
-	// The facing flip is driven entirely in CSS (swapped at the wipe's pinch),
-	// so the resting orientation only needs to follow the active route.
-	let mirrored = $derived(isHatch);
+	const hatchActions = createHatchFlowActions(hatchFlow, {
+		providers: providerSelection,
+		bypassCredits: () => hatchDevOverrides.bypassCredits,
+		showToast: showGameToast,
+		onPersist: () => persistHatchSceneState(onboardingUi, hatchFlow, providerSelection),
+		onClearScene: clearHatchSceneState,
+		goto,
+		prefersReducedMotion: () => prefersReducedMotion.current
+	});
+
+	onMount(() => {
+		restoreHatchSceneState(onboardingUi, hatchFlow, providerSelection);
+		hatchSceneRestored = true;
+	});
+
+	let flowBlockers = $derived({
+		settingsOpen: onboardingUi.settingsOpen,
+		providerModalOpen: providerConfigModalStore.open
+	});
+	let hatchSpriteSrc = $derived(
+		hatchFlow.spriteVisible && hatchFlow.candidate?.reference_url
+			? hatchFlow.candidate.reference_url
+			: '/game/sprites/hatchling-silhouette@128.png'
+	);
+	let hatchShowSilhouette = $derived(!hatchFlow.spriteVisible);
+	let releaseBlocked = $derived(releaseDisabled(hatchFlow));
+	let hatchControlsBlockedState = $derived(hatchControlsBlocked(hatchFlow, flowBlockers));
+	let hatchable = $derived(!hatchControlsBlockedState && !hatchFlow.candidate);
+	let hatchSuspenseActive = $derived(hatchFlow.generating || hatchFlow.busy);
+
+	let crossing = $state<'none' | 'forward' | 'back'>('none');
+	let mirrored = $derived(crossing === 'none' ? isHatch : crossing === 'back');
+
+	const SIZE_BANDS: Record<string, [number, number]> = {
+		small: [0.4, 0.55],
+		mid: [0.7, 0.95],
+		large: [1.1, 1.3]
+	};
+
+	let hatchSceneStyle = $derived.by(() => {
+		const candidate = hatchFlow.candidate;
+		if (!candidate || !hatchFlow.spriteVisible) return '';
+		const band = SIZE_BANDS[candidate.display?.size_class ?? 'mid'] ?? SIZE_BANDS.mid;
+		const t = (Math.min(Math.max(candidate.power_pips ?? 2, 1), 3) - 1) / 2;
+		const factor = band[0] + (band[1] - band[0]) * t;
+		const parts = [
+			`--onboarding-hatchling-sprite-h: calc(var(--onboarding-trainer-sprite-h) * ${factor.toFixed(3)})`
+		];
+		if (candidate.display?.anchor_x != null) {
+			parts.push(`--hatchling-anchor-x: ${candidate.display.anchor_x.toFixed(4)}`);
+		}
+		if (candidate.display?.baseline_y != null) {
+			parts.push(`--hatchling-baseline-y: ${candidate.display.baseline_y.toFixed(4)}`);
+		}
+		return parts.join('; ');
+	});
 
 	afterNavigate(({ from, to }) => {
 		const fromRegister = from?.url.pathname.endsWith('/register');
@@ -48,19 +139,20 @@
 		}
 		crossing = 'none';
 		if (!to?.url.pathname.endsWith('/hatch')) {
+			clearHatchBootstrapCache();
 			onboardingUi.settingsOpen = false;
 			providerConfigModalStore.open = false;
 			providerConfigModalStore.entry = null;
 		}
 	});
 
-	let portraitClass = $derived(
+	let referenceClass = $derived(
 		[
-			'trainer-onboarding__portrait',
-			crossing === 'forward' && 'trainer-onboarding__portrait--cross-forward',
-			crossing === 'back' && 'trainer-onboarding__portrait--cross-back',
-			crossing === 'none' && isRegister && 'trainer-onboarding__portrait--register',
-			crossing === 'none' && isHatch && 'trainer-onboarding__portrait--hatch'
+			'trainer-onboarding__reference',
+			crossing === 'forward' && 'trainer-onboarding__reference--cross-forward',
+			crossing === 'back' && 'trainer-onboarding__reference--cross-back',
+			crossing === 'none' && isRegister && 'trainer-onboarding__reference--register',
+			crossing === 'none' && isHatch && 'trainer-onboarding__reference--hatch'
 		]
 			.filter(Boolean)
 			.join(' ')
@@ -70,7 +162,43 @@
 		crossing = 'none';
 	}
 
-	function handlePortraitAnimationEnd(event: AnimationEvent) {
+	async function uploadRegisterReference(file: File): Promise<string | null> {
+		onboardingUi.setupInProgress = true;
+		onboardingUi.referenceGenerating = true;
+		try {
+			const result = await uploadTrainerReferenceWithSession(file, onboardingUi.registrationUsername);
+			if (result.status === 'ok') {
+				return result.session.reference_url;
+			}
+
+			showGameToast(result.message, result.status === 'needs_username' ? 'amber' : 'brick');
+			return null;
+		} finally {
+			onboardingUi.referenceGenerating = false;
+			onboardingUi.setupInProgress = false;
+		}
+	}
+
+	$effect(() => {
+		if (!browser || !isRegister) return;
+		onboardingUi.referenceSpriteReady = true;
+	});
+
+	$effect(() => {
+		if (!browser || !isHatch || !hatchSceneRestored) return;
+		const username = readPendingUsername();
+		if (!username) return;
+
+		void bootstrapHatchSceneOnce(onboardingUi, hatchFlow, providerSelection, username);
+	});
+
+	function handleHatchClick() {
+		if (hatchControlsBlockedState || hatchFlow.candidate) return;
+		onboardingUi.hatchHintVisible = false;
+		void hatchActions.generate(flowBlockers);
+	}
+
+	function handleReferenceAnimationEnd(event: AnimationEvent) {
 		if (event.animationName === 'trainer-onboarding-platform-in') {
 			finishCross();
 			return;
@@ -88,24 +216,77 @@
 
 <GameToast />
 
-<SceneFrame>
-	<div class="trainer-onboarding">
-		<div class={portraitClass} onanimationend={handlePortraitAnimationEnd} aria-hidden="true">
-			<div class="trainer-onboarding__portrait-stage">
-				<TrainerPortrait {mirrored} />
+{#snippet settingsCorner()}
+	<SettingsNavButton bind:open={onboardingUi.settingsOpen} />
+{/snippet}
+
+<SceneFrame bezelCorner={isHatch ? settingsCorner : undefined}>
+	<div class="trainer-onboarding" style={hatchSceneStyle}>
+		{#if isHatch}
+			<HatchSceneDepth />
+		{/if}
+		<div
+			class={referenceClass}
+			class:trainer-onboarding__reference--pending={isHatch && !onboardingUi.referenceSpriteReady}
+			onanimationend={handleReferenceAnimationEnd}
+			aria-hidden="true"
+		>
+			<div class="trainer-onboarding__reference-stage">
+				{#key onboardingUi.referenceSpriteSrc}
+					<TrainerReference {mirrored} spriteSrc={onboardingUi.referenceSpriteSrc} />
+				{/key}
 				{#if isRegister}
-					<TrainerPortraitCamera bind:hovered={onboardingUi.portraitHintVisible} />
+					<TrainerReferenceCamera
+						bind:hovered={onboardingUi.referenceHintVisible}
+						disabled={onboardingUi.setupInProgress}
+						uploadReference={uploadRegisterReference}
+						onReferenceUrl={(referenceUrl) => {
+							applyTrainerReferenceUrl(onboardingUi, referenceUrl);
+							persistHatchSceneState(onboardingUi, hatchFlow, providerSelection);
+						}}
+					/>
 				{/if}
 			</div>
 		</div>
 
 		{#if isHatch}
+			{#if hatchFlow.candidate}
+				<div
+					class="trainer-onboarding__candidate-stack"
+					class:trainer-onboarding__candidate-stack--revealing={hatchFlow.revealing}
+				>
+					<HatchCandidatePanel
+						candidate={hatchFlow.candidate}
+						bind:actionHint={hatchFlow.actionHint}
+						bind:detailHint={hatchFlow.candidateHint}
+						releaseDisabled={releaseBlocked}
+						busy={hatchFlow.busy}
+						onRelease={() => hatchActions.reject(flowBlockers)}
+						onRefresh={() => hatchActions.refresh(flowBlockers)}
+						onAdopt={() => hatchActions.openAdoptModal(flowBlockers)}
+					/>
+				</div>
+			{/if}
+
 			<div class="trainer-onboarding__hatchling">
 				<HatchlingSilhouette
 					bind:hovered={onboardingUi.hatchHintVisible}
-					disabled={onboardingUi.settingsOpen || providerConfigModalStore.open}
+					{hatchable}
+					spriteSrc={hatchSpriteSrc}
+					showSilhouette={hatchShowSilhouette}
+					generating={hatchSuspenseActive}
+					beat={hatchFlow.beat}
+					revealing={hatchFlow.revealing}
+					onhatch={handleHatchClick}
 				/>
 			</div>
+
+			<AdoptNicknameModal
+				bind:open={hatchFlow.adoptModalOpen}
+				speciesName={hatchFlow.candidate?.name ?? 'your Vibemon'}
+				busy={hatchFlow.busy}
+				onConfirm={(nickname) => hatchActions.confirmAdopt(nickname)}
+			/>
 		{/if}
 
 		<div class="trainer-onboarding__content">
@@ -143,82 +324,149 @@
 			var(--onboarding-cross-duration) - var(--onboarding-move-delay) - var(--onboarding-ring-in-duration)
 		);
 		--onboarding-ring-in-delay: calc(var(--onboarding-move-delay) + var(--onboarding-move-duration));
-		/* Horizontal travel distance: 70% - 30% of the full-bleed scene == 40vw. */
 		--onboarding-cross-shift: 40vw;
 
 		position: relative;
 		min-height: 100dvh;
+		--onboarding-stage-bottom: clamp(12.5rem, 24vh, 15.5rem);
+		--onboarding-stage-platform-h: clamp(2.35rem, 5vw, 3.5rem);
+		--onboarding-hatch-trainer-left: 24%;
+		--onboarding-hatch-mon-left: 58%;
+		--onboarding-hatch-mon-nudge: clamp(0.75rem, 1.5vh, 1.25rem);
+		--onboarding-trainer-sprite-h: clamp(26rem, 58vh, 42rem);
+		--onboarding-hatchling-sprite-h: clamp(13rem, 30vh, 22rem);
+		--onboarding-hatchling-lift: min(var(--onboarding-hatchling-sprite-h), 42vh);
 	}
 
-	.trainer-onboarding__portrait {
+	.trainer-onboarding__reference {
 		position: absolute;
-		bottom: clamp(12rem, 23vh, 14.5rem);
+		bottom: var(--onboarding-stage-bottom);
 		z-index: 1;
 		transform: translateX(-50%);
 		pointer-events: auto;
 	}
 
-	.trainer-onboarding__portrait-stage {
+	.trainer-onboarding__reference--pending {
+		visibility: hidden;
+		pointer-events: none;
+	}
+
+	.trainer-onboarding__reference-stage {
 		position: relative;
 	}
 
 	.trainer-onboarding__hatchling {
 		position: absolute;
-		left: 65%;
-		bottom: clamp(12rem, 23vh, 14.5rem);
+		left: var(--onboarding-hatch-mon-left);
+		bottom: calc(var(--onboarding-stage-bottom) - var(--onboarding-hatch-mon-nudge));
 		transform: translateX(-50%);
 		z-index: 1;
-		pointer-events: auto;
+		pointer-events: none;
 	}
 
-	.trainer-onboarding__portrait--register {
+	.trainer-onboarding__hatchling :global(.hatchling-silhouette) {
+		--hatchling-sprite-h: var(--onboarding-hatchling-sprite-h);
+	}
+
+	.trainer-onboarding__candidate-stack {
+		position: absolute;
+		top: var(--vm-bezel-w);
+		right: var(--vm-bezel-w);
+		z-index: 4;
+		pointer-events: auto;
+		display: flex;
+		flex-direction: column;
+		align-items: stretch;
+		width: min(
+			calc(
+				100% - var(--onboarding-hatch-mon-left) - var(--onboarding-hatchling-sprite-h) * 0.52 -
+					var(--vm-bezel-w) * 2
+			),
+			var(--vm-hud-candidate-rail-max-width)
+		);
+		min-width: 0;
+		min-height: var(--vm-hud-candidate-panel-min-height);
+	}
+
+	.trainer-onboarding__candidate-stack--revealing {
+		animation: trainer-onboarding-candidate-in 720ms ease-out both;
+	}
+
+	@keyframes trainer-onboarding-candidate-in {
+		from {
+			opacity: 0;
+			transform: translateY(6px);
+		}
+		to {
+			opacity: 1;
+			transform: translateY(0);
+		}
+	}
+
+	.trainer-onboarding__reference--hatch :global(.trainer-reference),
+	.trainer-onboarding__hatchling :global(.trainer-reference) {
+		--platform-h: var(--onboarding-stage-platform-h);
+	}
+
+	.trainer-onboarding__hatchling :global(.hatchling-silhouette) {
+		--platform-h: var(--onboarding-stage-platform-h);
+	}
+
+	.trainer-onboarding__reference--hatch :global(.trainer-reference) {
+		--sprite-h: var(--onboarding-trainer-sprite-h);
+		--sprite-w: calc(var(--sprite-h) * 0.56);
+		--platform-w: calc(var(--sprite-h) * 0.82);
+		--sprite-foot-nudge-y: 4%;
+	}
+
+	.trainer-onboarding__reference--register {
 		left: 70%;
 	}
 
-	.trainer-onboarding__portrait--hatch {
-		left: 30%;
+	.trainer-onboarding__reference--hatch {
+		left: var(--onboarding-hatch-trainer-left);
 	}
 
-	.trainer-onboarding__portrait--cross-forward {
+	.trainer-onboarding__reference--cross-forward {
 		left: 70%;
 		will-change: transform;
 		animation: trainer-onboarding-slide-forward var(--onboarding-move-duration) var(--onboarding-transition-timing)
 			var(--onboarding-move-delay) forwards;
 	}
 
-	.trainer-onboarding__portrait--cross-back {
-		left: 30%;
+	.trainer-onboarding__reference--cross-back {
+		left: var(--onboarding-hatch-trainer-left);
 		will-change: transform;
 		animation: trainer-onboarding-slide-back var(--onboarding-move-duration) var(--onboarding-transition-timing)
 			var(--onboarding-move-delay) forwards;
 	}
 
-	.trainer-onboarding__portrait--cross-forward .trainer-onboarding__portrait-stage {
+	.trainer-onboarding__reference--cross-forward .trainer-onboarding__reference-stage {
 		will-change: transform;
 		animation: trainer-onboarding-travel-forward var(--onboarding-move-duration) var(--onboarding-action-timing)
 			var(--onboarding-move-delay) forwards;
 	}
 
-	.trainer-onboarding__portrait--cross-back .trainer-onboarding__portrait-stage {
+	.trainer-onboarding__reference--cross-back .trainer-onboarding__reference-stage {
 		will-change: transform;
 		animation: trainer-onboarding-travel-back var(--onboarding-move-duration) var(--onboarding-action-timing)
 			var(--onboarding-move-delay) forwards;
 	}
 
-	.trainer-onboarding__portrait--cross-forward :global(.trainer-portrait__sprite) {
-		will-change: clip-path, transform;
-		animation: trainer-onboarding-sprite-forward var(--onboarding-move-duration) var(--onboarding-transition-timing)
-			var(--onboarding-move-delay) both;
+	.trainer-onboarding__reference--cross-forward :global(.trainer-reference__sprite) {
+		will-change: transform;
+		animation: trainer-onboarding-sprite-forward var(--onboarding-move-duration) ease-in-out
+			var(--onboarding-move-delay) forwards;
 	}
 
-	.trainer-onboarding__portrait--cross-back :global(.trainer-portrait__sprite) {
-		will-change: clip-path, transform;
-		animation: trainer-onboarding-sprite-back var(--onboarding-move-duration) var(--onboarding-transition-timing)
-			var(--onboarding-move-delay) both;
+	.trainer-onboarding__reference--cross-back :global(.trainer-reference__sprite) {
+		will-change: transform;
+		animation: trainer-onboarding-sprite-back var(--onboarding-move-duration) ease-in-out
+			var(--onboarding-move-delay) forwards;
 	}
 
-	.trainer-onboarding__portrait--cross-forward :global(.trainer-portrait),
-	.trainer-onboarding__portrait--cross-back :global(.trainer-portrait) {
+	.trainer-onboarding__reference--cross-forward :global(.trainer-reference),
+	.trainer-onboarding__reference--cross-back :global(.trainer-reference) {
 		animation:
 			trainer-onboarding-platform-out var(--onboarding-ring-out-duration) var(--onboarding-ring-timing) forwards,
 			trainer-onboarding-platform-in var(--onboarding-ring-in-duration) var(--onboarding-ring-timing)
@@ -288,43 +536,29 @@
 		}
 	}
 
-	/* Combined wipe + facing flip: the sprite pinches shut, the scaleX flip
-	   happens at the fully-pinched midpoint (invisible), then it reopens. */
 	@keyframes trainer-onboarding-sprite-forward {
-		0% {
-			clip-path: inset(0 0 0 0);
-			transform: translateY(-2%) scaleX(1);
+		0%,
+		54.99% {
+			transform: perspective(600px) translateY(-2%) rotateY(0deg);
 		}
-		49.99% {
-			clip-path: inset(0 30% 0 30%);
-			transform: translateY(-2%) scaleX(1);
-		}
-		50% {
-			clip-path: inset(0 30% 0 30%);
-			transform: translateY(-2%) scaleX(-1);
+		80% {
+			transform: perspective(600px) translateY(-2%) rotateY(180deg);
 		}
 		100% {
-			clip-path: inset(0 0 0 0);
-			transform: translateY(-2%) scaleX(-1);
+			transform: perspective(600px) translateY(-2%) rotateY(180deg);
 		}
 	}
 
 	@keyframes trainer-onboarding-sprite-back {
-		0% {
-			clip-path: inset(0 0 0 0);
-			transform: translateY(-2%) scaleX(-1);
+		0%,
+		54.99% {
+			transform: perspective(600px) translateY(-2%) rotateY(180deg);
 		}
-		49.99% {
-			clip-path: inset(0 30% 0 30%);
-			transform: translateY(-2%) scaleX(-1);
-		}
-		50% {
-			clip-path: inset(0 30% 0 30%);
-			transform: translateY(-2%) scaleX(1);
+		80% {
+			transform: perspective(600px) translateY(-2%) rotateY(0deg);
 		}
 		100% {
-			clip-path: inset(0 0 0 0);
-			transform: translateY(-2%) scaleX(1);
+			transform: perspective(600px) translateY(-2%) rotateY(0deg);
 		}
 	}
 
@@ -357,44 +591,18 @@
 		}
 	}
 
-	@media (max-width: 480px) {
-		.trainer-onboarding {
-			/* 72% - 28% of the scene == 44vw on narrow screens. */
-			--onboarding-cross-shift: 44vw;
-		}
-
-		.trainer-onboarding__portrait--register,
-		.trainer-onboarding__portrait--cross-forward {
-			left: 72%;
-		}
-
-		.trainer-onboarding__portrait--hatch,
-		.trainer-onboarding__portrait--cross-back {
-			left: 28%;
-		}
-
-		.trainer-onboarding__portrait,
-		.trainer-onboarding__hatchling {
-			bottom: clamp(10rem, 20vh, 12rem);
-		}
-
-		.trainer-onboarding__hatchling {
-			left: 67%;
-		}
-	}
-
 	@media (prefers-reduced-motion: reduce) {
-		.trainer-onboarding__portrait--cross-forward,
-		.trainer-onboarding__portrait--cross-back {
+		.trainer-onboarding__reference--cross-forward,
+		.trainer-onboarding__reference--cross-back {
 			animation-duration: 1ms;
 		}
 
-		.trainer-onboarding__portrait--cross-forward .trainer-onboarding__portrait-stage,
-		.trainer-onboarding__portrait--cross-back .trainer-onboarding__portrait-stage,
-		.trainer-onboarding__portrait--cross-forward :global(.trainer-portrait__sprite),
-		.trainer-onboarding__portrait--cross-back :global(.trainer-portrait__sprite),
-		.trainer-onboarding__portrait--cross-forward :global(.trainer-portrait),
-		.trainer-onboarding__portrait--cross-back :global(.trainer-portrait),
+		.trainer-onboarding__reference--cross-forward .trainer-onboarding__reference-stage,
+		.trainer-onboarding__reference--cross-back .trainer-onboarding__reference-stage,
+		.trainer-onboarding__reference--cross-forward :global(.trainer-reference__sprite),
+		.trainer-onboarding__reference--cross-back :global(.trainer-reference__sprite),
+		.trainer-onboarding__reference--cross-forward :global(.trainer-reference),
+		.trainer-onboarding__reference--cross-back :global(.trainer-reference),
 		.trainer-onboarding__page {
 			animation: none;
 		}

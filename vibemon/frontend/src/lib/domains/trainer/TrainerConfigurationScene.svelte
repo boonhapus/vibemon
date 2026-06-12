@@ -3,11 +3,26 @@
 	import { onMount } from 'svelte';
 	import { getContext } from 'svelte';
 
+	import { bootstrapHatchSceneOnce } from './hatchSceneStore';
+	import { createHatchFlowState, HATCH_FLOW_KEY, type HatchFlowState } from './hatchFlow';
+	import {
+		addSelectedProvider,
+		applyCandidateProviderIds,
+		createProviderSelectionState,
+		isProviderSelected,
+		markProviderWarmed,
+		PROVIDER_SELECTION_KEY,
+		removeSelectedProvider,
+		setProviderCoordinates,
+		setProviderFetching,
+		type ProviderSelectionState
+	} from './providerSelection';
+
 	import CrewNavButton from '$lib/domains/crew/CrewNavButton.svelte';
-	import SettingsNavButton from '$lib/domains/trainer/SettingsNavButton.svelte';
+	import type { TrainerOnboardingUi } from '$lib/domains/trainer/trainerOnboardingUi';
 	import DialogBox from '$lib/ui/DialogBox.svelte';
-	import FreeFormButton from '$lib/ui/FreeFormButton.svelte';
 	import GamePanel from '$lib/ui/GamePanel.svelte';
+	import type { PixelIconName } from '$lib/ui/PixelIcon.svelte';
 	import SceneFrame from '$lib/ui/SceneFrame.svelte';
 	import { showGameToast } from '$lib/ui/toastStore.svelte';
 
@@ -20,15 +35,33 @@
 		type ProviderCatalogEntry,
 		type ProviderStatusEntry
 	} from './providerApi';
-	import { ensureTrainerSession } from './trainerApi';
-	import TrainerPortrait from './TrainerPortrait.svelte';
+	import { resolveTrainerSession } from './trainerApi';
+	import {
+		clearStoredTrainerCoordinates,
+		readCurrentPosition,
+		readStoredTrainerCoordinates,
+		restoreTrainerCoordinates,
+		storeTrainerCoordinates
+	} from './trainerGeolocation';
+	import ProviderPatchPanel from './ProviderPatchPanel.svelte';
+	import ProviderPatchRow from './ProviderPatchRow.svelte';
+	import TrainerReference from './TrainerReference.svelte';
+	import { PROVIDER_ICONS } from './providerLabels';
 	import { displayUsername } from './validateUsername';
 
 	type ProviderVisualState = 'connected' | 'needs-config' | 'disabled';
 
 	const DIALOG_ANCHOR = `Sweet. Connect your vibes and let's get groovin'!`;
-	const HATCH_HINT_TEXT = 'Tap to hatch a new Vibemon and adopt them to your crew.';
-	const VIBE_DECK_HINT_TEXT = 'Your Vibe Deck — crew index, encounter log, and field capture.';
+	const HATCH_HINT_TEXT = `When you're ready, double-tap to hatch from your vibes.`;
+	const HATCH_ACTION_HINTS = {
+		refresh: 'Redraw their look from your connected vibes.',
+		adopt: 'Welcome them to your crew — add a nickname if you like.',
+		release: 'Release them to the Wild and try another hatch.'
+	} as const;
+	const HATCH_TYPEWRITER_CHAR_DELAY = 38;
+	const VIBE_DECK_HINT_TEXT = 'Your Vibe Deck — crew roster, encounter log, and field gear.';
+	const CANDIDATE_PROVIDER_GUARD_TEXT =
+		'Adopt or Release your current Vibemon before changing the vibes.';
 	const HOVER_CLEAR_MS = 250;
 	const LONG_PRESS_MS = 500;
 	const DOUBLE_TAP_MS = 300;
@@ -48,30 +81,27 @@
 		embedded?: boolean;
 	} = $props();
 
-	type OnboardingUiState = {
-		portraitHintVisible: boolean;
-		hatchHintVisible: boolean;
-		settingsOpen: boolean;
-	};
-
-	const onboardingUi = getContext<OnboardingUiState | undefined>(ONBOARDING_UI_KEY);
+	const onboardingUi = getContext<TrainerOnboardingUi | undefined>(ONBOARDING_UI_KEY);
+	const hatchFlow = getContext<HatchFlowState | undefined>(HATCH_FLOW_KEY) ?? createHatchFlowState();
+	const providerSelection =
+		getContext<ProviderSelectionState | undefined>(PROVIDER_SELECTION_KEY) ??
+		createProviderSelectionState();
 
 	let providers = $state<ProviderCatalogEntry[]>([]);
 	let providerStatuses = $state<Record<string, ProviderStatusEntry>>({});
-	let selected = $state<string[]>([]);
-	let warmed = $state<string[]>([]);
-	let fetching = $state<string[]>([]);
 	let hoveredKey = $state<string | null>(null);
 	let configProviderId = $state<string | null>(null);
 	let vibeDeckHintVisible = $state(false);
 	let locationGranted = $state(false);
-	let coordinates = $state<{ latitude: number; longitude: number } | null>(null);
 	let catalogError = $state(false);
+	let locationBootstrapped = $state(false);
 
 	let clearHoverTimer: ReturnType<typeof setTimeout> | undefined;
 	let longPressTimer: ReturnType<typeof setTimeout> | undefined;
 	let singleTapTimer: ReturnType<typeof setTimeout> | undefined;
 	let longPressTriggered = false;
+	let providerStatusFetchKey: string | null = null;
+	let providerStatusFetchPromise: Promise<void> | null = null;
 
 	let displayName = $derived(displayUsername(username));
 	let statusById = $derived(providerStatuses);
@@ -79,11 +109,20 @@
 		configProviderId ? (providers.find((entry) => entry.id === configProviderId) ?? null) : null
 	);
 	let activeStatus = $derived(configProviderId ? statusById[configProviderId] : undefined);
-	let activeFetching = $derived(configProviderId ? fetching.includes(configProviderId) : false);
+	let activeFetching = $derived(
+		configProviderId ? providerSelection.fetchingIds.includes(configProviderId) : false
+	);
 	let hoverDescription = $derived.by(() => {
 		const provider = hoveredKey ? providers.find((entry) => entry.id === hoveredKey) : undefined;
 		return provider ? providerDescription(provider) : '';
 	});
+	let candidateAppearedDialog = $derived(
+		hatchFlow.candidate ? `The vibes settle... meet ${hatchFlow.candidate.name}!` : ''
+	);
+	let hatchActionHintText = $derived(
+		hatchFlow.actionHint ? HATCH_ACTION_HINTS[hatchFlow.actionHint] : ''
+	);
+	let hatchCandidateHintText = $derived(hatchFlow.candidateHint ?? '');
 
 	function providerDescription(provider: ProviderCatalogEntry) {
 		if (!provider.implemented) {
@@ -114,9 +153,7 @@
 	}
 
 	function markWarmed(providerId: string) {
-		if (!warmed.includes(providerId)) {
-			warmed = [...warmed, providerId];
-		}
+		markProviderWarmed(providerSelection, providerId);
 	}
 
 	function syncWarmedFromStatuses(statuses: ProviderStatusEntry[]) {
@@ -124,7 +161,9 @@
 			.filter((entry) => entry.prefetched_at)
 			.map((entry) => entry.id);
 		if (prefetchedIds.length === 0) return;
-		warmed = [...new Set([...warmed, ...prefetchedIds])];
+		for (const providerId of prefetchedIds) {
+			markProviderWarmed(providerSelection, providerId);
+		}
 	}
 
 	function providerStatus(entry: ProviderCatalogEntry): ProviderStatusEntry | undefined {
@@ -132,11 +171,11 @@
 	}
 
 	function isSelected(id: string) {
-		return selected.includes(id);
+		return isProviderSelected(providerSelection, id);
 	}
 
 	function isWarmed(id: string) {
-		return warmed.includes(id);
+		return providerSelection.warmedIds.includes(id);
 	}
 
 	function hasPrefetchedData(id: string) {
@@ -161,26 +200,32 @@
 		return 'needs-config';
 	}
 
-	function providerPanelClass(entry: ProviderCatalogEntry) {
-		const state = providerVisualState(entry);
-		const classes = [
-			'trainer-configuration__provider-panel',
-			`trainer-configuration__provider-panel--${state}`
-		];
-		if (fetching.includes(entry.id)) {
-			classes.push('trainer-configuration__provider-panel--fetching');
-		}
-		return classes.join(' ');
+	function providerIcon(entry: ProviderCatalogEntry): PixelIconName {
+		return PROVIDER_ICONS[entry.id] ?? 'gear';
 	}
 
 	function modalBlocked() {
 		return Boolean(onboardingUi?.settingsOpen || providerConfigModalStore.open);
 	}
 
+	function candidateReviewActive() {
+		return Boolean(hatchFlow.candidate);
+	}
+
+	function blockProviderChangeForCandidateReview(): boolean {
+		if (!candidateReviewActive()) return false;
+		showGameToast(CANDIDATE_PROVIDER_GUARD_TEXT, 'amber');
+		return true;
+	}
+
 	function showProviderDescription(entry: ProviderCatalogEntry) {
 		if (modalBlocked()) return;
 		cancelHoverClear();
-		if (onboardingUi) onboardingUi.hatchHintVisible = false;
+		if (onboardingUi) {
+			onboardingUi.hatchHintVisible = false;
+		}
+		hatchFlow.actionHint = null;
+		hatchFlow.candidateHint = null;
 		vibeDeckHintVisible = false;
 		hoveredKey = entry.id;
 	}
@@ -198,7 +243,10 @@
 	function showVibeDeckHint() {
 		if (modalBlocked()) return;
 		cancelHoverClear();
-		if (onboardingUi) onboardingUi.hatchHintVisible = false;
+		if (onboardingUi) {
+			onboardingUi.hatchHintVisible = false;
+		}
+		hatchFlow.candidateHint = null;
 		hoveredKey = null;
 		vibeDeckHintVisible = true;
 	}
@@ -212,7 +260,7 @@
 	}
 
 	function openProviderModal(id: string) {
-		if (modalBlocked()) return;
+		if (modalBlocked() || blockProviderChangeForCandidateReview()) return;
 		configProviderId = id;
 		providerConfigModalStore.open = true;
 		cancelHoverClear();
@@ -237,12 +285,13 @@
 	}
 
 	function disableProvider(providerId: string) {
+		if (blockProviderChangeForCandidateReview()) return;
 		if (!isSelected(providerId)) return;
-		if (selected.length === 1) {
-			showGameToast('Keep at least one provider enabled.', 'amber');
+		if (providerSelection.selectedIds.length === 1) {
+			showGameToast('Keep at least one vibe source connected.', 'amber');
 			return;
 		}
-		selected = selected.filter((value) => value !== providerId);
+		removeSelectedProvider(providerSelection, providerId);
 	}
 
 	async function handleProviderSingleTap(entry: ProviderCatalogEntry) {
@@ -250,6 +299,7 @@
 			showProviderDescription(entry);
 			return;
 		}
+		if (blockProviderChangeForCandidateReview()) return;
 
 		if (providerNeedsConfiguration(entry)) {
 			openProviderModal(entry.id);
@@ -283,23 +333,46 @@
 		}, DOUBLE_TAP_MS);
 	}
 
+	function handleProviderContextMenu(entry: ProviderCatalogEntry, event: MouseEvent) {
+		event.preventDefault();
+		if (modalBlocked()) return;
+		cancelSingleTap();
+		cancelLongPress();
+		longPressTriggered = false;
+		openProviderModal(entry.id);
+	}
+
+	function providerStatusFetchKeyFor(
+		coords: ProviderSelectionState['coordinates']
+	): string {
+		return coords ? `${coords.latitude},${coords.longitude}` : 'none';
+	}
+
 	async function refreshProviderStatuses() {
-		try {
-			const statuses = await fetchProviderStatus(coordinates);
-			providerStatuses = Object.fromEntries(statuses.map((entry) => [entry.id, entry]));
-			syncWarmedFromStatuses(statuses);
-		} catch {
-			// Status refresh is best-effort during onboarding.
+		const key = providerStatusFetchKeyFor(providerSelection.coordinates);
+		if (providerStatusFetchKey === key && providerStatusFetchPromise) {
+			return providerStatusFetchPromise;
 		}
+		providerStatusFetchKey = key;
+		providerStatusFetchPromise = (async () => {
+			try {
+				const statuses = await fetchProviderStatus(providerSelection.coordinates);
+				providerStatuses = Object.fromEntries(statuses.map((entry) => [entry.id, entry]));
+				syncWarmedFromStatuses(statuses);
+			} catch {
+				// Status refresh is best-effort during onboarding.
+			}
+		})();
+		return providerStatusFetchPromise;
 	}
 
 	async function runPrefetch(providerId: string, forceRefresh = false) {
-		if (fetching.includes(providerId)) return;
-		fetching = [...fetching, providerId];
+		if (providerSelection.fetchingIds.includes(providerId)) return;
+		setProviderFetching(providerSelection, providerId, true);
 		try {
 			const result = await prefetchProvider(providerId, {
-				latitude: coordinates?.latitude,
-				longitude: coordinates?.longitude,
+				latitude: providerSelection.coordinates?.latitude,
+				longitude: providerSelection.coordinates?.longitude,
 				forceRefresh
 			});
 			const existing = providerStatuses[providerId];
@@ -318,11 +391,12 @@
 			showGameToast(message, 'brick');
 			throw error;
 		} finally {
-			fetching = fetching.filter((value) => value !== providerId);
+			setProviderFetching(providerSelection, providerId, false);
 		}
 	}
 
 	async function enableProvider(providerId: string) {
+		if (blockProviderChangeForCandidateReview()) return;
 		const entry = providers.find((candidate) => candidate.id === providerId);
 		if (!entry) return;
 
@@ -334,7 +408,7 @@
 		if (!isProviderReady(entry, providerStatus(entry), locationGranted)) {
 			await refreshProviderStatuses();
 			if (!isProviderReady(entry, providerStatus(entry), locationGranted)) {
-				showGameToast('Finish provider setup before enabling.', 'amber');
+				showGameToast('Finish vibe source setup before you connect it.', 'amber');
 				return;
 			}
 		}
@@ -345,8 +419,8 @@
 			} else {
 				markWarmed(providerId);
 			}
-			if (!selected.includes(providerId)) {
-				selected = [...selected, providerId];
+			if (!isProviderSelected(providerSelection, providerId)) {
+				addSelectedProvider(providerSelection, providerId);
 			}
 		} catch {
 			return;
@@ -364,34 +438,59 @@
 	}
 
 	async function handleModalRefresh() {
-		if (!configProviderId) return;
+		if (!configProviderId || blockProviderChangeForCandidateReview()) return;
 		await runPrefetch(configProviderId, true);
+	}
+
+	function applyCoordinates(coords: { latitude: number; longitude: number }) {
+		locationGranted = true;
+		if (
+			providerSelection.coordinates?.latitude === coords.latitude &&
+			providerSelection.coordinates?.longitude === coords.longitude
+		) {
+			return;
+		}
+		setProviderCoordinates(providerSelection, coords);
+		storeTrainerCoordinates(coords);
+	}
+
+	function clearCoordinates() {
+		locationGranted = false;
+		setProviderCoordinates(providerSelection, null);
+		clearStoredTrainerCoordinates();
 	}
 
 	function requestLocation() {
 		if (!browser || !('geolocation' in navigator)) return;
-		navigator.geolocation.getCurrentPosition(
-			(position) => {
-				locationGranted = true;
-				coordinates = {
-					latitude: position.coords.latitude,
-					longitude: position.coords.longitude
-				};
-			},
-			() => {
-				locationGranted = false;
-				coordinates = null;
-			},
-			{ enableHighAccuracy: true, timeout: 12_000, maximumAge: 60_000 }
-		);
+		void readCurrentPosition()
+			.then(applyCoordinates)
+			.catch(clearCoordinates);
 	}
+
+	async function bootstrapLocation() {
+		const stored = readStoredTrainerCoordinates();
+		if (stored) {
+			applyCoordinates(stored);
+		}
+
+		const restored = await restoreTrainerCoordinates();
+		if (restored) {
+			applyCoordinates(restored);
+		}
+	}
+
+	$effect(() => {
+		const providerIds = hatchFlow.candidate?.providers;
+		if (!providerIds?.length) return;
+		applyCandidateProviderIds(providerSelection, providerIds);
+	});
 
 	$effect.pre(() => {
 		providerConfigModalStore.entry = activeProvider;
 		providerConfigModalStore.status = activeStatus;
 		providerConfigModalStore.enabled = configProviderId ? isSelected(configProviderId) : false;
 		providerConfigModalStore.canDisable = configProviderId
-			? isSelected(configProviderId) && selected.length > 1
+			? isSelected(configProviderId) && providerSelection.selectedIds.length > 1
 			: false;
 		providerConfigModalStore.locationGranted = locationGranted;
 		providerConfigModalStore.fetching = activeFetching;
@@ -407,7 +506,10 @@
 		if (!browser) return;
 
 		void (async () => {
-			const sessionReady = await ensureTrainerSession(username);
+			const sessionReady =
+				embedded && onboardingUi
+					? await bootstrapHatchSceneOnce(onboardingUi, hatchFlow, providerSelection, username)
+					: Boolean(await resolveTrainerSession(username));
 			if (!sessionReady) {
 				catalogError = true;
 				showGameToast('Could not start your trainer session.', 'brick');
@@ -422,55 +524,60 @@
 			}
 
 			if (sessionReady) {
-				await refreshProviderStatuses();
+				await bootstrapLocation();
 			}
+			locationBootstrapped = true;
 		})();
 	});
 
 	$effect(() => {
-		if (browser && coordinates) {
-			void refreshProviderStatuses();
-		}
+		if (!browser || !locationBootstrapped) return;
+		void refreshProviderStatuses();
 	});
 </script>
 
 {#snippet providersBody()}
 	<div class="trainer-configuration" class:trainer-configuration--embedded={embedded}>
 		{#if !embedded}
-			<div class="trainer-configuration__portrait">
-				<TrainerPortrait mirrored />
+			<div class="trainer-configuration__reference">
+				<TrainerReference mirrored />
 			</div>
 		{/if}
 
-		<div class="trainer-configuration__greeting">
-			<GamePanel tone="status" class="trainer-configuration__greeting-panel">
-				<p class="trainer-configuration__greeting-text">How are the vibes {displayName}?</p>
-			</GamePanel>
-		</div>
+		{#if !embedded}
+			<div class="trainer-configuration__greeting">
+				<GamePanel tone="status" class="trainer-configuration__greeting-panel">
+					<p class="trainer-configuration__greeting-text">How are the vibes {displayName}?</p>
+				</GamePanel>
+			</div>
+		{/if}
 
-		<ul class="trainer-configuration__providers" role="list">
-			{#each providers as provider (provider.id)}
-				<li class="trainer-configuration__provider-item">
-					<FreeFormButton
-						class="trainer-configuration__provider-button"
-						ariaLabel="{provider.label}: {providerDescription(provider)}"
-						onclick={() => handleProviderClick(provider)}
-						onpointerdown={() => handleProviderPointerDown(provider)}
-						onpointerup={() => handleProviderPointerUp(provider)}
-						onpointerleave={() => handleProviderPointerUp(provider)}
-						onpointercancel={() => handleProviderPointerUp(provider)}
-						onmouseenter={() => showProviderDescription(provider)}
-						onmouseleave={() => clearProviderDescription(provider)}
-						onfocus={() => showProviderDescription(provider)}
-						onblur={() => clearProviderDescription(provider)}
-					>
-						<GamePanel tone="command" class={providerPanelClass(provider)}>
-							<span class="trainer-configuration__provider-label">{provider.label}</span>
-						</GamePanel>
-					</FreeFormButton>
-				</li>
-			{/each}
-		</ul>
+		{#if !(embedded && hatchFlow.candidate)}
+			<div class="trainer-configuration__providers">
+				<ProviderPatchPanel>
+					{#each providers as provider (provider.id)}
+						<ProviderPatchRow
+							label={provider.label}
+							icon={providerIcon(provider)}
+							state={providerVisualState(provider)}
+							fetching={providerSelection.fetchingIds.includes(provider.id)}
+							blocked={candidateReviewActive()}
+							ariaLabel="{provider.label}: {providerDescription(provider)}"
+							onclick={() => handleProviderClick(provider)}
+							onpointerdown={() => handleProviderPointerDown(provider)}
+							onpointerup={() => handleProviderPointerUp(provider)}
+							onpointerleave={() => handleProviderPointerUp(provider)}
+							onpointercancel={() => handleProviderPointerUp(provider)}
+							onmouseenter={() => showProviderDescription(provider)}
+							onmouseleave={() => clearProviderDescription(provider)}
+							onfocus={() => showProviderDescription(provider)}
+							onblur={() => clearProviderDescription(provider)}
+							oncontextmenu={(event) => handleProviderContextMenu(provider, event)}
+						/>
+					{/each}
+				</ProviderPatchPanel>
+			</div>
+		{/if}
 
 		{#snippet dialogSlot()}
 			<div class="trainer-configuration__dialog">
@@ -482,6 +589,31 @@
 					<GamePanel tone="status" class="hud-dialog-slot trainer-configuration__hatch-hint">
 						<p class="trainer-configuration__provider-hint-text">{HATCH_HINT_TEXT}</p>
 					</GamePanel>
+				{:else if embedded && (hatchFlow.generating || hatchFlow.busy) && hatchFlow.generatingLine}
+					{#key hatchFlow.generatingLine}
+						<DialogBox
+							text={hatchFlow.generatingLine}
+							typewriter={true}
+							showCursor={false}
+							charDelay={HATCH_TYPEWRITER_CHAR_DELAY}
+							class="hud-dialog-slot"
+						/>
+					{/key}
+				{:else if embedded && hatchFlow.actionHint}
+					<GamePanel tone="status" class="hud-dialog-slot trainer-configuration__provider-hint">
+						<p class="trainer-configuration__provider-hint-text">{hatchActionHintText}</p>
+					</GamePanel>
+				{:else if embedded && hatchFlow.candidateHint}
+					<GamePanel tone="status" class="hud-dialog-slot trainer-configuration__provider-hint">
+						<p class="trainer-configuration__provider-hint-text">{hatchCandidateHintText}</p>
+					</GamePanel>
+				{:else if embedded && hatchFlow.candidate && !hatchFlow.generating && !hatchFlow.busy}
+					<DialogBox
+						text={candidateAppearedDialog}
+						showCursor={showDialogCursor}
+						typewriter={false}
+						class="hud-dialog-slot"
+					/>
 				{:else if catalogError}
 					<GamePanel tone="status" class="hud-dialog-slot trainer-configuration__provider-hint">
 						<p class="trainer-configuration__provider-hint-text">Provider catalog unavailable. Try again soon.</p>
@@ -514,11 +646,6 @@
 				{@render dialogSlot()}
 				<div class="trainer-configuration__hud-bar-spacer" aria-hidden="true"></div>
 			</div>
-			{#if onboardingUi}
-				<div class="trainer-configuration__settings-nav">
-					<SettingsNavButton bind:open={onboardingUi.settingsOpen} />
-				</div>
-			{/if}
 		{:else}
 			{@render dialogSlot()}
 		{/if}
@@ -541,18 +668,17 @@
 
 	.trainer-configuration--embedded {
 		min-height: 100dvh;
-		/* Match register: pass pointer events through to the shared portrait layer. */
+		/* Match register: pass pointer events through to the shared reference layer. */
 		pointer-events: none;
+		--vm-hud-icon-slot-height: calc(var(--vm-hud-dialog-slot-height) * 0.76);
 	}
 
-	.trainer-configuration--embedded .trainer-configuration__greeting,
 	.trainer-configuration--embedded .trainer-configuration__providers,
-	.trainer-configuration--embedded .trainer-configuration__hud-bar,
-	.trainer-configuration--embedded .trainer-configuration__settings-nav {
+	.trainer-configuration--embedded .trainer-configuration__hud-bar {
 		pointer-events: auto;
 	}
 
-	.trainer-configuration__portrait {
+	.trainer-configuration__reference {
 		position: absolute;
 		left: 30%;
 		bottom: clamp(12rem, 23vh, 14.5rem);
@@ -574,93 +700,20 @@
 
 	.trainer-configuration__greeting-text {
 		margin: 0;
-		font-family: var(--vm-font-ui);
-		font-size: clamp(0.8125rem, 2.8vw, 1.125rem);
-		line-height: 1.75;
+		font-size: clamp(0.8125rem, 2.6vw, 1.125rem);
+		line-height: 1.6;
 		letter-spacing: 0.03em;
 		color: inherit;
 	}
 
 	.trainer-configuration__providers {
 		position: absolute;
-		top: var(--vm-hud-rail-inset);
-		right: var(--vm-hud-rail-inset);
+		top: var(--vm-bezel-w);
+		right: var(--vm-bezel-w);
 		z-index: 2;
-		margin: 0;
-		padding: 0;
-		list-style: none;
-		display: flex;
-		flex-direction: column;
-		align-items: flex-end;
-		gap: clamp(0.45rem, 1.4vw, 0.65rem);
-		width: var(--vm-hud-provider-column-width);
-	}
-
-	.trainer-configuration__provider-item {
-		width: 100%;
-	}
-
-	:global(.trainer-configuration__provider-button) {
-		width: 100%;
-	}
-
-	:global(.trainer-configuration__provider-panel) {
-		width: 100%;
-		min-width: clamp(7.5rem, 22vw, 11rem);
-	}
-
-	:global(.trainer-configuration__provider-panel--connected) {
-		--panel-command-accent: var(--vm-status-sage);
-		--panel-command-clamp: var(--vm-status-sage);
-		--panel-command-surface: color-mix(in srgb, var(--vm-status-sage) 20%, var(--vm-panel-command-bg));
-	}
-
-	:global(.trainer-configuration__provider-panel--disabled) {
-		opacity: 0.48;
-		filter: grayscale(0.45);
-		--panel-command-accent: color-mix(in srgb, var(--vm-tobacco) 55%, var(--vm-brass));
-		--panel-command-clamp: color-mix(in srgb, var(--vm-tobacco) 55%, var(--vm-brass));
-		--panel-command-surface: color-mix(in srgb, var(--vm-tobacco) 8%, var(--vm-panel-command-bg));
-	}
-
-	:global(.trainer-configuration__provider-panel--fetching) {
-		--panel-command-accent: var(--vm-status-amber);
-		--panel-command-clamp: var(--vm-mustard);
-		--panel-command-surface: color-mix(in srgb, var(--vm-status-amber) 16%, var(--vm-panel-command-bg));
-		animation: trainer-configuration-provider-fetch 900ms steps(2, end) infinite;
-	}
-
-	:global(.trainer-configuration__provider-panel--fetching.trainer-configuration__provider-panel--connected) {
-		--panel-command-accent: var(--vm-status-amber);
-		--panel-command-clamp: var(--vm-mustard);
-		--panel-command-surface: color-mix(in srgb, var(--vm-status-amber) 16%, var(--vm-panel-command-bg));
-	}
-
-	@keyframes trainer-configuration-provider-fetch {
-		0%,
-		49% {
-			opacity: 1;
-		}
-		50%,
-		100% {
-			opacity: 0.68;
-		}
-	}
-
-	@media (prefers-reduced-motion: reduce) {
-		:global(.trainer-configuration__provider-panel--fetching) {
-			animation: none;
-		}
-	}
-
-	.trainer-configuration__provider-label {
-		display: block;
-		font-family: var(--vm-font-ui);
-		font-size: clamp(0.6875rem, 2.2vw, 0.9375rem);
-		line-height: 1.5;
-		letter-spacing: 0.06em;
-		text-align: center;
-		color: inherit;
+		width: var(--vm-hud-rail-width);
+		max-width: calc(100% - 2 * var(--vm-bezel-w));
+		min-width: 0;
 	}
 
 	.trainer-configuration__hud-bar {
@@ -701,39 +754,5 @@
 		justify-self: center;
 		height: var(--vm-hud-icon-slot-height);
 		width: var(--vm-hud-icon-slot-height);
-	}
-
-	.trainer-configuration__settings-nav {
-		position: absolute;
-		right: var(--vm-hud-rail-inset);
-		bottom: calc(
-			var(--vm-hud-bottom-inset) + (var(--vm-hud-dialog-slot-height) - var(--vm-hud-icon-slot-height)) / 2
-		);
-		z-index: 2;
-		width: var(--vm-hud-provider-column-width);
-		height: var(--vm-hud-icon-slot-height);
-		display: flex;
-		justify-content: center;
-		align-items: center;
-	}
-
-	.trainer-configuration__provider-hint-text {
-		margin: 0;
-		font-family: var(--vm-font-ui);
-		font-size: var(--vm-hud-font-dialog);
-		line-height: var(--vm-hud-dialog-line-height);
-		color: inherit;
-	}
-
-	@media (max-width: 480px) {
-		.trainer-configuration__portrait {
-			left: 28%;
-			bottom: clamp(10rem, 20vh, 12rem);
-		}
-
-		.trainer-configuration__providers,
-		.trainer-configuration__settings-nav {
-			--vm-hud-provider-column-width: min(46vw, 10.5rem);
-		}
 	}
 </style>
