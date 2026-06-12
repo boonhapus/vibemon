@@ -1,7 +1,7 @@
 ---
 name: vibemon-sprite-sheet
-description: Generates a Pokémon-style sprite contact sheet for a Vibemon.
-version: 1.6.0
+description: Generates a Vibemon sprite contact sheet from a reference image.
+version: 1.8.0
 ---
 Use the attached reference image as the canonical model for the creature named "{{ vibemon.identity.name }}".
 
@@ -18,13 +18,14 @@ REFERENCE LOCK
 - R1C2 is the closest match to the reference design. Every other cell changes only view angle, posture, gesture, and facial expression.
 - Keep every attached feature rooted in the same place in every cell: tail, fins, shell, plates, crest, horns, wings, limbs, markings, and any other signature feature.
 - If a pose would require adding, removing, enlarging, shrinking, splitting, or transforming a feature, keep the feature unchanged and make the pose subtler.
+- If the reference has a baked ground shadow, grass tuft, dirt patch, or floor mark beneath the creature, do NOT copy it. Draw only the creature body; leave plain matte below the feet in every cell.
 
 CANVAS RULES
 - Background: flat matte {{ vibemon.aesthetic.background_color }} as one uniform wash filling every non-creature pixel.
-- No scenery, terrain, horizon, sky, floor line, ground shadow, cast shadow, aura, glow, weather, particles, texture, pattern, gradient, vignette, film grain, or noise.
+- No scenery, terrain, horizon, sky, floor line, ground shadow, contact shadow, cast shadow, oval shadow pool, grass tufts, dirt smear, aura, glow, weather, particles, texture, pattern, gradient, vignette, film grain, or noise.
 - No panel borders, frames, dividers, grid lines, labels, numbers, text, UI, watermarks, or visible guide marks.
 - Empty matte spacing between sprites is allowed and desired. Drawn separators are not allowed.
-- The only foreground marks are the nine creature bodies themselves.
+- The only foreground marks are the nine creature bodies themselves. No drop shadow baked into any sprite.
 
 COUNT AND FIT
 - Treat the canvas as nine equal cells: R1C1, R1C2, R1C3, R2C1, R2C2, R2C3, R3C1, R3C2, R3C3.
@@ -35,10 +36,11 @@ COUNT AND FIT
 - If the reference creature is wide, long-tailed, winged, coiled, bulky, or highly ornamented, draw every copy smaller so all nine complete bodies fit with margin.
 
 STYLE LOCK
-- Match the reference image's Pokémon Sugimori style: clean tobacco-brown lineart, warm desaturated fills, flat cel shading, gentle cream highlights, and warm shadows.
+- Match the attached reference image's rendering style exactly — outline weight, shading steps, texture level, palette muting.
 - Keep the reference palette. Do not introduce new body colors.
 - Highlights stay inside the creature silhouette only.
 - Do not draw detached elemental effects, speed lines, expression symbols, or decorative marks.
+- Do NOT re-render as smooth airbrushed cel shading, Sugimori official art, heavy crosshatch, or illustration-scale detail.
 
 EMOTION RULES
 - Show every emotion only through eyes, mouth, brow, posture, head angle, and the creature's existing appendages.
@@ -63,4 +65,4 @@ FINAL CHECK
 - One body centered in each cell.
 - Same creature, same anatomy, same colors, same signature features in every cell.
 - Plain matte background only.
-- No symbols, text, dividers, shadows, effects, or extra marks.
+- No symbols, text, dividers, ground marks, shadow pools, grass tufts, effects, or extra marks.

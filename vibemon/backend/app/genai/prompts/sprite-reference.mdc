@@ -1,9 +1,17 @@
 ---
 name: vibemon-sprite-reference
 description: Generates a single canonical reference image for a Vibemon before posing.
-version: 1.0.0
+version: 1.2.0
+style_anchor: base-style.md
 ---
-Render ONE clean canonical reference image for a Pokémon-style creature named "{{ vibemon.identity.name }}".
+Render ONE clean canonical reference image for a Vibemon creature named "{{ vibemon.identity.name }}".
+
+STYLE BIBLE (attached reference images)
+- Match the rendering style of the attached style bible images — outline weight, shading steps, texture level, and cozy handheld scale.
+- Palette muting from the style bible applies to clothing and props only — preserve accurate skin tone, hair color, and facial features from the subject reference.
+- The style bible shows how to render, not which character or clothes to assign — do NOT copy reference characters' faces, skin tones, ethnicities, poses, or exact wardrobes.
+
+{% include "_style/rendering.j2" %}
 
 PURPOSE
 - This image will be used as the visual reference for a later nine-pose sprite sheet.
@@ -12,9 +20,17 @@ PURPOSE
 
 CANVAS RULES
 - Background: flat matte {{ vibemon.aesthetic.background_color }} as ONE uniform wash filling every pixel that is not the creature.
-- The background contains nothing else. No scenery, props, text, labels, UI, grid, shadows, glow, aura, floor line, weather marks, or decorative effects.
+- The background must stay perfectly flat — no paper texture, grain, vignette, or dither on the background. Texture and grain apply to creature fills only.
+- The background contains nothing else. No scenery, props, text, labels, UI, grid, glow, aura, floor line, weather marks, or decorative effects.
 - Draw exactly one full-body creature in a neutral three-quarter view, turned just enough to show the back/dorsal silhouette and appendage roots clearly.
 - Keep the whole creature inside frame with margin on all sides.
+
+ISOLATION (creature only — no ground or flourish)
+- The creature is isolated in an empty matte void. Battle ground and shadows are added later by the game — never bake them into this image.
+- The lowest drawn pixels must be the creature's feet, paws, belly, tail tip, or other body part. Nothing may appear below them.
+- Do NOT draw: drop shadow, contact shadow, cast shadow, oval shadow pool, ground patch, dirt smear, grass tufts, pebbles, floor line, horizon, platform, pedestal, or floating particles outside the body.
+- No speed lines, sparkles, hearts, sweat drops, tear drops, question marks, exclamation points, or other expression shorthand.
+- No drop shadow baked into the sprite.
 
 IDENTITY
 - Name: {{ vibemon.identity.name }}
@@ -58,9 +74,11 @@ PALETTE & STYLE
 - Lineart: #3D2B1F Tobacco Brown. Never pure black or darker than #2A1E16.
 - Highlights: #F5F5DC Cream. Never pure white.
 - Highlights must stay inside the creature silhouette only.
-- Shadows: warm-shifted darker variants of the fill, mixed toward Tobacco Brown. Never black or cool gray.
-- Aesthetic: Pokémon Sugimori — flat cel shading, clean confident lineart, warm gradient fills, Kodachrome-warmed and desaturated.
+- Body shading only: warm-shifted darker variants of each fill zone, mixed toward Tobacco Brown. Shading stays ON the creature body — never as a separate shadow shape on the matte.
+
+{% include "_style/rendering.j2" %}
 
 FINAL CHECK BEFORE DRAWING
 - The image must look like the definitive model of one creature, not a scene and not a pose sheet.
+- Every non-matte pixel belongs to the creature body or outline. Zero ground marks, grass tufts, or shadow pools on the matte.
 - Every future pose should be able to copy this exact silhouette, proportions, palette, appendage count, and signature feature placement.

@@ -1,0 +1,22 @@
+---
+name: sprite-facing
+description: Classifies left/right/center orientation for any cozy pixel-art sprite.
+version: 1.0.0
+---
+You are classifying the **orientation** of the {{ subject }} in the attached generated sprite image.
+
+The image is cozy pixel art on a transparent or keyed background. Judge only the depicted object — ignore platform shadows, UI chrome, matte color, or empty transparent pixels.
+
+## Task
+Return exactly one facing label:
+- **LEFT** — the object's front face, lens, screen, or primary identifying features point toward the **left edge** of the canvas (three-quarter or profile turn to screen-left).
+- **RIGHT** — the object's front face, lens, screen, or primary identifying features point toward the **right edge** of the canvas.
+- **CENTER** — the object faces the viewer straight-on, or the turn is too slight to call left or right.
+
+## Rules
+- Use the object's front panel, face, lens, label window, or primary silhouette together — not a single accent color alone.
+- Props and attachments may hint but the object's **front orientation** wins.
+- If the sprite is mirrored or ambiguous, pick the direction the **front face** most clearly points toward.
+
+Output a JSON object with one field:
+- `facing`: one of `"LEFT"`, `"CENTER"`, or `"RIGHT"`.
