@@ -1,95 +1,46 @@
 <script lang="ts">
+	import { onMount } from 'svelte';
 	import { goto } from '$app/navigation';
 
+	import { fetchCrew, type CrewMember } from '$lib/domains/trainer/hatchApi';
 	import DialogBox from '$lib/ui/DialogBox.svelte';
 	import FreeFormButton from '$lib/ui/FreeFormButton.svelte';
 	import GamePanel from '$lib/ui/GamePanel.svelte';
 	import SceneFrame from '$lib/ui/SceneFrame.svelte';
+	import { showGameToast } from '$lib/ui/toastStore.svelte';
 
-	type CrewMember = {
-		id: string;
-		name: string;
-		level: number;
-		gender: 'male' | 'female';
-		currentHp: number;
-		maxHp: number;
-		spriteSrc: string;
-	};
+	import { buildParty, hpPercent } from './crewSlots';
 
-	const PLACEHOLDER_SPRITE = '/game/sprites/hatchling-silhouette.png';
+	let members = $state<CrewMember[]>([]);
+	let loading = $state(true);
+	let selectedId = $state('');
 
-	const CREW: CrewMember[] = [
-		{
-			id: 'lead',
-			name: 'MOSSPUP',
-			level: 5,
-			gender: 'male',
-			currentHp: 24,
-			maxHp: 24,
-			spriteSrc: PLACEHOLDER_SPRITE
-		},
-		{
-			id: 'slot-2',
-			name: 'FERNKIT',
-			level: 4,
-			gender: 'female',
-			currentHp: 19,
-			maxHp: 19,
-			spriteSrc: PLACEHOLDER_SPRITE
-		},
-		{
-			id: 'slot-3',
-			name: 'BARKLING',
-			level: 6,
-			gender: 'female',
-			currentHp: 28,
-			maxHp: 28,
-			spriteSrc: PLACEHOLDER_SPRITE
-		},
-		{
-			id: 'slot-4',
-			name: 'THISTAIL',
-			level: 3,
-			gender: 'male',
-			currentHp: 16,
-			maxHp: 16,
-			spriteSrc: PLACEHOLDER_SPRITE
-		},
-		{
-			id: 'slot-5',
-			name: 'DUSKPAW',
-			level: 7,
-			gender: 'female',
-			currentHp: 31,
-			maxHp: 31,
-			spriteSrc: PLACEHOLDER_SPRITE
-		},
-		{
-			id: 'slot-6',
-			name: 'GLIMMER',
-			level: 5,
-			gender: 'female',
-			currentHp: 22,
-			maxHp: 22,
-			spriteSrc: PLACEHOLDER_SPRITE
-		}
-	];
-
-	let selectedId = $state(CREW[0]?.id ?? '');
-	let lead = $derived(CREW[0]);
-	let bench = $derived(CREW.slice(1));
-
-	function hpPercent(member: CrewMember) {
-		return Math.max(0, Math.min(100, (member.currentHp / member.maxHp) * 100));
-	}
-
-	function genderLabel(gender: CrewMember['gender']) {
-		return gender === 'male' ? '♂' : '♀';
-	}
+	let party = $derived(buildParty(members));
+	let lead = $derived(party[0]);
+	let bench = $derived(party.slice(1));
+	let filledCount = $derived(members.length);
 
 	function handleCancel() {
 		void goto('/hatch');
 	}
+
+	function handleFormation() {
+		void goto('/deck/crew');
+	}
+
+	onMount(() => {
+		void (async () => {
+			try {
+				const crew = await fetchCrew();
+				members = crew.members;
+				selectedId = crew.members[0]?.id ?? '';
+			} catch {
+				showGameToast('Could not load your crew.', 'brick');
+			} finally {
+				loading = false;
+			}
+		})();
+	});
 </script>
 
 <SceneFrame bandedTop="#8a9460" bandedBase="#4f5734" bandedShadow="#2f3622">
@@ -98,27 +49,40 @@
 			{#if lead}
 				<FreeFormButton
 					class="crew-scene__lead-button"
-					ariaLabel="{lead.name}, level {lead.level}, {lead.currentHp} of {lead.maxHp} HP"
-					onclick={() => (selectedId = lead.id)}
+					disabled={lead.empty}
+					ariaLabel={lead.empty
+						? 'Empty lead slot'
+						: `${lead.name}, level ${lead.level}, ${lead.currentHp} of ${lead.maxHp} HP`}
+					onclick={() => {
+						if (!lead.empty) selectedId = lead.id;
+					}}
 				>
-					<GamePanel tone="status" class="crew-scene__lead-panel">
+					<GamePanel tone="status" class={['crew-scene__lead-panel', lead.empty && 'crew-scene__lead-panel--empty'].filter(Boolean).join(' ')}>
 						<div class="crew-scene__lead">
-							<img class="crew-scene__lead-sprite" src={lead.spriteSrc} alt="" decoding="async" />
+							<img
+								class={['crew-scene__lead-sprite', lead.empty && 'crew-scene__sprite--empty'].filter(Boolean).join(' ')}
+								src={lead.spriteSrc}
+								alt=""
+								decoding="async"
+							/>
 							<div class="crew-scene__lead-meta">
-								<div class="crew-scene__name-row">
-									<span class="crew-scene__name">{lead.name}</span>
-									<span class="crew-scene__level">Lv{lead.level}</span>
-									<span class="crew-scene__gender">{genderLabel(lead.gender)}</span>
-								</div>
-								<div class="crew-scene__hp">
-									<div class="crew-scene__hp-label">HP</div>
-									<div class="crew-scene__hp-track" aria-hidden="true">
-										<div class="crew-scene__hp-fill" style:width="{hpPercent(lead)}%"></div>
+								{#if lead.empty}
+									<p class="crew-scene__empty-label">Empty</p>
+								{:else}
+									<div class="crew-scene__name-row">
+										<span class="crew-scene__name">{lead.name}</span>
+										<span class="crew-scene__level">Lv{lead.level}</span>
 									</div>
-									<div class="crew-scene__hp-values">
-										{lead.currentHp} / {lead.maxHp}
+									<div class="crew-scene__hp">
+										<div class="crew-scene__hp-label">HP</div>
+										<div class="crew-scene__hp-track" aria-hidden="true">
+											<div class="crew-scene__hp-fill" style:width="{hpPercent(lead)}%"></div>
+										</div>
+										<div class="crew-scene__hp-values">
+											{lead.currentHp} / {lead.maxHp}
+										</div>
 									</div>
-								</div>
+								{/if}
 							</div>
 						</div>
 					</GamePanel>
@@ -130,31 +94,48 @@
 					<li class="crew-scene__bench-item">
 						<FreeFormButton
 							class="crew-scene__bench-button"
-							ariaLabel="{member.name}, level {member.level}, {member.currentHp} of {member.maxHp} HP"
-							onclick={() => (selectedId = member.id)}
+							disabled={member.empty}
+							ariaLabel={member.empty
+								? 'Empty party slot'
+								: `${member.name}, level ${member.level}, ${member.currentHp} of ${member.maxHp} HP`}
+							onclick={() => {
+								if (!member.empty) selectedId = member.id;
+							}}
 						>
 							<GamePanel
 								tone="status"
-								class={['crew-scene__bench-panel', selectedId === member.id && 'crew-scene__bench-panel--selected']
+								class={[
+									'crew-scene__bench-panel',
+									member.empty && 'crew-scene__bench-panel--empty',
+									!member.empty && selectedId === member.id && 'crew-scene__bench-panel--selected'
+								]
 									.filter(Boolean)
 									.join(' ')}
 							>
 								<div class="crew-scene__bench-row">
-									<img class="crew-scene__bench-sprite" src={member.spriteSrc} alt="" decoding="async" />
+									<img
+										class={['crew-scene__bench-sprite', member.empty && 'crew-scene__sprite--empty'].filter(Boolean).join(' ')}
+										src={member.spriteSrc}
+										alt=""
+										decoding="async"
+									/>
 									<div class="crew-scene__bench-meta">
-										<div class="crew-scene__name-row">
-											<span class="crew-scene__name">{member.name}</span>
-											<span class="crew-scene__level">Lv{member.level}</span>
-											<span class="crew-scene__gender">{genderLabel(member.gender)}</span>
-										</div>
-										<div class="crew-scene__hp crew-scene__hp--compact">
-											<div class="crew-scene__hp-track" aria-hidden="true">
-												<div class="crew-scene__hp-fill" style:width="{hpPercent(member)}%"></div>
+										{#if member.empty}
+											<p class="crew-scene__empty-label">Empty</p>
+										{:else}
+											<div class="crew-scene__name-row">
+												<span class="crew-scene__name">{member.name}</span>
+												<span class="crew-scene__level">Lv{member.level}</span>
 											</div>
-											<div class="crew-scene__hp-values">
-												{member.currentHp} / {member.maxHp}
+											<div class="crew-scene__hp crew-scene__hp--compact">
+												<div class="crew-scene__hp-track" aria-hidden="true">
+													<div class="crew-scene__hp-fill" style:width="{hpPercent(member)}%"></div>
+												</div>
+												<div class="crew-scene__hp-values">
+													{member.currentHp} / {member.maxHp}
+												</div>
 											</div>
-										</div>
+										{/if}
 									</div>
 								</div>
 							</GamePanel>
@@ -166,14 +147,26 @@
 
 		<div class="crew-scene__footer">
 			<div class="crew-scene__dialog">
-				<DialogBox text="Choose a Vibemon." showCursor={false} typewriter={false} />
+				<DialogBox
+					text={loading ? 'Loading your crew...' : filledCount === 0 ? 'No Vibemon adopted yet.' : 'Choose a Vibemon.'}
+					showCursor={false}
+					typewriter={false}
+				/>
 			</div>
 
-			<FreeFormButton class="crew-scene__cancel-button" ariaLabel="Cancel" onclick={handleCancel}>
-				<GamePanel tone="command" class="crew-scene__cancel-panel">
-					<span class="crew-scene__cancel-label">Cancel</span>
-				</GamePanel>
-			</FreeFormButton>
+			<div class="crew-scene__footer-actions">
+				<FreeFormButton class="crew-scene__cancel-button" ariaLabel="Open formation view" onclick={handleFormation}>
+					<GamePanel tone="command" class="crew-scene__cancel-panel">
+						<span class="crew-scene__cancel-label">Formation</span>
+					</GamePanel>
+				</FreeFormButton>
+
+				<FreeFormButton class="crew-scene__cancel-button" ariaLabel="Cancel" onclick={handleCancel}>
+					<GamePanel tone="command" class="crew-scene__cancel-panel">
+						<span class="crew-scene__cancel-label">Cancel</span>
+					</GamePanel>
+				</FreeFormButton>
+			</div>
 		</div>
 	</div>
 </SceneFrame>
@@ -206,6 +199,11 @@
 		height: 100%;
 	}
 
+	:global(.crew-scene__lead-panel--empty),
+	:global(.crew-scene__bench-panel--empty) {
+		opacity: 0.72;
+	}
+
 	.crew-scene__lead {
 		display: grid;
 		grid-template-columns: minmax(5.5rem, 34%) minmax(0, 1fr);
@@ -223,14 +221,27 @@
 		object-fit: contain;
 		image-rendering: pixelated;
 		image-rendering: crisp-edges;
-		filter: brightness(0);
 		user-select: none;
 		pointer-events: none;
+	}
+
+	.crew-scene__sprite--empty {
+		filter: brightness(0);
+		opacity: 0.35;
 	}
 
 	.crew-scene__lead-meta,
 	.crew-scene__bench-meta {
 		min-width: 0;
+	}
+
+	.crew-scene__empty-label {
+		margin: 0;
+		font-family: var(--vm-font-ui);
+		font-size: clamp(0.5625rem, 1.6vw, 0.75rem);
+		line-height: 1.5;
+		letter-spacing: 0.05em;
+		color: color-mix(in srgb, var(--vm-tobacco) 62%, var(--vm-brass));
 	}
 
 	.crew-scene__name-row {
@@ -249,17 +260,12 @@
 	}
 
 	.crew-scene__level,
-	.crew-scene__gender,
 	.crew-scene__hp-label,
 	.crew-scene__hp-values {
 		font-family: var(--vm-font-ui);
 		font-size: clamp(0.5625rem, 1.6vw, 0.75rem);
 		line-height: 1.5;
 		letter-spacing: 0.03em;
-	}
-
-	.crew-scene__gender {
-		color: color-mix(in srgb, var(--vm-burnt-orange) 72%, var(--vm-tobacco));
 	}
 
 	.crew-scene__hp {
@@ -346,6 +352,11 @@
 		width: min(100%, var(--vm-hud-dialog-width));
 	}
 
+	.crew-scene__footer-actions {
+		display: flex;
+		gap: clamp(0.5rem, 1.5vw, 0.75rem);
+	}
+
 	:global(.crew-scene__cancel-button) {
 		flex-shrink: 0;
 	}
@@ -361,25 +372,5 @@
 		line-height: 1.5;
 		letter-spacing: 0.06em;
 		text-align: center;
-	}
-
-	@media (max-width: 720px) {
-		.crew-scene__roster {
-			grid-template-columns: 1fr;
-		}
-
-		.crew-scene__lead {
-			min-height: clamp(7rem, 22vh, 10rem);
-		}
-	}
-
-	@media (max-width: 480px) {
-		.crew-scene__footer {
-			grid-template-columns: 1fr;
-		}
-
-		:global(.crew-scene__cancel-button) {
-			justify-self: end;
-		}
 	}
 </style>

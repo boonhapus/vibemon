@@ -3,7 +3,7 @@
 
 	import FreeFormButton from '$lib/ui/FreeFormButton.svelte';
 
-	const VIBE_DECK_ICON = '/game/icons/vibe-deck.png';
+	const VIBE_DECK_ICON = '/game/icons/vibe-deck@96.png';
 
 	let {
 		disabled = false,
@@ -48,13 +48,22 @@
 		width: auto;
 		aspect-ratio: var(--vm-hud-nav-icon-vibe-deck-aspect);
 		padding: 0;
-		transition: transform 120ms ease;
-		transform-origin: center center;
+		transform-origin: center bottom;
 	}
 
+	/* Stepped two-frame lift — smooth eased scaling reads modern (DESIGN.md §6.1) */
 	:global(.crew-nav-button:hover:not(:disabled)),
 	:global(.crew-nav-button:focus-visible:not(:disabled)) {
-		transform: scale(1.06);
+		animation: crew-nav-lift 240ms steps(2, jump-none) forwards;
+	}
+
+	@keyframes crew-nav-lift {
+		from {
+			transform: translateY(0);
+		}
+		to {
+			transform: translateY(-3px);
+		}
 	}
 
 	.crew-nav-button__icon {

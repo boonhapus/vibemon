@@ -1,9 +1,9 @@
 <script lang="ts">
-	import CrewScene from '$lib/domains/crew/CrewScene.svelte';
+	import CrewFormationScene from '$lib/domains/crew/CrewFormationScene.svelte';
 </script>
 
 <svelte:head>
 	<title>Crew · Vibemon</title>
 </svelte:head>
 
-<CrewScene />
+<CrewFormationScene />
