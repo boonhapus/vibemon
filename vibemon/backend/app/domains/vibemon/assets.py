@@ -13,6 +13,7 @@ class AssetKind(enum.StrEnum):
     """Presentation asset slots for a Vibemon."""
 
     REFERENCE = "sprite/reference.png"
+    REFERENCE_RAW = "sprite/reference-raw.png"
     SHEET = "sprite/sheet.png"
 
     POSE_BATTLE_BACK = "pose/battle-back.png"
@@ -36,6 +37,17 @@ class AssetKind(enum.StrEnum):
     SOUND_EMOTE_SAD = "audio/emote-sad.mp3"
 
 
+class SpriteAnchor(pydantic.BaseModel):
+    """Feet anchor and opaque-content bbox of a display sprite, as fractions of its canvas."""
+
+    model_config = pydantic.ConfigDict(extra="forbid", frozen=True)
+
+    anchor_x: float
+    baseline_y: float
+    content_box: tuple[float, float, float, float]
+    """(left, top, right, bottom) of the alpha bbox."""
+
+
 class AssetRef(pydantic.BaseModel):
     """A handle to a generated Vibemon asset blob."""
 
@@ -43,8 +55,10 @@ class AssetRef(pydantic.BaseModel):
 
     vibemon_id: uuid.UUID
     kind: AssetKind
+    revision: int
     key: str
     content_type: str
     byte_size: int
     sha256: str
     version: str = ASSET_VERSION
+    anchor: SpriteAnchor | None = None

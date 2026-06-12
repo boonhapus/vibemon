@@ -15,7 +15,7 @@ from app.core.errors import ProviderConfigRequired, ProviderNotImplemented
 from app.domains.generation.seed import BirthSeed
 from app.http import deps
 from app.http.schemas import providers as provider_schemas
-from app.providers import catalog
+from app.providers import catalog, registry
 from app.providers import types as provider_types
 from app.storage.cache.provider_prefetch import list_prefetched_at, record_prefetch
 from app.storage.cache.redis import bypass_http_cache
@@ -36,7 +36,7 @@ def _geolocation(
 @get("/")
 async def list_providers() -> provider_schemas.ProviderCatalogListRead:
     """Return provider catalog metadata for the configuration UI."""
-    return provider_schemas.ProviderCatalogListRead(providers=catalog.list_catalog_entries())
+    return provider_schemas.ProviderCatalogListRead(providers=registry.list_catalog_entries())
 
 
 @get("/status")
@@ -80,7 +80,7 @@ async def prefetch_provider(
     """Warm provider upstream caches without running full generation."""
     trainer = await deps.load_authenticated_trainer(request, db)
     try:
-        provider_cls = catalog.get_catalog_provider(provider_id)
+        provider_cls = registry.get_catalog_provider(provider_id)
     except KeyError as exc:
         raise NotFoundException(detail=f"Unknown provider {provider_id!r}.") from exc
 

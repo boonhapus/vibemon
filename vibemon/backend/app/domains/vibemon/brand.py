@@ -5,7 +5,7 @@ All colors are period-accurate to the 1960s-70s aesthetic defined in DESIGN.md.
 See DESIGN.md §2 for the full rationale and historical references.
 
 Organization mirrors the design document:
-  - §2.1 Core Palette        → MUSTARD_YELLOW, AVOCADO_GREEN, etc.
+  - §2.1 Core Palette        → MUSTARD_YELLOW, SAGE_OLIVE, etc.
   - §2.2 Vibemon Type Colors → TYPE_COLORS[VibemonTypeT.FIRE]
   - §2.3 Status Colors       → STATUS_HEALTHY / CAUTION / CRITICAL
 """
@@ -32,13 +32,20 @@ class Color(NamedTuple):
     def __str__(self) -> str:
         return self.hex
 
+    def as_rgb(self) -> tuple[int, int, int]:
+        """Return ``(R, G, B)`` integer components from ``hex``."""
+        value = self.hex.lstrip("#")
+        if len(value) != 6:
+            raise ValueError(f"expected #RRGGBB color, got {self.hex!r}")
+        return int(value[0:2], 16), int(value[2:4], 16), int(value[4:6], 16)
+
 
 # ============================================================================
 # §2.1 Core Palette — UI chrome, structural elements, accents
 # ============================================================================
 
 MUSTARD_YELLOW: Final = Color("#E1AD01", "Mustard Yellow", "Highlights, selection cursors, health bars")
-AVOCADO_GREEN: Final = Color("#568203", "Avocado Green", "Background environments, stat bars")
+SAGE_OLIVE: Final = Color("#6E7540", "Sage Olive", "Background environments, stat bars")
 BURNT_ORANGE: Final = Color("#CC5500", "Burnt Orange", "Menus, flame accents")
 TOBACCO_BROWN: Final = Color("#3D2B1F", "Tobacco Brown", "Text, borders, shadows")
 CREAM: Final = Color("#F5F5DC", "Cream/Eggshell", "Text boxes, background contrast")
@@ -46,7 +53,7 @@ GRAPE_PLUM: Final = Color("#7C4D8A", "Grape Plum", "Accent — psychedelic flour
 
 CORE_PALETTE: Final[tuple[Color, ...]] = (
     MUSTARD_YELLOW,
-    AVOCADO_GREEN,
+    SAGE_OLIVE,
     BURNT_ORANGE,
     TOBACCO_BROWN,
     CREAM,
@@ -196,10 +203,19 @@ def _delta_e_76(lab1: tuple[float, float, float], lab2: tuple[float, float, floa
     return sum((a - b) ** 2 for a, b in zip(lab1, lab2, strict=True)) ** 0.5
 
 
+def min_foreground_separation(matte: Color, *foreground_colors: Color) -> float:
+    """Minimum ΔE76 between ``matte`` and any expected sprite foreground color."""
+    if not foreground_colors:
+        raise ValueError("min_foreground_separation requires at least one foreground color")
+    matte_lab = _rgb_to_lab(_hex_to_rgb(matte.hex))
+    return min(_delta_e_76(matte_lab, _rgb_to_lab(_hex_to_rgb(color.hex))) for color in foreground_colors)
+
+
 def solve_background_color(
     *foreground_colors: Color,
     candidates: Iterable[Color] = CHROMA_KEY_CANDIDATES,
     hue_protected: Iterable[Color] = (),
+    exclude_hex: Iterable[str] = (),
 ) -> Color:
     """
     Choose the candidate background most perceptually distant from every
@@ -242,20 +258,21 @@ def solve_background_color(
         ...     TYPE_COLORS[VibemonTypeT.FIRE],
         ...     TYPE_COLORS[VibemonTypeT.FLYING],
         ... ).name
-        'Chroma Magenta'
+        'Chroma Green'
 
         >>> # On-brand background for non-keyed display
         >>> solve_background_color(
         ...     TYPE_COLORS[VibemonTypeT.FIRE],
         ...     candidates=CORE_PALETTE,
         ... ).name
-        'Avocado Green'
+        'Cream/Eggshell'
     """
     if not foreground_colors:
         raise ValueError("solve_background_color requires at least one foreground color")
 
     fg_labs = [_rgb_to_lab(_hex_to_rgb(c.hex)) for c in foreground_colors]
     fg_hex_set = {c.hex.upper() for c in foreground_colors}
+    excluded = {value.upper() for value in exclude_hex}
 
     protected_hues = {_hex_to_hue(c.hex) for c in hue_protected}
 
@@ -278,7 +295,7 @@ def solve_background_color(
     best_score = -1.0
 
     for candidate in pool:
-        if candidate.hex.upper() in fg_hex_set:
+        if candidate.hex.upper() in fg_hex_set or candidate.hex.upper() in excluded:
             continue
 
         cand_lab = _rgb_to_lab(_hex_to_rgb(candidate.hex))

@@ -10,3 +10,6 @@ class PublicTrainerRead(Schema):
     id: TrainerIdT
     username: str
     crew_count: int = 0
+    reference_url: str | None = None
+    reference_selected_revision: int | None = None
+    reference_max_revision: int | None = None

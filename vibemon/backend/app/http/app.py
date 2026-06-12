@@ -1,17 +1,10 @@
 """Litestar application factory for the Vibemon game HTTP API."""
 
-import warnings
-
 from app._compat.httpx import ensure_annotations
+from app._compat.warnings import suppress_third_party_warnings
 
+suppress_third_party_warnings()
 ensure_annotations()
-
-warnings.filterwarnings(
-    "ignore",
-    message=r"Core Pydantic V1 functionality isn't compatible with Python 3\.14 or greater\.",
-    category=UserWarning,
-    module="litestar.plugins.pydantic.utils",
-)
 
 from collections.abc import AsyncGenerator
 from contextlib import asynccontextmanager
@@ -27,7 +20,7 @@ from sqlalchemy.ext.asyncio import async_sessionmaker
 from app.core import logging as app_logging
 from app.core.errors import VibemonServiceError
 from app.http import deps, errors
-from app.http.routes import health, providers, trainers
+from app.http.routes import assets, candidates, health, providers, trainers
 from app.providers.music.lastfm import routes as lastfm_routes
 from app.settings import Settings
 from app.storage.database import engine as db_engine
@@ -68,7 +61,9 @@ def create_app() -> Litestar:
     return Litestar(
         route_handlers=[
             health.health_router,
+            assets.assets_router,
             trainers.trainer_router,
+            candidates.candidate_router,
             providers.provider_router,
             lastfm_mount,
         ],

@@ -8,7 +8,7 @@ from app.domains.adoption.schema import CandidateReviewRead
 from app.domains.move.entity import Move
 from app.domains.move.types import VibemonTypeT
 from app.domains.vibemon import brand
-from app.domains.vibemon.assets import AssetKind
+from app.domains.vibemon.assets import AssetKind, SpriteAnchor
 from app.domains.vibemon.disposition import VibemonDispositionT
 from app.domains.vibemon.identity import Identity
 from app.domains.vibemon.types import EvolutionStageT, VibemonLifecycleT
@@ -17,9 +17,12 @@ from app.domains.vibemon.types import EvolutionStageT, VibemonLifecycleT
 class PublicAsset(FrozenSchema):
     kind: AssetKind
     url: str
+    selected_revision: int
+    max_revision: int
     content_type: str
     byte_size: int
     sha256: str
+    anchor: SpriteAnchor | None = None
 
 
 class TypeDefenseSummary(FrozenSchema):

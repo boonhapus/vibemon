@@ -23,6 +23,11 @@ def session_secure() -> bool:
     return Settings.load().environment == "prod"
 
 
+def dev_overrides_allowed() -> bool:
+    """Whether local-only query flags and dev bypasses may take effect."""
+    return Settings.load().environment != "prod"
+
+
 async def provide_db(state: State) -> AsyncGenerator[AsyncSession]:
     factory: async_sessionmaker[AsyncSession] = state.session_factory
     async with factory() as db:

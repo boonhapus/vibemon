@@ -21,12 +21,12 @@ def litestar_logging_config() -> StructLoggingConfig:
         standard_lib_logging_config=LoggingConfig(
             loggers={
                 "uvicorn": {
-                    "level": "INFO",
+                    "level": "WARNING",
                     "handlers": ["queue_listener"],
                     "propagate": False,
                 },
                 "uvicorn.error": {
-                    "level": "INFO",
+                    "level": "WARNING",
                     "handlers": ["queue_listener"],
                     "propagate": False,
                 },
