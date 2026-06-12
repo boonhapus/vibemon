@@ -1,11 +1,11 @@
 ---
 name: vibemon-name
-description: Generates a Pokémon-style name for a Vibemon given its identity.
+description: Generates a Vibemon species name given its identity.
 version: 1.1.1
 ---
 {% set notes = [identity.visual_notes, visual_notes] | reject("none") | list %}
 
-Generate a name for a Pokémon-style monster that embodies the following characteristics
+Generate a name for a Vibemon that embodies the following characteristics
 
 Type: {{ identity.elements | join(", ") }}
 BST: {{ identity.bst }}

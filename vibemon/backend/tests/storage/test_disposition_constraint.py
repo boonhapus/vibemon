@@ -16,7 +16,7 @@ async def _insert_vibemon(
     birth_snapshot_id: uuid.UUID,
     disposition: str | None,
     trainer_id: uuid.UUID | None,
-    team_slot: int | None,
+    crew_slot: int | None,
     expired_at: dt.datetime | None = None,
 ) -> uuid.UUID:
     vibemon_id = uuid.uuid7()
@@ -46,7 +46,7 @@ async def _insert_vibemon(
             evo_stage=0,
             lifecycle="schema_ready",
             disposition=disposition,
-            team_slot=team_slot,
+            crew_slot=crew_slot,
             trainer_id=trainer_id,
             birth_snapshot_id=birth_snapshot_id,
             wild_entered_at=None,
@@ -91,7 +91,7 @@ async def trainer_id(sess: AsyncSession, birth_snapshot_id: uuid.UUID) -> uuid.U
 
 
 @pytest.mark.parametrize(
-    ("disposition", "team_slot", "trainer_id_key", "expired_at"),
+    ("disposition", "crew_slot", "trainer_id_key", "expired_at"),
     [
         (None, None, None, None),
         ("owned", 0, "trainer", None),
@@ -105,7 +105,7 @@ async def test_disposition_constraint_accepts_valid_shapes(
     birth_snapshot_id: uuid.UUID,
     trainer_id: uuid.UUID,
     disposition: str | None,
-    team_slot: int | None,
+    crew_slot: int | None,
     trainer_id_key: str | None,
     expired_at: dt.datetime | None,
 ) -> None:
@@ -115,7 +115,7 @@ async def test_disposition_constraint_accepts_valid_shapes(
         birth_snapshot_id=birth_snapshot_id,
         disposition=disposition,
         trainer_id=resolved_trainer_id,
-        team_slot=team_slot,
+        crew_slot=crew_slot,
         expired_at=expired_at,
     )
 
@@ -131,7 +131,7 @@ async def test_disposition_constraint_rejects_owned_without_trainer(
             birth_snapshot_id=birth_snapshot_id,
             disposition="owned",
             trainer_id=None,
-            team_slot=0,
+            crew_slot=0,
         )
         await sess.commit()
 

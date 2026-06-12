@@ -12,4 +12,4 @@ from app.domains.vibemon.entity import Vibemon
 class Trainer(Schema):
     id: TrainerIdT = pydantic.Field(default_factory=uuid.uuid7)
     username: str
-    team: list[Vibemon] = pydantic.Field(default_factory=list)
+    crew: list[Vibemon] = pydantic.Field(default_factory=list)

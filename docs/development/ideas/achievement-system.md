@@ -1,14 +1,28 @@
-# Ideas: Achievement System
+# Achievement System
 
-## Period: Meta-Progression & Discovery
+| | |
+| --- | --- |
+| **Status** | Idea |
+| **Priority** | Medium |
+| **Complexity** | Medium–High |
+| **Area** | Meta-Progression & Discovery |
+| **Related** | [vibemon-xp-and-evolution.md](vibemon-xp-and-evolution.md), [vibe-gold-economy.md](vibe-gold-economy.md), [mon-event-history.md](mon-event-history.md), [generative-aesthetics-and-showcase.md](generative-aesthetics-and-showcase.md), [geolocation-traversal-and-simulation.md](geolocation-traversal-and-simulation.md), [posthog-analytics-day-one.md](posthog-analytics-day-one.md) |
 
-### Problem Statement
+## Summary
 
-Trainers need lightweight milestones that celebrate the full Vibemon loop — birth, review, adoption, exploration, battle, and showcase — without turning progression into a grind checklist. Achievements should nudge discovery (providers, biomes, tactics) and give the Alumni Roster / Trainer Card something worth showing off.
+Lightweight milestones that celebrate the full **Vibemon** loop — birth, review, adoption, exploration, battle, and showcase — without turning progression into a grind checklist. Achievements nudge discovery (providers, biomes, tactics) and give the Alumni Roster and Trainer Card something worth showing off.
 
----
+## Problem
 
-## Tier Ladder (5 tiers)
+Trainers need recognition for verbs, not vanity stats. Without time-calibrated gates, achievements either feel trivial or impossible. Deferred features (catch, weather, simulated travel) must not block v1 families while leaving room to extend when telemetry ships.
+
+## Concept
+
+A **five-tier performance ladder** (Day One → Encore) with **multi-level achievement families** (one thematic track, five gates per family) plus standalone discovery moments. Gates assume ~30 min/day battle time and ~30 min/week generation; tune from PostHog after launch.
+
+## Design
+
+### Tier ladder (5 tiers)
 
 Five pithy labels that read as one performance arc — **show up → find the groove → nail it → top billing → they beg you back**. Tier labels describe *skill stage*; **duration targets** describe when an average trainer should clear that tier's gates.
 
@@ -27,7 +41,7 @@ Five pithy labels that read as one performance arc — **show up → find the gr
 
 ---
 
-## Play Model (gate calibration)
+### Play model (gate calibration)
 
 Gates assume a **typical** trainer — not a speedrunner, not a weekend-only player.
 
@@ -58,14 +72,14 @@ Rounded from the model above; gates sit at **~85–90%** of these values so on-s
 **Scaling philosophy**
 - **Count families** (wins, reviews, births, alumni): gates track projected activity at each horizon.
 - **Skill families** (Clean Sweep): gates stay well below win totals — perfection scales with ability, not hours.
-- **Catalog families** (Type Tourist, Move Scholar): gates asymptote toward finite roster / move catalog size; Encore = complete the set.
+- **Catalog families** (Type Tourist, Move Catalog Scholar): gates asymptote toward finite roster / move catalog size; Encore = complete the set.
 - **Encore** targets **~6 months** of typical play per family — aspirational but reachable, not multi-year.
 
 Tune gates ±15% after launch if PostHog shows tier completion clusters drifting from targets.
 
 ---
 
-## Multi-Level Achievements
+### Multi-level achievements
 
 Most achievements are **families** — one thematic track with **five gates**, one per tier.
 
@@ -90,7 +104,7 @@ Most achievements are **families** — one thematic track with **five gates**, o
 
 ---
 
-## Design Principles
+### Design principles
 
 1. **Celebrate verbs, not stats.** Prefer "Win a battle at dusk" over "Deal 10,000 damage."
 2. **Respect deferred features.** Catch-from-battle and weather achievements stay in *Future* until shipped.
@@ -101,7 +115,7 @@ Most achievements are **families** — one thematic track with **five gates**, o
 
 ---
 
-## Achievement Families (50)
+### Achievement families (50)
 
 Each row is one family; columns are tier gates calibrated to **1 wk / 2 wk / 1 mo / 3 mo / 6 mo**.
 
@@ -120,11 +134,11 @@ Each row is one family; columns are tier gates calibrated to **1 wk / 2 wk / 1 m
 
 | Family | Day One (1 wk) | On the Beat (2 wk) | In the Pocket (1 mo) | Headliner (3 mo) | Encore (6 mo) |
 |--------|----------------|--------------------|-----------------------|------------------|---------------|
-| **Contact Continuum** *(wild encounter wins)* | 7 | 15 | 35 | 105 | 210 |
+| **Contact Continuum** *(wins in **Actual Encounters**)* | 7 | 15 | 35 | 105 | 210 |
 
 *v1 **Contact Continuum** counts **wins only**. Most trainer battle time is vs **Wild** **Vibemon** (win or **Defeat** / flee) — see [Future: Wild encounters](#future-wild-encounters).*
 | **Review Regular** *(candidate accept/reject)* | 3 | 7 | 15 | 45 | 90 |
-| **Clean Sweep** *(wins with no party faints)* | 2 | 3 | 7 | 20 | 42 |
+| **Clean Sweep** *(wins with no crew faints)* | 2 | 3 | 7 | 20 | 42 |
 | **Move Catalog Scholar** *(distinct moves used in battle, lifetime)* | 4 | 8 | 14 | 28 | 48* |
 
 \*Encore gate = **min(48, 90% of published catalog)**. Revisit when **Move Catalog** grows.
@@ -138,7 +152,7 @@ Each row is one family; columns are tier gates calibrated to **1 wk / 2 wk / 1 m
 | Family | Day One (1 wk) | On the Beat (2 wk) | In the Pocket (1 mo) | Headliner (3 mo) | Encore (6 mo) |
 |--------|----------------|--------------------|-----------------------|------------------|---------------|
 | **Type Tourist** *(distinct elements ever owned)* | 2 | 3 | 5 | 9 | 12† |
-| **Alumni Wall of Fame** *(unique vibemon ever owned, incl. released)* | 3 | 6 | 11 | 32 | 65 |
+| **Alumni Wall of Fame** *(unique **Vibemon** ever **Owned**, including those returned to **Wild** via **Release**)* | 3 | 6 | 11 | 32 | 65 |
 
 †Encore gate = **every element in the live roster** (currently 12). Gate tracks `count(all_elements)` if roster expands.
 
@@ -148,7 +162,7 @@ Each row is one family; columns are tier gates calibrated to **1 wk / 2 wk / 1 m
 
 ---
 
-## Standalone Achievements (10)
+### Standalone achievements (10)
 
 Discovery moments that don't ladder on counts. Placed so they land within the same duration window as their tier.
 
@@ -165,11 +179,16 @@ Discovery moments that don't ladder on counts. Placed so they land within the sa
 | In the Pocket | 1 mo | **Night Owl** | Win a battle during **Solar Phase** `night` | The **Birth Context** moon approves. |
 | Headliner | 3 mo | **High Roller** | Win a **Vibe Gold** wager with ≥500 VG staked | Escrow closed. Vibes paid out. |
 
+**Standalone dependency flags**
+- **Coastline Cartographer** — requires a *coastal* classification in the **Wild Geography Bucket** taxonomy. Confirm the taxonomy carries terrain class before committing; otherwise demote to Future with **Geography Passport**.
+- **Night Owl** — requires **Solar Phase** computed at *battle* time. Today solar phase derives from **Birth Context**; battle context must capture it too (same listed blocker as **Solar Serenade**).
+- **High Roller** — blocked by the **Vibe Gold** wager economy ([vibe-gold-economy.md](vibe-gold-economy.md)). If economy slips, Headliner ships with 0 standalones (acceptable — see Tier balance).
+
 *Future Encore standalone (expansion): **Whale Song** — win a wager with ≥5,000 VG staked.*
 
 ---
 
-## Tier Balance
+### Tier balance
 
 | Tier | Duration | Family gates | Standalone | Total |
 |------|----------|--------------|------------|-------|
@@ -182,7 +201,7 @@ Discovery moments that don't ladder on counts. Placed so they land within the sa
 
 ---
 
-## Gate vs. Model Check
+### Gate vs. model check
 
 How rescaled gates compare to projected activity at each horizon (~90% target band).
 
@@ -196,7 +215,7 @@ How rescaled gates compare to projected activity at each horizon (~90% target ba
 
 ---
 
-## Future: Wild encounters
+### Future: wild encounters
 
 v1 achievement gates are calibrated around **generation** (credits, review, adoption) and **wild wins**. That underweights how trainers actually spend battle time: most fights are **Actual Encounters** vs **Wild** **Vibemon**, and many end in **Defeat** or flee — not just wins.
 
@@ -226,7 +245,7 @@ At 30 min/day and ~16 min/battle → ~**13 wild battles / week** (vs ~**9 wins**
 
 ---
 
-## Future Families (when features land)
+### Future families (when features land)
 
 Calibrated to the same play model and duration targets.
 
@@ -236,7 +255,7 @@ Calibrated to the same play model and duration targets.
 | **Type Crossed** *(distinct wild opponent **Elements** faced; win or lose)* | 2 / 4 / 6 / 9 / 12‡ | Wild opponent element on `battle_ended` |
 | **Gotcha** *(catch adoptions)* | 2 / 5 / 10 / 28 / 55 | **Catch** flow (deferred) |
 | **Provider Trinity** *(all-3-provider births)* | 1 / 2 / 4 / 12 / 25 | v1 uses **Full Stack** standalone |
-| **Party Line** *(party slots filled; max 6)* | 1 / 3 / 4 / 6 / 6 all **Manifest** | Party UX polish |
+| **Crew Line** *(crew slots filled; max 6)* | 1 / 3 / 4 / 6 / 6 all **Manifest** | Crew UX polish |
 | **Simulation Vacation** *(simulated travel sessions)* | 1 / 1 / 2 / 4 / 8 | Simulated travel perk |
 | **Geography Passport** *(distinct geography buckets)* | 2 / 3 / 5 / 8 / all | Bucket taxonomy |
 | **Solar Serenade** *(wins per solar phase)* | 1 / 3 / 8 / 22 / 45 per phase | Solar phase on battle context |
@@ -249,24 +268,54 @@ Calibrated to the same play model and duration targets.
 
 ---
 
-## Rewards (non-power)
+### Rewards (non-power)
 
 | Reward type | Tier scope | Examples |
 |-------------|------------|----------|
 | **Trainer titles** | All tiers | Equip highest unlocked family title |
 | **Showcase frames** | In the Pocket+ | Tier-colored **Alumni Roster** borders |
-| **Emote unlocks** | On the Beat+ | Party screen reactions |
+| **Emote unlocks** | On the Beat+ | Crew screen reactions |
 | **Vibe Gold drip** | Day One–Headliner only | Small one-time VG bonus per **tier completion** (all gates in that tier) |
 | **Family flourish** | Headliner (4/5 gates) | Animated badge on Trainer Card |
 | **Encore flourish** | Encore (5/5 gates) | Prismatic Trainer Card treatment + unique emote; **no VG** |
 
 Completing **every Encore gate across all families** (10/10 at tier 5) unlocks a **seasonal prestige border**.
 
+*Reward dependency:* **Vibe Gold drip** requires the economy to ship; **Showcase frames** require the Alumni Roster surface ([generative-aesthetics-and-showcase.md](generative-aesthetics-and-showcase.md)). v1 can ship with **titles only** as the reward layer — titles need nothing but a Trainer Card surface.
+
 ---
 
-## Implementation Notes
+## Surface & routing
 
-- **Event source:** Reuse PostHog custom events where possible; authoritative unlocks mirror backend state.
+The **Vibe Deck** is the app shell hub (`/deck`, currently redirecting to `/deck/crew`). Diegetically the deck is the trainer's field device — crew index, encounter reference, capture interface — and it already stores trainer identity, so the **Trainer Card** belongs *inside* it.
+
+**Recommendation: `/deck/trainer` — a Trainer Card screen, with achievements as its main body.**
+
+- Achievements are trainer meta-progression, not a **Vibemon**-collection view, so they don't belong under `/deck/crew`.
+- A dedicated top-level `/achievements` route fragments navigation for a feature whose rewards (titles, frames, flourishes) all render *on* the Trainer Card anyway.
+- v1 Trainer Card scope is deliberately thin: username, equipped title, achievement family grid (five pips per family), standalone list. Avatar/reference art, share-export, and frames arrive with the showcase idea.
+- The family detail view (progress bar to next gate, flavor text) can be a drawer/modal within `/deck/trainer` — no extra route.
+
+This also gives **Hello, World** (registration), titles, and the future share-export Trainer Card one canonical home.
+
+---
+
+## Risks
+
+1. **No authoritative event source exists yet.** PostHog is analytics, not game state — ad-blocked clients would lose unlocks, and the doc already requires backend-authoritative grants. But the backend currently persists no battle results, no per-turn move usage, and no per-trainer counters. Biggest hidden cost of this idea: a **trainer activity ledger** (or per-family counters incremented inside the adoption/battle/birth workflows). Decide ledger-vs-counters before any UI work.
+2. **"Distinct moves used in battle, lifetime" needs per-turn logging.** Move Catalog Scholar requires recording which **Move** each **Battle Action** used, per trainer, forever. That's a new write path in battle resolution, not a counter bump.
+3. **Backfill / retroactivity.** Trainers who played before launch: derive what we can from existing tables (adoptions, christens, manifests are persisted) and accept zero-start for battle counters — state this in player copy, or early adopters feel robbed.
+4. **Append-only grants vs. dynamic gates.** Type Tourist and Move Catalog Scholar Encore resolve against live catalog size. If the catalog grows after a grant, the unlock stays (append-only) but the family reads "complete" while no longer being so. Pick a rule: grants are forever, gate text shows the catalog size *at grant time*.
+5. **Timeout Artist incentive.** Rewarding a **Candidate Review Timeout** burns a **Generation Credit** for an achievement. One-time and Day One-tier, so cheap — but confirm credit economics tolerate a deliberate waste before keeping it.
+6. **Calibration model is fully synthetic.** Every gate derives from assumed 30 min/day play with zero telemetry behind it. The ±15% tuning plan is right, but expect *tier-wide* rescales, not nudges — keep gates in data/config, never hardcoded, so a rebalance is a data change.
+7. **Cross-idea coupling.** Alumni Roster, Trainer Card export, Vibe Gold, and wagers are all *other* idea docs. v1 achievements should depend only on: trainer profile screen (this doc), existing adoption/birth state, and new battle counters.
+
+---
+
+## Implementation
+
+- **Event source:** Backend is authoritative. Unlock checks run inside the owning workflow (adoption, battle resolution, birth) against backend counters; PostHog mirrors for analytics only and never grants.
+- **Counters:** Per-trainer activity counters (or an activity ledger — see Risks #1) incremented in workflows. Gates live in data/config, not code, so calibration rescales are data changes.
 - **Schema:** `achievement_family_id`, `tier` (1–5), `threshold`, `unlocked_at`. One row per `(trainer_id, family_id, tier)`.
 - **Dynamic gates:** Type Tourist Encore and Move Catalog Scholar Encore resolve against live catalog size at check time.
 - **Idempotency:** Grants are append-only.
@@ -274,8 +323,15 @@ Completing **every Encore gate across all families** (10/10 at tier 5) unlocks a
 - **Progress UI:** Five pips; Encore pip locked until Headliner gate cleared; Encore progress obfuscated until 50%.
 - **Calibration:** Track `median_days_to_tier_unlock` per family; target bands are 7 / 14 / 30 / 90 / 180 days.
 
----
+## Success Criteria
 
-**Priority**: Medium  
-**Complexity**: Medium–High (5-tier UX + time-calibrated gates)  
-**Related Ideas**: trainer-progression-and-economy.md, generative-aesthetics-and-showcase.md, geolocation-traversal-and-simulation.md, posthog-analytics-day-one.md
+- Tier completion clusters within ±15% of duration targets after launch telemetry.
+- v1 ships 60 achievements (50 family gates + 10 standalone) without catch/weather dependencies.
+- Encore gates feel aspirational at ~6 months typical play, not multi-year.
+
+## Open Questions
+
+- When wild battle telemetry ships, split **Contact Continuum** (wins) from **Wild Scuffle** (any outcome)?
+- Encore VG drip: intentionally zero — revisit if economy needs more sinks?
+- Counter storage: dedicated per-family counters vs. a generic trainer activity ledger replayed into counters? Ledger is more flexible for future families but a bigger lift.
+- Does the **Wild Geography Bucket** taxonomy carry a terrain class (coastal) today, or does **Coastline Cartographer** move to Future?

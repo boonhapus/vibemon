@@ -1,0 +1,22 @@
+---
+name: vibe-deck-icon
+asset: static/game/icons/vibe-deck.png
+model: gemini-3-pro-image
+generated: 2026-06-09
+style_anchor: base-style-icon.md
+role: icon
+reference_asset: static/game/sprites/vibe-deck.png
+depends_on: vibe-deck-sprite
+---
+The attached reference shows the canonical closed Vibe Deck — use it ONLY for palette, materials, and control identity. IGNORE the reference viewing angle completely.
+
+TASK — Render ONE square 1:1 HUD navigation icon of the same closed clamshell Vibe Deck: a trainer field device for recording Vibemon (Pokédex + bag in one object). Clean 16-bit pixel art icon of a retro wooden audio deck, flat 2D front view, straight-on perspective, orthographic projection, perfectly centered. Orient facing **right** — front panel and controls toward the right edge of the frame, as if worn on the trainer's right hip. Do not orient toward the left.
+
+SUBJECT — Landscape rectangle, wider than tall, fully closed clamshell. Dark muted walnut wood-grain panel on top; parchment cream control panel on bottom. Simplified iconic shapes only: rounded-rect Vibe Cart slot mouth, one large circular label window (tiny abstract creature silhouette, not a specific character), small circular reel window, two minimal indicator lamps (sage green and burnt orange), one chunky confirm button. Thick tobacco-brown bezels and seams, small grape-plum hinge accent stripe, soft mustard selection notch. No belt clip visible — front face only.
+
+REFERENCE LOCK (palette & identity only)
+- Match reference wood tone, cream face plate, tobacco outlines, grape hinge stripe, mustard notch, lamp colors, and analog control layout.
+- Do not redesign, recolor, add logos, or add text.
+- Do NOT copy the reference three-quarter angle — reframe as flat orthographic front view facing right.
+
+Minimalist detailing — crisp outlines, defined shapes, solid color blocks. Avoid dithering, no heavy gradients, no 3D perspective, no complex textures.

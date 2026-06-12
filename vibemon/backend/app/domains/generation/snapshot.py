@@ -1,10 +1,9 @@
-"""Captured provider payload replay for deterministic Vibemon birth."""
-
-from collections.abc import Iterable
+from collections.abc import Iterable, Sequence
 from typing import TYPE_CHECKING, Any
 import asyncio
 
 from app.core.schema import FrozenSchema
+from app.domains.generation.ports import BirthProvider
 
 if TYPE_CHECKING:
     from app.domains.generation.affinity import Affinity
@@ -16,7 +15,11 @@ class BirthSnapshot(FrozenSchema):
 
     provider_payloads: dict[str, dict[str, Any]]
 
-    async def regenerate(self, providers: Iterable[Any], seed: BirthSeed) -> Iterable[Affinity]:
+    async def regenerate(
+        self,
+        providers: Sequence[BirthProvider],
+        seed: BirthSeed,
+    ) -> Iterable[Affinity]:
         """Given a seed + captured payloads, create affinities without new API calls."""
         providers_by_name = {provider.name: provider for provider in providers}
 

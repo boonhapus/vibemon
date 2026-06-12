@@ -1,0 +1,13 @@
+---
+name: vibe-deck-sprite
+asset: static/game/sprites/vibe-deck.png
+model: gemini-3-pro-image
+generated: 2026-06-09
+style_anchor: base-style-sprite.md
+role: sprite
+---
+A portable closed clamshell Vibe Deck — trainer field device for recording Vibemon (Pokédex + bag in one). Landscape belt-worn proportions: clearly wider than tall (~3:2), chunky low-profile handheld like a 1970s wood-cabinet transistor radio crossed with an early pocket media player. Closed clamshell horizontal along the belt line — compact, squat, belt-ready.
+
+Exterior: warm wood-grain paneling in muted walnut tones (matte, hand-finished), parchment cream face plate, thick tobacco-brown bezels and seams, small grape-plum hinge accent stripe, soft mustard selection notch on the side. Wide horizontal front panel: rounded-rect Vibe Cart slot mouth, circular label window with tiny abstract creature silhouette (not a specific character), small circular reel window, two minimal soft-glow indicator lamps (sage green and burnt orange), one chunky confirm button. Sturdy brushed pewter belt clip on the back. No logos, no text, no human hands.
+
+ORIENTATION — three-quarter hero view facing **right**: front panel toward the right edge, right cheek and pewter belt clip partially visible, thin left profile, as if worn on the trainer's right hip. Centered with uniform margin.

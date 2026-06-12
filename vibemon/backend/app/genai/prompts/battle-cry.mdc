@@ -1,11 +1,11 @@
 ---
 name: battle-cry
-description: Generates a Pokémon-style creature cry description and duration.
+description: Generates a retro handheld creature cry description and duration.
 version: 1.1.0
 ---
 {%- set notes = [vibemon.identity.visual_notes, vibemon.identity.provider_visual_notes] | reject("none") | list -%}
 
-Create a vivid, creature-focused sound effect description for this monster. It should sound like a mix of an organic animal vocalization and a synthesized Pokémon-style digital effect.
+Create a vivid, creature-focused sound effect description for this Vibemon. It should sound like a mix of an organic animal vocalization and a retro handheld synthesized creature cry.
 
 Name: {{ vibemon.name }}
 Type: {{ vibemon.identity.elements | join(", ") }}

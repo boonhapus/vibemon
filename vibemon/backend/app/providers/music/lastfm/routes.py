@@ -13,7 +13,7 @@ from starlette.routing import Route
 from app.providers.music.lastfm import linking, tokens
 from app.settings import Settings
 from app.storage.database import engine as db_engine
-from app.storage.database import models, repositories
+from app.storage.database import models, trainer_links_repo
 
 _STATE_COOKIE = "lastfm_auth_state"
 _POLL_INTERVAL_S = 2.0
@@ -83,7 +83,7 @@ async def _persist_lastfm_link(
     try:
         async with session_factory() as sess:
             await _ensure_trainer(sess, trainer_id)
-            await repositories.set_trainer_lastfm_link(
+            await trainer_links_repo.set_trainer_lastfm_link(
                 sess,
                 trainer_id,
                 session_key=session.key,
@@ -200,7 +200,7 @@ async def unlink(request: Request) -> JSONResponse:
     session_factory = async_sessionmaker(engine, expire_on_commit=False)
     try:
         async with session_factory() as sess:
-            await repositories.set_trainer_lastfm_link(sess, trainer_id, session_key=None, username=None)
+            await trainer_links_repo.set_trainer_lastfm_link(sess, trainer_id, session_key=None, username=None)
             await sess.commit()
     finally:
         await engine.dispose()

@@ -26,7 +26,7 @@ def _wild_vibemon(vibemon_id: uuid.UUID, *, name: str, now: dt.datetime) -> mode
         evo_stage=0,
         lifecycle=VibemonLifecycleT.BORN.value,
         disposition=VibemonDispositionT.WILD.value,
-        team_slot=None,
+        crew_slot=None,
         trainer_id=None,
         birth_snapshot=snapshot,
         wild_entered_at=now,
@@ -83,7 +83,7 @@ async def test_pick_wild_encounter_ignores_pending_review_candidates(
         trainer_id=trainer_id,
         latitude=41.8781,
         longitude=-87.6298,
-        party_strength=100.0,
+        crew_strength=100.0,
         desired_supply=1,
     )
 

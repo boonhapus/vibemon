@@ -125,10 +125,11 @@ copy .env.example .env
 
 # Run (from repo root)
 cd vibemon/backend
-uv run uvicorn app:app --reload   # Litestar app entrypoint TBD
+uv run dev                    # backend + frontend together
 
-cd vibemon/frontend              # path TBD — separate Svelte plan
-pnpm install && pnpm dev
+# Or separately:
+uv run uvicorn app.http.app:app --reload --port 8000
+cd ../frontend && pnpm install && pnpm dev
 ```
 
 For offline work, run local Postgres/Redis with Docker Desktop and point `.env` at `127.0.0.1`. See `deploy/postgres/README.md` and `deploy/redis/README.md`.
@@ -418,7 +419,7 @@ Redis has **no** setting to bypass `requirepass` for clients on a local or priva
 
 ## PostHog Cloud
 
-Event taxonomy and rationale: `docs/development/ideas/posthog-analytics-day-one.md`.
+Event taxonomy and rationale: `docs/development/ideas/posthog-analytics-day-one.md` (includes **instrumentation ideology**: `track()` first, `data-action` supplement, no pre-PH ID sweep).
 
 ### Why Cloud (not self-hosted in v1)
 
@@ -428,35 +429,49 @@ Event taxonomy and rationale: `docs/development/ideas/posthog-analytics-day-one.
 
 ### Files implicated
 
-- Svelte frontend: `posthog-js` SDK + `VITE_POSTHOG_KEY`, `VITE_POSTHOG_HOST` in `.env.example`
-- `frontend/src/analytics/events.ts` (TBD) — typed event names + single `track()` wrapper
+- Svelte frontend: `posthog-js` SDK + `VITE_POSTHOG_KEY`, `VITE_POSTHOG_HOST`, `VITE_POSTHOG_ENABLED` in `.env.example`
+- `vibemon/frontend/src/lib/analytics/` — `init.ts`, `track.ts`, `events.ts` (typed names + single wrapper)
+- Domain stores (`trainerStore`, `generationStore`, `crewStore`) — primary `track()` call sites
+- Optional: `MenuButton` (or similar) — optional `dataAction` prop → `data-action` attribute
 - Optional later: `vibemon/backend/app/settings.py` — `posthog_project_api_key`, `posthog_enabled` for server-side authoritative events (births, battle outcomes)
 
 ### Steps
 
 1. **Create a PostHog Cloud project** (US region). Capture the project API key.
-2. **Frontend SDK** (Svelte):
+2. **Frontend SDK** (Svelte) — init, no-op when disabled:
 
    ```bash
    pnpm add posthog-js
    ```
 
    ```js
-   // frontend/src/lib/analytics.js (path TBD)
+   // vibemon/frontend/src/lib/analytics/init.ts
    import posthog from 'posthog-js';
 
-   posthog.init(import.meta.env.VITE_POSTHOG_KEY, {
-     api_host: import.meta.env.VITE_POSTHOG_HOST, // https://us.i.posthog.com
-   });
+   export function initAnalytics(): void {
+     const key = import.meta.env.VITE_POSTHOG_KEY;
+     if (!key || import.meta.env.VITE_POSTHOG_ENABLED === 'false') return;
 
-   export default posthog;
+     posthog.init(key, {
+       api_host: import.meta.env.VITE_POSTHOG_HOST, // https://us.i.posthog.com
+       capture_pageview: false, // use afterNavigate + posthog.capture('$pageview')
+       session_recording: { maskAllInputs: true },
+       autocapture: {
+         dom_event_allowlist: ['click'],
+         element_allowlist: ['button', 'a', '[data-action]'],
+       },
+     });
+   }
    ```
 
-3. **Event taxonomy**: single `track()` wrapper; no raw `posthog.capture()` outside the module. See posthog-analytics-day-one.md for the event list.
-4. **Session replay**: enable with input masking on by default.
-5. **Feature flags**: gate net-new providers, species, and UI experiments. Default 0% → internal cohort → percentage.
-6. **Backend SDK** (optional, post-Litestar): thin `track()` wrapper for authoritative game-state events that cannot be spoofed from the browser.
-7. **Adblocker mitigation** (optional at launch): Caddy reverse-proxy `/ph/*` → `https://us.i.posthog.com` if Brave Shields blocks direct Cloud calls. Defer until we confirm it is a problem.
+3. **`track()` wrapper** — no raw `posthog.capture()` outside `src/lib/analytics/`. Emit from stores/API paths, not in parallel with a separate data-ID-only pass.
+4. **Identify trainers** — `posthog.identify(trainer.id, { username })` after register/login/me; `posthog.reset()` on sign out.
+5. **Phase-1 events** — setup → generate → adopt/reject → crew release (see taxonomy doc).
+6. **`data-action`** — add on key CTAs in the same PR as events, or via shared button prop; do not pre-label the whole UI.
+7. **Session replay** — enabled at init (step 2); verify masking in PostHog UI.
+8. **Feature flags** — gate net-new providers, species, and UI experiments. Default 0% → internal cohort → percentage.
+9. **Backend SDK** (optional): thin wrapper for authoritative game-state events that cannot be spoofed from the browser.
+10. **Adblocker mitigation** (optional at launch): Caddy reverse-proxy `/ph/*` → `https://us.i.posthog.com`. Defer until confirmed necessary.
 
 ### Verification
 
@@ -679,7 +694,7 @@ Work deliberately deferred from this cleanup pass:
 | **Alembic** | Deferred to v1.0 gate. |
 | **SQLite removal** | Dual-backend support kept until production proves Postgres stable. |
 | **Runbooks** | `deploy/README.md`, `docs/development/runbooks/musicbrainz.md` not written. PostHog runbook N/A (Cloud). |
-| **PostHog frontend** | Cloud project + `posthog-js` integration not started. |
+| **PostHog frontend** | Cloud project + `posthog-js` integration not started. Follow ideology in posthog-analytics-day-one.md: SDK → `track()` in stores → `data-action` on same PR. |
 | **Mac LAN publishing** | Postgres/Redis compose publish to localhost only today; need prod-shaped bind + auth for shared host. |
 
 ## Open questions

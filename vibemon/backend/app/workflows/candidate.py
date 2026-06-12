@@ -6,21 +6,28 @@ import uuid
 from sqlalchemy.ext.asyncio import AsyncSession
 import sqlalchemy as sa
 
-from app.core.errors import CandidateReviewUnavailable, PartyFull
+from app.core.errors import CandidateReviewUnavailable, CrewFull
 from app.core.ids import TrainerIdT
 from app.core.time import resolve_clock
 from app.domains.adoption import policy as adoption_policy
 from app.domains.adoption.candidate import CANDIDATE_REVIEW_TIMEOUT
 from app.domains.adoption.types import CandidateReviewStatusT
 from app.domains.generation.seed import BirthSeed
-from app.domains.trainer import credits, party
+from app.domains.trainer import credits, crew
 from app.domains.vibemon.disposition import VibemonDispositionT
 from app.domains.vibemon.history import VibemonHistoryEventT
 from app.domains.vibemon.schema import PublicVibemon
 from app.domains.vibemon.types import VibemonLifecycleT
-from app.storage.database import mapper, models, repositories
-from app.workflows import _workflow_support as workflows
-from app.workflows.materialize_vibemon import MaterializeVibemon
+from app.storage.database import (
+    candidate_review_repo,
+    generation_credit_repo,
+    history_repo,
+    mapper,
+    models,
+    trainer_repo,
+    vibemon_repo,
+)
+from app.workflows import asset_realization, birth_persist, public_projection, wild_disposition
 
 
 async def generate_candidate(
@@ -39,7 +46,7 @@ async def generate_candidate(
     if not bypass_credits:
         credit_day, hold_id = await _reserve_credit(sess, trainer_id=trainer_id, now=now)
     try:
-        row, provider_notes = await workflows.birth_and_persist_vibemon(
+        row, provider_notes = await birth_persist.birth_and_persist_vibemon(
             sess,
             birth_seed=birth_seed,
             nickname=nickname,
@@ -47,7 +54,7 @@ async def generate_candidate(
             now=now,
             christen=christen,
         )
-        review = repositories.create_review(
+        review = candidate_review_repo.create_review(
             row.id,
             trainer_id,
             now,
@@ -55,7 +62,7 @@ async def generate_candidate(
             provider_notes=provider_notes,
         )
         sess.add(review)
-        repositories.add_history(
+        history_repo.add_history(
             sess,
             row.id,
             VibemonHistoryEventT.CANDIDATE_SHOWN,
@@ -65,8 +72,8 @@ async def generate_candidate(
         if credit_day is not None and hold_id is not None:
             await _consume_credit(sess, credit_day, hold_id)
         await sess.flush()
-        loaded = await repositories.load_vibemon(sess, row.id)
-        return await workflows.public_vibemon(loaded, reviewing_trainer_id=trainer_id)
+        loaded = await vibemon_repo.load_vibemon(sess, row.id)
+        return await public_projection.public_vibemon(loaded, reviewing_trainer_id=trainer_id)
     except Exception:
         if credit_day is not None and hold_id is not None:
             await _release_credit(sess, credit_day, hold_id)
@@ -80,12 +87,13 @@ async def adopt_candidate(
     trainer_id: TrainerIdT,
     vibemon_id: uuid.UUID,
     release_vibemon_id: uuid.UUID | None = None,
+    nickname: str | None = None,
     manifest: bool = False,
 ) -> PublicVibemon:
     now = resolve_clock()
-    review = await repositories.pending_review(sess, trainer_id=trainer_id, vibemon_id=vibemon_id)
+    review = await candidate_review_repo.pending_review(sess, trainer_id=trainer_id, vibemon_id=vibemon_id)
     if adoption_policy.review_deadline_passed(timeout_at=review.timeout_at, now=now):
-        await workflows.resolve_candidate_to_wild(
+        await wild_disposition.resolve_candidate_to_wild(
             sess,
             review,
             now,
@@ -97,22 +105,20 @@ async def adopt_candidate(
 
     plan = await _adoption_plan(sess, trainer_id=trainer_id, release_vibemon_id=release_vibemon_id)
     vibemon = await mapper.vibemon_from_row(review.vibemon)
+    if nickname is not None:
+        trimmed = nickname.strip()
+        vibemon.nickname = trimmed or None
     if manifest and vibemon.lifecycle is not VibemonLifecycleT.MANIFESTED:
-        vibemon = await MaterializeVibemon().manifest(vibemon)
+        vibemon = await asset_realization.manifest_vibemon(vibemon)
 
     if plan.release is not None:
-        workflows.release_to_wild(sess, plan.release, trainer_id, now)
-    mapper.apply_vibemon_to_row(review.vibemon, vibemon)
-    review.vibemon.trainer_id = trainer_id
-    review.vibemon.team_slot = plan.slot
-    review.vibemon.disposition = VibemonDispositionT.OWNED.value
-    review.vibemon.wild_entered_at = None
-    review.vibemon.last_encountered_at = None
+        wild_disposition.release_to_wild(sess, plan.release, trainer_id, now)
+    mapper.apply_adopted_vibemon_to_row(review.vibemon, vibemon, trainer_id=trainer_id, crew_slot=plan.slot)
     review.status = CandidateReviewStatusT.ADOPTED.value
     review.resolution = CandidateReviewStatusT.ADOPTED.value
     review.resolved_at = now
-    await repositories.persist_assets(sess, vibemon)
-    repositories.add_history(
+    await vibemon_repo.persist_assets(sess, vibemon)
+    history_repo.add_history(
         sess,
         review.vibemon_id,
         VibemonHistoryEventT.CANDIDATE_ADOPTED,
@@ -120,8 +126,8 @@ async def adopt_candidate(
         {"trainer_id": str(trainer_id)},
     )
     await sess.flush()
-    loaded = await repositories.load_vibemon(sess, vibemon_id)
-    return await workflows.public_vibemon(loaded, reviewing_trainer_id=trainer_id)
+    loaded = await vibemon_repo.load_vibemon(sess, vibemon_id)
+    return await public_projection.public_vibemon(loaded, reviewing_trainer_id=trainer_id)
 
 
 async def reject_candidate(
@@ -131,8 +137,11 @@ async def reject_candidate(
     vibemon_id: uuid.UUID,
 ) -> PublicVibemon:
     now = resolve_clock()
-    review = await repositories.pending_review(sess, trainer_id=trainer_id, vibemon_id=vibemon_id)
-    await workflows.resolve_candidate_to_wild(
+    crew_count = await trainer_repo.count_owned_vibemons(sess, trainer_id)
+    if crew_count == 0:
+        raise CandidateReviewUnavailable("Adopt your first Vibemon before passing on another.")
+    review = await candidate_review_repo.pending_review(sess, trainer_id=trainer_id, vibemon_id=vibemon_id)
+    await wild_disposition.resolve_candidate_to_wild(
         sess,
         review,
         now,
@@ -140,8 +149,8 @@ async def reject_candidate(
         event=VibemonHistoryEventT.CANDIDATE_REJECTED,
     )
     await sess.flush()
-    loaded = await repositories.load_vibemon(sess, vibemon_id)
-    return await workflows.public_vibemon(loaded, reviewing_trainer_id=trainer_id)
+    loaded = await vibemon_repo.load_vibemon(sess, vibemon_id)
+    return await public_projection.public_vibemon(loaded, reviewing_trainer_id=trainer_id)
 
 
 class _AdoptionPlan:
@@ -156,7 +165,7 @@ async def _adoption_plan(
     trainer_id: TrainerIdT,
     release_vibemon_id: uuid.UUID | None,
 ) -> _AdoptionPlan:
-    await repositories.lock_trainer(sess, trainer_id)
+    await trainer_repo.lock_trainer(sess, trainer_id)
     rows = (
         (
             await sess.execute(
@@ -171,17 +180,17 @@ async def _adoption_plan(
         .scalars()
         .all()
     )
-    used = {row.team_slot for row in rows if row.team_slot is not None}
+    used = {row.crew_slot for row in rows if row.crew_slot is not None}
     release = next((row for row in rows if row.id == release_vibemon_id), None) if release_vibemon_id else None
-    release_slot = release.team_slot if release is not None else None
-    slot = party.select_adoption_slot(
+    release_slot = release.crew_slot if release is not None else None
+    slot = crew.select_adoption_slot(
         owned_count=len(rows),
         used_slots=used,
         release_slot=release_slot,
     )
-    if len(rows) >= party.MAX_PARTY_SIZE and release is None:
-        raise PartyFull("Release Vibemon is not owned by this trainer.")
-    return _AdoptionPlan(slot=slot, release=release if len(rows) >= party.MAX_PARTY_SIZE else None)
+    if len(rows) >= crew.MAX_CREW_SIZE and release is None:
+        raise CrewFull("Release Vibemon is not owned by this trainer.")
+    return _AdoptionPlan(slot=slot, release=release if len(rows) >= crew.MAX_CREW_SIZE else None)
 
 
 async def _reserve_credit(
@@ -190,8 +199,8 @@ async def _reserve_credit(
     trainer_id: TrainerIdT,
     now: dt.datetime,
 ) -> tuple[models.GenerationCreditDay, uuid.UUID]:
-    await repositories.lock_trainer(sess, trainer_id)
-    row = await repositories.credit_day(sess, trainer_id=trainer_id, credit_date=now.date())
+    await trainer_repo.lock_trainer(sess, trainer_id)
+    row = await generation_credit_repo.credit_day(sess, trainer_id=trainer_id, credit_date=now.date())
     hold_id = credits.reserve_generation_credit(row, now=now)  # pyrefly: ignore
     await sess.flush()
     return row, hold_id

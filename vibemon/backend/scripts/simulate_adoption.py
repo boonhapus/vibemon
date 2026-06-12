@@ -9,7 +9,11 @@ from sqlalchemy.ext.asyncio import AsyncSession
 import cyclopts
 
 from app.domains.generation.seed import BirthSeed
+from app.domains.vibemon.schema import PublicVibemon
 from app.domains.vibemon.types import VibemonLifecycleT
+from app.storage.database import mapper, vibemon_repo
+from app.workflows import asset_realization, public_projection
+from app.workflows import birth_seed as birth_seed_factory
 from app.workflows import candidate as candidate_workflow
 from scripts import _common
 
@@ -145,7 +149,12 @@ async def _run(
 ) -> None:
     _common.ensure_local_blob_dir(asset_store_url)
     async with _common.session_scope(database_url=database_url) as sess:
-        seed = _common.birth_seed(latitude=latitude, longitude=longitude, timestamp=timestamp)
+        seed = birth_seed_factory.build_birth_seed(
+            trainer_id=_common.SCRIPT_ANONYMOUS_TRAINER_ID,
+            latitude=latitude,
+            longitude=longitude,
+            timestamp=_common.parse_datetime(timestamp) if timestamp is not None else None,
+        )
         result = await _simulate(
             sess,
             action=action,
@@ -159,6 +168,24 @@ async def _run(
             bypass_credits=bypass_credits,
         )
     _common.dump(result)
+
+
+async def _materialize_vibemon(
+    sess: AsyncSession,
+    vibemon_id: uuid.UUID,
+    *,
+    lifecycle: VibemonLifecycleT,
+) -> PublicVibemon:
+    row = await vibemon_repo.load_vibemon(sess, vibemon_id)
+    vibemon = await mapper.vibemon_from_row(row)
+    if lifecycle is VibemonLifecycleT.CHRISTENED:
+        vibemon = await asset_realization.christen_vibemon(vibemon)
+    elif lifecycle is VibemonLifecycleT.MANIFESTED:
+        vibemon = await asset_realization.christen_and_manifest_vibemon(vibemon)
+    mapper.apply_vibemon_to_row(row, vibemon)
+    await vibemon_repo.persist_assets(sess, vibemon)
+    await sess.flush()
+    return await public_projection.public_vibemon(row)
 
 
 async def _simulate(
@@ -185,7 +212,7 @@ async def _simulate(
         christen=candidate_lifecycle is not VibemonLifecycleT.BORN,
     )
     if action is AdoptionAction.REJECT and candidate_lifecycle is VibemonLifecycleT.MANIFESTED:
-        candidate = await _common.materialize_vibemon(sess, candidate.id, lifecycle=candidate_lifecycle)
+        candidate = await _materialize_vibemon(sess, candidate.id, lifecycle=candidate_lifecycle)
 
     if action is AdoptionAction.REJECT:
         resolved = await candidate_workflow.reject_candidate(

@@ -360,9 +360,17 @@ def get_move_assignment_bonus(
     Coverage:   1.5x (fills defensive gaps)
     Normal:     1.0x (utility, no bonus/penalty)
     Other:      0.5x (antagonistic)
+
+    Elemental opposition trumps coverage: if any of the vibemon's own elements
+    resist (or are immune to) the move's type, the move reads as alien to what
+    the vibemon is — a water creature shouldn't breathe fire, even though FIRE
+    covers WATER's grass weakness.
     """
     if move_type in vibemon_elements:
         return MOVE_ASSIGNMENT_SAME_TYPE_BONUS
+
+    if any(ELEMENT_CHART.get((move_type, element), 1.0) < 1.0 for element in vibemon_elements):
+        return MOVE_ASSIGNMENT_ANTAGONISTIC_BONUS
 
     defensive_gaps = {
         attacker for vibemon_element in vibemon_elements for attacker in TYPE_AFFINITIES[vibemon_element].weak_to

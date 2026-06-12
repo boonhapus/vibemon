@@ -49,8 +49,8 @@ More Python import rules: `.agents/SKILLS/development/python-conventions/SKILL.m
 ### Backend module roles: `const.py`, `types.py`, `schema.py`, `models.py`
 
 Use these names consistently at the top level and inside subpackages. For
-example, `app.data_store.types` should mean the same kind of thing as
-`app.types`, but scoped to storage.
+example, `app.storage.database.types` should mean the same kind of thing as
+`app.core.types`, but scoped to storage.
 
 **Put in `const.py`**
 
@@ -89,7 +89,9 @@ example, `app.data_store.types` should mean the same kind of thing as
 
 ### Frontend
 
-- For motion, use `Tween` and `Spring` from `svelte/motion`.
+- For **state-driven** motion (values that follow reactive state), use `Tween` and `Spring` from `svelte/motion`. Prefer `prefersReducedMotion` from the same module over manual `matchMedia` checks.
+- For **fixed choreographies** (multi-element sequences, screen wipes, battle beats), use CSS `@keyframes` with shared `--anim-*` tokens from `vibemon/frontend/src/lib/ui/tokens.css` and `steps()` timing per `docs/development/DESIGN.md`.
+- For simple enter/leave on mount/unmount, use `transition:` from `svelte/transition`.
 
 ### Backend
 
@@ -109,13 +111,28 @@ example, `app.data_store.types` should mean the same kind of thing as
 - Folder: `~/.agents/skills/`
 - `caveman` — ultra-compressed communication mode
 - `caveman-commit` — ultra-compressed commit messages
-- `grill-me` — interview user to stress-test plans
+- `grill-with-docs` — stress-test plans against project docs
 - `karpathy-guidelines` — reduce LLM coding mistakes
 - `to-prd` — turn conversation into PRD
-- `wrangle-commits` — group staged changes into logical commits
 
 **Inside this repo**
 
 - Path: `.agents/SKILLS/`
 - `development/python-conventions` — Python imports and libs
+- `development/svelte-code-writer` — Svelte 5 docs lookup and component analysis (use for `.svelte` edits)
+- `development/svelte-core-bestpractices` — Svelte 5 reactivity and patterns
 - `vibemon/move-generator` — provider-driven move generation playbook (also read `vibemon/move-generator/references/move_balance_reference.md`)
+- `vibemon/provider-balance-analysis` — audit provider move catalogs
+- `vibemon/audio-production-pipeline` — stage, loop-test, and export music cues
+
+---
+
+## Design context
+
+Before designing or building UI, read:
+
+- **[docs/development/DESIGN.md](../docs/development/DESIGN.md)** — visual spec: battle animation, audio, typography, layout
+- **[docs/development/COLORS.md](../docs/development/COLORS.md)** — locked palette (canonical for `vibemon/frontend/src/lib/ui/tokens.css`)
+- **[docs/development/plans/trainer-setup-storyboard.md](../docs/development/plans/trainer-setup-storyboard.md)** — first-run trainer setup UX wireframes
+
+Domain vocabulary: [docs/development/CONTEXT.md](../docs/development/CONTEXT.md).

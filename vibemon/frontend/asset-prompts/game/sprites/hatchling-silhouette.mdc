@@ -1,0 +1,12 @@
+---
+name: hatchling-silhouette
+kind: asset-instance
+asset: game/sprites/hatchling-silhouette.png
+model: gemini-3-pro-image
+generated: 2026-06-07
+status: approved
+style_anchor: base-style.md
+---
+A cozy handheld pixel-art hatchling creature silhouette — the texture and rendering anchor for generated Vibemon sprites, not a specific species. Simple organic body plan: rounded head, compact torso, short limbs or nubs, gentle tail suggestion. Neutral hatchling posture — curious, slightly forward lean, three-quarter view. Silhouette reads clearly at 48–64px scale with chunky tobacco-brown outlines and 2–3 flat tone steps per color zone.
+
+Muted warm fills in normal-type parchment and olive tones — cozy mid-detail, not high-res concept art. No elemental effects, no aura, no props, no text. This is a style reference creature, not a named Vibemon. In a cozy handheld pixel art sprite style. Render with thick, distinct dark brown pixelated outlines defining the silhouette. Use 2–3 flat tone steps per color zone with soft stepped edges. Apply whisper-level paper grain and subtle dither on large flat surfaces only — not heavy crosshatch or stipple across entire fills. The color palette is slightly muted and desaturated. Isolated on a clean, solid white background, presented in a static, detailed sprite pose.

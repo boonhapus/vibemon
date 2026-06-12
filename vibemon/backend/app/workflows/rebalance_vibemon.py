@@ -5,7 +5,6 @@ Do not treat this as a production migration or player-facing workflow.
 """
 
 from collections.abc import Iterable
-from typing import Any
 import uuid
 
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -14,6 +13,7 @@ import sqlalchemy as sa
 
 from app.core.schema import FrozenSchema
 from app.domains.generation import snapshot as generation_snapshot
+from app.domains.generation.ports import BirthProvider
 from app.domains.generation.seed import BirthSeed
 from app.domains.move.entity import Move
 from app.domains.move.types import VibemonTypeT
@@ -51,7 +51,7 @@ async def rebalance_existing_vibemons(
     vibemon_id: uuid.UUID | None = None,
     limit: int | None = None,
     dry_run: bool = True,
-    providers: Iterable[Any] | None = None,
+    providers: Iterable[BirthProvider] | None = None,
 ) -> tuple[RebalanceSummary, ...]:
     """Rebuild existing Vibemon identity and moves from stored birth snapshots."""
     if limit is not None and limit < 1:
@@ -93,7 +93,7 @@ async def _rebalance_row(
     sess: AsyncSession,
     row: models.Vibemon,
     *,
-    providers: tuple[Any, ...],
+    providers: tuple[BirthProvider, ...],
     dry_run: bool,
 ) -> RebalanceSummary:
     before = await mapper.vibemon_from_row(row)
@@ -108,7 +108,7 @@ async def _rebalance_row(
 async def _replay_vibemon(
     row: models.Vibemon,
     *,
-    providers: tuple[Any, ...],
+    providers: tuple[BirthProvider, ...],
     before: Vibemon,
 ) -> Vibemon:
     seed_row = row.birth_snapshot.birth_seed
@@ -133,7 +133,7 @@ async def _replay_vibemon(
     )
     vibemon.lifecycle = before.lifecycle
     vibemon.trainer_id = before.trainer_id
-    vibemon.team_slot = before.team_slot
+    vibemon.crew_slot = before.crew_slot
     vibemon.identity = vibemon.identity.model_copy(
         update={
             "generation": row.identity.generation,

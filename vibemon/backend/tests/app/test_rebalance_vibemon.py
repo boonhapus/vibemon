@@ -101,7 +101,7 @@ async def _add_stale_vibemon(sess: AsyncSession, *, vibemon_id: uuid.UUID, now: 
         evo_stage=EvolutionStageT.BASE.value,
         lifecycle=VibemonLifecycleT.CHRISTENED.value,
         disposition=VibemonDispositionT.WILD.value,
-        team_slot=None,
+        crew_slot=None,
         trainer_id=None,
         birth_snapshot=snapshot,
         wild_entered_at=now,

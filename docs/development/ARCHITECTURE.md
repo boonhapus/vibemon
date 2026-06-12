@@ -29,7 +29,7 @@ vibemon/backend/app/
       types.py
     trainer/
       entity.py
-      party.py
+      crew.py
       credits.py
     adoption/
       candidate.py
@@ -63,7 +63,9 @@ vibemon/backend/app/
       types.py
 
   app/
-    _workflow_support.py
+    birth_persist.py
+    public_projection.py
+    wild_disposition.py
     generate_candidate.py
     generate_wild_supply.py
     adopt_candidate.py
@@ -92,7 +94,9 @@ vibemon/backend/app/
       models.py
       mapper.py
       move_catalog.py
-      repositories.py
+      vibemon_repo.py
+      trainer_repo.py
+      candidate_review_repo.py
     blob/
       monstore.py
       assets.py
@@ -134,7 +138,7 @@ vibemon/scripts/
 
 `storage/database/` owns ORM models, database mapping, and repositories. `storage/blob/` owns object storage and asset bytes. Domains do not import concrete storage adapters.
 
-`app/_workflow_support.py` holds shared helpers used by multiple workflows (read model assembly, state transitions, encounter adjustment plumbing). It is not a workflow itself and should not grow domain logic.
+Focused workflow helper modules (`public_projection.py`, `birth_persist.py`, `wild_disposition.py`, `encounter_adjustment.py`, etc.) hold shared orchestration used by multiple workflows. They are not workflows themselves and should not grow domain logic.
 
 `providers/api_hooks.py` holds HTTP client middleware (logging, rate limiting) used by provider API clients. It is infrastructure for providers, not domain translation.
 

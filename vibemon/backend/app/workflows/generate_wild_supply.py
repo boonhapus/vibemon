@@ -6,8 +6,8 @@ from app.core.time import resolve_clock
 from app.domains.generation.seed import BirthSeed
 from app.domains.vibemon.disposition import VibemonDispositionT
 from app.domains.vibemon.schema import PublicVibemon
-from app.storage.database import repositories
-from app.workflows import _workflow_support as workflows
+from app.storage.database import vibemon_repo
+from app.workflows import birth_persist, public_projection
 
 
 async def generate_wild_supply(
@@ -19,7 +19,7 @@ async def generate_wild_supply(
     christen: bool = False,
 ) -> PublicVibemon:
     now = resolve_clock()
-    row, _provider_warnings = await workflows.birth_and_persist_vibemon(
+    row, _provider_warnings = await birth_persist.birth_and_persist_vibemon(
         sess,
         birth_seed=birth_seed,
         nickname=nickname,
@@ -31,5 +31,5 @@ async def generate_wild_supply(
     row.wild_entered_at = now
     row.last_encountered_at = now
     await sess.flush()
-    loaded = await repositories.load_vibemon(sess, row.id)
-    return await workflows.public_vibemon(loaded)
+    loaded = await vibemon_repo.load_vibemon(sess, row.id)
+    return await public_projection.public_vibemon(loaded)

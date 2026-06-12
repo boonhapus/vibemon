@@ -9,6 +9,12 @@ def clamp(value: float, *, minimum: float, maximum: float) -> float:
     return max(minimum, min(maximum, value))
 
 
+def angular_distance(left: float, right: float) -> float:
+    """Smallest separation between two angles in degrees, in [0, 180]."""
+    delta = abs((left % 360.0) - (right % 360.0))
+    return min(delta, 360.0 - delta)
+
+
 def weighted_sample[T](
     population: Iterable[T],
     weights: Iterable[float],

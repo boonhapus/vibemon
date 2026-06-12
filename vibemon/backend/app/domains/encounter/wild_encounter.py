@@ -10,7 +10,7 @@ from app.core.schema import FrozenSchema
 from app.core.time import Clock, as_utc, resolve_clock
 from app.domains.encounter import tuning as encounter_tuning
 
-type EligibleWildLister = Callable[[float, float, int], Awaitable[list[uuid.UUID]]]
+type EligibleWildLister = Callable[[float | None, float | None, int], Awaitable[list[uuid.UUID]]]
 type EncounterCandidateLoader = Callable[
     [TrainerIdT, list[uuid.UUID], dt.datetime], Awaitable[list["EncounterCandidate"]]
 ]
@@ -48,9 +48,9 @@ class WildEncounterService:
         self,
         *,
         trainer_id: TrainerIdT,
-        latitude: float,
-        longitude: float,
-        party_strength: float,
+        latitude: float | None,
+        longitude: float | None,
+        crew_strength: float,
         list_eligible_wild_ids: EligibleWildLister,
         load_candidates: EncounterCandidateLoader,
         revalidate_eligible: EncounterEligibilityChecker,
@@ -69,7 +69,7 @@ class WildEncounterService:
         if not candidates:
             return None
 
-        target = max(party_strength * encounter_tuning.WILD_TARGET_RATIO, 1.0)
+        target = max(crew_strength * encounter_tuning.WILD_TARGET_RATIO, 1.0)
         lower = target * encounter_tuning.WILD_STRENGTH_BAND_MIN
         upper = target * encounter_tuning.WILD_STRENGTH_BAND_MAX
         in_band = [candidate for candidate in candidates if lower <= candidate.member_strength <= upper]

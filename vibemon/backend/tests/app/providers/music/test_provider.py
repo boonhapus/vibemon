@@ -10,6 +10,7 @@ import pytest
 
 from app.core.errors import MusicListeningUnavailable
 from app.core.math import clamp
+from app.domains.generation import types as generation_types
 from app.domains.generation.affinity import Affinity
 from app.domains.generation.seed import BirthSeed
 from app.domains.move import universal
@@ -121,7 +122,7 @@ def test_visual_notes_empty_payload() -> None:
         last1m=0,
     )
     signals = provider.derive_signals(payload)
-    assert provider.visual_notes(payload, signals=signals, intensity=0.5) == "personal listening fingerprint"
+    assert provider.visual_notes(payload, signals=signals, intensity=0.5) == "quiet neutral hide, still and unmarked"
 
 
 def test_visual_notes_play_weighted_labels_and_hot_pace() -> None:
@@ -135,11 +136,12 @@ def test_visual_notes_play_weighted_labels_and_hot_pace() -> None:
     signals = provider.derive_signals(payload)
     notes = provider.visual_notes(payload, signals=signals, intensity=0.72)
 
-    assert "shoegaze" in notes
-    assert "dream pop" in notes
-    assert "indie rock" in notes
+    assert "hazy translucent wing edges" in notes
+    assert "shoegaze" not in notes
+    assert "dream pop" not in notes
+    assert "indie rock" not in notes
     assert "metal" not in notes
-    assert "recent chart binge" in notes
+    assert "alert recently-charged posture" in notes
 
 
 def test_visual_notes_melancholic_low_energy() -> None:
@@ -148,8 +150,8 @@ def test_visual_notes_melancholic_low_energy() -> None:
     signals = provider.derive_signals(payload)
     notes = provider.visual_notes(payload, signals=signals, intensity=0.5)
 
-    assert "melancholic, inward tone" in notes
-    assert "laid-back energy" in notes
+    assert "muted dusk palette" in notes
+    assert "rounded soft silhouette" in notes
 
 
 def test_balance_for_bst_maps_music_signals() -> None:
@@ -302,8 +304,8 @@ def test_calculate_intensity_hot_week() -> None:
 
 
 def test_affinity_serializes_provider_notes() -> None:
-    note = providers_schema.ProviderNote(
-        level=providers_schema.ProviderNoteLevelT.WARNING,
+    note = generation_types.ProviderWarning(
+        level=generation_types.ProviderWarningLevel.WARNING,
         code=THIN_STAT_COVERAGE_NOTE_CODE,
         message=THIN_STAT_COVERAGE_NOTE_MESSAGE,
     )
@@ -371,7 +373,7 @@ async def test_synthesize_emits_thin_coverage_note(music_provider: MusicProvider
     affinity = await provider.synthesize(seed, payload)
     thin_notes = [note for note in affinity.provider_notes if note.code == THIN_STAT_COVERAGE_NOTE_CODE]
     assert len(thin_notes) == 1
-    assert thin_notes[0].level == providers_schema.ProviderNoteLevelT.WARNING
+    assert thin_notes[0].level == generation_types.ProviderWarningLevel.WARNING
     assert thin_notes[0].message == THIN_STAT_COVERAGE_NOTE_MESSAGE
 
 
@@ -391,7 +393,7 @@ async def test_synthesize_emits_unclassified_tags_note(music_provider: MusicProv
     affinity = await provider.synthesize(seed, payload)
     unclassified = [note for note in affinity.provider_notes if note.code == UNCLASSIFIED_TAGS_NOTE_CODE]
     assert len(unclassified) == 1
-    assert unclassified[0].level == providers_schema.ProviderNoteLevelT.INFO
+    assert unclassified[0].level == generation_types.ProviderWarningLevel.INFO
     assert "fnord" in unclassified[0].message
 
 

@@ -10,6 +10,31 @@ from app.domains.vibemon.types import BaseStatNameT, EvolutionStageT
 
 _LOGGER = structlog.get_logger(__name__)
 
+BST_SCALING_MATRIX: dict[EvolutionStageT, list[int]] = {
+    EvolutionStageT.BASE: [485],
+    EvolutionStageT.STAGE_2: [300, 490],
+    EvolutionStageT.STAGE_3: [280, 410, 530],
+    EvolutionStageT.PSEUDO_LEGENDARY: [300, 420, 600],
+    EvolutionStageT.LEGENDARY: [575],
+    EvolutionStageT.ULTRA_LEGENDARY: [675],
+}
+"""Target BST per evolution stage for each evolution line."""
+
+
+def power_pips(evo_seed: EvolutionStageT, bst: int) -> int:
+    """Hatch-panel strength pips (1-3): BST vs the stage-1 target for this evo line.
+
+    Band is ±12% around the target (upper +13% for pseudo-legendary lines, whose
+    stage-1 spread skews high).
+    """
+    target = BST_SCALING_MATRIX[evo_seed][0]
+    upper_band = 1.13 if evo_seed is EvolutionStageT.PSEUDO_LEGENDARY else 1.12
+    if bst < round(target * 0.88):
+        return 1
+    if bst > round(target * upper_band):
+        return 3
+    return 2
+
 
 def base_stat_level_scaling(base_value: int, *, level: int, true_floor: int = 5) -> int:
     """
@@ -92,15 +117,6 @@ def apply_evo_seed_bst_bias(
     distributes rounding remainder to preserve the target BST when possible.
     """
     from app.domains.vibemon.identity import BaseStats
-
-    BST_SCALING_MATRIX = {
-        EvolutionStageT.BASE: [485],
-        EvolutionStageT.STAGE_2: [300, 490],
-        EvolutionStageT.STAGE_3: [280, 410, 530],
-        EvolutionStageT.PSUEDO_LEGENDARY: [300, 420, 600],
-        EvolutionStageT.LEGENDARY: [575],
-        EvolutionStageT.ULTRA_LEGENDARY: [675],
-    }
 
     scale_factor = BST_SCALING_MATRIX[evo_seed][evo_stage - 1] / sum(stats.values())
     scaled: dict[str, int] = {}

@@ -23,8 +23,17 @@ POSE_TO_ASSET: dict[PoseT, AssetKind] = {
 _PNG = "image/png"
 _MP3 = "audio/mpeg"
 
+CONTENT_TYPE_BY_EXTENSION: dict[str, str] = {
+    "png": _PNG,
+    "jpg": "image/jpeg",
+    "jpeg": "image/jpeg",
+    "webp": "image/webp",
+    "mp3": _MP3,
+}
+
 ASSET_CONTENT_TYPES: dict[AssetKind, str] = {
     AssetKind.REFERENCE: _PNG,
+    AssetKind.REFERENCE_RAW: _PNG,
     AssetKind.SHEET: _PNG,
     AssetKind.POSE_BATTLE_BACK: _PNG,
     AssetKind.POSE_BATTLE_HERO: _PNG,

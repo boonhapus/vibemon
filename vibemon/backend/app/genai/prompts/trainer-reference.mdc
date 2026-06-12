@@ -1,0 +1,69 @@
+---
+name: trainer-reference
+description: Generates a styled trainer reference image from user likeness and style bible.
+version: 1.8.0
+style_anchor: base-style.md
+---
+Render ONE cozy handheld pixel-art trainer reference for username "{{ username }}".
+
+REFERENCE IMAGES (attachment order)
+- Image 1: User likeness — identity source. Face, skin tone, ethnicity, hair, and build come from here. Clothing colors are a soft palette hint only — not a wardrobe blueprint.
+- Image 2: Style-bible trainer — rendering reference only (outline weight, shading steps, texture level, cozy handheld pixel density). Never copy this character's face, hair, skin, body type, or wardrobe.
+
+PRIORITY
+- Image 1 likeness always wins for who this person is — face, skin tone, ethnicity, hair, and build.
+- Trainer archetype always wins for what they wear — field-trainer adventuring gear, not the photo's garment types.
+- Image 2 bible only wins for how to render pixels — not which person or outfit to draw.
+- If Image 1 and Image 2 disagree on rendering, follow Image 2 for outline, shading, and texture. If Image 1 shows formal, business, or event wear, translate it into trainer gear — do not copy the photo's garment types.
+
+STYLE BIBLE (Image 2 — rendering reference only)
+- Match Image 2's pixel rendering style — outline weight, shading steps, texture level, and cozy handheld density.
+- Palette muting from Image 2 applies to clothing and props only — preserve Image 1's skin tone, hair color, and facial features exactly.
+- Image 2 is a rendering exemplar, not a character template. Do NOT copy Image 2's face, skin tone, ethnicity, hair style/color, body type, pose identity, red cap, denim jacket, olive pants, olive backpack, or any other wardrobe element onto the person from Image 1.
+
+LIKENESS LOCK (Image 1 — attached user photo)
+- Identity (hard lock): the sprite must read as the same person in Image 1 — match skin tone, ethnicity, undertones, face shape, hair color/texture/length, general build, and overall personal vibe. Preserve distinctive facial features from Image 1: jaw and chin shape, nose bridge and width, eye shape, ear shape, smile lines, and apparent age. Use full 2–3 tone skin shading from the photo's warmth and depth; never flatten face or skin to one light tone or substitute Image 2's face, skin tone, ethnicity, or hair.
+- Ethnicity lock (hard lock): match the primary subject's apparent racial and ethnic presentation from Image 1 exactly — skin depth, undertones, melanin level, and facial structure must read as the same demographic group as the photo. If Image 1 shows a white subject, render a white subject. If Image 1 shows a Black subject, render a Black subject. If Image 1 shows a Hispanic/Latina subject, render that presentation. Never substitute a different ethnicity, never default to an ambiguous tan or brown "generic game protagonist" skin tone, and never lighten, darken, or neutralize the subject to match Image 2 or a studio-average palette.
+- Group photos: when multiple people are visible, render only the primary subject (usually centered or largest adult). Apply the ethnicity lock to that subject only. Ignore other faces, children, and background people for face, skin, hair, ethnicity, and proportions — do not borrow a child's scale or another person's features.
+- Framing: if the likeness photo is cropped or face-heavy, infer natural adult proportions from the person's apparent build and age — do not inflate the head from how large the face fills the crop.
+- Palette hint (soft steer): borrow 2–3 dominant clothing colors from Image 1 and map them onto trainer-gear slots (cap, jacket, tee, pants, boots, accents). Preserve the photo's color relationships when clear — e.g. navy outer layer + red accent → navy windbreaker with red trim. Do not copy garment types, formality, or silhouette family from the photo.
+- Formal-wear override (hard steer): when Image 1 shows suits, blazers, dress shirts, neckties, gowns, heels, uniforms, or other formal/professional/event attire, do NOT render those items. Translate into cozy field-trainer adventuring wear while keeping the extracted palette hints. Examples: suit + tie → windbreaker or utility jacket over a tee with accent color from the tie; dress shirt → henley or tee; dress or skirt → hiking skirt or trail pants in similar hues; heels → hiking boots.
+- Casual-wear translation: when Image 1 already shows casual or athletic clothes, simplify and trainer-ize them — strip logos, swap streetwear labels for adventuring-friendly cuts, add field-trainer polish. Preserve casual garment family when it already fits trainer life (e.g. hoodie stays a hoodie, skirt stays a skirt, sneakers become hiking sneakers).
+- Rendering fidelity: apply Image 2's cozy mid-detail rendering style to this person — same outline weight, 2–3 tone steps per zone (including skin, hair, and garments), fold/seam reads, and whisper-level paper grain. Likeness accuracy must not be sacrificed for style-bible costume copying.
+- Do NOT copy the photo's background, lighting setup, logos, busy patterns, or photographic texture.
+
+TRAINER ARCHETYPE
+- Image 1 likeness always wins for identity: face, skin tone, ethnicity, racial presentation, hair, and build — never from Image 2. Do not genericize ethnicity into a default tan protagonist.
+- Trainer wardrobe always wins for garments: this person must read as a cozy handheld monster-battler field trainer on a long walk — warm, approachable, mid-century cartridge-era adventuring energy. Never render photo-real street clothes, business suits, or red-carpet formality.
+- Borrow from Image 2 only rendering density and outline/shading style — not costume, hair, face, or props.
+- Proportions: adult-leaning silhouette from Image 1's apparent build and age — natural head-to-body ratio, not a chibi or child body. Sprite-scale readability may use a slightly large head, but torso and legs stay adult length.
+- Default pose: relaxed field-trainer stance, three-quarter view facing slightly right, full body readable at cozy handheld sprite scale.
+- Default trainer kit (use unless Image 1's palette strongly suggests different hues): baseball cap or bucket hat; light jacket or windbreaker over a tee or henley; cargo pants, trail pants, or hiking skirt; hiking boots or sneakers; optional slim belt pouch or closed clamshell field device. Apply Image 1 palette hints to these slots — do not copy Image 2's exact red cap, denim jacket, olive cargo, or olive backpack unless Image 1's colors clearly call for them.
+- Layering: one outer layer over a base top; comfortable trail-ready shoes. No neckties, suit lapels, dress shirts, blazers, or formal footwear.
+- Props: prefer none unless field-trainer readability needs them. When adding props Image 1 does not show, keep them minimal — a slim belt pouch or closed clamshell field device only. No modern phones, no logos, no text.
+- Match rendering technique from Image 2 (outlines, shading, palette muting on garments, silhouette weight) — do NOT copy Image 2's character design.
+
+COZY HANDHELD TRAINER RENDERING
+- Full-body field trainer readable at cozy handheld sprite scale — chunky silhouette, adult-leaning proportions, warm and approachable.
+- Thick #3D2B1F Tobacco Brown pixelated outlines with pixel-rounded forms. Keep silhouettes simple; avoid micro-detail.
+- Shading: 2–3 flat tone steps per color zone with soft stepped edges — face, skin, and hair included; preserve the photo's warm/cool undertones in skin tones. Not airbrushed gradients, not heavy crosshatch.
+- Texture: whisper-level only. Light paper grain plus subtle dither on large flat color fields. Do NOT fill entire surfaces with stipple or crosshatch. Do NOT bake film grain, vignette, or screen-space effects into the sprite.
+- Locked mid-century muted palette (~16–24 colors) for clothing and props. Skin tone and hair color follow the likeness photo — do not lighten, darken, or recolor them to match the style bible. No neon saturation, no glossy plastic, no pure black.
+
+DO NOT RENDER
+- High-resolution concept art, HD-2D painterly sprites, or illustration-scale detail
+- Heavy dither crosshatch, stipple noise filling color fields, or crunchy over-texturing
+- Smooth airbrushed cel shading, mascot polish, Sugimori official art, or anime key art
+- Drop shadows, glow, bloom, or gradients baked into the sprite
+
+CANVAS RULES
+- Background (technical chroma key): fill every non-trainer pixel with exactly {{ background_color }} at full saturation — one uniform wash, zero hue shift. This color is pre-selected to be distant from the trainer's skin, hair, and clothing; render it precisely so post-processing can remove it cleanly.
+- The background must stay perfectly flat — no paper texture, grain, vignette, dither, or palette muting on the background. Style-bible muting applies to the trainer figure only.
+- Paper texture and grain apply to the trainer figure only.
+- Draw exactly one full-body trainer figure with margin on all sides.
+
+FINAL CHECK
+- Adult-leaning silhouette, chunky readable form, style-bible rendering density.
+- Polished mid-detail throughout: full 2–3 tone shading on skin, hair, and garments; fold/seam reads; whisper-level paper grain — never a flat single-tone face or washed-out skin.
+- Must be recognizable as the person in Image 1 — same ethnicity and racial presentation, skin tone, undertones, face shape, hair color/texture/length, and build. Wearing cozy field-trainer adventuring gear with palette hints from Image 1 — not the photo's garment types, not photo-real street clothes, not business/formal wear, not a generic NPC, not a clone of Image 2, not an ambiguous tan default protagonist.
+- Background pixels must be exactly {{ background_color }} — uniform, full saturation, no muting.

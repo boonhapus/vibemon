@@ -16,17 +16,17 @@ from app.domains.encounter.wild_encounter import (
 )
 from app.domains.vibemon.disposition import VibemonDispositionT
 from app.domains.vibemon.history import VibemonHistoryEventT
-from app.storage.database import models, repositories
-from app.workflows import _workflow_support as workflows
+from app.storage.database import history_repo, models, wild_pool_repo
+from app.workflows import encounter_adjustment
 
 
 async def pick_wild_encounter(
     sess: AsyncSession,
     *,
     trainer_id: TrainerIdT,
-    latitude: float,
-    longitude: float,
-    party_strength: float,
+    latitude: float | None = None,
+    longitude: float | None = None,
+    crew_strength: float,
     desired_supply: int = 12,
 ) -> EncounterSelection | None:
     encounter_service = WildEncounterService()
@@ -34,20 +34,20 @@ async def pick_wild_encounter(
         trainer_id=trainer_id,
         latitude=latitude,
         longitude=longitude,
-        party_strength=party_strength,
-        list_eligible_wild_ids=lambda lat, lon, limit: repositories.list_eligible_wild_ids(
+        crew_strength=crew_strength,
+        list_eligible_wild_ids=lambda lat, lon, limit: wild_pool_repo.list_eligible_wild_ids(
             sess,
             latitude=lat,
             longitude=lon,
             limit=limit,
         ),
-        load_candidates=lambda trainer, eligible_ids, now: repositories.load_encounter_candidates(
+        load_candidates=lambda trainer, eligible_ids, now: wild_pool_repo.load_encounter_candidates(
             sess,
             trainer_id=trainer,
             eligible_ids=eligible_ids,
             now=now,
         ),
-        revalidate_eligible=lambda vibemon_id: repositories.is_wild_encounter_eligible(
+        revalidate_eligible=lambda vibemon_id: wild_pool_repo.is_wild_encounter_eligible(
             sess,
             vibemon_id=vibemon_id,
         ),
@@ -77,8 +77,8 @@ async def record_wild_encounter_outcome(
     if row is None:
         raise CandidateReviewUnavailable("Wild Vibemon is unavailable for encounter outcome.")
     row.last_encountered_at = now
-    await workflows.upsert_encounter_adjustment(sess, trainer_id, vibemon_id, outcome.value, now)
-    repositories.add_history(
+    await encounter_adjustment.upsert_encounter_adjustment(sess, trainer_id, vibemon_id, outcome.value, now)
+    history_repo.add_history(
         sess,
         vibemon_id,
         VibemonHistoryEventT.WILD_ENCOUNTER_COMPLETED,
@@ -113,6 +113,6 @@ async def expire_wild(sess: AsyncSession) -> int:
     for row in rows:
         row.disposition = VibemonDispositionT.EXPIRED.value
         row.expired_at = now
-        repositories.add_history(sess, row.id, VibemonHistoryEventT.EXPIRED, now, {})
+        history_repo.add_history(sess, row.id, VibemonHistoryEventT.EXPIRED, now, {})
     await sess.flush()
     return len(rows)

@@ -12,6 +12,7 @@ from app.domains.generation.birth import birth_outcome_from_affinities
 from app.domains.generation.seed import BirthSeed
 from app.domains.generation.snapshot import BirthSnapshot
 from app.domains.move.entity import Move
+from app.domains.sprite import types as sprite_types
 from app.domains.vibemon import brand, types
 from app.domains.vibemon import identity as vibemon_identity
 from app.domains.vibemon.assets import AssetKind, AssetRef
@@ -50,9 +51,10 @@ class Vibemon(Schema):
     xp: int = 0
     evo_stage: types.EvolutionStageT = types.EvolutionStageT.BASE
     trainer_id: TrainerIdT | None = None
-    team_slot: int | None = None
+    crew_slot: int | None = None
     lifecycle: types.VibemonLifecycleT = types.VibemonLifecycleT.BORN
     aesthetic: Aesthetic | None = None
+    reference_detected_facing: sprite_types.SpriteFacing | None = None
 
     @pydantic.field_validator("moves", mode="before")
     @classmethod

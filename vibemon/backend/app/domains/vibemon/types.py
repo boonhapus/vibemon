@@ -35,7 +35,7 @@ class BattleRole(enum.Enum):
     DEFENSIVE_STALLER = "A slow but durable staller that outlasts opponents."
     UTILITY_PIVOT = "A balanced pivot that switches out to maintain momentum."
     UTILITY_CLERIC = "A support-focused role that heals and clears status."
-    UTILITY = "A balanced utility role that supports the team."
+    UTILITY = "A balanced utility role that supports the crew."
 
     @property
     def description(self) -> str:
@@ -54,7 +54,7 @@ class EvolutionStageT(enum.IntEnum):
     BASE = 1
     STAGE_2 = 2
     STAGE_3 = 3
-    PSUEDO_LEGENDARY = 10
+    PSEUDO_LEGENDARY = 10
 
     # DEV NOTE: RESERVED FOR SPECIAL EVENTS
     LEGENDARY = 20
@@ -62,7 +62,7 @@ class EvolutionStageT(enum.IntEnum):
 
     @classmethod
     def random_seed(cls, *, rng: random.Random | None = None) -> Self:
-        stages = [cls.BASE, cls.STAGE_2, cls.STAGE_3, cls.PSUEDO_LEGENDARY]
+        stages = [cls.BASE, cls.STAGE_2, cls.STAGE_3, cls.PSEUDO_LEGENDARY]
         rarity = [24, 41, 34, 1]
         chooser = rng if rng is not None else random
         return chooser.choices(stages, rarity, k=1)[0]

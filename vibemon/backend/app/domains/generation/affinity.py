@@ -9,12 +9,13 @@ import structlog
 
 from app.core.math import clamp, weighted_sample
 from app.core.schema import FrozenSchema
+from app.domains.generation.merge import filter_element_types, fuse_element_rankings
+from app.domains.generation.types import ProviderWarning
+from app.domains.move.catalog import get_move_assignment_bonus
 from app.domains.move.entity import Move
 from app.domains.vibemon import types
 from app.domains.vibemon.identity import BaseStats, Identity
 from app.domains.vibemon.strength_formulas import apply_evo_seed_bst_bias
-from app.providers import schema as providers_schema
-from app.providers.helpers import filter_element_types, fuse_element_rankings
 
 _LOGGER = structlog.get_logger(__name__)
 
@@ -34,12 +35,12 @@ class Affinity(FrozenSchema):
     provider_id: str
     moves: tuple[Move, ...]
     element_rankings: dict[types.VibemonTypeT, float] = pydantic.Field(default_factory=dict)
-    provider_notes: tuple[providers_schema.ProviderNote, ...] = ()
+    provider_notes: tuple[ProviderWarning, ...] = ()
 
     @classmethod
-    def collect_notes(cls, *affinities: Affinity) -> tuple[providers_schema.ProviderNote, ...]:
+    def collect_notes(cls, *affinities: Affinity) -> tuple[ProviderWarning, ...]:
         seen: set[str] = set()
-        notes: list[providers_schema.ProviderNote] = []
+        notes: list[ProviderWarning] = []
         for affinity in affinities:
             for note in affinity.provider_notes:
                 if note.code in seen:
@@ -114,7 +115,10 @@ class Affinity(FrozenSchema):
         try:
             stats_merged = {k: math.floor(stats[k] / total) for k in stat_keys}
             elements = filter_element_types(fuse_element_rankings(*ranking_pairs))
-            moves = weighted_sample(*zip(*pop_m, strict=True), k=rng.randint(2, min(3, len(pop_m))), rng=rng)
+            # Weight each pooled move by provider intensity AND type fit against the
+            # fused elements, so the final sample respects the mon's actual typing.
+            move_weights = [w * get_move_assignment_bonus(m.type, vibemon_elements=elements) for m, w in pop_m]
+            moves = weighted_sample([m for m, _ in pop_m], move_weights, k=rng.randint(2, min(3, len(pop_m))), rng=rng)
         except ZeroDivisionError:
             _LOGGER.exception("Total is zero.", affinities=affinities)
             raise

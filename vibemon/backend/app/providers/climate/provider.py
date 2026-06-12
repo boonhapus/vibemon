@@ -10,13 +10,15 @@ import structlog
 
 from app.core.math import clamp
 from app.domains.generation.affinity import Affinity
+from app.domains.generation.merge import filter_element_types
 from app.domains.generation.ports import TrainerSecrets
 from app.domains.generation.seed import BirthSeed
 from app.domains.move.types import VibemonTypeT
 from app.domains.vibemon.identity import Identity
+from app.providers import catalog_schema as catalog
 from app.providers import schema as providers_schema
 from app.providers.base import VibeProvider
-from app.providers.helpers import Signal, filter_element_types, pick_starter_moves
+from app.providers.helpers import Signal, pick_starter_moves
 
 from . import schema as climate_schema
 from .const import WeatherCode
@@ -25,25 +27,56 @@ from .openmeteo import schema as openmeteo_schema
 
 _LOGGER = structlog.get_logger(__name__)
 
+_WINDY_WEATHER_CODES = frozenset(
+    {
+        WeatherCode.RAIN_SHOWERS_VIOLENT,
+        WeatherCode.THUNDERSTORM,
+        WeatherCode.THUNDERSTORM_WITHOUT_PRECIP,
+        WeatherCode.THUNDERSTORM_WITHOUT_PRECIP_HEAVY,
+        WeatherCode.THUNDERSTORM_WITH_SLIGHT_HAIL,
+        WeatherCode.THUNDERSTORM_WITH_HEAVY_HAIL,
+    }
+)
+
+_SNOW_WEATHER_CODES = frozenset(
+    {
+        WeatherCode.SNOW_FALL_SLIGHT,
+        WeatherCode.SNOW_FALL_MODERATE,
+        WeatherCode.SNOW_FALL_HEAVY,
+        WeatherCode.SNOW_GRAINS,
+        WeatherCode.SNOW_SHOWERS_SLIGHT,
+        WeatherCode.SNOW_SHOWERS_HEAVY,
+        WeatherCode.DEPOSITING_RIME_FOG,
+        WeatherCode.FREEZING_DRIZZLE_LIGHT,
+        WeatherCode.FREEZING_DRIZZLE_DENSE,
+        WeatherCode.FREEZING_RAIN_LIGHT,
+        WeatherCode.FREEZING_RAIN_HEAVY,
+    }
+)
+
+_STORM_WEATHER_CODES = frozenset(
+    {
+        WeatherCode.THUNDERSTORM,
+        WeatherCode.THUNDERSTORM_WITHOUT_PRECIP,
+        WeatherCode.THUNDERSTORM_WITHOUT_PRECIP_HEAVY,
+        WeatherCode.THUNDERSTORM_WITH_SLIGHT_HAIL,
+        WeatherCode.THUNDERSTORM_WITH_HEAVY_HAIL,
+    }
+)
+
 
 class ClimateProvider(VibeProvider[climate_schema.ClimatePayload]):
     """
-    A Vibemon is born from the sky above its birthplace.
+    A Vibemon remembers the weather drifting overhead when it hatched.
 
-    Open-Meteo's daily forecast at the trainer's coordinates becomes genetic
-    material, folding live weather signals into an `Affinity`.
-
-    Six continuous weather signals route directly to base stats: temperature (HP),
-    wind gusts (Attack), atmospheric obscurity (Defense), radiation (Sp. Attack),
-    precipitation (Sp. Defense), and sustained wind (Speed).
-
-    The result is that a creature born in a Death Valley heatwave has a
-    fundamentally different soul than one from an Andean snowstorm or London
-    fog—both stats and flavor emergent from the actual sky at birth.
+    Hatched under linoleum-bright desert noon, Highland drizzle, or pea-soup fog
+    over the boulevard - each one reads differently, the way a Sunday paper
+    weather box can change block to block.
     """
 
     name = "climate"
-    payload_type = climate_schema.ClimatePayload
+    display_label = "SKY"
+    tagline = "Heat, haze, and the air overhead."
 
     exposed_elements: ClassVar[list[tuple[VibemonTypeT, str]]] = [
         (VibemonTypeT.NORMAL, "overcast skies without precipitation"),
@@ -54,15 +87,25 @@ class ClimateProvider(VibeProvider[climate_schema.ClimatePayload]):
         (VibemonTypeT.FLYING, "sustained winds (15+ km/h)"),
         (VibemonTypeT.FIGHTING, "violent gust spikes and impact weather"),
         (VibemonTypeT.GROUND, "mineral dust or arid exposed earth"),
-        (VibemonTypeT.FAIRY, "UV radiation exposure"),
+        (VibemonTypeT.FAIRY, "clean air and bright UV in clear or misty sun"),
         (VibemonTypeT.POISON, "air pollution concentration"),
-        (VibemonTypeT.DARK, "low visibility or heavy overcast"),
+        (VibemonTypeT.DARK, "low UV with heavy overcast or smog"),
         (VibemonTypeT.GHOST, "fog or low visibility under low-UV conditions"),
         (VibemonTypeT.BUG, "humid tropical heat"),
         (VibemonTypeT.ROCK, "elevation or hail events"),
         (VibemonTypeT.DRAGON, "convective instability (CAPE)"),
         (VibemonTypeT.ELECTRIC, "thunderstorms"),
     ]
+
+    requirements = (catalog.GEOLOCATION_REQUIREMENT,)
+    data_sources = (
+        catalog.DataSourceInfo(
+            name="Open-Meteo",
+            description="Daily forecast and air-quality series at trainer coordinates.",
+        ),
+    )
+
+    payload_type = climate_schema.ClimatePayload
 
     def __init__(self) -> None:
         self.client = openmeteo_api.OpenMeteoClient()
@@ -216,7 +259,7 @@ class ClimateProvider(VibeProvider[climate_schema.ClimatePayload]):
 
         affinity = Affinity(
             identity=Identity(name="__", elements=elements, base=base_stats),
-            visual_notes=wmo_code.description,
+            visual_notes=self.visual_notes(weather_code=wmo_code, signals=signals),
             intensity=self.calculate_intensity(s, index=i),
             provider_id=self.name,
             element_rankings=rankings,
@@ -226,6 +269,48 @@ class ClimateProvider(VibeProvider[climate_schema.ClimatePayload]):
         return affinity
 
     # ── PROTOCOL HELPERS ──────────────────────────────────────────────────────────────
+
+    def visual_notes(
+        self,
+        *,
+        weather_code: WeatherCode,
+        signals: dict[str, Signal],
+    ) -> str:
+        """Summarize hatch-day weather as short creature-facing visual cues."""
+        parts = [weather_code.visual_note]
+        if accent := self._signal_accent(signals, weather_code):
+            parts.append(accent)
+        return "; ".join(parts)
+
+    @staticmethod
+    def _signal_accent(signals: dict[str, Signal], weather_code: WeatherCode) -> str | None:
+        """Return one optional accent from the strongest qualifying continuous signal."""
+        rules: tuple[tuple[str, float, frozenset[WeatherCode]], ...] = (
+            ("pollut", 0.62, frozenset()),
+            ("dust_m", 0.62, frozenset()),
+            ("windsp", 0.72, _WINDY_WEATHER_CODES),
+            ("elevat", 0.72, _SNOW_WEATHER_CODES),
+            ("cape_m", 0.68, _STORM_WEATHER_CODES),
+        )
+
+        best_score = 0.0
+        best_phrase: str | None = None
+        for signal_name, threshold, skip_codes in rules:
+            if weather_code in skip_codes:
+                continue
+            score = signals[signal_name].center
+            if score < threshold or score <= best_score:
+                continue
+            best_score = score
+            best_phrase = {
+                "pollut": "soot-dulled markings",
+                "dust_m": "grit-streaked hide",
+                "windsp": "wind-raked fringe",
+                "elevat": "alpine-bleached coat",
+                "cape_m": "charged air bristling along the crest",
+            }[signal_name]
+
+        return best_phrase
 
     def calculate_intensity(self, daily: dict[str, list[float | None]], *, index: int) -> float:
         """
@@ -362,8 +447,8 @@ class ClimateProvider(VibeProvider[climate_schema.ClimatePayload]):
         )
         score[VibemonTypeT.ROCK] += min(1.0, elevation_score * (1.0 - cold_rock_veto))
 
-        # GHOST — graveyards, abandoned buildings, dark alleys.
-        # Fog/low visibility under low UV (dawn/dusk/overcast); cold still air seals it.
+        # GHOST — graveyards, abandoned buildings, fog-bound alleys.
+        # Low visibility under low UV from gloomy weather; cold still air seals it.
         visibility_score = signals["visibl"].ramp("R", thresh=10.0, reach=6.0, invert=True)
         low_light_factor = 1.0 - 0.5 * signals["uv_idx"].ramp("N", thresh=0.30, reach=0.65)
         chill_factor = 1.0 + 0.3 * signals["tmp_lo"].ramp("R", thresh=10.0, reach=15.0, invert=True)
@@ -380,8 +465,8 @@ class ClimateProvider(VibeProvider[climate_schema.ClimatePayload]):
         # Storms (CAPE) only — urban-grid path dropped to keep pollution exclusive to POISON.
         score[VibemonTypeT.ELECTRIC] += signals["cape_m"].ramp("N", thresh=0.35, reach=0.65)
 
-        # DARK — shadows, cemeteries, urban areas at night.
-        # At least two of three: low UV (shadow/night), heavy overcast, urban smog.
+        # DARK — shadowy overcast, smog, and heavy-cloud weather.
+        # At least two of three: low UV, heavy overcast, urban smog.
         # Pairwise sqrt — single-signal cities (just cloudy, just smoggy) no longer qualify.
         low_uv_score = signals["uv_idx"].ramp("N", thresh=0.26, reach=0.30, invert=True)
         overcast_score = signals["clouds"].ramp("N", thresh=0.80, reach=0.20)

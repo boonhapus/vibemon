@@ -28,6 +28,8 @@ uv run --project vibemon/backend python -m vibemon.scripts.generate_candidate --
 
 Useful optional flags: `--timestamp <iso>`, `--nickname <text>`, `--core-identity <text>`, `--bypass-credits`, `--christen`.
 
+Dev bypasses for the web UI and API are cataloged in [DEV_OVERRIDES.md](./DEV_OVERRIDES.md).
+
 Generate wild supply:
 
 ```powershell
@@ -59,7 +61,7 @@ uv run --project vibemon/backend python -m vibemon.scripts.release_vibemon --tra
 Pick a wild encounter:
 
 ```powershell
-uv run --project vibemon/backend python -m vibemon.scripts.pick_wild_encounter --trainer-id <uuid> --latitude <float> --longitude <float> --party-strength <float>
+uv run --project vibemon/backend python -m vibemon.scripts.pick_wild_encounter --trainer-id <uuid> --latitude <float> --longitude <float> --crew-strength <float>
 ```
 
 Useful optional flag: `--desired-supply <int>`.

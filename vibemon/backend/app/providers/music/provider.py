@@ -12,17 +12,20 @@ import structlog
 from app.core import loop
 from app.core.errors import MusicLinkRequired, MusicListeningUnavailable
 from app.core.math import clamp
+from app.domains.generation import types as generation_types
 from app.domains.generation.affinity import Affinity
+from app.domains.generation.merge import filter_element_types
 from app.domains.generation.ports import TrainerSecrets
 from app.domains.generation.seed import BirthSeed
 from app.domains.move.types import VibemonTypeT
 from app.domains.trainer import types as trainer_types
 from app.domains.vibemon.identity import Identity
+from app.providers import catalog_schema as catalog
 from app.providers import schema as providers_schema
 from app.providers.base import VibeProvider
-from app.providers.helpers import Signal, filter_element_types, pick_starter_moves
+from app.providers.helpers import Signal, pick_starter_moves
 
-from . import schema, utils
+from . import const, schema, utils
 from .lastfm import schema as lastfm_schema
 from .lastfm.api import LastFmAPIClient
 from .musicbrainz import schema as mb_schema
@@ -35,25 +38,18 @@ _LOGGER = structlog.get_logger(__name__)
 
 class MusicProvider(VibeProvider[schema.MusicPayload]):
     """
-    A Vibemon is born from the soundtrack of a trainer's life.
+    A Vibemon picks up the tunes floating through the house when it hatched.
 
-    Last.fm top-track history at birth time is enriched with MusicBrainz genres
-    and tags, then ReccoBeats audio features where ISRC/Spotify IDs resolve.
-    The merged payload folds into an `Affinity` for personal taste.
-
-    Typing uses play-weighted MusicBrainz label rules (genre, mood,
-    instrument) across every resolved track. Tracks with ReccoBeats data also
-    contribute valence and major/minor key nudges. Base stats use only
-    ReccoBeats-covered tracks so thin audio coverage does not block tagging.
-
-    Six continuous audio signals route to base stats (via type-grade scaling):
-    track duration (HP), intensity (Attack), production (Defense), valence
-    (Sp. Attack), groove (Sp. Defense), and tempo (Speed). Intensity on the
-    Affinity itself compares recent 7-day vs prior-23-day top-chart play pace.
+    One hatched on late-night jazz 45s reads differently from one shaped by
+    garage-rock road tapes or Sunday folk on the kitchen radio - whatever was
+    in rotation when it arrived.
     """
 
+    implemented: ClassVar[bool] = False
+
     name = "music"
-    payload_type = schema.MusicPayload
+    display_label = "MUSIC"
+    tagline = "Road tapes, 45s, and kitchen-radio rotation."
 
     exposed_elements: ClassVar[list[tuple[VibemonTypeT, str]]] = [
         (VibemonTypeT.NORMAL, "mainstream pop, genre-neutral tags, and bright valence"),
@@ -75,6 +71,24 @@ class MusicProvider(VibeProvider[schema.MusicPayload]):
         (VibemonTypeT.FAIRY, "dance pop, k-pop, sparkly pop, bright valence, and major keys"),
         (VibemonTypeT.PSYCHIC, "classical, jazz, contemplative genres, and minor-key depth"),
     ]
+
+    requirements = (
+        catalog.OAuth2LinkRequirement(
+            id="lastfm.link",
+            label="Link Last.fm",
+            description="Connect listening history so birth can read recent top tracks.",
+            service="lastfm",
+            secret_kinds=(trainer_types.LASTFM_SESSION_KEY, trainer_types.LASTFM_USERNAME),
+            authorize_path="/lastfm/authorize",
+        ),
+    )
+    data_sources = (
+        catalog.DataSourceInfo(name="Last.fm", description="Recent top-track listening history."),
+        catalog.DataSourceInfo(name="MusicBrainz", description="Genre, mood, and instrument tags."),
+        catalog.DataSourceInfo(name="ReccoBeats", description="Audio features when track IDs resolve."),
+    )
+
+    payload_type = schema.MusicPayload
 
     def __init__(self) -> None:
         self.lastfm = LastFmAPIClient()
@@ -342,7 +356,7 @@ class MusicProvider(VibeProvider[schema.MusicPayload]):
             provider_id=self.name,
             element_rankings=rankings,
             moves=pick_starter_moves(moves=all_moves, rankings=rankings, elements=elements, k=10, rng=rng),
-            provider_notes=(*payload.meta.notes, *synth_notes),
+            provider_notes=(*(note.as_warning() for note in payload.meta.notes), *synth_notes),
         )
 
     # ── PROTOCOL HELPERS ──────────────────────────────────────────────────────────────
@@ -435,14 +449,14 @@ class MusicProvider(VibeProvider[schema.MusicPayload]):
     def determine_element_scores(
         self,
         tracks: tuple[schema.Track, ...],
-    ) -> tuple[dict[VibemonTypeT, float], tuple[providers_schema.ProviderNote, ...]]:
+    ) -> tuple[dict[VibemonTypeT, float], tuple[generation_types.ProviderWarning, ...]]:
         """Score Vibemon types from play-weighted genre/tag rules and optional audio mood."""
         genre_rules = utils.load_rules("classify_genre.json")
         mood_rules = utils.load_rules("classify_mood.json")
         instrument_rules = utils.load_rules("classify_instrument.json")
 
         scores: dict[VibemonTypeT, float] = defaultdict(float)
-        synth_notes: list[providers_schema.ProviderNote] = []
+        synth_notes: list[generation_types.ProviderWarning] = []
         total_plays = 0
 
         for track in tracks:
@@ -480,8 +494,8 @@ class MusicProvider(VibeProvider[schema.MusicPayload]):
 
                 if not hits:
                     synth_notes.append(
-                        providers_schema.ProviderNote(
-                            level=providers_schema.ProviderNoteLevelT.INFO,
+                        generation_types.ProviderWarning(
+                            level=generation_types.ProviderWarningLevel.INFO,
                             code="music.unclassified_tags",
                             message=f"The label '{label}' does not match any genre, mood, or instrument ({track.plays} plays)",
                         )
@@ -549,38 +563,122 @@ class MusicProvider(VibeProvider[schema.MusicPayload]):
         signals: dict[str, Signal],
         intensity: float,
     ) -> str:
-        """Summarize listening history as a short creature-concept line (pure, replay-safe)."""
-        label_plays: dict[str, float] = defaultdict(float)
+        """Map play-weighted listening signals to a short creature-visual line (pure, replay-safe)."""
+        parts: list[str] = []
+
+        if rule_phrase := self._top_rule_visual(payload):
+            parts.append(rule_phrase)
+
+        for phrase in self._signal_visuals(signals, intensity=intensity):
+            if len(parts) >= 3:
+                break
+            if phrase not in parts:
+                parts.append(phrase)
+
+        return "; ".join(parts) if parts else const.DEFAULT_VISUAL_NOTES
+
+    def _top_rule_visual(self, payload: schema.MusicPayload) -> str | None:
+        """Return the visual cue for the highest play-weighted classify rule match."""
+        genre_rules = utils.load_rules("classify_genre.json")
+        mood_rules = utils.load_rules("classify_mood.json")
+        instrument_rules = utils.load_rules("classify_instrument.json")
+        weights: dict[tuple[const.RuleCategoryT, str], float] = defaultdict(float)
 
         for track in payload.tracks:
             labels = {label for name in (*track.genres, *track.tags) if (label := utils.normalize_classify_label(name))}
+            matched: set[tuple[const.RuleCategoryT, str]] = set()
 
             for label in labels:
-                label_plays[label] += track.plays
+                for name, _, pattern in genre_rules:
+                    if pattern.search(label):
+                        matched.add(("genre", name))
 
-        parts: list[str] = []
+                for name, _, pattern in mood_rules:
+                    if pattern.search(label):
+                        matched.add(("mood", name))
 
-        if label_plays:
-            top = sorted(label_plays, key=lambda label: (-label_plays[label], label))[:3]
-            listening = top[0] if len(top) == 1 else f"{', '.join(top[:-1])} and {top[-1]}"
-            parts.append(f"Play-weighted {listening} listening")
+                for name, _, pattern in instrument_rules:
+                    if pattern.search(label):
+                        matched.add(("instrument", name))
 
-        valence = signals["valence"].center
-        energy = signals["energy"].center
+            for key in matched:
+                weights[key] += track.plays
 
-        if valence >= 0.58:
-            parts.append("bright, open-hearted tone")
-        elif valence <= 0.42:
-            parts.append("melancholic, inward tone")
+        candidates = [(weight, const.RULE_VISUALS[key]) for key, weight in weights.items() if key in const.RULE_VISUALS]
+        if not candidates:
+            return None
 
-        if energy >= 0.65:
-            parts.append("high-drive energy")
-        elif energy <= 0.40:
-            parts.append("laid-back energy")
+        return max(candidates, key=lambda item: (item[0], item[1]))[1]
+
+    def _signal_visuals(
+        self,
+        signals: dict[str, Signal],
+        *,
+        intensity: float,
+    ) -> tuple[str, ...]:
+        """Rank signal-derived visual phrases by deviation from neutral (0.5)."""
+        candidates: list[tuple[float, str]] = []
+
+        def add(center: float, *, high: float, low: float, high_phrase: str, low_phrase: str) -> None:
+            if center >= high:
+                candidates.append((center - 0.5, high_phrase))
+            elif center <= low:
+                candidates.append((0.5 - center, low_phrase))
+
+        add(
+            signals["valence"].center,
+            high=0.58,
+            low=0.42,
+            high_phrase="sun-warmed markings and open bright-eyed face",
+            low_phrase="muted dusk palette and downcast soft edges",
+        )
+        add(
+            signals["energy"].center,
+            high=0.65,
+            low=0.40,
+            high_phrase="sharp angles and crackle-edged crest",
+            low_phrase="rounded soft silhouette and heavy-lidded calm",
+        )
+        add(
+            signals["acousticness"].center,
+            high=0.62,
+            low=0.22,
+            high_phrase="woodgrain fur and felt-soft paw pads",
+            low_phrase="synthetic sheen and studio-polished hide",
+        )
+        add(
+            signals["danceability"].center,
+            high=0.65,
+            low=0.35,
+            high_phrase="rhythmic stripe markings along the limbs",
+            low_phrase="still unhurried stance",
+        )
+        add(
+            signals["instrumentalness"].center,
+            high=0.55,
+            low=0.15,
+            high_phrase="quiet closed mouth and instrument-rooted horn crest",
+            low_phrase="expressive open beak and chatty cheek markings",
+        )
+        add(
+            signals["liveness"].center,
+            high=0.58,
+            low=0.25,
+            high_phrase="raw frayed edges and unfinished live-wire texture",
+            low_phrase="clean studio-smooth finish",
+        )
+        add(
+            signals["tempo"].center,
+            high=0.65,
+            low=0.35,
+            high_phrase="spring-heeled legs and quick-footed stance",
+            low_phrase="slow sweeping tail and languid lines",
+        )
 
         if intensity >= 0.65:
-            parts.append("recent chart binge")
+            candidates.append((intensity - 0.5, "alert recently-charged posture"))
         elif intensity <= 0.35:
-            parts.append("cooling listening pace")
+            candidates.append((0.5 - intensity, "settled unhurried stillness"))
 
-        return "; ".join(parts) if parts else "personal listening fingerprint"
+        candidates.sort(key=lambda item: (-item[0], item[1]))
+        return tuple(phrase for _, phrase in candidates)

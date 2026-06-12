@@ -77,7 +77,7 @@ async def test_vibemon_from_row_maps_identity_moves_and_assets() -> None:
         evo_stage=EvolutionStageT.STAGE_2.value,
         lifecycle=VibemonLifecycleT.MANIFESTED.value,
         disposition="owned",
-        team_slot=1,
+        crew_slot=1,
         trainer_id=trainer_id,
         birth_snapshot_id=uuid.uuid7(),
         wild_entered_at=None,
@@ -121,6 +121,8 @@ async def test_vibemon_from_row_maps_identity_moves_and_assets() -> None:
             id=uuid.uuid7(),
             vibemon_id=vibemon_id,
             kind=AssetKind.REFERENCE.value,
+            selected_revision=1,
+            max_revision=1,
             object_key="vibemon/test/reference.png",
             content_type="image/png",
             byte_size=1234,
@@ -135,7 +137,7 @@ async def test_vibemon_from_row_maps_identity_moves_and_assets() -> None:
     assert vibemon.id == vibemon_id
     assert vibemon.nickname == "Blaze"
     assert vibemon.trainer_id == trainer_id
-    assert vibemon.team_slot == 1
+    assert vibemon.crew_slot == 1
     assert vibemon.lifecycle is VibemonLifecycleT.MANIFESTED
     assert vibemon.identity == _identity(generated_at)
     assert [move.id for move in vibemon.moves] == ["test.ember", "test.gust"]
@@ -184,7 +186,7 @@ def test_apply_vibemon_to_row_updates_mutable_projection_fields() -> None:
         evo_stage=EvolutionStageT.BASE.value,
         lifecycle=VibemonLifecycleT.BORN.value,
         disposition=None,
-        team_slot=None,
+        crew_slot=None,
         trainer_id=None,
         birth_snapshot_id=uuid.uuid7(),
         wild_entered_at=None,
@@ -227,3 +229,56 @@ def test_apply_vibemon_to_row_updates_mutable_projection_fields() -> None:
     assert row.evo_stage == EvolutionStageT.STAGE_2.value
     assert row.lifecycle == VibemonLifecycleT.CHRISTENED.value
     assert row.identity.name == "Cindlet"
+
+
+def test_apply_adopted_vibemon_to_row_sets_owned_disposition_fields() -> None:
+    generated_at = dt.datetime(2026, 5, 19, 12, 0, tzinfo=dt.UTC)
+    trainer_id = uuid.uuid7()
+    row = models.Vibemon(
+        id=uuid.uuid7(),
+        nickname=None,
+        xp=0,
+        level=1,
+        evo_stage=EvolutionStageT.BASE.value,
+        lifecycle=VibemonLifecycleT.CHRISTENED.value,
+        disposition="wild",
+        crew_slot=None,
+        trainer_id=None,
+        birth_snapshot_id=uuid.uuid7(),
+        wild_entered_at=generated_at,
+        last_encountered_at=generated_at,
+        expired_at=None,
+    )
+    row.identity = models.Identity(
+        id=uuid.uuid7(),
+        vibemon_id=row.id,
+        name="Oldname",
+        visual_notes=None,
+        provider_visual_notes=None,
+        elements=[VibemonTypeT.FIRE.value],
+        base_hp=50,
+        base_attack=50,
+        base_defense=50,
+        base_sp_attack=50,
+        base_sp_defense=50,
+        base_speed=50,
+        evo_seed=EvolutionStageT.BASE.value,
+        is_radiant=False,
+        generation=0,
+        generated_at=generated_at,
+    )
+    vibemon = Vibemon(
+        id=row.id,
+        nickname="Sparky",
+        identity=_identity(generated_at),
+        lifecycle=VibemonLifecycleT.CHRISTENED,
+    )
+
+    mapper.apply_adopted_vibemon_to_row(row, vibemon, trainer_id=trainer_id, crew_slot=3)
+
+    assert row.nickname == "Sparky"
+    assert row.trainer_id == trainer_id
+    assert row.crew_slot == 3
+    assert row.disposition == "owned"
+    assert row.wild_entered_at is None
+    assert row.last_encountered_at is None

@@ -1,16 +1,28 @@
 # Fitness Provider
 
-A Vibemon is born from the trainer's body — sleep, activity, recovery, and
-vitals in the weeks before birth. Multiple wearables and health platforms merge
-into one `Affinity` for physiological state.
+| | |
+| --- | --- |
+| **Status** | Idea |
+| **Priority** | Medium |
+| **Complexity** | High |
+| **Area** | Providers |
+| **Related** | — |
 
-This is the first **multi-source** provider. Instead of one API client, it
-discovers available adapters from `TrainerSecrets` and merges their partial
-observations into a single signal pathway.
+## Summary
 
----
+A **Vibemon** is born from the trainer's body — sleep, activity, recovery, and vitals in the weeks before birth. Multiple wearables and health platforms merge into one **Affinity** for physiological state.
 
-## Data Sources (field-mergeable)
+## Problem
+
+Single-API providers cover one slice of life (music, film, code). Physiological state spans many platforms with overlapping metrics (HRV from Whoop and Oura, steps from Fitbit and Google Fit). Trainers need one **Fitness** toggle, not eight separate providers.
+
+## Concept
+
+The first **multi-source** provider: discover available adapters from **TrainerSecrets**, fetch partial observations concurrently, merge by configurable priority or democratic mean, and emit a unified **FitnessObservation**. Frontend shows a single "Fitness" entry; source configuration lives in the secrets layer.
+
+## Design
+
+### Data sources (field-mergeable)
 
 | Platform | Coverage | Secrets Required |
 |----------|----------|------------------|
@@ -23,16 +35,14 @@ observations into a single signal pathway.
 | Strava | Runs, Rides, Swims, Heart rate, Elevation, Pace | `fitness.strava.access_token` |
 | Garmin | Steps, Sleep, HRV, RHR, Body Battery, Intensity minutes | `fitness.garmin.email` + `fitness.garmin.password` |
 
----
-
-## Secrets
+### Secrets
 
 | Key | Required | Purpose |
 | --- | -------- | ------- |
 | `fitness.config` | no | Per-subschema source priority (JSON, see below) |
 | `fitness.<platform>.*` | see table | Platform credentials — one or more |
 
-### `fitness.config` schema
+**`fitness.config` schema**
 
 ```json
 {
@@ -46,12 +56,9 @@ observations into a single signal pathway.
 
 If absent, defaults to democratic merge across all available adapters.
 
----
+### Intermediate schema
 
-## Intermediate Schema
-
-Every adapter produces a partial `FitnessObservation`. All fields optional —
-unpopulated means "this source doesn't supply this dimension."
+Every adapter produces a partial `FitnessObservation`. All fields optional — unpopulated means "this source doesn't supply this dimension."
 
 ```python
 class ActivityMetrics(FrozenSchema):
@@ -89,9 +96,7 @@ class FitnessObservation(FrozenSchema):
     source: str                                      # adapter identifier
 ```
 
----
-
-## Merge Protocol
+### Merge protocol
 
 `fetch()` follows these steps:
 
@@ -101,7 +106,7 @@ class FitnessObservation(FrozenSchema):
 4. **Merge** — For each subschema (`activity`, `sleep`, `recovery`, `body`):
    - If config has a priority list for that subschema: scan sources in order, take **first non-None** field value
    - If no config: take **mean across non-None values** for numeric fields, union for tuple fields, first non-None for string fields
-5. **Annotate** — Attach `ProviderNote` per missing subschema (e.g. `"Sleep data unavailable"`), per excluded adapter (`"Whoop steps excluded by config — only recovery used"`)
+5. **Annotate** — Attach **Provider Note** per missing subschema (e.g. `"Sleep data unavailable"`), per excluded adapter (`"Whoop steps excluded by config — only recovery used"`)
 
 ```python
 async def fetch(self, seed, *, secrets) -> dict:
@@ -113,9 +118,7 @@ async def fetch(self, seed, *, secrets) -> dict:
     return merged.model_dump()
 ```
 
----
-
-## Type → Activity / Physiology Mapping
+### Type mapping
 
 | Type | Signal |
 |------|--------|
@@ -138,9 +141,7 @@ async def fetch(self, seed, *, secrets) -> dict:
 | FAIRY | Dance, bodyweight, low strain, high REM, positive readiness |
 | PSYCHIC | Yoga, meditation, low RHR, high HRV, deliberate movement |
 
----
-
-## Signal Design (6 stat axes)
+### Signal design (6 stat axes)
 
 | Stat | Signal | Source |
 |------|--------|--------|
@@ -151,19 +152,13 @@ async def fetch(self, seed, *, secrets) -> dict:
 | Sp. Defense | Temperature stability | `BodyMetrics.temperature_celsius_avg` variance (low variance → high stability) |
 | Speed | Recent step cadence | `ActivityMetrics.avg_daily_steps` / 24h |
 
-Missing source → neutral contribution to affected stat + `ProviderNote`.
+Missing source → neutral contribution to affected stat + **Provider Note**.
 
----
+### Intensity
 
-## Intensity
+Average of normalized `RecoveryMetrics.readiness_score` and inverse of `BodyMetrics.temperature_celsius_avg` deviation from baseline. High readiness + stable temp = charged and available. Low readiness + feverish = drained.
 
-Average of normalized `RecoveryMetrics.readiness_score` and inverse of
-`BodyMetrics.temperature_celsius_avg` deviation from baseline. High readiness +
-stable temp = charged and available. Low readiness + feverish = drained.
-
----
-
-## Provider Notes
+### Provider notes
 
 | Condition | Note |
 | --------- | ---- |
@@ -173,16 +168,11 @@ stable temp = charged and available. Low readiness + feverish = drained.
 | Conflicting HRV from two sources | `"HRV differs between sources (Whoop: 52ms, Eight Sleep: 48ms) — using priority config"` |
 | Window <14d | `"Short window — signals may be noisy"` |
 
----
+### Moves
 
-## Moves
+Fitness-themed move names in `data/moves.json` (e.g. Deep Breath, Cold Plunge, Active Recovery, Peak Zone, Sleep Debt, PR, Cool Down, Heart Rate Spike).
 
-Fitness-themed move names in `data/moves.json` (e.g. Deep Breath, Cold Plunge,
-Active Recovery, Peak Zone, Sleep Debt, PR, Cool Down, Heart Rate Spike).
-
----
-
-## Proposed Structure
+### Proposed structure
 
 ```
 providers/fitness/
@@ -206,7 +196,7 @@ providers/fitness/
     garmin.py
 ```
 
-### `_protocol.py`
+**Adapter protocol (`_protocol.py`)**
 
 ```python
 from typing import Protocol, runtime_checkable
@@ -237,11 +227,12 @@ def discover_adapters(secrets: TrainerSecrets) -> list[FitnessAdapter]:
     ]
 ```
 
----
+### Wiring
 
-## Wiring
+Same opt-in pattern — gated behind secrets, registered in `scripts/_common.py` and `frontend/src/lib/domains/generation/provider-options.ts`. Frontend toggle shows as a single "Fitness" entry; source configuration happens in the secrets layer.
 
-Same opt-in pattern — gated behind secrets, registered in `scripts/_common.py`
-and `frontend/src/lib/domains/generation/provider-options.ts`. Frontend toggle
-shows as a single "Fitness" entry; source configuration happens in the secrets
-layer.
+## Open Questions
+
+- Which two adapters ship first for MVP (Whoop + Oura vs. Strava + Fitbit)?
+- Garmin email/password auth acceptable vs. OAuth-only policy?
+- Minimum `window_days` before **Provider Warning** for noisy signals?

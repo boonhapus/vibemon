@@ -49,8 +49,8 @@ def test_battle_engine_resolves_damage_and_winner() -> None:
         level=1,
     )
     battle_engine = engine.GameEngine(
-        entity.BattleTrainer(id=trainer_a_id, username="a", team=[attacker]),
-        entity.BattleTrainer(id=trainer_b_id, username="b", team=[defender]),
+        entity.BattleTrainer(id=trainer_a_id, username="a", crew=[attacker]),
+        entity.BattleTrainer(id=trainer_b_id, username="b", crew=[defender]),
         rng=random.Random(1),
     )
 
@@ -87,8 +87,8 @@ def test_battle_engine_requires_one_action_per_active_trainer() -> None:
         )
 
     battle_engine = engine.GameEngine(
-        entity.BattleTrainer(id=trainer_a_id, username="a", team=[vibemon("A")]),
-        entity.BattleTrainer(id=trainer_b_id, username="b", team=[vibemon("B")]),
+        entity.BattleTrainer(id=trainer_a_id, username="a", crew=[vibemon("A")]),
+        entity.BattleTrainer(id=trainer_b_id, username="b", crew=[vibemon("B")]),
     )
 
     with pytest.raises(ValueError, match="exactly one action"):
@@ -139,8 +139,8 @@ def test_move_fails_when_selected_move_has_no_pp_but_other_moves_exist() -> None
     )
 
     battle_engine = engine.GameEngine(
-        entity.BattleTrainer(id=trainer_a_id, username="a", team=[attacker]),
-        entity.BattleTrainer(id=trainer_b_id, username="b", team=[defender]),
+        entity.BattleTrainer(id=trainer_a_id, username="a", crew=[attacker]),
+        entity.BattleTrainer(id=trainer_b_id, username="b", crew=[defender]),
         rng=random.Random(1),
     )
 
@@ -210,8 +210,8 @@ def test_breaking_point_auto_used_when_all_moves_are_depleted() -> None:
     )
 
     battle_engine = engine.GameEngine(
-        entity.BattleTrainer(id=trainer_a_id, username="a", team=[attacker]),
-        entity.BattleTrainer(id=trainer_b_id, username="b", team=[defender]),
+        entity.BattleTrainer(id=trainer_a_id, username="a", crew=[attacker]),
+        entity.BattleTrainer(id=trainer_b_id, username="b", crew=[defender]),
         rng=random.Random(1),
     )
 

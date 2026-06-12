@@ -8,7 +8,7 @@ import pydantic
 from app.core.ids import TrainerIdT
 from app.core.schema import FrozenSchema
 from app.domains.adoption.types import CandidateReviewStatusT
-from app.providers import schema as providers_schema
+from app.domains.generation.types import ProviderWarning
 
 
 class CandidateReviewRead(FrozenSchema):
@@ -21,7 +21,7 @@ class CandidateReviewRead(FrozenSchema):
     resolution: CandidateReviewStatusT | None = None
     status_label: str
     resolved_label: str | None = None
-    provider_notes: tuple[providers_schema.ProviderNote, ...] = ()
+    provider_notes: tuple[ProviderWarning, ...] = ()
 
     @pydantic.field_validator("shown_at", "timeout_at", "resolved_at")
     @classmethod

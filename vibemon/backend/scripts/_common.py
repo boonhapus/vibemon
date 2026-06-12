@@ -5,7 +5,6 @@ from contextlib import asynccontextmanager
 from typing import Literal
 import dataclasses
 import datetime as dt
-import enum
 import json
 import os
 import pathlib
@@ -20,41 +19,19 @@ from app.core.ids import TrainerIdT
 from app.domains.battle import actions as battle_actions
 from app.domains.battle import engine as battle_engine
 from app.domains.battle import entity as battle_entity
-from app.domains.generation.seed import BirthSeed
 from app.domains.move import catalog as move_catalog
 from app.domains.move import entity as move_entity
 from app.domains.move import types as move_types
-from app.domains.vibemon.schema import PublicVibemon
-from app.domains.vibemon.types import VibemonLifecycleT
-from app.providers.biome.provider import BiomeProvider
-from app.providers.climate.provider import ClimateProvider
-from app.providers.music.provider import MusicProvider
+from app.providers import registry
 from app.settings import Settings
 from app.storage.database import engine as db_engine
-from app.storage.database import mapper, models, repositories
-from app.workflows import _workflow_support as workflow_support
-from app.workflows.materialize_vibemon import MaterializeVibemon
+from app.storage.database import mapper, models, vibemon_repo
+import app._compat.httpx  # noqa: F401 — patch httpx annotations for google-genai on Python 3.14+
 
 type BattleMovePolicyT = Literal["first_available", "best_damage", "stab_first", "status_aware", "random"]
-type ScriptProviderT = ClimateProvider | BiomeProvider | MusicProvider
 
 SCRIPT_ANONYMOUS_TRAINER_ID = uuid.UUID("01900000-0000-7000-8000-000000000002")
 _BUST_CACHE_ENV = "VIBEMON_BUST_CACHE"
-
-
-class ProviderName(enum.StrEnum):
-    CLIMATE = "climate"
-    BIOME = "biome"
-    MUSIC = "music"
-
-
-DEFAULT_PROVIDERS: tuple[ProviderName, ...] = (ProviderName.CLIMATE, ProviderName.BIOME)
-
-_PROVIDER_TYPES: dict[ProviderName, type[ScriptProviderT]] = {
-    ProviderName.CLIMATE: ClimateProvider,
-    ProviderName.BIOME: BiomeProvider,
-    ProviderName.MUSIC: MusicProvider,
-}
 
 
 def bust_cache_parameter(group: cyclopts.Group) -> cyclopts.Parameter:
@@ -96,47 +73,14 @@ def parse_datetime(value: str) -> dt.datetime:
     return parsed.astimezone(dt.UTC)
 
 
-def resolve_provider_names(
-    provider_names: Iterable[ProviderName | str] | None,
-) -> tuple[ProviderName, ...]:
-    if provider_names is None:
-        return DEFAULT_PROVIDERS
-    resolved = tuple(ProviderName(name) for name in provider_names)
-    if not resolved:
-        raise SystemExit("At least one --provider is required.")
-    return resolved
-
-
-def build_providers(provider_names: Iterable[ProviderName | str] | None = None) -> list[ScriptProviderT]:
-    return [_PROVIDER_TYPES[name]() for name in resolve_provider_names(provider_names)]
-
-
 def require_trainer_for_music(
-    provider_names: Iterable[ProviderName | str] | None,
+    provider_names: Iterable[registry.ProviderName | str] | None,
     *,
     trainer_id: uuid.UUID | None,
 ) -> None:
-    names = resolve_provider_names(provider_names)
-    if ProviderName.MUSIC in names and trainer_id is None:
+    names = registry.resolve_provider_names(provider_names)
+    if registry.ProviderName.MUSIC in names and trainer_id is None:
         raise SystemExit("--trainer with a linked Last.fm account is required when the music provider is selected.")
-
-
-def birth_seed(
-    *,
-    latitude: float,
-    longitude: float,
-    timestamp: str | None = None,
-    trainer_id: uuid.UUID | None = None,
-    provider_names: Iterable[ProviderName | str] | None = None,
-) -> BirthSeed:
-    require_trainer_for_music(provider_names, trainer_id=trainer_id)
-    resolved_trainer_id = trainer_id or SCRIPT_ANONYMOUS_TRAINER_ID
-    return BirthSeed(
-        timestamp=parse_datetime(timestamp) if timestamp is not None else dt.datetime.now(tz=dt.UTC),
-        geo_coords=(latitude, longitude),
-        trainer_id=resolved_trainer_id,
-        providers=build_providers(provider_names),
-    )
 
 
 def random_latitude() -> float:
@@ -202,35 +146,8 @@ async def ensure_trainer(
     return row
 
 
-async def load_public_vibemon(
-    sess: AsyncSession,
-    vibemon_id: uuid.UUID,
-) -> PublicVibemon:
-    row = await repositories.load_vibemon(sess, vibemon_id)
-    return await workflow_support.public_vibemon(row)
-
-
-async def materialize_vibemon(
-    sess: AsyncSession,
-    vibemon_id: uuid.UUID,
-    *,
-    lifecycle: VibemonLifecycleT,
-) -> PublicVibemon:
-    row = await repositories.load_vibemon(sess, vibemon_id)
-    vibemon = await mapper.vibemon_from_row(row)
-    realizer = MaterializeVibemon()
-    if lifecycle is VibemonLifecycleT.CHRISTENED:
-        vibemon = await realizer.christen(vibemon)
-    elif lifecycle is VibemonLifecycleT.MANIFESTED:
-        vibemon = await realizer.manifest(await realizer.christen(vibemon))
-    mapper.apply_vibemon_to_row(row, vibemon)
-    await repositories.persist_assets(sess, vibemon)
-    await sess.flush()
-    return await workflow_support.public_vibemon(row)
-
-
 async def load_battle_vibemon(sess: AsyncSession, vibemon_id: uuid.UUID) -> battle_entity.BattleVibemon:
-    row = await repositories.load_vibemon(sess, vibemon_id)
+    row = await vibemon_repo.load_vibemon(sess, vibemon_id)
     vibemon = await mapper.vibemon_from_row(row)
     return battle_entity.BattleVibemon(**vibemon.model_dump())
 
@@ -286,12 +203,12 @@ def simulate_battle(
         battle_entity.BattleTrainer(
             id=trainer_id(trainer_a_id),
             username=trainer_a_name,
-            team=[vibemon_a],
+            crew=[vibemon_a],
         ),
         battle_entity.BattleTrainer(
             id=trainer_id(trainer_b_id),
             username=trainer_b_name,
-            team=[vibemon_b],
+            crew=[vibemon_b],
         ),
         rng=rng,
     )

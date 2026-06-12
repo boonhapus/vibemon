@@ -1,26 +1,38 @@
 # Movie Provider
 
-A Vibemon is born from the stories a trainer watches. Letterboxd diary history at
-birth time — rated films, genres, moods, themes — folds into an `Affinity` for
-cinematic taste.
+| | |
+| --- | --- |
+| **Status** | Idea |
+| **Priority** | Low |
+| **Complexity** | Medium |
+| **Area** | Providers |
+| **Related** | [tv-provider.md](tv-provider.md), [book-provider.md](book-provider.md) |
 
----
+## Summary
 
-## Data Sources
+A **Vibemon** is born from the stories a trainer watches. Letterboxd diary history at birth time — rated films, genres, moods, themes — folds into an **Affinity** for cinematic taste.
+
+## Problem
+
+Trainers who express identity through film have no birth signal today. Music, climate, and biome cover other slices of life; cinematic diary data is a natural, structured affinity source with rich genre and pacing metadata.
+
+## Concept
+
+Opt-in **Movie Provider** using Letterboxd API (RSS fallback) to map film diary signals to element affinity, six stat axes, and intensity from recent vs. baseline viewing rate.
+
+## Design
+
+### Data sources
 
 **Letterboxd API** (official, needs API key + secret):
 
 - Diary entries (recent history, rewatches)
 - Ratings, reviews, likes, watchlist
-- Per-film metadata: genres, themes, moods, content descriptors, runtime, release
-  year, country, language
+- Per-film metadata: genres, themes, moods, content descriptors, runtime, release year, country, language
 
-**Fallback:** Letterboxd public RSS feed for diary/watched (read-only, no API key
-needed but much thinner).
+**Fallback:** Letterboxd public RSS feed for diary/watched (read-only, no API key needed but much thinner).
 
----
-
-## Secrets
+### Secrets
 
 | Key | Required | Purpose |
 | --- | -------- | ------- |
@@ -28,9 +40,7 @@ needed but much thinner).
 | `letterboxd.api_secret` | yes | Official API authentication |
 | `letterboxd.username` | yes | Target user |
 
----
-
-## Type → Genre Mapping
+### Type mapping
 
 | Type | Signal Description |
 |------|-------------------|
@@ -53,9 +63,7 @@ needed but much thinner).
 | FAIRY | musicals, animated, whimsical, family |
 | PSYCHIC | art house, philosophical, experimental |
 
----
-
-## Signal Design (6 stat axes)
+### Signal design (6 stat axes)
 
 | Stat | Signal | Data Source |
 |------|--------|------------|
@@ -66,16 +74,11 @@ needed but much thinner).
 | Sp. Defense | Rewatch rate | Diary entries that are rewatches |
 | Speed | Diary pace | Films/week in last 30 days |
 
----
+### Intensity
 
-## Intensity
+Ratio of recent (last 30d) vs baseline (last year) diary entry rate. A binge-watching spike yields high intensity.
 
-Ratio of recent (last 30d) vs baseline (last year) diary entry rate. A
-binge-watching spike yields high intensity.
-
----
-
-## Provider Notes
+### Provider notes
 
 | Condition | Note |
 | --------- | ---- |
@@ -83,16 +86,11 @@ binge-watching spike yields high intensity.
 | Single genre >60% of diary | `"Single genre dominates"` |
 | Used RSS fallback instead of API | `"API quota reduced"` |
 
----
+### Moves
 
-## Moves
+Movie-themed move names in `data/moves.json` (e.g. Close-Up, Tracking Shot, Montage, Flashback, Slow Burn).
 
-Movie-themed move names in `data/moves.json` (e.g. Close-Up, Tracking Shot,
-Montage, Flashback, Slow Burn).
-
----
-
-## Proposed Structure
+### Proposed structure
 
 ```
 providers/movie/
@@ -108,9 +106,11 @@ providers/movie/
     schema.py              # Letterboxd response models
 ```
 
----
+### Wiring
 
-## Wiring
+Same opt-in pattern as **Music Provider** — gated behind secrets, registered in `scripts/_common.py` and `frontend/src/lib/domains/generation/provider-options.ts`.
 
-Same opt-in pattern as `MusicProvider` — gated behind secrets, registered in
-`scripts/_common.py` and `frontend/src/lib/domains/generation/provider-options.ts`.
+## Open Questions
+
+- RSS fallback acceptable for beta or API-only?
+- Mood/theme tags from Letterboxd vs. genre-only v1?

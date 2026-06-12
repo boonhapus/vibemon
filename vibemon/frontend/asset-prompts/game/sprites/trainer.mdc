@@ -1,0 +1,16 @@
+---
+name: trainer-sprite
+kind: asset-instance
+asset: game/sprites/trainer.png
+model: gemini-2.5-flash-image
+generated: 2026-06-08
+status: approved
+style_anchor: base-style.md
+source: .generated/tmp/canonical/normalized-roll3.png
+pipeline: trainer-reference.mdc v1.6.0
+---
+A cozy handheld pixel-art field trainer — the default player avatar and style-bible anchor for all generated Vibemon sprites. Adult-leaning proportions: natural head-to-body ratio, simple readable features, relaxed field-trainer stance. Three-quarter view facing slightly left, full body with margin.
+
+Gear: red baseball cap; light denim jacket over a grey tee; olive cargo pants; brown hiking boots with red laces; olive backpack with shoulder straps; brown belt with rectangular buckle; closed clamshell field device on the left hip.
+
+Warm, approachable, mid-century adventure energy — a beloved cartridge-era trainer on a long walk. No logos, no text, no photorealism. In a cozy handheld pixel art sprite style. Render with thick, distinct dark brown pixelated outlines defining the silhouette. Use 2–3 flat tone steps per color zone with soft stepped edges. Apply whisper-level paper grain and subtle dither on large flat surfaces only — not heavy crosshatch or stipple across entire fills. The color palette is slightly muted and desaturated. Isolated on a transparent background, presented in a static, detailed sprite pose.

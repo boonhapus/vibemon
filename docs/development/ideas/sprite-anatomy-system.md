@@ -1,15 +1,20 @@
 # Sprite Anatomy System
 
-**Status:** Idea — target for beta validation with users  
-**Priority:** Medium (sprite quality / variety)  
-**Complexity:** Medium–high (catalog + resolver + persistence + prompts)  
-**Related:** `sprite-matte-keying-refinement.md`, `generative-aesthetics-and-showcase.md`, `docs/development/ARCHITECTURE.md` (genai vs workflows)
+| | |
+| --- | --- |
+| **Status** | Idea |
+| **Priority** | Medium |
+| **Complexity** | Medium–High |
+| **Area** | Assets / Generation |
+| **Related** | [overworld-sprite-rendering.md](overworld-sprite-rendering.md), [generative-aesthetics-and-showcase.md](generative-aesthetics-and-showcase.md), [../ARCHITECTURE.md](../ARCHITECTURE.md) (genai vs workflows) |
 
----
+## Summary
 
-## Problem Statement
+Persist a resolved **Sprite Anatomy** snapshot per **Vibemon** identity — locomotion class, leg count, posture, constraints — so reference sprites follow locked rules instead of leaving silhouette to the image model. Catalog holds distributions and hard constraints; **Identity** holds outcomes.
 
-Reference sprites are generated from `sprite-reference.mdc`, which delegates silhouette to each element’s `BODY ARCHETYPE` line in `app/genai/prompts/elements/*.j2`. The image model **chooses** biped vs quadruped vs legless forms on its own. That produces:
+## Problem
+
+Reference sprites are generated from `sprite-reference.mdc`, which delegates silhouette to each element's `BODY ARCHETYPE` line in `app/genai/prompts/elements/*.j2`. The image model **chooses** biped vs quadruped vs legless forms on its own. That produces:
 
 - **Unstable silhouettes** across regen (same Vibemon, different leg count).
 - **No enforceable distributions** (e.g. NORMAL mammals skewing 55% biped / 35% quadruped / 10% amorphous).
@@ -17,15 +22,17 @@ Reference sprites are generated from `sprite-reference.mdc`, which delegates sil
 - **Type-specific rules ignored in practice** (marine WATER should never have legs; BUG may be cocoon-like at early stages with 6+ legs later).
 - **Dual typing ambiguity** (which element owns locomotion when two types are present?).
 
-Percentages and hard constraints belong in **code**, not prose the model may ignore. The prompt should receive a **locked anatomy brief** the model must follow—similar to how `tier` and `battle_role` already drive includes under `tiers/` and `roles/`, but with explicit stochastic resolution at birth/materialization.
+Percentages and hard constraints belong in **code**, not prose the model may ignore. The prompt should receive a **locked anatomy brief** the model must follow — similar to how `tier` and `battle_role` already drive includes under `tiers/` and `roles/`, but with explicit stochastic resolution at birth/materialization.
 
----
+## Concept
 
-## Concept: `SpriteAnatomy`
+Introduce a small, persisted **anatomy snapshot** per **Vibemon** identity, resolved from a typed **catalog** (per primary element, stage, and optional habitat). The snapshot is the single source of truth for sprite reference generation and can later feed sprite sheets, emotes, and showcase copy.
 
-Introduce a small, persisted **anatomy snapshot** per Vibemon identity, resolved from a typed **catalog** (per primary element, stage, and optional habitat). The snapshot is the single source of truth for sprite reference generation and can later feed sprite sheets, emotes, and showcase copy.
+`Anatomy` is intentionally broader than "leg count": the same pipeline can attach other element-driven visual attributes (horn count, wing class, tail length band, exoskeleton vs skin, etc.) without growing **Identity** ad hoc.
 
-`Anatomy` is intentionally broader than “leg count”: the same pipeline can attach other element-driven visual attributes (horn count, wing class, tail length band, exoskeleton vs skin, etc.) without growing `Identity` ad hoc.
+## Design
+
+### Architecture flow
 
 ```mermaid
 flowchart LR
@@ -41,9 +48,7 @@ flowchart LR
   prompt --> assets
 ```
 
----
-
-## Design Principles
+### Design principles
 
 1. **Primary element owns locomotion** — matches existing prompt rule: secondary element is accent-only (`sprite-reference.mdc`). `Normal/Fire` uses NORMAL tables; `Fire/Normal` uses FIRE tables.
 2. **Catalog holds rules; Identity holds outcomes** — do not store weight matrices on `Identity` (like storing BST curves on every row). Store the resolved snapshot (like `evo_seed`).
@@ -52,9 +57,7 @@ flowchart LR
 5. **Prompt richness without prompt logic** — element `.j2` files keep vibe, palette, and lineage; locked numeric/anatomical facts come from the snapshot rendered into a dedicated include.
 6. **Provider/habitat overrides** — some constraints are not elemental (ocean-dwelling WATER). Structured `ProviderNote` codes or provider tags feed the resolver after the type table.
 
----
-
-## Anatomy Snapshot (persisted)
+### Anatomy snapshot (persisted)
 
 Suggested fields on `Identity` (and matching DB columns on `identity`):
 
@@ -70,9 +73,7 @@ Suggested fields on `Identity` (and matching DB columns on `identity`):
 
 `posture` may change when `Vibemon.evo_stage` advances without changing `locomotion` (NORMAL quadruped stays quadruped but stands taller). Metamorphosis lines (BUG) may update `locomotion` and `leg_count` on evolution.
 
----
-
-## Catalog & Resolver (not on Identity)
+### Catalog & resolver (not on Identity)
 
 ### Catalog shape
 
@@ -114,7 +115,7 @@ Unit tests assert distributions and constraints over many seeds—not image mode
 
 ---
 
-## Example Rules (beta tuning)
+### Example rules (beta tuning)
 
 ### NORMAL (terrestrial mammal)
 
@@ -145,7 +146,7 @@ Element j2 already says “NOT a land biped”; anatomy makes that **locked** wh
 
 ---
 
-## Soft reference: Pokémon-type anatomy survey
+### Soft reference: Pokémon-type anatomy survey
 
 > **Not canonical for Vibemon.** The table below is an external, hand-estimated survey of main-series Pokémon silhouettes—useful for **beta catalog tuning** and sanity-checking per-type weights. Vibemon catalog entries may diverge (provider habitat, metamorphosis lines, evolution stage curves). Do not copy percentages verbatim without playtesting and resolver tests.
 >
@@ -181,7 +182,7 @@ Element j2 already says “NOT a land biped”; anatomy makes that **locked** wh
 
 ---
 
-## Dual Typing
+### Dual typing
 
 | Rule | Behavior |
 | ---- | -------- |
@@ -193,7 +194,7 @@ Document precedence in the catalog README so beta feedback can target primary-ty
 
 ---
 
-## Evolution & `evo_stage`
+### Evolution & `evo_stage`
 
 Two mechanisms (do not conflate):
 
@@ -212,7 +213,7 @@ Two mechanisms (do not conflate):
 
 ---
 
-## Prompt Integration
+### Prompt integration
 
 ### `sprite-reference.mdc`
 
@@ -242,7 +243,7 @@ Element `.j2` files slim down: remove ambiguous BODY ARCHETYPE lists where catal
 
 ---
 
-## Potential Code Shapes
+### Potential code shapes
 
 ### Types (`app/genai/sprite_anatomy/types.py` or `domains/vibemon/types.py`)
 
@@ -426,7 +427,7 @@ anatomy_extensions: Mapped[dict | None]  # JSON
 
 ---
 
-## Extending Beyond Locomotion
+### Extending beyond locomotion
 
 The `extensions` bag and catalog slots are reserved for element-driven attributes that should also be locked before image gen:
 
@@ -440,9 +441,18 @@ The `extensions` bag and catalog slots are reserved for element-driven attribute
 
 Keep **tier** complexity budget in tier j2; anatomy extensions reference the same budget so the model does not add forbidden parts.
 
----
+### Why not only prompt changes?
 
-## Beta Validation Plan (with users)
+| Approach | Outcome |
+| -------- | ------- |
+| Percentages in `normal.j2` | Soft bias at best; not reproducible; untestable |
+| `@property` on `Identity` like `tier` | Missing `evo_stage`, RNG, provider context |
+| Full rules on `Identity` | Wrong layer; duplicates catalog |
+| **Catalog + snapshot + locked prompt** | Reproducible, testable, evolvable |
+
+## Implementation
+
+### Beta validation plan (with users)
 
 1. **Ship catalog v0** — NORMAL, WATER (marine override), BUG (cocoon line), plus one dual-type smoke (`Grass/Poison` or similar).
 2. **Instrument materialize** — log `locomotion`, `leg_count`, `posture`, primary type, `evo_stage` (no PII).
@@ -451,27 +461,7 @@ Keep **tier** complexity budget in tier j2; anatomy extensions reference the sam
 5. **Iterate weights** — adjust catalog JSON from aggregate distributions and qualitative tags; avoid editing `.mdc` percentages.
 6. **Evolution pass** — evolve a small cohort STAGE_1 → STAGE_3; confirm posture shift without sprite-sheet breakage.
 
-Success criteria for beta exit:
-
-- ≥90% of spot-checked references match locked `leg_count` / locomotion class.
-- NORMAL distribution within ±5% of target weights at BASE and STAGE_3.
-- No marine WATER with legs in staged test set.
-- Cocoon BUG lines show metamorphosis on evolution without regen drift on unchanged stage.
-
----
-
-## Open Questions
-
-1. **Re-roll on evolution** — NORMAL stage 3: re-sample from shifted weights, or only bump `posture` if stage-1 pick was quadruped?
-2. **Freshwater WATER** — separate catalog row or provider note only?
-3. **Radiant / mythic** — anatomy extensions only, or separate weight table?
-4. **Backfill** — existing Vibemon without `sprite_anatomy`: resolve lazily on next materialize from `vibemon.id`, or one-off migration?
-5. **Secondary constraint catalog** — worth a small matrix (e.g. FLYING secondary adds wings) in v1 or beta v2?
-6. **Provider note codes** — standardize `habitat:marine` vs parsing `provider_visual_notes` free text?
-
----
-
-## Implementation Phases (suggested)
+### Phases (suggested)
 
 | Phase | Scope |
 | ----- | ----- |
@@ -482,18 +472,23 @@ Success criteria for beta exit:
 | **4** | Evolution workflow updates anatomy; remaining types |
 | **5** | `extensions` attributes (wings, horns, surface) |
 
----
+## Open Questions
 
-## Why Not Only Prompt Changes?
+1. **Re-roll on evolution** — NORMAL stage 3: re-sample from shifted weights, or only bump `posture` if stage-1 pick was quadruped?
+2. **Freshwater WATER** — separate catalog row or provider note only?
+3. **Radiant / mythic** — anatomy extensions only, or separate weight table?
+4. **Backfill** — existing **Vibemon** without `sprite_anatomy`: resolve lazily on next materialize from `vibemon.id`, or one-off migration?
+5. **Secondary constraint catalog** — worth a small matrix (e.g. FLYING secondary adds wings) in v1 or beta v2?
+6. **Provider note codes** — standardize `habitat:marine` vs parsing `provider_visual_notes` free text?
 
-| Approach | Outcome |
-| -------- | ------- |
-| Percentages in `normal.j2` | Soft bias at best; not reproducible; untestable |
-| `@property` on `Identity` like `tier` | Missing `evo_stage`, RNG, provider context |
-| Full rules on `Identity` | Wrong layer; duplicates catalog |
-| **Catalog + snapshot + locked prompt** | Reproducible, testable, evolvable |
+## Success Criteria
 
----
+Beta exit when:
+
+- ≥90% of spot-checked references match locked `leg_count` / locomotion class.
+- NORMAL distribution within ±5% of target weights at BASE and STAGE_3.
+- No marine WATER with legs in staged test set.
+- Cocoon BUG lines show metamorphosis on evolution without regen drift on unchanged stage.
 
 ## References
 

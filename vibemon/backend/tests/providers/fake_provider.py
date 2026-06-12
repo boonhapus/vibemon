@@ -1,5 +1,7 @@
 """Minimal VibeProvider fake for workflow and generation tests."""
 
+from typing import ClassVar
+
 from app.domains.generation.affinity import Affinity
 from app.domains.generation.ports import TrainerSecrets
 from app.domains.generation.seed import BirthSeed
@@ -19,6 +21,9 @@ class FakeProviderPayload(providers_schema.ProviderPayload):
 class FakeProvider(VibeProvider[FakeProviderPayload]):
     name = "fake"
     payload_type = FakeProviderPayload
+    display_label = "FAKE"
+    tagline = "Deterministic test provider."
+    exposed_elements: ClassVar[list[tuple[VibemonTypeT, str]]] = [(VibemonTypeT.NORMAL, "testing")]
 
     def __init__(self, *, element: VibemonTypeT = VibemonTypeT.NORMAL, attack: int = 50) -> None:
         self._element = element
@@ -62,6 +67,9 @@ class WorkflowProviderPayload(providers_schema.ProviderPayload):
 class WorkflowFakeProvider(VibeProvider[WorkflowProviderPayload]):
     name = "test-provider"
     payload_type = WorkflowProviderPayload
+    display_label = "TEST"
+    tagline = "Workflow test provider."
+    exposed_elements: ClassVar[list[tuple[VibemonTypeT, str]]] = [(VibemonTypeT.FIRE, "testing")]
 
     async def fetch(self, seed: BirthSeed, *, secrets: TrainerSecrets | None = None) -> WorkflowProviderPayload:
         return WorkflowProviderPayload()

@@ -25,7 +25,12 @@ dependencies = [
     "asyncpg>=0.31.0",
     "psycopg[binary]>=3.3.4",
     "jsonschema>=4.26.0",
+    "litestar>=2.22.0",
+    "skyfield>=1.54",
 ]
+
+[project.scripts]
+dev = "scripts.dev_stack:main"
 
 [dependency-groups]
 dev = [
@@ -54,6 +59,8 @@ packages = ["app"]
 
 [tool.hatch.build.targets.wheel.force-include]
 "app/providers/biome/data" = "app/providers/biome/data"
+"app/providers/celestial/data" = "app/providers/celestial/data"
+"app/providers/celestial/ephemeris/data" = "app/providers/celestial/ephemeris/data"
 "app/providers/music/data" = "app/providers/music/data"
 
 [tool.pytest.ini_options]
@@ -62,6 +69,7 @@ pythonpath = ["."]
 testpaths = ["tests"]
 filterwarnings = [
     "ignore:Core Pydantic V1 functionality isn't compatible with Python 3.14 or greater\\.:UserWarning:elevenlabs\\.core\\.pydantic_utilities",
+    "ignore:Core Pydantic V1 functionality isn't compatible with Python 3.14 or greater\\.:UserWarning:litestar\\.plugins\\.pydantic\\.utils",
 ]
 
 [tool.pyrefly]
@@ -99,6 +107,9 @@ select = [
 ignore = [
     "B008",  # function-call-in-default-argument
 ]
+
+[tool.ruff.lint.per-file-ignores]
+"app/http/app.py" = ["E402"]  # compat bootstrap must run before third-party imports
 
 [tool.skylos]
 # Quality thresholds

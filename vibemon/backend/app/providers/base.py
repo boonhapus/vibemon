@@ -1,5 +1,6 @@
 from typing import TYPE_CHECKING, Any, ClassVar, cast
 import abc
+import inspect
 import json
 import pathlib
 import sys
@@ -7,9 +8,11 @@ import sys
 import niquests
 import structlog
 
+from app.core.errors import ProviderNotImplemented
 from app.domains.move import universal
 from app.domains.move.entity import Move
 from app.domains.move.types import VibemonTypeT
+from app.providers import catalog_schema as catalog
 from app.providers import schema
 
 if TYPE_CHECKING:
@@ -18,6 +21,22 @@ if TYPE_CHECKING:
     from app.domains.generation.seed import BirthSeed
 
 _LOGGER = structlog.get_logger(__name__)
+
+
+def _lore_from_docstring(doc: str | None) -> tuple[str, ...]:
+    """Extract player-facing lore paragraphs from a provider class docstring."""
+    if doc is None:
+        return ()
+    paragraphs = [paragraph.strip() for paragraph in doc.split("\n\n") if paragraph.strip()]
+    cleaned: list[str] = []
+    for paragraph in paragraphs:
+        lines = [line.strip() for line in paragraph.splitlines() if line.strip()]
+        if not lines:
+            continue
+        if lines[0].startswith("────"):
+            continue
+        cleaned.append(" ".join(lines))
+    return tuple(cleaned)
 
 
 class VibeProvider[PayloadT: schema.ProviderPayload](abc.ABC):
@@ -33,22 +52,31 @@ class VibeProvider[PayloadT: schema.ProviderPayload](abc.ABC):
 
     ──── Docstring convention for subclasses ───────────────────────────────────────────
 
-    A provider's class docstring should follow this shape so that readers can
-    quickly grasp both what it does and the aesthetic it imparts to a Vibemon.
-    See `ClimateProvider` for a worked example.
+    Provider class docstrings are player-facing lore in the configuration modal
+    (see ``_lore_from_docstring``). Write them in Vibemon's 1960s-70s
+    mid-century register: warm, analog, unhurried, a little Kodachrome-concrete.
+    See ``ClimateProvider`` for a worked example.
 
-    1. Opening line — one evocative sentence stating the provider's thematic
-       premise (e.g. "A Vibemon is born from the sky above its birthplace.").
-    2. Preamble — one sentence naming the data source and noting that its
-       signals fold into an `Affinity`.
-    3. Stats line — one sentence mapping the six signals chosen for HP,
-       Attack, Defense, Sp. Attack, Sp. Defense, and Speed.
-    4. Closer — a short "the result is..." paragraph illustrating how
-       different inputs produce visibly different creatures.
+    Voice
+        - Cozy nostalgia, not epic fantasy. Prefer "reads differently", "carries",
+          "picked up from" over "soul", "destiny", or "fundamentally different".
+        - Ground flavor in period texture when it fits: linoleum-bright noon, pea-soup
+          fog, boulevard haze, transistor static, harvest-gold sun, linen overcast.
+        - Stay poetic, not mechanical: do not name API clients, data pipelines,
+          ``Affinity``, base stats, signals, or typing rules — those belong in code
+          and the configuration panel's data-source list.
+        - Avoid modern SaaS tone ("leverage", "unlock") and weak openers ("The
+          result is that…").
 
-    Note: The `exposed_elements` class variable replaces the need for a
-    type list in the docstring. Use `Annotated[VibemonTypeT, str]` to
-    map each element to its real-world signal (e.g., "solar radiation").
+    Shape (two paragraphs only)
+        1. Thesis — one sentence stating what real-world context the Vibemon
+           carries from birth.
+        2. Meaning — one short paragraph expanding the thesis with two or three
+           concrete contrasts (place, weather, taste, habit) in the 1960s-70s
+           register.
+
+    Note: ``exposed_elements`` and ``data_sources`` carry technical mapping;
+    the docstring is flavor only.
     """
 
     name: ClassVar[str]
@@ -59,6 +87,21 @@ class VibeProvider[PayloadT: schema.ProviderPayload](abc.ABC):
 
     exposed_elements: ClassVar[list[tuple[VibemonTypeT, str]]]
     """Elements this provider can assign with real-world signal descriptions."""
+
+    display_label: ClassVar[str]
+    """Short UI label such as ``SKY`` or ``GROUND``."""
+
+    tagline: ClassVar[str]
+    """One-line provider summary for list hover and selection rails."""
+
+    data_sources: ClassVar[tuple[catalog.DataSourceInfo, ...]] = ()
+    """Upstream sources surfaced in the provider configuration panel."""
+
+    requirements: ClassVar[tuple[catalog.ProviderRequirement, ...]] = ()
+    """Configuration gates that must pass before ``fetch`` can succeed."""
+
+    implemented: ClassVar[bool] = True
+    """Whether this provider can fetch and synthesize birth payloads."""
 
     @classmethod
     def parse_payload(cls, raw: dict[str, Any]) -> PayloadT:
@@ -90,6 +133,23 @@ class VibeProvider[PayloadT: schema.ProviderPayload](abc.ABC):
     def get_exposed_elements(cls) -> dict[VibemonTypeT, str]:
         """Return a mapping of elements to their real-world signal descriptions."""
         return dict(cls.exposed_elements)
+
+    @classmethod
+    def catalog_entry(cls) -> catalog.ProviderCatalogEntry:
+        """Return the declared catalog metadata for the configuration UI."""
+        elements = tuple(
+            catalog.ProviderElement(type=element.value, signal=signal) for element, signal in cls.exposed_elements
+        )
+        return catalog.ProviderCatalogEntry(
+            id=cls.name,
+            label=cls.display_label,
+            tagline=cls.tagline,
+            lore=_lore_from_docstring(inspect.getdoc(cls)),
+            data_sources=cls.data_sources,
+            elements=elements,
+            requirements=cls.requirements,
+            implemented=cls.implemented,
+        )
 
     @abc.abstractmethod
     async def fetch(
@@ -136,3 +196,26 @@ class VibeProvider[PayloadT: schema.ProviderPayload](abc.ABC):
     def selectable_moves(self, *, level: int = 1) -> tuple[Move, ...]:
         """Return shared universal moves plus provider-authored moves."""
         return tuple(m for m in (*universal.moves(), *self.moves()) if m.level_requirement <= level)
+
+
+class UnimplementedProvider(VibeProvider[schema.UnimplementedPayload]):
+    """Catalog-only provider stub until fetch and synthesize are implemented."""
+
+    implemented: ClassVar[bool] = False
+    payload_type = schema.UnimplementedPayload
+    exposed_elements: ClassVar[list[tuple[VibemonTypeT, str]]] = []
+
+    async def fetch(
+        self,
+        seed: BirthSeed,
+        *,
+        secrets: TrainerSecrets | None = None,
+    ) -> schema.UnimplementedPayload:
+        raise ProviderNotImplemented(f"Provider {self.name!r} is not implemented yet.")
+
+    async def synthesize(
+        self,
+        seed: BirthSeed,
+        payload: schema.UnimplementedPayload,
+    ) -> Affinity:
+        raise ProviderNotImplemented(f"Provider {self.name!r} is not implemented yet.")

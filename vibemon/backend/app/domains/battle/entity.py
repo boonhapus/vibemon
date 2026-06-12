@@ -89,15 +89,15 @@ class BattleTrainer(Trainer, frozen=False, validate_assignment=True):
     """Transient battle state layered on top of a Trainer."""
 
     active_index: int = 0
-    team: list[Vibemon] = pydantic.Field(default_factory=list)
+    crew: list[Vibemon] = pydantic.Field(default_factory=list)
 
     @property
     def active_vibemon(self) -> BattleVibemon:
-        return cast(BattleVibemon, self.team[self.active_index])
+        return cast(BattleVibemon, self.crew[self.active_index])
 
     @property
     def has_vibemon_remaining(self) -> bool:
-        return any(not cast(BattleVibemon, p).is_fainted for p in self.team)
+        return any(not cast(BattleVibemon, p).is_fainted for p in self.crew)
 
 
 class TurnRecord(Schema):

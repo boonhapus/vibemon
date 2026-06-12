@@ -13,6 +13,11 @@ from app.domains.move.types import VibemonTypeT
 
 _LOGGER = structlog.get_logger(__name__)
 
+# Floor for starter-move sampling weights, relative to the max possible weight of
+# 2.0 (peak-normalized score x same-type bonus). Keeps unranked move types possible
+# without letting their combined mass grow with catalog size.
+_STARTER_MOVE_WEIGHT_FLOOR = 0.01
+
 
 class Signal(pydantic.BaseModel):
     """Apply binding to raw data."""
@@ -226,70 +231,6 @@ class Signal(pydantic.BaseModel):
         return clamp(v / reach, minimum=0, maximum=1)
 
 
-def fuse_element_rankings(
-    *pairs: tuple[dict[VibemonTypeT, float], float],
-) -> dict[VibemonTypeT, float]:
-    """
-    Fuse per-provider element evidence into one score dict for final typing.
-
-    Each provider's scores are peak-normalized before merge weighting so providers
-    with different score scales (climate ramps vs biome lookup sums) contribute
-    comparably. Overlapping types accumulate; provider-only types pass through.
-    """
-    fused: dict[VibemonTypeT, float] = {}
-
-    for rankings, merge_weight in pairs:
-        if not rankings or merge_weight <= 0:
-            continue
-
-        peak = max(rankings.values())
-        if peak <= 0:
-            continue
-
-        scale = merge_weight / peak
-        for element, score in rankings.items():
-            if score <= 0:
-                continue
-            fused[element] = fused.get(element, 0.0) + score * scale
-
-    return fused
-
-
-def filter_element_types(
-    scores: dict[VibemonTypeT, float],
-    thresh_primary: float = 0.20,
-    thresh_secondary: float = 0.65,
-) -> tuple[VibemonTypeT, ...]:
-    """Apply threshold logic to pick final elements.
-
-    Thresholds are relative to max score: primary must be ≥20% of max,
-    secondary must be ≥65% of max for dual-typing.
-    """
-    if not scores:
-        return (VibemonTypeT.NORMAL,)
-
-    if (max_score := max(scores.values())) == 0:
-        return (VibemonTypeT.NORMAL,)
-
-    candidates = sorted(
-        [t for t, s in scores.items() if s >= thresh_primary * max_score],
-        key=lambda element: scores[element],
-        reverse=True,
-    )
-
-    # VALID DUAL TYPING
-    if len(candidates) >= 2 and scores[candidates[1]] >= thresh_secondary * max_score:
-        return tuple(candidates[:2])
-
-    # NO VALID CANDIDATES
-    elif not candidates:
-        return (VibemonTypeT.NORMAL,)
-
-    # VALID SINGLE TYPING
-    else:
-        return tuple(candidates[:1])
-
-
 def pick_starter_moves(
     *,
     moves: tuple[Move, ...],
@@ -308,11 +249,12 @@ def pick_starter_moves(
 
         provider score for the move's type * assignment bonus for the Vibemon's elements
 
-    The provider score comes from `rankings`, so moves matching the strongest provider
-    signals are more likely. The assignment bonus favors same-type and useful coverage
-    moves for the already-selected Vibemon `elements`. The final value is clamped
-    between 0.05 and 2.0, which keeps low-scoring moves possible while preventing one
-    dominant type from crowding out the rest of the starter pool.
+    Rankings are peak-normalized first so providers with different score scales
+    (climate ramps vs biome lookup sums) get the same same-type:antagonistic odds.
+    The provider score makes moves matching the strongest provider signals more
+    likely; the assignment bonus favors same-type and useful coverage moves for the
+    already-selected Vibemon `elements`. A small floor keeps unranked move types
+    possible-but-rare regardless of catalog size.
     """
     if k <= 0:
         raise ValueError(f"k must be greater than 0, got {k}")
@@ -322,11 +264,13 @@ def pick_starter_moves(
     if len(candidates) < k:
         raise ValueError(f"Cannot select {k} starter moves from {len(candidates)} eligible starter moves")
 
+    peak = max(rankings.values(), default=0.0)
+    normalized = {t: s / peak for t, s in rankings.items()} if peak > 0 else {}
+
     weights = [
-        clamp(
-            rankings.get(move.type, 0.0) * get_move_assignment_bonus(move.type, vibemon_elements=elements),
-            minimum=0.05,
-            maximum=2.0,
+        max(
+            normalized.get(move.type, 0.0) * get_move_assignment_bonus(move.type, vibemon_elements=elements),
+            _STARTER_MOVE_WEIGHT_FLOOR,
         )
         for move in candidates
     ]

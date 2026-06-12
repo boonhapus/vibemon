@@ -5,6 +5,7 @@ import enum
 
 from app.core.schema import FrozenSchema
 from app.core.types import UnitIntervalT
+from app.domains.generation.types import ProviderWarning, ProviderWarningLevel
 from app.domains.move.types import VibemonTypeT
 from app.domains.vibemon.identity import BaseStats
 from app.domains.vibemon.strength_formulas import base_stat_asymmetric_scaling, stat_ratio_from_grade
@@ -12,7 +13,7 @@ from app.domains.vibemon.types import BaseStatNameT
 
 
 class ProviderNoteLevelT(enum.StrEnum):
-    """Severity for provider-originated birth notes."""
+    """Severity for provider-originated payload notes."""
 
     INFO = "info"
     WARNING = "warning"
@@ -20,11 +21,15 @@ class ProviderNoteLevelT(enum.StrEnum):
 
 
 class ProviderNote(FrozenSchema):
-    """Structured note attached to a captured provider payload or birth affinity."""
+    """Internal note captured alongside a persisted provider payload."""
 
     level: ProviderNoteLevelT
     code: str
     message: str
+
+    def as_warning(self) -> ProviderWarning:
+        """Map this payload note to the domain Provider Warning type at the synthesis edge."""
+        return ProviderWarning(level=ProviderWarningLevel(self.level.value), code=self.code, message=self.message)
 
 
 class ProviderPayloadMeta(FrozenSchema):
@@ -41,6 +46,10 @@ class ProviderPayload(FrozenSchema):
     """
 
     meta: ProviderPayloadMeta = ProviderPayloadMeta()
+
+
+class UnimplementedPayload(ProviderPayload):
+    """Placeholder payload for catalog-only provider stubs."""
 
 
 class BaseStatCenters(FrozenSchema):
