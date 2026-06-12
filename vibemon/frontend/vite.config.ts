@@ -18,6 +18,7 @@ if (!hasDevCert) {
 }
 
 export default defineConfig({
+	logLevel: 'warn',
 	plugins: [sveltekit()],
 	server: {
 		// Bind all interfaces so LAN phones can reach the dev server.

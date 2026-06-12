@@ -1,0 +1,11 @@
+---
+name: camera-sprite
+asset: static/game/sprites/camera.png
+model: gemini-3-pro-image
+generated: 2026-06-09
+style_anchor: base-style-sprite.md
+role: sprite
+---
+A folding 1970s instant camera in the spirit of a Polaroid SX-70 — compact closed boxy body, gentle rounded corners, satisfying analog heft. Exterior: warm parchment cream matte plastic, thick tobacco-brown bezels and seams. Muted rainbow stripe band below the lens — desaturated grape plum, soft mustard, burnt orange, and teal mist. Large circular viewfinder lens on the front with a simple glass highlight; smaller secondary lens beside it. Chunky soft mustard shutter button on top; subtle grape-plum accent along the film-door hinge. Bottom edge shows the instant film slot, empty. No straps, buckles, logos, brand text, or human hands.
+
+ORIENTATION — three-quarter hero view facing **left**: lens and controls toward the left edge of the frame, left cheek partially visible, upload affordance pointing toward the trainer card center. Centered with uniform margin.

@@ -1,0 +1,22 @@
+---
+name: vibe-cart-icon
+asset: static/game/icons/vibe-cart.png
+model: gemini-3-pro-image
+generated: 2026-06-09
+style_anchor: base-style-icon.md
+role: icon
+reference_asset: static/game/sprites/vibe-cart.png
+depends_on: vibe-cart-sprite
+---
+The attached reference shows the canonical Field Cart Vibe Cart — use it ONLY for the two-tone palette and label-window identity. IGNORE the reference viewing angle completely.
+
+TASK — Render ONE square 1:1 HUD or menu icon of the same capture cartridge. Minimalist 16-bit pixel art icon of a retro game cartridge, flat 2D front-facing view, straight-on perspective, vertical orientation, orthographic projection, perfectly centered.
+
+SUBJECT — Compact portrait cartridge, taller than wide, smooth rounded corners. Iconic two-tone body: upper half warm parchment cream label hood; lower half muted grape plum capture shell; crisp horizontal seam between halves. One large simple indented circle in the cream zone — empty blank label window, no creature, no text. Thick tobacco-brown outline on full silhouette. Two or three tiny soft-mustard contact pins on bottom edge only. Never a sphere, orb, or monochrome one-color body.
+
+REFERENCE LOCK (palette & identity only)
+- Match reference cream/plum split, tobacco outlines, blank label window, and cartridge proportions.
+- Do not add tier variants, text, or creatures in the label.
+- Do NOT copy the reference three-quarter angle — reframe as flat orthographic front view.
+
+Clean crisp borders, no perspective tilt. Minimalist detailing — defined shapes, solid color blocks. Avoid dithering, no heavy gradients, no 3D perspective, no complex textures.
