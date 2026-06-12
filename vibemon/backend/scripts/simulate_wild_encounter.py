@@ -10,6 +10,8 @@ import cyclopts
 
 from app.domains.encounter.types import WildEncounterOutcomeT
 from app.domains.vibemon.strength import member_strength
+from app.storage.database import vibemon_repo
+from app.workflows import birth_seed as birth_seed_factory
 from app.workflows import candidate as candidate_workflow
 from app.workflows import generate_wild_supply as wild_supply_workflow
 from app.workflows import wild_encounter as wild_encounter_workflow
@@ -184,7 +186,12 @@ async def _simulate(
     for _ in range(max(wild_to_generate, 0)):
         generated = await wild_supply_workflow.generate_wild_supply(
             sess,
-            birth_seed=_common.birth_seed(latitude=latitude, longitude=longitude, timestamp=timestamp),
+            birth_seed=birth_seed_factory.build_birth_seed(
+                trainer_id=_common.SCRIPT_ANONYMOUS_TRAINER_ID,
+                latitude=latitude,
+                longitude=longitude,
+                timestamp=_common.parse_datetime(timestamp) if timestamp is not None else None,
+            ),
         )
         generated_wild.append(generated.id)
 
@@ -255,7 +262,12 @@ async def _generate_owned_hero(
     candidate = await candidate_workflow.generate_candidate(
         sess,
         trainer_id=_common.trainer_id(trainer_id),
-        birth_seed=_common.birth_seed(latitude=latitude, longitude=longitude, timestamp=timestamp),
+        birth_seed=birth_seed_factory.build_birth_seed(
+            trainer_id=_common.SCRIPT_ANONYMOUS_TRAINER_ID,
+            latitude=latitude,
+            longitude=longitude,
+            timestamp=_common.parse_datetime(timestamp) if timestamp is not None else None,
+        ),
         bypass_credits=True,
     )
     adopted = await candidate_workflow.adopt_candidate(
@@ -267,9 +279,8 @@ async def _generate_owned_hero(
 
 
 async def _load_strength_row(sess: AsyncSession, vibemon_id: uuid.UUID):
-    from app.storage.database import repositories
 
-    return await repositories.load_vibemon(sess, vibemon_id)
+    return await vibemon_repo.load_vibemon(sess, vibemon_id)
 
 
 def _manual_outcome(resolution: EncounterResolution) -> WildEncounterOutcomeT:

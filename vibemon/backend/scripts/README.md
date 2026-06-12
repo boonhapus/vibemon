@@ -23,7 +23,7 @@ From repo root:
 uv run --project vibemon/backend dev
 ```
 
-Options: `--backend-host`, `--backend-port` (default `127.0.0.1:8000`). Requires `pnpm` on `PATH` and repo-root `.env`.
+Options: `--backend-host`, `--backend-port` (default `127.0.0.1:8000`). Requires `pnpm` on `PATH` and repo-root `.env`. The backend reload watcher only monitors `app/` (not `scripts/`) and logs through structlog at ERROR+.
 
 ## Patterns And Philosophy
 
@@ -71,6 +71,8 @@ Integration rehearsal and database tooling:
 **Database**
 
 - `init_db.py`: create all tables from SQLAlchemy models (idempotent on a fresh DB).
+- `migrate_candidate_reference_facing.py`: add `candidate_review.reference_facing` and
+  backfill existing pending reviews (use `--detect-facing` to run GenAI on stored sprites).
 - `db_shell.py`: list tables, run ad-hoc SQL, or open an interactive shell against
   the configured database.
 
@@ -89,6 +91,18 @@ Integration rehearsal and database tooling:
   through the current provider balance logic and optionally update their derived
   typing, stats, and active moves. **Dev-only tooling** — not a production player
   workflow.
+- `rehearse_celestial_balance.py`: replay celestial-only typing across a stratified
+  birth matrix (120 births or 15 curated spot-checks) and export balance reports to
+  `.generated/celestial-balance/` (repo root).
+- `generate_static_assets.py`: regenerate hand-authored static PNGs from
+  `vibemon/frontend/asset-prompts/game/*.mdc`. Pass an asset key (prompt file stem,
+  e.g. `vibe-deck`) to render sprite + icon together; omit the key to render all
+  non-approved records. Sprites always run before their reference-linked gear HUD icons in the same pass (or use
+  `--icons-only` to regen icons against existing sprites). Sprites and gear HUD icons use solved chroma-key mattes
+  and trainer-style matte removal — never white backgrounds.
+  Outputs default to `<repo>/.generated/assets/` for comparison before copying into `frontend/static/game/`.
+- `generate_static_assets.py derive-poses`: classify canonical `{gear}.png` sprites with
+  `sprite-facing.mdc`, then write `{gear}-left.png` and `{gear}-right.png` by mirroring — no image gen.
 - `manifest_vibemon.py`: generate sprite sheets and pose assets for christened
   Vibemon that are not yet manifested (run after bulk adoption or reference fixes).
   Use `--reprocess` to re-chroma reference and pose PNGs from stored blobs without GenAI
@@ -104,12 +118,14 @@ to drive, while the workflows remain the canonical place for persisted behavior.
 Storage URLs are required in repo-root `.env` under `VIBEMON_STORAGE__*` (see `.env.example`).
 `Settings.load()` fails if any are missing.
 
-Copy `.env.example` to `.env`, set all values, then initialize schema:
+Copy `.env.example` to `.env`, set all values, then initialize schema and catalog defaults (canonical style-bible trainer reference in monstore):
 
 ```powershell
 cd vibemon/backend
 uv run python scripts/init_db.py
 ```
+
+`init_db.py` creates tables, then seeds trainer `00000000-0000-0000-0000-000000000000` with the shipped style-bible `trainer.png` at `sprite/reference-raw.png` and snapped `trainer@128.png` at `sprite/reference.png` in monstore.
 
 **Postgres (local via Docker)**
 
@@ -249,6 +265,19 @@ The visible options describe rebalance intent:
 
 Advanced plumbing appears in its own help section: `--database-url` and
 `--output`.
+
+## Rehearse Celestial Balance CLI Shape
+
+`rehearse_celestial_balance.py` exports JSON + CSV reports for the celestial-only
+typing matrix:
+
+```powershell
+uv run python scripts/rehearse_celestial_balance.py
+uv run python scripts/rehearse_celestial_balance.py --scope curated
+uv run python scripts/rehearse_celestial_balance.py --output .generated/celestial-balance/report.json
+```
+
+Reports land in `<repo>/.generated/celestial-balance/` by default.
 
 ## Simulate Battle CLI Shape
 

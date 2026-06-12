@@ -12,7 +12,7 @@ import uvicorn
 from app.providers.music.lastfm import linking
 from app.providers.music.lastfm import routes as lastfm_routes
 from app.settings import Settings
-from app.storage.database import repositories
+from app.storage.database import trainer_links_repo
 from scripts import _common
 
 COMMON_OPTIONS = cyclopts.Group("Common options", sort_key=0)
@@ -132,7 +132,7 @@ async def _persist_link(
 ) -> None:
     async with _common.session_scope(database_url=database_url) as sess:
         await _common.ensure_trainer(sess, trainer_id)
-        await repositories.set_trainer_lastfm_link(
+        await trainer_links_repo.set_trainer_lastfm_link(
             sess,
             trainer_id,
             session_key=session_key,

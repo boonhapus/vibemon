@@ -1,6 +1,6 @@
 """Rehearse creating a Vibemon at a chosen UX stage."""
 
-from typing import Annotated, Literal
+from typing import Annotated, Any, Literal
 import asyncio
 import datetime as dt
 import enum
@@ -11,16 +11,18 @@ from sqlalchemy.ext.asyncio import AsyncSession
 import cyclopts
 
 from app.core.time import resolve_clock
+from app.domains.generation import types as generation_types
 from app.domains.generation.affinity import Affinity
 from app.domains.generation.seed import BirthSeed
 from app.domains.vibemon.assets import AssetKind
 from app.domains.vibemon.entity import Vibemon
 from app.domains.vibemon.schema import PublicAsset, PublicVibemon
 from app.domains.vibemon.types import VibemonLifecycleT
-from app.providers import schema as providers_schema
+from app.providers import registry
 from app.providers.base import VibeProvider
+from app.storage.database import mapper, vibemon_repo
 from app.storage.secrets.repository import DbTrainerSecrets
-from app.workflows import _workflow_support as workflow_support
+from app.workflows import asset_realization, birth_persist, public_projection
 from app.workflows import candidate as candidate_workflow
 from app.workflows import generate_wild_supply as wild_workflow
 from scripts import _common
@@ -96,7 +98,7 @@ def generate_vibemon(
         cyclopts.Parameter(group=SEED_OPTIONS, help="Birth time as an ISO timestamp; now if omitted."),
     ] = None,
     provider: Annotated[
-        list[_common.ProviderName],
+        list[registry.ProviderName],
         cyclopts.Parameter(
             group=SEED_OPTIONS,
             name=["--provider"],
@@ -146,7 +148,7 @@ def generate_vibemon(
         asset_store_url=asset_store_url,
         bust_cache=bust_cache,
     )
-    provider_names = _common.resolve_provider_names(provider or None)
+    provider_names = registry.resolve_provider_names(provider or None)
     _common.require_trainer_for_music(provider_names, trainer_id=trainer)
 
     if count < 1:
@@ -245,13 +247,13 @@ async def _generate_one(
     nickname: str | None,
     core_identity: str | None,
     bypass_credits: bool,
-    provider_names: tuple[_common.ProviderName, ...],
-) -> tuple[float, float, PublicVibemon, tuple[providers_schema.ProviderNote, ...]]:
+    provider_names: tuple[registry.ProviderName, ...],
+) -> tuple[float, float, PublicVibemon, tuple[generation_types.ProviderWarning, ...]]:
     result: PublicVibemon | None = None
-    provider_notes: tuple[providers_schema.ProviderNote, ...] = ()
+    provider_notes: tuple[generation_types.ProviderWarning, ...] = ()
     item_latitude = 0.0
     item_longitude = 0.0
-    providers = _common.build_providers(provider_names)
+    providers = registry.build_provider_instances(provider_names)
     for attempt in range(5):
         if latitude is not None and longitude is not None:
             item_latitude, item_longitude = latitude, longitude
@@ -285,7 +287,7 @@ async def _generate_one(
                     christen=form is not VibemonLifecycleT.BORN,
                 )
                 if form is VibemonLifecycleT.MANIFESTED:
-                    result = await _common.materialize_vibemon(sess, result.id, lifecycle=form)
+                    result = await _materialize_vibemon(sess, result.id, lifecycle=form)
             else:
                 result = await _generate_trainer_stage(
                     sess,
@@ -322,7 +324,7 @@ async def _run(
     nickname: str | None,
     core_identity: str | None,
     bypass_credits: bool,
-    provider_names: tuple[_common.ProviderName, ...],
+    provider_names: tuple[registry.ProviderName, ...],
     affinity_only: bool,
     count: int,
     output: Literal["json", "table"],
@@ -344,7 +346,7 @@ async def _run(
         _common.dump(payload)
         return
 
-    providers = _common.build_providers(provider_names)
+    providers = registry.build_provider_instances(provider_names)
     rows: list[dict[str, object]] = []
     item_database_url = database_url
     batch_coords = _batch_birth_coords(count) if count > 1 and latitude is None and longitude is None else None
@@ -416,7 +418,7 @@ async def _provider_affinities(
     latitude: float | None,
     longitude: float | None,
     timestamp: str | None,
-    provider_names: tuple[_common.ProviderName, ...],
+    provider_names: tuple[registry.ProviderName, ...],
     nickname: str | None,
     core_identity: str | None,
 ) -> dict[str, object]:
@@ -427,7 +429,7 @@ async def _provider_affinities(
         timestamp=_common.parse_datetime(timestamp) if timestamp is not None else dt.datetime.now(tz=dt.UTC),
         geo_coords=(item_latitude, item_longitude),
         trainer_id=trainer_id or _common.SCRIPT_ANONYMOUS_TRAINER_ID,
-        providers=_common.build_providers(provider_names),
+        providers=registry.build_provider_instances(provider_names),
     )
     affinity_rows: list[dict[str, object]] = []
     resolved_affinities: list[Affinity] = []
@@ -466,6 +468,29 @@ async def _provider_affinities(
     }
 
 
+async def _load_public_vibemon(sess: AsyncSession, vibemon_id: uuid.UUID) -> PublicVibemon:
+    row = await vibemon_repo.load_vibemon(sess, vibemon_id)
+    return await public_projection.public_vibemon(row)
+
+
+async def _materialize_vibemon(
+    sess: AsyncSession,
+    vibemon_id: uuid.UUID,
+    *,
+    lifecycle: VibemonLifecycleT,
+) -> PublicVibemon:
+    row = await vibemon_repo.load_vibemon(sess, vibemon_id)
+    vibemon = await mapper.vibemon_from_row(row)
+    if lifecycle is VibemonLifecycleT.CHRISTENED:
+        vibemon = await asset_realization.christen_vibemon(vibemon)
+    elif lifecycle is VibemonLifecycleT.MANIFESTED:
+        vibemon = await asset_realization.christen_and_manifest_vibemon(vibemon)
+    mapper.apply_vibemon_to_row(row, vibemon)
+    await vibemon_repo.persist_assets(sess, vibemon)
+    await sess.flush()
+    return await public_projection.public_vibemon(row)
+
+
 async def _generate_plain_vibemon(
     sess: AsyncSession,
     *,
@@ -473,8 +498,9 @@ async def _generate_plain_vibemon(
     form: VibemonLifecycleT,
     nickname: str | None,
     core_identity: str | None,
-) -> tuple[PublicVibemon, tuple[providers_schema.ProviderNote, ...]]:
-    row, provider_notes = await workflow_support.birth_and_persist_vibemon(
+) -> tuple[PublicVibemon, tuple[generation_types.ProviderWarning, ...]]:
+    await _common.ensure_trainer(sess, seed.trainer_id)
+    row, provider_notes = await birth_persist.birth_and_persist_vibemon(
         sess,
         birth_seed=seed,
         nickname=nickname,
@@ -483,9 +509,9 @@ async def _generate_plain_vibemon(
         christen=form is not VibemonLifecycleT.BORN,
     )
     if form is VibemonLifecycleT.MANIFESTED:
-        return await _common.materialize_vibemon(sess, row.id, lifecycle=VibemonLifecycleT.MANIFESTED), provider_notes
+        return await _materialize_vibemon(sess, row.id, lifecycle=VibemonLifecycleT.MANIFESTED), provider_notes
     await sess.flush()
-    return await _common.load_public_vibemon(sess, row.id), provider_notes
+    return await _load_public_vibemon(sess, row.id), provider_notes
 
 
 async def _generate_trainer_stage(
@@ -512,8 +538,8 @@ async def _generate_trainer_stage(
     )
     if stage is GenerationStage.CANDIDATE:
         if form is VibemonLifecycleT.MANIFESTED:
-            return await _common.materialize_vibemon(sess, candidate.id, lifecycle=form)
-        return await _common.load_public_vibemon(sess, candidate.id)
+            return await _materialize_vibemon(sess, candidate.id, lifecycle=form)
+        return await _load_public_vibemon(sess, candidate.id)
     return await candidate_workflow.adopt_candidate(
         sess,
         trainer_id=_common.trainer_id(trainer_id),
@@ -525,8 +551,8 @@ async def _generate_trainer_stage(
 def _provider_notes(
     vibemon: PublicVibemon,
     *,
-    fallback: tuple[providers_schema.ProviderNote, ...] = (),
-) -> tuple[providers_schema.ProviderNote, ...]:
+    fallback: tuple[generation_types.ProviderWarning, ...] = (),
+) -> tuple[generation_types.ProviderWarning, ...]:
     review_notes = vibemon.candidate_review.provider_notes if vibemon.candidate_review is not None else ()
     return review_notes or fallback
 
@@ -578,7 +604,7 @@ def _print_merged_vibemon_summary(payload: dict[str, object]) -> None:
 
     provider_notes = payload.get("provider_notes")
     if isinstance(provider_notes, tuple):
-        codes = ", ".join(note.code for note in provider_notes if isinstance(note, providers_schema.ProviderNote))
+        codes = ", ".join(note.code for note in provider_notes if isinstance(note, generation_types.ProviderWarning))
         print(f"  notes:    {codes}")
 
 
@@ -609,7 +635,7 @@ def _print_table(
     *,
     stage: GenerationStage | None,
     form: VibemonLifecycleT,
-    providers: list[_common.ScriptProviderT],
+    providers: list[VibeProvider[Any]],
 ) -> None:
     provider_names = ", ".join(provider.name for provider in providers)
     stage_label = stage.value if stage is not None else "plain birth"
