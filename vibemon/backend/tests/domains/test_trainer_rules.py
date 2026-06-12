@@ -4,7 +4,7 @@ import uuid
 
 import pytest
 
-from app.core.errors import GenerationAlreadyActive, GenerationCreditUnavailable, CrewFull
+from app.core.errors import CrewFull, GenerationAlreadyActive, GenerationCreditUnavailable
 from app.domains.trainer import credits, crew
 
 

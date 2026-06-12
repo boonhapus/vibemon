@@ -43,6 +43,7 @@ async def test_adopt_candidate_claims_review_and_assigns_crew_slot(
         sess,
         trainer_id=trainer_id,
         vibemon_id=candidate.id,
+        nickname="Sparky",
     )
 
     row = (await sess.execute(sa.select(models.Vibemon).where(models.Vibemon.id == candidate.id))).scalar_one()
@@ -62,6 +63,7 @@ async def test_adopt_candidate_claims_review_and_assigns_crew_slot(
     )
 
     assert adopted.trainer_id == trainer_id
+    assert adopted.nickname == "Sparky"
     assert adopted.crew_slot == 0
     assert row.trainer_id == trainer_id
     assert row.crew_slot == 0

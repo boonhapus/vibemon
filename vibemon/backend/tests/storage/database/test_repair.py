@@ -2,8 +2,8 @@
 
 import uuid
 
-import sqlalchemy as sa
 from sqlalchemy.ext.asyncio import AsyncSession
+import sqlalchemy as sa
 
 from app.storage.database import models
 from app.storage.database import repair as db_repair

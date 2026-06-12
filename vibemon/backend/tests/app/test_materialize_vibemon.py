@@ -3,6 +3,7 @@ import io
 import uuid
 
 from PIL import Image, ImageDraw
+import numpy as np
 import pytest
 
 from app.domains.move.entity import Move
@@ -27,6 +28,12 @@ class FakeVibemonAssetGenerator:
     async def generate_reference_image(self, vibemon: Vibemon) -> bytes:
         return _reference_png(vibemon.aesthetic)
 
+    async def detect_vibemon_reference_facing(self, reference_png: bytes, *, vibemon_name: str):
+        from app.domains.sprite import types as sprite_types
+
+        assert reference_png
+        return sprite_types.SpriteFacing.LEFT
+
     async def generate_battle_cry_audio(self, vibemon: Vibemon) -> bytes:
         return b"fake-mp3"
 
@@ -45,13 +52,15 @@ class FakeMonStore:
         kind: AssetKind,
         data: bytes,
         *,
+        revision: int,
         content_type: str | None = None,
     ) -> AssetRef:
-        key = f"{vibemon_id}/test/{kind.value}"
+        key = f"{vibemon_id}/test/r{revision}/{kind.value}"
         self.objects[key] = data
         return AssetRef(
             vibemon_id=vibemon_id,
             kind=kind,
+            revision=revision,
             key=key,
             content_type=content_type or blob_const.ASSET_CONTENT_TYPES[kind],
             byte_size=len(data),
@@ -60,6 +69,56 @@ class FakeMonStore:
 
     async def get(self, key: str) -> bytes:
         return self.objects[key]
+
+
+class GroundReferenceGenerator(FakeVibemonAssetGenerator):
+    async def generate_reference_image(self, vibemon: Vibemon) -> bytes:
+        return _reference_with_ground_png(vibemon.aesthetic)
+
+
+@pytest.mark.asyncio
+async def test_christen_keys_reference_and_preserves_raw() -> None:
+    generator = GroundReferenceGenerator()
+    monstore = FakeMonStore()
+    vibemon = _vibemon()
+    realizer = MaterializeVibemon(generator=generator, monstore=monstore)
+
+    christened = await realizer.christen(vibemon)
+
+    assert christened.aesthetic is not None
+    assert AssetKind.REFERENCE_RAW in christened.aesthetic.assets
+    reference = Image.open(io.BytesIO(monstore.objects[christened.aesthetic.assets[AssetKind.REFERENCE].key]))
+    raw_reference = Image.open(io.BytesIO(monstore.objects[christened.aesthetic.assets[AssetKind.REFERENCE_RAW].key]))
+    alpha = np.asarray(reference)[..., 3]
+    assert (alpha >= 128).any()
+    assert (alpha < 32).any()
+    assert (
+        monstore.objects[christened.aesthetic.assets[AssetKind.REFERENCE_RAW].key]
+        != monstore.objects[christened.aesthetic.assets[AssetKind.REFERENCE].key]
+    )
+    assert raw_reference.size != reference.size
+
+
+@pytest.mark.asyncio
+async def test_reprocess_prefers_raw_reference_source() -> None:
+    generator = FakeVibemonAssetGenerator()
+    monstore = FakeMonStore()
+    vibemon = _vibemon()
+    realizer = MaterializeVibemon(generator=generator, monstore=monstore)
+    christened = await realizer.christen(vibemon)
+    assert christened.aesthetic is not None
+
+    raw_key = christened.aesthetic.assets[AssetKind.REFERENCE_RAW].key
+    raw_bytes = monstore.objects[raw_key]
+    monstore.objects[raw_key] = _reference_with_ground_png(christened.aesthetic)
+
+    await realizer.reprocess_display_assets(christened)
+
+    reprocessed = Image.open(io.BytesIO(monstore.objects[christened.aesthetic.assets[AssetKind.REFERENCE].key]))
+    alpha = np.asarray(reprocessed)[..., 3]
+    assert (alpha >= 128).any()
+    assert (alpha < 32).any()
+    assert monstore.objects[raw_key] != raw_bytes
 
 
 @pytest.mark.asyncio
@@ -75,7 +134,7 @@ async def test_materialize_vibemon_uses_asset_generator_seam() -> None:
     assert manifested.aesthetic is not None
     assert manifested.identity.name == "Testling"
     assert manifested.lifecycle is VibemonLifecycleT.MANIFESTED
-    assert generator.sheet_reference_image == monstore.objects[manifested.aesthetic.assets[AssetKind.REFERENCE].key]
+    assert generator.sheet_reference_image == monstore.objects[manifested.aesthetic.assets[AssetKind.REFERENCE_RAW].key]
     assert AssetKind.CRY_BATTLE in manifested.aesthetic.assets
     assert AssetKind.SHEET in manifested.aesthetic.assets
     for kind in blob_const.POSE_TO_ASSET.values():
@@ -100,6 +159,16 @@ def _reference_png(aesthetic: Aesthetic | None) -> bytes:
     image = Image.new("RGB", (96, 96), str(aesthetic.background_color))
     draw = ImageDraw.Draw(image)
     draw.ellipse((28, 24, 68, 72), fill=str(aesthetic.primary_color))
+    return _png_bytes(image)
+
+
+def _reference_with_ground_png(aesthetic: Aesthetic | None) -> bytes:
+    if aesthetic is None:
+        raise ValueError("expected aesthetic")
+    image = Image.new("RGB", (96, 96), str(aesthetic.background_color))
+    draw = ImageDraw.Draw(image)
+    draw.ellipse((28, 20, 68, 58), fill=str(aesthetic.primary_color))
+    draw.ellipse((30, 72, 66, 82), fill="#3D2B1F")
     return _png_bytes(image)
 
 

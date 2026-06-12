@@ -5,7 +5,7 @@ import uuid
 
 import pytest
 
-from app.domains.move.entity import EffectGroup, Move, MoveBehavior
+from app.domains.move.entity import EffectGroup, MoveBehavior
 from app.domains.move.types import MoveCategoryT, MoveTargetT, VibemonTypeT
 from app.domains.vibemon.disposition import VibemonDispositionT
 from app.domains.vibemon.types import VibemonLifecycleT
@@ -143,8 +143,11 @@ async def test_start_wild_battle_and_turn(sess, test_trainer) -> None:
 
     events = submit_player_turn(session, move_name="Strike")
     assert events
-    assert battle_state_read(
-        session,
-        player_trainer_id=session.player_trainer_id,
-        wild_vibemon_id=wild_id,
-    ).concluded is True
+    assert (
+        battle_state_read(
+            session,
+            player_trainer_id=session.player_trainer_id,
+            wild_vibemon_id=wild_id,
+        ).concluded
+        is True
+    )

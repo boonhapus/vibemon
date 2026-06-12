@@ -1,4 +1,3 @@
-from types import SimpleNamespace
 import datetime as dt
 import uuid
 
@@ -19,6 +18,7 @@ from app.domains.vibemon.disposition import VibemonDispositionT
 from app.domains.vibemon.history import VibemonHistoryEventT
 from app.domains.vibemon.types import VibemonLifecycleT
 from app.storage.blob import assets as blob_assets
+from app.storage.blob.monstore import MonStore
 from app.storage.database import models
 from app.workflows.candidate import generate_candidate, reject_candidate
 from app.workflows.generate_wild_supply import generate_wild_supply
@@ -105,6 +105,16 @@ async def test_reject_candidate_resolves_review_to_wild(
     monkeypatch.setattr("app.workflows.candidate.resolve_clock", lambda: now)
     candidate = await generate_candidate(sess, trainer_id=trainer_id, birth_seed=_birth_seed(now))
 
+    # Reject policy requires at least one owned crew member.
+    owned = _wild_vibemon(uuid.uuid7(), now=now)
+    owned.disposition = VibemonDispositionT.OWNED.value
+    owned.trainer_id = trainer_id
+    owned.crew_slot = 0
+    owned.wild_entered_at = None
+    owned.last_encountered_at = None
+    sess.add(owned)
+    await sess.flush()
+
     monkeypatch.setattr("app.workflows.candidate.resolve_clock", lambda: now + dt.timedelta(minutes=5))
     result = await reject_candidate(
         sess,
@@ -168,12 +178,17 @@ async def test_expire_wild_and_prune_expired_assets(
     vibemon_id = uuid.uuid7()
     now = dt.datetime(2026, 5, 19, 12, 0, tzinfo=dt.UTC)
     stale_at = now - encounter_tuning.WILD_EXPIRATION_WINDOW - dt.timedelta(seconds=1)
+    monstore = MonStore("memory://")
+    reference_key = monstore.vibemon_asset_key(vibemon_id, AssetKind.REFERENCE, revision=1)
+    await monstore.put_bytes(reference_key, b"reference")
     sess.add(_wild_vibemon(vibemon_id, now=stale_at))
     sess.add(
         models.VibemonAsset(
             vibemon_id=vibemon_id,
             kind=AssetKind.REFERENCE.value,
-            object_key="vibemon/test/reference.png",
+            selected_revision=1,
+            max_revision=1,
+            object_key=reference_key,
             content_type="image/png",
             byte_size=10,
             sha256="abc",
@@ -187,8 +202,10 @@ async def test_expire_wild_and_prune_expired_assets(
     async def fake_delete(key: str) -> None:
         deleted_keys.append(key)
 
-    fake_monstore = SimpleNamespace(delete=fake_delete)
-    monkeypatch.setattr(blob_assets, "get_default_monstore", lambda: fake_monstore)
+    tracking_monstore = MonStore("memory://")
+    tracking_monstore.vibemon_asset_key = monstore.vibemon_asset_key  # type: ignore[method-assign]
+    tracking_monstore.delete = fake_delete  # type: ignore[method-assign]
+    monkeypatch.setattr(blob_assets, "get_default_monstore", lambda: tracking_monstore)
     monkeypatch.setattr("app.workflows.wild_encounter.resolve_clock", lambda: now)
     monkeypatch.setattr("app.workflows.prune_expired_assets.resolve_clock", lambda: now)
 
@@ -202,7 +219,7 @@ async def test_expire_wild_and_prune_expired_assets(
     assert expired == 1
     assert pruned == 1
     assert row.disposition == VibemonDispositionT.EXPIRED.value
-    assert deleted_keys == ["vibemon/test/reference.png"]
+    assert deleted_keys == [reference_key]
     assert list(remaining_assets) == []
 
 

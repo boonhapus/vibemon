@@ -68,7 +68,7 @@ async def test_prefetch_climate_requires_geolocation(client: AsyncTestClient, mo
 
 
 async def test_prefetch_climate_warms_provider(client: AsyncTestClient, monkeypatch: pytest.MonkeyPatch) -> None:
-    from app.providers import catalog as provider_catalog
+    from app.providers import registry as provider_registry
     from app.providers.climate import schema as climate_schema
     from app.providers.climate.provider import ClimateProvider
 
@@ -86,14 +86,14 @@ async def test_prefetch_climate_warms_provider(client: AsyncTestClient, monkeypa
                 weather_augmented={},
             )
 
-    original_get = provider_catalog.get_catalog_provider
+    original_get = provider_registry.get_catalog_provider
 
     def get_provider(name: str):
         if name == "climate":
             return MockClimateProvider
         return original_get(name)
 
-    monkeypatch.setattr("app.http.routes.providers.catalog.get_catalog_provider", get_provider)
+    monkeypatch.setattr("app.http.routes.providers.registry.get_catalog_provider", get_provider)
 
     response = await client.post(
         "/api/providers/climate/prefetch",
