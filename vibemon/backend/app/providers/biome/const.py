@@ -11,10 +11,14 @@ type StatTierT = Literal["+", "0", "-"]
 
 @dataclass(frozen=True, slots=True)
 class WorldCoverProfile:
-    """Per-class WorldCover scoring, visual base cue, and raster legend metadata."""
+    """Per-class WorldCover scoring, visual base cues, and raster legend metadata.
+
+    Visual cues are anatomy-neutral (palette, texture, markings, sheen) so the element
+    body archetype keeps sole control of silhouette; one variant is rng-picked at birth.
+    """
 
     rgb: tuple[int, int, int]
-    visual_base: str
+    visual_bases: tuple[str, ...]
     stat_archetype: dict[str, StatTierT]
     base_weights: dict[VibemonTypeT, float]
     water_proximity_gate: float
@@ -55,7 +59,11 @@ class WorldCoverClassT(enum.StrEnum):
 WORLD_COVER_PROFILES: Final[dict[WorldCoverClassT, WorldCoverProfile]] = {
     WorldCoverClassT.TREE_COVER: WorldCoverProfile(
         rgb=(0, 100, 0),
-        visual_base="moss-flecked bark plates, dappled leaf-shadow markings",
+        visual_bases=(
+            "moss-flecked bark texture, dappled leaf-shadow markings",
+            "deep-forest green-brown tones with canopy-light dapples",
+            "lichen-soft woodland patina, leaf-vein line markings",
+        ),
         stat_archetype={
             "hp": "+",
             "sp_defense": "+",
@@ -75,7 +83,11 @@ WORLD_COVER_PROFILES: Final[dict[WorldCoverClassT, WorldCoverProfile]] = {
     ),
     WorldCoverClassT.SHRUBLAND: WorldCoverProfile(
         rgb=(255, 187, 34),
-        visual_base="sun-bleached tuft fringe, thorny ridge spines",
+        visual_bases=(
+            "sun-bleached scrub tones, thorn-scratch line markings",
+            "dry-brush ochre mottling with bramble-snag streaks",
+            "dusty sage-and-straw palette, wiry rough texture",
+        ),
         stat_archetype={
             "attack": "+",
             "defense": "+",
@@ -94,7 +106,11 @@ WORLD_COVER_PROFILES: Final[dict[WorldCoverClassT, WorldCoverProfile]] = {
     ),
     WorldCoverClassT.GRASSLAND: WorldCoverProfile(
         rgb=(255, 255, 76),
-        visual_base="golden blade fringe, wind-combed flank stripes",
+        visual_bases=(
+            "golden grass-blade streaking, wind-combed stripe markings",
+            "prairie-gold wash with seed-husk speckles",
+            "meadow green-to-straw gradient with soft swaying-grass lines",
+        ),
         stat_archetype={
             "speed": "+",
             "attack": "+",
@@ -113,7 +129,11 @@ WORLD_COVER_PROFILES: Final[dict[WorldCoverClassT, WorldCoverProfile]] = {
     ),
     WorldCoverClassT.CROPLAND: WorldCoverProfile(
         rgb=(240, 150, 255),
-        visual_base="furrow-striped hide, loam-dusted joints",
+        visual_bases=(
+            "furrow-striped row markings, loam-dusted undertones",
+            "tilled-earth banding in harvest golds and browns",
+            "field-patchwork mottling in soil-rich tones",
+        ),
         stat_archetype={
             "hp": "+",
             "defense": "+",
@@ -132,7 +152,11 @@ WORLD_COVER_PROFILES: Final[dict[WorldCoverClassT, WorldCoverProfile]] = {
     ),
     WorldCoverClassT.BUILT_UP: WorldCoverProfile(
         rgb=(250, 0, 0),
-        visual_base="concrete-grey plating, soot-dark joint lines",
+        visual_bases=(
+            "concrete-grey tones, soot-dark seam lines",
+            "asphalt-and-brick palette with painted-stripe markings",
+            "city-grime patina with neon-glint flecks on grey",
+        ),
         stat_archetype={
             "speed": "+",
             "sp_attack": "+",
@@ -152,7 +176,11 @@ WORLD_COVER_PROFILES: Final[dict[WorldCoverClassT, WorldCoverProfile]] = {
     ),
     WorldCoverClassT.BARE_SPARSE: WorldCoverProfile(
         rgb=(180, 180, 180),
-        visual_base="cracked clay hide, pale dust-veiled joints",
+        visual_bases=(
+            "cracked-clay texture, pale dust-veiled tones",
+            "sun-split earth mottling in bone-dry ochres",
+            "wind-scoured grit patina with faded mineral streaks",
+        ),
         stat_archetype={
             "attack": "+",
             "speed": "+",
@@ -171,7 +199,11 @@ WORLD_COVER_PROFILES: Final[dict[WorldCoverClassT, WorldCoverProfile]] = {
     ),
     WorldCoverClassT.SNOW_ICE: WorldCoverProfile(
         rgb=(240, 240, 240),
-        visual_base="frost-rimmed plates, pale ice-crystal sheen",
+        visual_bases=(
+            "frost-rimmed edges, pale ice-crystal sheen",
+            "glacier blue-white gradient with powder-snow dusting",
+            "hard-packed ice gloss with crevasse-blue shadow lines",
+        ),
         stat_archetype={
             "defense": "+",
             "sp_defense": "+",
@@ -189,7 +221,11 @@ WORLD_COVER_PROFILES: Final[dict[WorldCoverClassT, WorldCoverProfile]] = {
     ),
     WorldCoverClassT.PERMANENT_WATER: WorldCoverProfile(
         rgb=(0, 100, 200),
-        visual_base="sleek wet gloss, ripple-light belly markings",
+        visual_bases=(
+            "sleek wet gloss, ripple-light markings",
+            "deep-water blue gradient with current-line streaks",
+            "wave-polished sheen with foam-white fleck markings",
+        ),
         stat_archetype={
             "sp_attack": "+",
             "speed": "+",
@@ -207,7 +243,11 @@ WORLD_COVER_PROFILES: Final[dict[WorldCoverClassT, WorldCoverProfile]] = {
     ),
     WorldCoverClassT.HERBACEOUS_WETLAND: WorldCoverProfile(
         rgb=(0, 150, 160),
-        visual_base="reed-fiber tufts, marsh-dark underbelly",
+        visual_bases=(
+            "reed-fiber texture, marsh-dark undertones",
+            "bog-water mottling in peat browns and rush greens",
+            "duckweed-speckled wash with mud-gloss sheen",
+        ),
         stat_archetype={
             "sp_defense": "+",
             "sp_attack": "+",
@@ -226,7 +266,11 @@ WORLD_COVER_PROFILES: Final[dict[WorldCoverClassT, WorldCoverProfile]] = {
     ),
     WorldCoverClassT.MANGROVES: WorldCoverProfile(
         rgb=(0, 207, 117),
-        visual_base="salt-crusted root stilts, brine-stained bark plates",
+        visual_bases=(
+            "salt-crusted texture, brine-stained bark tones",
+            "tidal-mud gloss with tangled root-line markings",
+            "estuary green-brown mottling with salt-bloom flecks",
+        ),
         stat_archetype={
             "hp": "+",
             "sp_attack": "+",
@@ -245,7 +289,11 @@ WORLD_COVER_PROFILES: Final[dict[WorldCoverClassT, WorldCoverProfile]] = {
     ),
     WorldCoverClassT.MOSS_LICHEN: WorldCoverProfile(
         rgb=(250, 230, 160),
-        visual_base="lichen-spotted stone plates, slow moss cuffs",
+        visual_bases=(
+            "lichen-spotted stone texture, slow-moss green patches",
+            "tundra sage-and-grey mottling, weathered and quiet",
+            "old-stone patina with pale lichen-ring markings",
+        ),
         stat_archetype={
             "sp_defense": "+",
             "defense": "+",
@@ -296,12 +344,12 @@ INTENSITY: Final[float] = 0.5
 HIGH_ELEVATION_VISUAL_THRESHOLD: Final[float] = 0.62
 HIGH_ELEVATION_VISUAL: Final[str] = "wind-scored ridge edges, thin-air frost tips"
 LOW_ELEVATION_VISUAL_THRESHOLD: Final[float] = 0.28
-LOW_ELEVATION_VISUAL: Final[str] = "lowland-soft belly, river-plain dampness"
+LOW_ELEVATION_VISUAL: Final[str] = "lowland-soft tones, river-plain dampness"
 
 WATER_VISUAL_THRESHOLD: Final[float] = 0.45
 MARINE_COAST_VISUAL: Final[str] = "salt-spray patina, tide-line bleaching"
 MARINE_OPEN_VISUAL: Final[str] = "coastal salt-crystal flecks"
-INLAND_RIVER_VISUAL: Final[str] = "river-damp sheen, silt-dark belly"
+INLAND_RIVER_VISUAL: Final[str] = "river-damp sheen, silt-dark shading"
 INLAND_CANAL_VISUAL: Final[str] = "canal-stain streaks, iron-rust edging"
 INLAND_LAKE_VISUAL: Final[str] = "still-water mirror flecks"
 INLAND_WATER_VISUAL: Final[str] = "freshwater damp sheen"

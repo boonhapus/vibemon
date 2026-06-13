@@ -122,7 +122,7 @@ def test_visual_notes_empty_payload() -> None:
         last1m=0,
     )
     signals = provider.derive_signals(payload)
-    assert provider.visual_notes(payload, signals=signals, intensity=0.5) == "quiet neutral hide, still and unmarked"
+    assert provider.visual_notes(payload, signals=signals, intensity=0.5) == "quiet neutral tones, plain and unmarked"
 
 
 def test_visual_notes_play_weighted_labels_and_hot_pace() -> None:
@@ -136,12 +136,12 @@ def test_visual_notes_play_weighted_labels_and_hot_pace() -> None:
     signals = provider.derive_signals(payload)
     notes = provider.visual_notes(payload, signals=signals, intensity=0.72)
 
-    assert "hazy translucent wing edges" in notes
+    assert "hazy soft-focus edges" in notes
     assert "shoegaze" not in notes
     assert "dream pop" not in notes
     assert "indie rock" not in notes
     assert "metal" not in notes
-    assert "alert recently-charged posture" in notes
+    assert "freshly-charged vivid saturation" in notes
 
 
 def test_visual_notes_melancholic_low_energy() -> None:
@@ -151,7 +151,7 @@ def test_visual_notes_melancholic_low_energy() -> None:
     notes = provider.visual_notes(payload, signals=signals, intensity=0.5)
 
     assert "muted dusk palette" in notes
-    assert "rounded soft silhouette" in notes
+    assert "soft low-contrast tones" in notes
 
 
 def test_balance_for_bst_maps_music_signals() -> None:

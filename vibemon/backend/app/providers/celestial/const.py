@@ -153,17 +153,17 @@ TIGHT_ASPECT_MAX_ORB: Final[float] = 3.0
 # ── Creature visual cues per observed sky signal ──────────────────────────────────
 
 MOON_VISUALS: Final[dict[MoonBucketT, str]] = {
-    "full": "pale silver full-moon disc marking, moonlit sheen along the back",
+    "full": "pale silver full-moon disc marking, moonlit silver sheen",
     "new": "matte charcoal new-moon shading, shadow-soft outlines",
     "waxing_crescent": "slim waxing-crescent marking, silver-tipped edges",
-    "waxing_gibbous": "bright waxing-gibbous patch, silver-washed flank",
-    "waning_gibbous": "soft waning-gibbous patch, dimmed silver flank wash",
+    "waxing_gibbous": "bright waxing-gibbous patch, silver-washed tones",
+    "waning_gibbous": "soft waning-gibbous patch, dimmed silver wash",
     "waning_crescent": "thin waning-crescent marking, ash-silver tips",
 }
 
 SOLAR_PHASE_VISUALS: Final[dict[generation_types.SolarPhase, str]] = {
-    generation_types.SolarPhase.DAWN: "rose-gold dawn blush on the crest",
-    generation_types.SolarPhase.DAY: "clear daylight glints across the brow",
+    generation_types.SolarPhase.DAWN: "rose-gold dawn blush in the highlights",
+    generation_types.SolarPhase.DAY: "clear daylight glints in the upper highlights",
     generation_types.SolarPhase.DUSK: "ember dusk edging along the silhouette",
     generation_types.SolarPhase.NIGHT: "deep night-blue undertones, star-fleck speckling",
 }

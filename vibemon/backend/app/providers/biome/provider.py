@@ -3,6 +3,7 @@
 from typing import ClassVar
 import asyncio
 import collections
+import random
 
 import structlog
 
@@ -193,10 +194,14 @@ class BiomeProvider(VibeProvider[biome_schema.BiomePayload]):
         return dict(score)
 
     @classmethod
-    def visual_notes(cls, payload: biome_schema.BiomePayload) -> str:
-        """Summarize land-cover, elevation, and water signals as short creature-visual cues."""
+    def visual_notes(cls, payload: biome_schema.BiomePayload, *, rng: random.Random) -> str:
+        """Summarize land-cover, elevation, and water signals as short creature-visual cues.
+
+        The base phrase is rng-picked from per-class variants so mons hatched in the same
+        place still diverge (the rng stream is seeded, so replay stays deterministic).
+        """
         land_cover = const.WorldCoverClassT(payload.land_cover_class)
-        parts: list[str] = [land_cover.profile.visual_base]
+        parts: list[str] = [rng.choice(land_cover.profile.visual_bases)]
 
         elevation_signal = Signal(
             name="elevat",
@@ -301,7 +306,7 @@ class BiomeProvider(VibeProvider[biome_schema.BiomePayload]):
 
         return Affinity(
             identity=Identity(name="__", elements=elements, base=base_stats),
-            visual_notes=self.visual_notes(payload),
+            visual_notes=self.visual_notes(payload, rng=seed.rng(f"provider.{self.name}.visuals")),
             intensity=const.INTENSITY,
             provider_id=self.name,
             element_rankings=rankings,

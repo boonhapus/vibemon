@@ -2,6 +2,7 @@ from io import BytesIO
 import collections
 import datetime as dt
 import pathlib
+import random
 
 from PIL import Image
 import pytest
@@ -157,10 +158,11 @@ def test_visual_notes_built_up_near_inland_water() -> None:
         inland_feature="water",
     )
 
-    notes = BiomeProvider.visual_notes(payload)
+    notes = BiomeProvider.visual_notes(payload, rng=random.Random(0))
 
-    assert notes.startswith("concrete-grey plating, soot-dark joint lines")
-    assert "still-water mirror flecks" in notes
+    base, accent = notes.split("; ")
+    assert base in WorldCoverClassT.BUILT_UP.profile.visual_bases
+    assert accent == "still-water mirror flecks"
 
 
 def test_visual_notes_high_elevation_adds_ridge_cue() -> None:
@@ -174,10 +176,11 @@ def test_visual_notes_high_elevation_adds_ridge_cue() -> None:
         inland_feature=None,
     )
 
-    notes = BiomeProvider.visual_notes(payload)
+    notes = BiomeProvider.visual_notes(payload, rng=random.Random(0))
 
-    assert notes.startswith("cracked clay hide, pale dust-veiled joints")
-    assert "wind-scored ridge edges" in notes
+    base, accent = notes.split("; ")
+    assert base in WorldCoverClassT.BARE_SPARSE.profile.visual_bases
+    assert "wind-scored ridge edges" in accent
 
 
 def test_visual_notes_coastal_canal_city_prefers_near_inland_water() -> None:
@@ -191,9 +194,9 @@ def test_visual_notes_coastal_canal_city_prefers_near_inland_water() -> None:
         inland_feature="canal",
     )
 
-    notes = BiomeProvider.visual_notes(payload)
+    notes = BiomeProvider.visual_notes(payload, rng=random.Random(0))
 
-    assert "concrete-grey plating" in notes
+    assert notes.split("; ")[0] in WorldCoverClassT.BUILT_UP.profile.visual_bases
     assert "canal-stain streaks" in notes
     assert "salt-spray patina" not in notes
 
@@ -209,9 +212,9 @@ def test_visual_notes_coastal_without_near_inland_water() -> None:
         inland_feature="water",
     )
 
-    notes = BiomeProvider.visual_notes(payload)
+    notes = BiomeProvider.visual_notes(payload, rng=random.Random(0))
 
-    assert "concrete-grey plating" in notes
+    assert notes.split("; ")[0] in WorldCoverClassT.BUILT_UP.profile.visual_bases
     assert "salt-spray patina" in notes
 
 
@@ -226,9 +229,11 @@ def test_visual_notes_water_native_land_cover_skips_proximity_layer() -> None:
         inland_feature="river",
     )
 
-    notes = BiomeProvider.visual_notes(payload)
+    notes = BiomeProvider.visual_notes(payload, rng=random.Random(0))
 
-    assert notes == "sleek wet gloss, ripple-light belly markings; lowland-soft belly, river-plain dampness"
+    base, accent = notes.split("; ")
+    assert base in WorldCoverClassT.PERMANENT_WATER.profile.visual_bases
+    assert accent == "lowland-soft tones, river-plain dampness"
 
 
 @pytest.mark.asyncio
@@ -255,6 +260,8 @@ async def test_synthesize_replay_from_london_payload() -> None:
 
     assert first.provider_id == "biome"
     assert first.intensity == 0.5
-    assert first.visual_notes == ("concrete-grey plating, soot-dark joint lines; still-water mirror flecks")
+    assert first.visual_notes == second.visual_notes
+    assert first.visual_notes.split("; ")[0] in WorldCoverClassT.BUILT_UP.profile.visual_bases
+    assert "still-water mirror flecks" in first.visual_notes
     assert first.identity.model_dump(exclude={"generated_at"}) == second.identity.model_dump(exclude={"generated_at"})
     assert [move.id for move in first.moves] == [move.id for move in second.moves]

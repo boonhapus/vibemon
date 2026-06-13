@@ -1,6 +1,7 @@
 from typing import Any, cast
 import collections
 import datetime as dt
+import random
 
 import pytest
 
@@ -47,9 +48,9 @@ def test_visual_notes_clear_sky_creature_cues() -> None:
     payload = _climate_payload(daily={"weather_code": [3, WeatherCode.CLEAR_SKY]})
     signals = provider.derive_signals(payload)
 
-    notes = provider.visual_notes(weather_code=WeatherCode.CLEAR_SKY, signals=signals)
+    notes = provider.visual_notes(weather_code=WeatherCode.CLEAR_SKY, signals=signals, rng=random.Random(0))
 
-    assert notes == "sun-bleached hide with harsh warm highlights"
+    assert notes in WeatherCode.CLEAR_SKY.visual_note_variants
     assert "pavement" not in notes
     assert "dome" not in notes
 
@@ -64,10 +65,11 @@ def test_visual_notes_dust_accent_on_clear_day() -> None:
     )
     signals = provider.derive_signals(payload)
 
-    notes = provider.visual_notes(weather_code=WeatherCode.CLEAR_SKY, signals=signals)
+    notes = provider.visual_notes(weather_code=WeatherCode.CLEAR_SKY, signals=signals, rng=random.Random(0))
 
-    assert notes.startswith("sun-bleached hide with harsh warm highlights")
-    assert "grit-streaked hide" in notes
+    base, accent = notes.split("; ")
+    assert base in WeatherCode.CLEAR_SKY.visual_note_variants
+    assert accent == "grit-streaked dust film"
 
 
 def test_visual_notes_skips_redundant_wind_accent() -> None:
@@ -80,10 +82,23 @@ def test_visual_notes_skips_redundant_wind_accent() -> None:
     )
     signals = provider.derive_signals(payload)
 
-    notes = provider.visual_notes(weather_code=WeatherCode.RAIN_SHOWERS_VIOLENT, signals=signals)
+    notes = provider.visual_notes(weather_code=WeatherCode.RAIN_SHOWERS_VIOLENT, signals=signals, rng=random.Random(0))
 
-    assert notes == "wind-lashed fur clinging flat, sideways-soaked"
-    assert "wind-raked fringe" not in notes
+    assert notes in WeatherCode.RAIN_SHOWERS_VIOLENT.visual_note_variants
+    assert "wind-raked streaking" not in notes
+
+
+def test_visual_notes_vary_across_rng_streams() -> None:
+    provider = ClimateProvider()
+    payload = _climate_payload(daily={"weather_code": [3, WeatherCode.FOG]})
+    signals = provider.derive_signals(payload)
+
+    picked = {
+        provider.visual_notes(weather_code=WeatherCode.FOG, signals=signals, rng=random.Random(i)) for i in range(20)
+    }
+
+    assert len(picked) > 1
+    assert picked <= set(WeatherCode.FOG.visual_note_variants)
 
 
 @pytest.mark.asyncio
@@ -100,7 +115,7 @@ async def test_synthesize_visual_notes_are_replay_safe() -> None:
     first = await provider.synthesize(seed, payload)
     second = await provider.synthesize(seed, payload)
 
-    assert first.visual_notes == "soft grey fur fading at the edges like mist"
+    assert first.visual_notes in WeatherCode.FOG.visual_note_variants
     assert first.visual_notes == second.visual_notes
 
 

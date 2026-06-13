@@ -4,6 +4,7 @@ import collections
 import datetime as dt
 import itertools as it
 import math
+import random
 import statistics
 
 import structlog
@@ -259,7 +260,11 @@ class ClimateProvider(VibeProvider[climate_schema.ClimatePayload]):
 
         affinity = Affinity(
             identity=Identity(name="__", elements=elements, base=base_stats),
-            visual_notes=self.visual_notes(weather_code=wmo_code, signals=signals),
+            visual_notes=self.visual_notes(
+                weather_code=wmo_code,
+                signals=signals,
+                rng=seed.rng(f"provider.{self.name}.visuals"),
+            ),
             intensity=self.calculate_intensity(s, index=i),
             provider_id=self.name,
             element_rankings=rankings,
@@ -275,9 +280,14 @@ class ClimateProvider(VibeProvider[climate_schema.ClimatePayload]):
         *,
         weather_code: WeatherCode,
         signals: dict[str, Signal],
+        rng: random.Random,
     ) -> str:
-        """Summarize hatch-day weather as short creature-facing visual cues."""
-        parts = [weather_code.visual_note]
+        """Summarize hatch-day weather as short creature-facing visual cues.
+
+        The base phrase is rng-picked from per-code variants so mons hatched under the
+        same sky still diverge (the rng stream is seeded, so replay stays deterministic).
+        """
+        parts = [rng.choice(weather_code.visual_note_variants)]
         if accent := self._signal_accent(signals, weather_code):
             parts.append(accent)
         return "; ".join(parts)
@@ -304,10 +314,10 @@ class ClimateProvider(VibeProvider[climate_schema.ClimatePayload]):
             best_score = score
             best_phrase = {
                 "pollut": "soot-dulled markings",
-                "dust_m": "grit-streaked hide",
-                "windsp": "wind-raked fringe",
-                "elevat": "alpine-bleached coat",
-                "cape_m": "charged air bristling along the crest",
+                "dust_m": "grit-streaked dust film",
+                "windsp": "wind-raked streaking",
+                "elevat": "alpine-bleached pallor",
+                "cape_m": "charged-air static shimmer",
             }[signal_name]
 
         return best_phrase

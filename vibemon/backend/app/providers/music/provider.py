@@ -629,36 +629,36 @@ class MusicProvider(VibeProvider[schema.MusicPayload]):
             signals["valence"].center,
             high=0.58,
             low=0.42,
-            high_phrase="sun-warmed markings and open bright-eyed face",
+            high_phrase="sun-warmed markings and a bright open palette",
             low_phrase="muted dusk palette and downcast soft edges",
         )
         add(
             signals["energy"].center,
             high=0.65,
             low=0.40,
-            high_phrase="sharp angles and crackle-edged crest",
-            low_phrase="rounded soft silhouette and heavy-lidded calm",
+            high_phrase="crackle-edged markings and hard high-contrast accents",
+            low_phrase="soft low-contrast tones and sleepy muted washes",
         )
         add(
             signals["acousticness"].center,
             high=0.62,
             low=0.22,
-            high_phrase="woodgrain fur and felt-soft paw pads",
-            low_phrase="synthetic sheen and studio-polished hide",
+            high_phrase="warm organic grain and unpolished matte texture",
+            low_phrase="synthetic sheen and studio-polished gloss",
         )
         add(
             signals["danceability"].center,
             high=0.65,
             low=0.35,
-            high_phrase="rhythmic stripe markings along the limbs",
-            low_phrase="still unhurried stance",
+            high_phrase="rhythmic stripe markings in syncopated bands",
+            low_phrase="still unhurried plain tones",
         )
         add(
             signals["instrumentalness"].center,
             high=0.55,
             low=0.15,
-            high_phrase="quiet closed mouth and instrument-rooted horn crest",
-            low_phrase="expressive open beak and chatty cheek markings",
+            high_phrase="wordless quiet patterning and instrument-etched line markings",
+            low_phrase="chatty expressive speckling and bright accent spots",
         )
         add(
             signals["liveness"].center,
@@ -671,12 +671,12 @@ class MusicProvider(VibeProvider[schema.MusicPayload]):
             signals["tempo"].center,
             high=0.65,
             low=0.35,
-            high_phrase="spring-heeled legs and quick-footed stance",
-            low_phrase="slow sweeping tail and languid lines",
+            high_phrase="quick staccato streak markings and crisp bright edging",
+            low_phrase="slow languid gradient washes",
         )
 
         if intensity >= 0.65:
-            candidates.append((intensity - 0.5, "alert recently-charged posture"))
+            candidates.append((intensity - 0.5, "freshly-charged vivid saturation"))
         elif intensity <= 0.35:
             candidates.append((0.5 - intensity, "settled unhurried stillness"))
 

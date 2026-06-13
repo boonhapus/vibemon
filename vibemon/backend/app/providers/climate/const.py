@@ -48,42 +48,168 @@ class WeatherCode(enum.IntEnum):
     THUNDERSTORM_WITH_HEAVY_HAIL = 99
 
     @property
-    def visual_note(self) -> str:
-        """Creature-facing visual cue for the hatch-day weather code."""
-        return _VISUAL_NOTES.get(self, "weather-marked hide with unclear sky cues")
+    def visual_note_variants(self) -> tuple[str, ...]:
+        """Creature-facing visual cue variants for the hatch-day weather code.
+
+        Phrases must stay anatomy-neutral (palette, texture, markings, sheen) so the
+        element body archetype keeps sole control of silhouette and body plan.
+        """
+        return _VISUAL_NOTES.get(self, _FALLBACK_VISUAL_NOTES)
 
 
-# ── Creature visual notes per WMO code ────────────────────────────────────────────
+# ── Creature visual notes per WMO code (rng-picked at birth for per-mon variety) ──
 
-_VISUAL_NOTES = {
-    WeatherCode.CLEAR_SKY: "sun-bleached hide with harsh warm highlights",
-    WeatherCode.MAINLY_CLEAR: "warm bright coat with pale sky-blue tip markings",
-    WeatherCode.PARTLY_CLOUDY: "soft white cloud patches on sunlit fur",
-    WeatherCode.OVERCAST: "flat grey fur in shadowless muted tones",
-    WeatherCode.THUNDERSTORM_WITHOUT_PRECIP: "dark storm-cloud mantle with crackling spine static",
-    WeatherCode.THUNDERSTORM_WITHOUT_PRECIP_HEAVY: "charcoal hide with lightning-fork markings",
-    WeatherCode.FOG: "soft grey fur fading at the edges like mist",
-    WeatherCode.DEPOSITING_RIME_FOG: "frost-rimmed grey coat with ice needles on every edge",
-    WeatherCode.DRIZZLE_LIGHT: "fine dew-beaded fur with a silvery mist sheen",
-    WeatherCode.DRIZZLE_MODERATE: "damp coat threaded with silver droplets",
-    WeatherCode.DRIZZLE_DENSE: "heavy wet sheen with fur dripping in ribbons",
-    WeatherCode.FREEZING_DRIZZLE_LIGHT: "needle-fine ice glaze on fur tips",
-    WeatherCode.FREEZING_DRIZZLE_DENSE: "slick freezing armour over damp undercoat",
-    WeatherCode.RAIN_SLIGHT: "speckled rain-dark patches on dry-leaning fur",
-    WeatherCode.RAIN_MODERATE: "evenly rain-slicked coat darkened and sleek",
-    WeatherCode.RAIN_HEAVY: "dense rain-slick fur dripping and deep-toned",
-    WeatherCode.FREEZING_RAIN_LIGHT: "thin ice shell glazing wet fur",
-    WeatherCode.FREEZING_RAIN_HEAVY: "crystal ice encasement bowing limbs under weight",
-    WeatherCode.SNOW_FALL_SLIGHT: "sparse snowflakes caught in quiet pale fur",
-    WeatherCode.SNOW_FALL_MODERATE: "snow-dusted coat muting every color",
-    WeatherCode.SNOW_FALL_HEAVY: "packed snow crusting the whole body white",
-    WeatherCode.SNOW_GRAINS: "dry icy grain texture on sugar-pale hide",
-    WeatherCode.RAIN_SHOWERS_SLIGHT: "patchy wet streaks flashing bright on sun-warmed fur",
-    WeatherCode.RAIN_SHOWERS_MODERATE: "restless coat with on-off rain-darkened streaks",
-    WeatherCode.RAIN_SHOWERS_VIOLENT: "wind-lashed fur clinging flat, sideways-soaked",
-    WeatherCode.SNOW_SHOWERS_SLIGHT: "quick flurry dustings over patchy pale markings",
-    WeatherCode.SNOW_SHOWERS_HEAVY: "dense snow crust blurring features behind white",
-    WeatherCode.THUNDERSTORM: "rain-dark fur with strobe-bright static crest",
-    WeatherCode.THUNDERSTORM_WITH_SLIGHT_HAIL: "electric coat with ice-pellet pockmarks",
-    WeatherCode.THUNDERSTORM_WITH_HEAVY_HAIL: "pitted storm-scarred hide with white flash marks",
+_FALLBACK_VISUAL_NOTES: tuple[str, ...] = ("changeable-sky mottling in mixed muted tones",)
+
+_VISUAL_NOTES: dict[WeatherCode, tuple[str, ...]] = {
+    WeatherCode.CLEAR_SKY: (
+        "sun-bleached tones with harsh warm highlights",
+        "white-gold glare sheen and sharp-edged warm shadows",
+        "heat-faded palette with bright bleached patches",
+    ),
+    WeatherCode.MAINLY_CLEAR: (
+        "warm bright base tones with pale sky-blue tip markings",
+        "sunlit golden wash with thin cloud-wisp streaks",
+        "clear-day brightness with powder-blue edging",
+    ),
+    WeatherCode.PARTLY_CLOUDY: (
+        "soft white cloud-patch markings over sunlit tones",
+        "drifting cloud-shadow dapples on a warm base",
+        "broken-light mottling of bright and shaded patches",
+    ),
+    WeatherCode.OVERCAST: (
+        "flat grey tones in shadowless muted light",
+        "even pewter wash with no hard highlights",
+        "dull silver-grey palette, soft and diffuse",
+    ),
+    WeatherCode.THUNDERSTORM_WITHOUT_PRECIP: (
+        "dark storm-cloud mottling with crackling static shimmer",
+        "bruised purple-grey tones with a static-charged sheen",
+        "anvil-cloud gradient, slate above and charged pale below",
+    ),
+    WeatherCode.THUNDERSTORM_WITHOUT_PRECIP_HEAVY: (
+        "charcoal tones with lightning-fork markings",
+        "storm-black base split by jagged white vein markings",
+        "deep thundercloud grey with electric-bright branching streaks",
+    ),
+    WeatherCode.FOG: (
+        "soft grey tones fading at the edges like mist",
+        "milk-white haze wash with blurred soft markings",
+        "mist-muted palette with outlines gentled to grey",
+    ),
+    WeatherCode.DEPOSITING_RIME_FOG: (
+        "frost-rimmed grey tones with ice-needle edging",
+        "rime-crusted texture, every edge whitened with frost",
+        "freezing-fog glaze, grey beneath crystalline white tips",
+    ),
+    WeatherCode.DRIZZLE_LIGHT: (
+        "fine dew-beaded texture with a silvery mist sheen",
+        "drizzle-speckled surface catching faint silver light",
+        "thin damp gloss with scattered droplet flecks",
+    ),
+    WeatherCode.DRIZZLE_MODERATE: (
+        "damp texture threaded with silver droplet lines",
+        "steady drizzle sheen with colors darkened a half-step",
+        "wet-silk gloss with beaded silver speckling",
+    ),
+    WeatherCode.DRIZZLE_DENSE: (
+        "heavy wet sheen with colors dripping a tone darker",
+        "soaked-through gloss, saturated and streaming",
+        "dense drizzle glaze, every surface slick and dark",
+    ),
+    WeatherCode.FREEZING_DRIZZLE_LIGHT: (
+        "needle-fine ice glaze on edges and tips",
+        "thin frost-lacquer sheen over chilled tones",
+        "delicate freezing-mist crystals dusting the surface",
+    ),
+    WeatherCode.FREEZING_DRIZZLE_DENSE: (
+        "slick freezing glaze over a damp dark base",
+        "thick ice-lacquer sheen, glassy and cold-toned",
+        "hard frozen-drizzle crust with a wet shine beneath",
+    ),
+    WeatherCode.RAIN_SLIGHT: (
+        "speckled rain-dark patches on dry-leaning tones",
+        "first-rain stippling of scattered dark droplet marks",
+        "light shower mottling, half wet and half dry",
+    ),
+    WeatherCode.RAIN_MODERATE: (
+        "evenly rain-slicked texture, darkened and sleek",
+        "steady-rain gloss deepening every color",
+        "uniform wet sheen with clean rain-washed tones",
+    ),
+    WeatherCode.RAIN_HEAVY: (
+        "dense rain-slick sheen, dripping and deep-toned",
+        "downpour-darkened palette with streaming wet gloss",
+        "saturated storm-wash with colors at their deepest",
+    ),
+    WeatherCode.FREEZING_RAIN_LIGHT: (
+        "thin ice glaze over wet dark tones",
+        "clear frozen lacquer over rain-darkened color",
+        "glassy drip-ice sheen with cold pale highlights",
+    ),
+    WeatherCode.FREEZING_RAIN_HEAVY: (
+        "thick crystal-ice glaze, glassy and heavy",
+        "armoring clear-ice sheen over deep wet tones",
+        "frozen-rain lacquer with trapped droplet flecks",
+    ),
+    WeatherCode.SNOW_FALL_SLIGHT: (
+        "sparse snowflake flecks caught on quiet pale tones",
+        "light snow-dusting over a hushed winter palette",
+        "scattered white flecks on softly cooled colors",
+    ),
+    WeatherCode.SNOW_FALL_MODERATE: (
+        "snow-dusted texture muting every color",
+        "steady white powdering that softens all tones",
+        "even snowfall veil, palette chilled and pale",
+    ),
+    WeatherCode.SNOW_FALL_HEAVY: (
+        "packed snow crusting every surface white",
+        "deep snow-caked texture, nearly whited out",
+        "heavy snow-blanket tones, white over white",
+    ),
+    WeatherCode.SNOW_GRAINS: (
+        "dry icy grain texture on sugar-pale tones",
+        "coarse snow-grain stippling, frosted and matte",
+        "granular ice-sugar dusting over winter pallor",
+    ),
+    WeatherCode.RAIN_SHOWERS_SLIGHT: (
+        "patchy wet streaks flashing bright on sun-warmed tones",
+        "sunshower speckling with glints of light in scattered rain marks",
+        "quick shower stippling over warm bright patches",
+    ),
+    WeatherCode.RAIN_SHOWERS_MODERATE: (
+        "restless on-off rain-darkened streaking",
+        "shifting shower bands of wet-dark and drying-light stripes",
+        "changeable rain mottling with half-soaked patches",
+    ),
+    WeatherCode.RAIN_SHOWERS_VIOLENT: (
+        "wind-lashed sideways-soaked streaking",
+        "driven-rain diagonal streaks, slicked flat and dark",
+        "squall-battered wet sheen raked in one direction",
+    ),
+    WeatherCode.SNOW_SHOWERS_SLIGHT: (
+        "quick flurry dustings over patchy pale markings",
+        "passing snow-squall flecks on cool mottled tones",
+        "light flurry speckling with white catching in patches",
+    ),
+    WeatherCode.SNOW_SHOWERS_HEAVY: (
+        "dense snow crust blurring markings behind white",
+        "whiteout squall caking with details muffled in snow",
+        "heavy flurry layering, white drifted over every surface",
+    ),
+    WeatherCode.THUNDERSTORM: (
+        "rain-dark tones with strobe-bright static shimmer",
+        "storm-soaked palette lit by electric flicker highlights",
+        "thunderhead grey-blue wash with charged white glints",
+    ),
+    WeatherCode.THUNDERSTORM_WITH_SLIGHT_HAIL: (
+        "electric storm sheen with ice-pellet pockmarks",
+        "static-charged tones dented by small hail stippling",
+        "crackling storm wash with scattered hail-strike flecks",
+    ),
+    WeatherCode.THUNDERSTORM_WITH_HEAVY_HAIL: (
+        "pitted storm-scarred texture with white flash markings",
+        "hail-hammered dimpling under charcoal storm tones",
+        "battle-worn storm patina, pale impact pocks on dark ground color",
+    ),
 }
