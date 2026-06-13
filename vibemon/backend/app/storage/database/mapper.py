@@ -20,7 +20,6 @@ def identity_row(vibemon: Vibemon) -> models.Identity:
     return models.Identity(
         name=identity.name,
         visual_notes=identity.visual_notes,
-        provider_visual_notes=identity.provider_visual_notes,
         elements=[element.value for element in identity.elements],
         base_hp=base.hp,
         base_attack=base.attack,
@@ -67,7 +66,6 @@ async def vibemon_from_row(row: models.Vibemon) -> Vibemon:
     identity = Identity(
         name=row.identity.name,
         visual_notes=row.identity.visual_notes,
-        provider_visual_notes=row.identity.provider_visual_notes,
         elements=tuple(VibemonTypeT(element) for element in row.identity.elements),
         base=BaseStats(
             hp=row.identity.base_hp,

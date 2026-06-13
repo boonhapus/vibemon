@@ -205,7 +205,6 @@ class Identity(Base):
     vibemon_id: Mapped[uuid.UUID] = mapped_column(unique=True)
     name: Mapped[str]
     visual_notes: Mapped[str | None]
-    provider_visual_notes: Mapped[str | None]
     elements: Mapped[list[str]] = mapped_column(db_types.JSON_STORE)
     base_hp: Mapped[int]
     base_attack: Mapped[int]

@@ -36,7 +36,6 @@ async def generate_candidate(
     trainer_id: TrainerIdT,
     birth_seed: BirthSeed,
     nickname: str | None = None,
-    core_identity: str | None = None,
     bypass_credits: bool = False,
     christen: bool = False,
 ) -> PublicVibemon:
@@ -50,7 +49,6 @@ async def generate_candidate(
             sess,
             birth_seed=birth_seed,
             nickname=nickname,
-            core_identity=core_identity,
             now=now,
             christen=christen,
         )

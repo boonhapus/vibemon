@@ -18,7 +18,6 @@ async def birth_and_persist_vibemon(
     *,
     birth_seed: BirthSeed,
     nickname: str | None,
-    core_identity: str | None,
     now: dt.datetime,
     christen: bool,
 ) -> tuple[models.Vibemon, tuple[ProviderWarning, ...]]:
@@ -29,7 +28,6 @@ async def birth_and_persist_vibemon(
         *affinities,
         birth_seed=birth_seed,
         nickname=nickname,
-        core_identity=core_identity,
     )
     if christen:
         vibemon = await asset_realization.christen_vibemon(vibemon)

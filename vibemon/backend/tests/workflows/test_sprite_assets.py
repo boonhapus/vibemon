@@ -73,7 +73,6 @@ def test_reprocess_reference_flattens_existing_alpha_before_rekey() -> None:
             name="Mossling",
             elements=(VibemonTypeT.GRASS,),
             visual_notes="",
-            provider_visual_notes="",
             base=BaseStats(),
         ),
         aesthetic=Aesthetic(
@@ -132,7 +131,6 @@ def test_reference_key_preserves_dithered_interior_on_green_matte() -> None:
             name="Ditherling",
             elements=(VibemonTypeT.GRASS,),
             visual_notes="",
-            provider_visual_notes="",
             base=BaseStats(),
         ),
         aesthetic=Aesthetic(

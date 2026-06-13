@@ -45,7 +45,6 @@ def _identity(generated_at: dt.datetime) -> Identity:
     return Identity(
         name="Cindlet",
         visual_notes="bright ember crest",
-        provider_visual_notes="clear midday sun",
         elements=(VibemonTypeT.FIRE, VibemonTypeT.FLYING),
         base=BaseStats(
             hp=61,
@@ -89,7 +88,6 @@ async def test_vibemon_from_row_maps_identity_moves_and_assets() -> None:
         vibemon_id=vibemon_id,
         name="Cindlet",
         visual_notes="bright ember crest",
-        provider_visual_notes="clear midday sun",
         elements=[VibemonTypeT.FIRE.value, VibemonTypeT.FLYING.value],
         base_hp=61,
         base_attack=72,
@@ -198,7 +196,6 @@ def test_apply_vibemon_to_row_updates_mutable_projection_fields() -> None:
         vibemon_id=row.id,
         name="Oldname",
         visual_notes=None,
-        provider_visual_notes=None,
         elements=[VibemonTypeT.FIRE.value],
         base_hp=50,
         base_attack=50,
@@ -254,7 +251,6 @@ def test_apply_adopted_vibemon_to_row_sets_owned_disposition_fields() -> None:
         vibemon_id=row.id,
         name="Oldname",
         visual_notes=None,
-        provider_visual_notes=None,
         elements=[VibemonTypeT.FIRE.value],
         base_hp=50,
         base_attack=50,

@@ -48,7 +48,7 @@ class _FakeAssetGenerator:
         assert reference_png
         return sprite_types.SpriteFacing.RIGHT
 
-    async def generate_name(self, identity, moves, visual_notes):
+    async def generate_name(self, identity, moves):
         return "Testling"
 
     async def generate_reference_image(self, vibemon):

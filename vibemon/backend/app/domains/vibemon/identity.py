@@ -36,7 +36,6 @@ class BaseStats(Schema):
 class Identity(Schema):
     name: str
     visual_notes: str | None = None
-    provider_visual_notes: str | None = None
     elements: types.IdentityElementsT
     base: BaseStats
     evo_seed: types.EvolutionStageT = types.EvolutionStageT.BASE

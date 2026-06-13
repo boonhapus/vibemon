@@ -76,7 +76,6 @@ class Affinity(FrozenSchema):
     def merge(
         cls,
         *affinities: Affinity,
-        core_identity_description: str | None = None,
         rng: random.Random | None = None,
         evo_rng: random.Random | None = None,
         radiant_rng: random.Random | None = None,
@@ -131,8 +130,7 @@ class Affinity(FrozenSchema):
         # the sprite prompt gets a focused accent or two instead of a converging pile-up.
         identity = Identity(
             name=name,
-            visual_notes=core_identity_description,
-            provider_visual_notes="; ".join(notes[:2]) or None,
+            visual_notes="; ".join(notes[:2]) or None,
             elements=tuple(dict.fromkeys(elements)),
             evo_seed=evo_seed,
             is_radiant=radiant_rng.randint(1, 4096) == 4096,

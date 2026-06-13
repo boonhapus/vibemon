@@ -15,7 +15,6 @@ async def generate_wild_supply(
     *,
     birth_seed: BirthSeed,
     nickname: str | None = None,
-    core_identity: str | None = None,
     christen: bool = False,
 ) -> PublicVibemon:
     now = resolve_clock()
@@ -23,7 +22,6 @@ async def generate_wild_supply(
         sess,
         birth_seed=birth_seed,
         nickname=nickname,
-        core_identity=core_identity,
         now=now,
         christen=christen,
     )

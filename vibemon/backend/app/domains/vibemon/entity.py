@@ -76,9 +76,8 @@ class Vibemon(Schema):
         *affinities: generation_affinity.Affinity,
         birth_seed: BirthSeed,
         nickname: str | None = None,
-        core_identity: str | None = None,
     ) -> Self:
-        outcome = birth_outcome_from_affinities(*affinities, birth_seed=birth_seed, core_identity=core_identity)
+        outcome = birth_outcome_from_affinities(*affinities, birth_seed=birth_seed)
         instance = cls(
             nickname=nickname,
             identity=outcome.identity,
@@ -86,30 +85,6 @@ class Vibemon(Schema):
             level=1,
             evo_stage=outcome.evo_stage,
         )
-        instance.aesthetic = Aesthetic.from_vibemon(instance)
-        return instance
-
-    @classmethod
-    def rebirth(
-        cls,
-        *affinities: generation_affinity.Affinity,
-        id: uuid.UUID,
-        name: str,
-        birth_seed: BirthSeed,
-        core_identity: str | None = None,
-        nickname: str | None = None,
-        level: int = 1,
-        xp: int = 0,
-        evo_stage: types.EvolutionStageT | None = None,
-    ) -> Self:
-        instance = cls.birth(*affinities, birth_seed=birth_seed, nickname=nickname, core_identity=core_identity)
-        instance.id = id
-        instance.identity = instance.identity.model_copy(update={"name": name})
-        instance.level = level
-        instance.xp = xp
-        if evo_stage is not None:
-            instance.evo_stage = evo_stage
-        instance.lifecycle = types.VibemonLifecycleT.BORN
         instance.aesthetic = Aesthetic.from_vibemon(instance)
         return instance
 

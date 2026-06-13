@@ -59,7 +59,6 @@ def _wild_vibemon(vibemon_id: uuid.UUID, *, now: dt.datetime) -> models.Vibemon:
     row.identity = models.Identity(
         name="Wildling",
         visual_notes=None,
-        provider_visual_notes=None,
         elements=["fire"],
         base_hp=70,
         base_attack=75,

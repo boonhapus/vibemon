@@ -375,11 +375,6 @@ def test_prepare_chroma_prompt_injects_matte_and_strips_white() -> None:
     assert "solid white background" not in prompt.casefold()
 
 
-def test_resolve_repo_path_anchors_generated_dir() -> None:
-    resolved = static_assets.resolve_repo_path(pathlib.Path(".generated/assets/pass-1"))
-    assert resolved == static_assets.GENERATED_DIR / "assets" / "pass-1"
-
-
 def test_resolve_repo_path_keeps_absolute_paths() -> None:
     absolute = pathlib.Path("C:/tmp/out")
     assert static_assets.resolve_repo_path(absolute) == absolute

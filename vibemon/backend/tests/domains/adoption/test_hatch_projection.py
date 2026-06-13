@@ -50,7 +50,6 @@ def _public_vibemon(
             name="Sproutling",
             elements=(VibemonTypeT.GRASS,),
             visual_notes="",
-            provider_visual_notes="",
             base=BaseStats(hp=45, attack=49, defense=49, sp_attack=65, sp_defense=65, speed=45),
             evo_seed=evo_seed,
         ),

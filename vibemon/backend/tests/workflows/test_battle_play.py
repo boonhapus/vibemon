@@ -60,7 +60,6 @@ async def test_start_wild_battle_and_turn(sess, test_trainer) -> None:
     hero.identity = models.Identity(
         name="Hero",
         visual_notes=None,
-        provider_visual_notes=None,
         elements=["normal"],
         base_hp=80,
         base_attack=90,
@@ -98,7 +97,6 @@ async def test_start_wild_battle_and_turn(sess, test_trainer) -> None:
     wild.identity = models.Identity(
         name="Fodder",
         visual_notes=None,
-        provider_visual_notes=None,
         elements=["normal"],
         base_hp=20,
         base_attack=10,
