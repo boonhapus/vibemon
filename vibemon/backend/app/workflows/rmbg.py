@@ -399,7 +399,10 @@ def _corner_pixels(rgb: np.ndarray) -> np.ndarray:
     height, width = rgb.shape[:2]
     if height < 3 or width < 3:
         return rgb.reshape(-1, 3)
-    offset = max(1, min(5, height // 20, width // 20))
+    # Inset deep enough to clear the decorative frames image models sometimes
+    # paint around the matte (sampling the frame would mistake it for the key),
+    # but capped well short of a centered subject.
+    offset = max(1, min(round(min(height, width) * 0.08), height // 4, width // 4))
     return np.stack(
         [
             rgb[offset, offset],
@@ -468,6 +471,13 @@ def resolve_background_color(
         return detected
 
     corner_samples = _corner_pixels(rgb)
+    # Only trust a detected wash when the corners agree on it. A wide spread
+    # means we are sampling a frame, a subject, or mixed pixels — not a flat
+    # key — so fall back to the requested matte rather than keying off noise.
+    corner_spread = float(lab_distance_to_matte(corner_samples, np.array(detected, dtype=np.float32)).max())
+    if corner_spread > _MATTE_MISMATCH_DISTANCE:
+        return bg_color
+
     stored_dist = float(lab_distance_to_matte(corner_samples, np.array(bg_color, dtype=np.float32)).mean())
     detected_dist = float(lab_distance_to_matte(corner_samples, np.array(detected, dtype=np.float32)).mean())
     if stored_dist > _MATTE_MISMATCH_DISTANCE and detected_dist + 1.0 < stored_dist:
