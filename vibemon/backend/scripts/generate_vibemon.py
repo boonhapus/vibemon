@@ -85,10 +85,6 @@ def generate_vibemon(
         str | None,
         cyclopts.Parameter(group=COMMON_OPTIONS, help="Optional Vibemon nickname."),
     ] = None,
-    idea: Annotated[
-        str | None,
-        cyclopts.Parameter(group=SEED_OPTIONS, help="Optional creative identity seed."),
-    ] = None,
     location: Annotated[
         str | None,
         cyclopts.Parameter(group=SEED_OPTIONS, help="Birth location as 'latitude,longitude'; random if omitted."),
@@ -178,7 +174,6 @@ def generate_vibemon(
             database_url=storage.storage.database,
             asset_store_url=storage.storage.assets,
             nickname=nickname,
-            core_identity=idea,
             bypass_credits=bypass_credits,
             provider_names=provider_names,
             affinity_only=affinity_only,
@@ -245,7 +240,6 @@ async def _generate_one(
     timestamp: str | None,
     form: VibemonLifecycleT,
     nickname: str | None,
-    core_identity: str | None,
     bypass_credits: bool,
     provider_names: tuple[registry.ProviderName, ...],
 ) -> tuple[float, float, PublicVibemon, tuple[generation_types.ProviderWarning, ...]]:
@@ -276,14 +270,12 @@ async def _generate_one(
                     seed=seed,
                     form=form,
                     nickname=nickname,
-                    core_identity=core_identity,
                 )
             elif stage is GenerationStage.WILD:
                 result = await wild_workflow.generate_wild_supply(
                     sess,
                     birth_seed=seed,
                     nickname=nickname,
-                    core_identity=core_identity,
                     christen=form is not VibemonLifecycleT.BORN,
                 )
                 if form is VibemonLifecycleT.MANIFESTED:
@@ -297,7 +289,6 @@ async def _generate_one(
                     username=username,
                     form=form,
                     nickname=nickname,
-                    core_identity=core_identity,
                     bypass_credits=bypass_credits,
                 )
             break
@@ -322,7 +313,6 @@ async def _run(
     database_url: str,
     asset_store_url: str,
     nickname: str | None,
-    core_identity: str | None,
     bypass_credits: bool,
     provider_names: tuple[registry.ProviderName, ...],
     affinity_only: bool,
@@ -340,7 +330,6 @@ async def _run(
             timestamp=timestamp,
             provider_names=provider_names,
             nickname=nickname,
-            core_identity=core_identity,
         )
         _print_merged_vibemon_summary(payload)
         _common.dump(payload)
@@ -367,7 +356,6 @@ async def _run(
                 timestamp=timestamp,
                 form=form,
                 nickname=nickname,
-                core_identity=core_identity,
                 bypass_credits=bypass_credits,
                 provider_names=provider_names,
             )
@@ -420,7 +408,6 @@ async def _provider_affinities(
     timestamp: str | None,
     provider_names: tuple[registry.ProviderName, ...],
     nickname: str | None,
-    core_identity: str | None,
 ) -> dict[str, object]:
     item_latitude, item_longitude = (
         (latitude, longitude) if latitude is not None and longitude is not None else _random_birth_coords()
@@ -454,7 +441,6 @@ async def _provider_affinities(
         *resolved_affinities,
         birth_seed=seed,
         nickname=nickname,
-        core_identity=core_identity,
     )
     provider_notes = Affinity.collect_notes(*resolved_affinities)
 
@@ -497,14 +483,12 @@ async def _generate_plain_vibemon(
     seed: BirthSeed,
     form: VibemonLifecycleT,
     nickname: str | None,
-    core_identity: str | None,
 ) -> tuple[PublicVibemon, tuple[generation_types.ProviderWarning, ...]]:
     await _common.ensure_trainer(sess, seed.trainer_id)
     row, provider_notes = await birth_persist.birth_and_persist_vibemon(
         sess,
         birth_seed=seed,
         nickname=nickname,
-        core_identity=core_identity,
         now=resolve_clock(),
         christen=form is not VibemonLifecycleT.BORN,
     )
@@ -523,7 +507,6 @@ async def _generate_trainer_stage(
     username: str | None,
     form: VibemonLifecycleT,
     nickname: str | None,
-    core_identity: str | None,
     bypass_credits: bool,
 ) -> PublicVibemon:
     await _common.ensure_trainer(sess, trainer_id, username=username)
@@ -532,7 +515,6 @@ async def _generate_trainer_stage(
         trainer_id=_common.trainer_id(trainer_id),
         birth_seed=seed,
         nickname=nickname,
-        core_identity=core_identity,
         bypass_credits=bypass_credits,
         christen=form is not VibemonLifecycleT.BORN,
     )

@@ -75,10 +75,6 @@ def simulate_adoption(
         str | None,
         cyclopts.Parameter(group=COMMON_OPTIONS, help="Optional candidate nickname."),
     ] = None,
-    idea: Annotated[
-        str | None,
-        cyclopts.Parameter(group=COMMON_OPTIONS, help="Optional creative identity seed."),
-    ] = None,
     database_url: Annotated[
         str | None,
         cyclopts.Parameter(
@@ -114,7 +110,6 @@ def simulate_adoption(
             database_url=storage.storage.database,
             asset_store_url=storage.storage.assets,
             nickname=nickname,
-            core_identity=idea,
             bypass_credits=bypass_credits,
         )
     )
@@ -144,7 +139,6 @@ async def _run(
     database_url: str,
     asset_store_url: str,
     nickname: str | None,
-    core_identity: str | None,
     bypass_credits: bool,
 ) -> None:
     _common.ensure_local_blob_dir(asset_store_url)
@@ -164,7 +158,6 @@ async def _run(
             seed=seed,
             candidate_lifecycle=candidate_lifecycle,
             nickname=nickname,
-            core_identity=core_identity,
             bypass_credits=bypass_credits,
         )
     _common.dump(result)
@@ -198,7 +191,6 @@ async def _simulate(
     seed: BirthSeed,
     candidate_lifecycle: VibemonLifecycleT,
     nickname: str | None,
-    core_identity: str | None,
     bypass_credits: bool,
 ) -> dict[str, object]:
     await _common.ensure_trainer(sess, trainer_id, username=username)
@@ -207,7 +199,6 @@ async def _simulate(
         trainer_id=_common.trainer_id(trainer_id),
         birth_seed=seed,
         nickname=nickname,
-        core_identity=core_identity,
         bypass_credits=bypass_credits,
         christen=candidate_lifecycle is not VibemonLifecycleT.BORN,
     )

@@ -59,8 +59,7 @@ CLI interfaces should be beginner-first:
   interface is being cleaned up, prefer one clear public flag.
 - Prefer one `--location latitude,longitude` option over separate latitude and
   longitude flags.
-- Use `--name` for trainer display names, `--nickname` for Vibemon nicknames,
-  and `--idea` for creative generation nudges.
+- Use `--name` for trainer display names and `--nickname` for Vibemon nicknames.
 - Keep `--database-url`, `--asset-store-url`, and credit bypass controls in the
   advanced group.
 
@@ -71,8 +70,6 @@ Integration rehearsal and database tooling:
 **Database**
 
 - `init_db.py`: create all tables from SQLAlchemy models (idempotent on a fresh DB).
-- `migrate_candidate_reference_facing.py`: add `candidate_review.reference_facing` and
-  backfill existing pending reviews (use `--detect-facing` to run GenAI on stored sprites).
 - `db_shell.py`: list tables, run ad-hoc SQL, or open an interactive shell against
   the configured database.
 
@@ -87,13 +84,6 @@ Integration rehearsal and database tooling:
   encounter, optionally battling, and recording the encounter outcome.
 - `simulate_battle.py`: rehearse a pure battle between two selected or generated
   Vibemon without requiring the full encounter/adoption flow.
-- `rebalance_vibemon.py`: replay existing Vibemon from persisted birth snapshots
-  through the current provider balance logic and optionally update their derived
-  typing, stats, and active moves. **Dev-only tooling** — not a production player
-  workflow.
-- `rehearse_celestial_balance.py`: replay celestial-only typing across a stratified
-  birth matrix (120 births or 15 curated spot-checks) and export balance reports to
-  `.generated/celestial-balance/` (repo root).
 - `generate_static_assets.py`: regenerate hand-authored static PNGs from
   `vibemon/frontend/asset-prompts/game/*.mdc`. Pass an asset key (prompt file stem,
   e.g. `vibe-deck`) to render sprite + icon together; omit the key to render all
@@ -172,7 +162,6 @@ The visible options are grouped by intent:
 **Seed** — birth seed inputs:
 
 - `--location` and `--born-at`: deterministic coordinates and timestamp.
-- `--idea`: optional creative identity nudge.
 - `--provider`: birth providers to include (`climate`, `biome`, `music`); repeat
   the flag to combine them. Default is climate and biome.
 
@@ -213,7 +202,7 @@ The visible options describe candidate review intent:
   resolution.
 - `--location` and `--born-at`: deterministic birth seed inputs when randomness
   is not useful.
-- `--nickname` and `--idea`: creative nudges for the generated candidate.
+- `--nickname`: optional candidate nickname.
 
 Advanced plumbing appears in its own help section: `--database-url`,
 `--asset-store-url`, and `--bypass-credits`.
@@ -240,44 +229,6 @@ The visible options describe encounter intent:
 
 Advanced plumbing appears in its own help section: `--database-url` and
 `--asset-store-url`.
-
-## Rebalance Vibemon CLI Shape
-
-`rebalance_vibemon.py` previews changes by default, so the fastest inspection
-path is:
-
-```powershell
-uv run python scripts/rebalance_vibemon.py --limit 20
-```
-
-The visible options describe rebalance intent:
-
-- `--vibemon`: replay one existing Vibemon by ID; omitted selects persisted rows.
-- `--limit`: cap how many persisted Vibemon are replayed during exploratory
-  checks.
-- `--apply`: persist the replayed typing, stats, and active moves; omitted runs a
-  dry run.
-- `--examples`: control how many changed examples appear in the compact JSON
-  output.
-- `--detail`: use `summary` for compact counts/examples or `full` for complete
-  before/after identity and active move definitions.
-- `--include-unchanged`: include unchanged rows in full-detail reports.
-
-Advanced plumbing appears in its own help section: `--database-url` and
-`--output`.
-
-## Rehearse Celestial Balance CLI Shape
-
-`rehearse_celestial_balance.py` exports JSON + CSV reports for the celestial-only
-typing matrix:
-
-```powershell
-uv run python scripts/rehearse_celestial_balance.py
-uv run python scripts/rehearse_celestial_balance.py --scope curated
-uv run python scripts/rehearse_celestial_balance.py --output .generated/celestial-balance/report.json
-```
-
-Reports land in `<repo>/.generated/celestial-balance/` by default.
 
 ## Simulate Battle CLI Shape
 
