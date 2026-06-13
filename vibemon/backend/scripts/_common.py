@@ -27,6 +27,7 @@ from app.settings import Settings
 from app.storage.database import engine as db_engine
 from app.storage.database import mapper, models, vibemon_repo
 import app._compat.httpx  # noqa: F401 — patch httpx annotations for google-genai on Python 3.14+
+import app._compat.ssl  # noqa: F401 — verify httpx/google-genai TLS against the OS trust store
 
 type BattleMovePolicyT = Literal["first_available", "best_damage", "stab_first", "status_aware", "random"]
 

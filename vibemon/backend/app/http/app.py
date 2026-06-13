@@ -1,10 +1,12 @@
 """Litestar application factory for the Vibemon game HTTP API."""
 
 from app._compat.httpx import ensure_annotations
+from app._compat.ssl import use_system_trust_store
 from app._compat.warnings import suppress_third_party_warnings
 
 suppress_third_party_warnings()
 ensure_annotations()
+use_system_trust_store()
 
 from collections.abc import AsyncGenerator
 from contextlib import asynccontextmanager

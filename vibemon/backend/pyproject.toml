@@ -27,6 +27,7 @@ dependencies = [
     "jsonschema>=4.26.0",
     "litestar>=2.22.0",
     "skyfield>=1.54",
+    "truststore>=0.10.4",
 ]
 
 [project.scripts]
