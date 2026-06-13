@@ -40,7 +40,7 @@ def test_render_prompt_returns_metadata_and_text() -> None:
 def test_sprite_reference_prompt_uses_goldilocks_style_without_pokemon_language() -> None:
     rendered = prompts.render("sprite-reference.mdc", vibemon=_prompt_vibemon())
 
-    assert rendered.version == "1.2.0"
+    assert rendered.version == "1.4.0"
     lowered = rendered.text.lower()
     assert "cozy handheld sprite style" in lowered
     assert "style bible" in lowered
@@ -48,6 +48,14 @@ def test_sprite_reference_prompt_uses_goldilocks_style_without_pokemon_language(
     assert "isolation" in lowered
     assert "no drop shadow baked into the sprite" in lowered
     assert "body shading only" in lowered
+    # Chroma-key direction must carry hex + name + saturation intent so the model
+    # paints the true key instead of a muted slate the matte solver can't separate.
+    matte = _prompt_vibemon().aesthetic.background_color
+    assert matte.hex in rendered.text
+    assert matte.name in rendered.text
+    assert "chroma-key" in lowered
+    assert "fully saturated" in lowered
+    assert "never appear anywhere on the creature" in lowered
     assert "pokémon-style" not in lowered
     assert "pokemon-style" not in lowered
     assert "pokémon sugimori" not in lowered

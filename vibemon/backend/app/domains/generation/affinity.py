@@ -110,7 +110,7 @@ class Affinity(FrozenSchema):
                 name = affinity.identity.name
 
             if affinity.visual_notes:
-                notes.append(f"{affinity.visual_notes} ({weight}%)")
+                notes.append(affinity.visual_notes)
 
         try:
             stats_merged = {k: math.floor(stats[k] / total) for k in stat_keys}
@@ -127,10 +127,12 @@ class Affinity(FrozenSchema):
         evo_stage = types.EvolutionStageT.BASE
         stats_scaled = apply_evo_seed_bst_bias(stats_merged, evo_seed=evo_seed, evo_stage=evo_stage)
 
+        # Keep only the two strongest providers' notes (the loop is intensity-sorted) so
+        # the sprite prompt gets a focused accent or two instead of a converging pile-up.
         identity = Identity(
             name=name,
             visual_notes=core_identity_description,
-            provider_visual_notes=" ".join(notes) or None,
+            provider_visual_notes="; ".join(notes[:2]) or None,
             elements=tuple(dict.fromkeys(elements)),
             evo_seed=evo_seed,
             is_radiant=radiant_rng.randint(1, 4096) == 4096,

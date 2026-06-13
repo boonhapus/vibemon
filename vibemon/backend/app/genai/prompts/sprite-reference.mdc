@@ -1,7 +1,7 @@
 ---
 name: vibemon-sprite-reference
 description: Generates a single canonical reference image for a Vibemon before posing.
-version: 1.2.0
+version: 1.4.0
 style_anchor: base-style.md
 ---
 Render ONE clean canonical reference image for a Vibemon creature named "{{ vibemon.identity.name }}".
@@ -19,7 +19,7 @@ PURPOSE
 - The creature must be easy to copy into many poses without redesigning it.
 
 CANVAS RULES
-- Background: flat matte {{ vibemon.aesthetic.background_color }} as ONE uniform wash filling every pixel that is not the creature.
+- Background: flat matte {{ vibemon.aesthetic.background_color.hex }} ({{ vibemon.aesthetic.background_color.name }}) as ONE uniform wash filling every pixel that is not the creature. This is a chroma-key screen for compositing — paint it as a fully saturated, pure {{ vibemon.aesthetic.background_color.hex }}, exactly that hex, not a muted, greyed, or desaturated approximation. This exact key color must NEVER appear anywhere on the creature (body, lineart, eyes, highlights, or accents); shift any creature color that would collide with it.
 - The background must stay perfectly flat — no paper texture, grain, vignette, or dither on the background. Texture and grain apply to creature fills only.
 - The background contains nothing else. No scenery, props, text, labels, UI, grid, glow, aura, floor line, weather marks, or decorative effects.
 - Draw exactly one full-body creature in a neutral three-quarter view, turned just enough to show the back/dorsal silhouette and appendage roots clearly.
@@ -54,8 +54,8 @@ ROLE
 {% include "roles/" ~ vibemon.identity.battle_role.name | lower ~ ".j2" +%}
 Role body-language cues describe attitude only. They must never add humanoid arms, hands, legs, shoulders, fists, palms, or upright posture if the chosen body archetype does not naturally have them.
 
-INFLUENCES (translate into one simple anatomical feature, marking, material, or silhouette cue; do not add extra detached effects):
 {% if vibemon.identity.provider_visual_notes %}
+INFLUENCES (surface treatment ONLY — express as palette, texture, markings, or sheen on the body the archetype above defines; never change silhouette, body plan, limb count, appendages, or posture; no detached effects):
 - {{ vibemon.identity.provider_visual_notes }}
 {% endif %}
 
