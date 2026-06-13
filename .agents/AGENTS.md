@@ -46,17 +46,11 @@ More Python import rules: `.agents/SKILLS/development/python-conventions/SKILL.m
 2. Target Python 3.14.
 3. Do not add `from __future__ import annotations`.
 
-### Backend module roles: `const.py`, `types.py`, `schema.py`, `models.py`
+### Backend module roles: `types.py`, `schema.py`, `models.py`
 
 Use these names consistently at the top level and inside subpackages. For
 example, `app.storage.database.types` should mean the same kind of thing as
 `app.core.types`, but scoped to storage.
-
-**Put in `const.py`**
-
-- Fixed values, thresholds, tunables, and lookup tables.
-- Static mappings between known units, such as enum-to-enum or enum-to-MIME-type maps.
-- No I/O, no generated runtime state, and no business workflows.
 
 **Put in `types.py`**
 
@@ -79,8 +73,7 @@ example, `app.storage.database.types` should mean the same kind of thing as
 **Import direction**
 
 - `types.py` is low-level and must not import `schema.py` or `models.py`.
-- `const.py` may import `types.py` for typed lookup keys, but must not import `schema.py` or `models.py`.
-- `schema.py` may import `types.py` and `const.py`.
+- `schema.py` may import `types.py`.
 - `models.py` should stay independent of Pydantic `schema.py`; use external mapper/helper code when conversion is needed.
 
 ---

@@ -2,7 +2,7 @@
 
 Ground truth for move generation in Vibemon. Read **§1 Design Philosophy** and **§2 Decision Flow** before any table — the tables are constraints; those two sections are the *logic* you apply.
 
-Vibemon caps learnsets at **`MAX_LEVEL = 100`** (`backend/app/const.py`).
+Vibemon caps learnsets at level 100.
 
 The battle engine uses the modern mainline Pokemon-style integer damage formula:
 base damage floors at intermediate steps, critical hits use a 1.5x modifier, random damage is an integer roll
