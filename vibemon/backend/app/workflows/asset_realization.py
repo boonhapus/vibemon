@@ -2,6 +2,7 @@
 
 from PIL import Image
 
+from app.domains.sprite import const as sprite_const
 from app.domains.sprite import types as sprite_types
 from app.domains.vibemon.brand import Color
 from app.domains.vibemon.entity import Vibemon
@@ -22,9 +23,10 @@ def finalize_reference_display(
     normalized_rgba: bytes | Image.Image,
     *,
     facing: sprite_types.SpriteFacing,
+    profile: sprite_const.SnapProfile = sprite_const.SHOWCASE_SNAP,
 ) -> bytes:
-    """Orient a keyed reference to screen-left and snap to the UI pixel grid."""
-    return sprite_postprocess.finalize_reference_display(normalized_rgba, facing=facing)
+    """Orient a keyed reference to screen-left and snap to the display profile."""
+    return sprite_postprocess.finalize_reference_display(normalized_rgba, facing=facing, profile=profile)
 
 
 def normalize_matte_static_sprite(

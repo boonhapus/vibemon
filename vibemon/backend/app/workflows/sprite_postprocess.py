@@ -51,11 +51,25 @@ def finalize_reference_display(
     normalized_rgba: bytes | Image.Image,
     *,
     facing: sprite_types.SpriteFacing,
-    grid: int = sprite_const.REFERENCE_DISPLAY_GRID,
+    profile: sprite_const.SnapProfile = sprite_const.SHOWCASE_SNAP,
 ) -> bytes:
-    """Orient a keyed reference to screen-left, then snap to the UI pixel grid."""
+    """Orient a keyed reference to screen-left, then snap to the display profile.
+
+    Defaults to the showcase profile: the reference shown on screen is large, so
+    it is only lightly snapped. The model-input reference is the unsnapped
+    ``REFERENCE_RAW`` blob and is never routed through here.
+    """
     oriented = sprite_orient.orient_reference_left(normalized_rgba, facing=facing)
-    return pixelsnap.snap_rgba_png(oriented, grid=grid)
+    return pixelsnap.snap_profile_png(oriented, profile)
+
+
+def snap_pose_display(
+    image: bytes | Image.Image,
+    *,
+    profile: sprite_const.SnapProfile,
+) -> bytes:
+    """Snap an extracted pose sprite to its display profile (battle vs emote)."""
+    return pixelsnap.snap_profile_png(image, profile)
 
 
 def compute_display_anchor(image: bytes | Image.Image) -> SpriteAnchor | None:

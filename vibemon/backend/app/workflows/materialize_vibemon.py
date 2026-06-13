@@ -9,17 +9,23 @@ import uuid
 import structlog
 
 from app.domains.move.entity import Move
+from app.domains.sprite import const as sprite_const
 from app.domains.sprite import types as sprite_types
 from app.domains.vibemon import lifecycle as policy
 from app.domains.vibemon.assets import AssetKind, AssetRef
 from app.domains.vibemon.entity import Aesthetic, Vibemon
 from app.domains.vibemon.identity import Identity
-from app.domains.vibemon.types import VibemonLifecycleT
+from app.domains.vibemon.types import PoseT, VibemonLifecycleT
 from app.storage.blob import const as ds_const
 from app.storage.blob.monstore import get_default_monstore
 from app.workflows import sprite_postprocess
 
 _LOGGER = structlog.get_logger(__name__)
+
+
+def _pose_snap_profile(pose: PoseT) -> sprite_const.SnapProfile:
+    """Battle poses snap moderately; emotes follow the showcase treatment."""
+    return sprite_const.BATTLE_SNAP if pose.name.startswith("BATTLE_") else sprite_const.EMOTE_SNAP
 
 
 @dataclasses.dataclass(frozen=True, slots=True)
@@ -169,7 +175,7 @@ class MaterializeVibemon:
             self._put_asset(
                 vibemon,
                 ds_const.POSE_TO_ASSET[pose],
-                sprite_postprocess.encode_rgba_png(image),
+                sprite_postprocess.snap_pose_display(image, profile=_pose_snap_profile(pose)),
             )
             for pose, image in poses.items()
         ]
@@ -218,7 +224,7 @@ class MaterializeVibemon:
                     self._put_asset(
                         vibemon,
                         ds_const.POSE_TO_ASSET[pose],
-                        sprite_postprocess.encode_rgba_png(image),
+                        sprite_postprocess.snap_pose_display(image, profile=_pose_snap_profile(pose)),
                     )
                     for pose, image in poses.items()
                 )

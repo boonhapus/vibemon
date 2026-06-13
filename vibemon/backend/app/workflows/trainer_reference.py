@@ -3,6 +3,7 @@
 from sqlalchemy.ext.asyncio import AsyncSession
 import structlog
 
+from app.domains.sprite import const as sprite_const
 from app.domains.sprite import types as sprite_types
 from app.domains.trainer import assets as trainer_assets
 from app.genai import vibemon_assets
@@ -48,6 +49,7 @@ async def upload_trainer_reference(
     display_reference = asset_realization.finalize_reference_display(
         normalized_reference,
         facing=reference_facing,
+        profile=sprite_const.TRAINER_REFERENCE_SNAP,
     )
     trainer.reference_detected_facing = reference_facing.value
     monstore = get_default_monstore()
