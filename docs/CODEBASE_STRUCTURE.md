@@ -54,7 +54,6 @@ Headless orchestration: takes IDs or domain objects, returns domain objects or r
 | `release_vibemon.py` | Release owned Vibemon back to wild. |
 | `resolve_timeouts.py` | Candidate review timeouts and stale credit holds. |
 | `prune_expired_assets.py` | Remove expired blob assets. |
-| `rebalance_vibemon.py` | Replay birth to rebalance existing persisted Vibemon. |
 | `battle_play.py` | Load battle combatants, start wild battles, submit turns. |
 
 ### `app/providers/`

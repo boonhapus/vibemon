@@ -479,7 +479,7 @@ Keep **tier** complexity budget in tier j2; anatomy extensions reference the sam
 3. **Radiant / mythic** — anatomy extensions only, or separate weight table?
 4. **Backfill** — existing **Vibemon** without `sprite_anatomy`: resolve lazily on next materialize from `vibemon.id`, or one-off migration?
 5. **Secondary constraint catalog** — worth a small matrix (e.g. FLYING secondary adds wings) in v1 or beta v2?
-6. **Provider note codes** — standardize `habitat:marine` vs parsing `provider_visual_notes` free text?
+6. **Provider note codes** — standardize `habitat:marine` vs parsing `identity.visual_notes` free text?
 
 ## Success Criteria
 
