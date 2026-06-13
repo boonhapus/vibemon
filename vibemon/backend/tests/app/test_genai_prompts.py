@@ -14,8 +14,7 @@ def _prompt_vibemon() -> Vibemon:
         identity=Identity(
             name="Embertop",
             elements=(VibemonTypeT.FIRE,),
-            visual_notes="ember shell",
-            provider_visual_notes="clear heat",
+            visual_notes="clear heat",
             base=BaseStats(),
         ),
     )
@@ -28,11 +27,10 @@ def test_render_prompt_returns_metadata_and_text() -> None:
         "species-name.mdc",
         identity=Identity(name="__", elements=(VibemonTypeT.FIRE,), visual_notes="ember shell", base=BaseStats()),
         moves=[],
-        visual_notes=None,
     )
 
     assert rendered.name == "vibemon-name"
-    assert rendered.version == "1.1.1"
+    assert rendered.version == "1.2.0"
     assert rendered.path == "species-name.mdc"
     assert "Type: fire" in rendered.text
 
@@ -40,7 +38,7 @@ def test_render_prompt_returns_metadata_and_text() -> None:
 def test_sprite_reference_prompt_uses_goldilocks_style_without_pokemon_language() -> None:
     rendered = prompts.render("sprite-reference.mdc", vibemon=_prompt_vibemon())
 
-    assert rendered.version == "1.4.0"
+    assert rendered.version == "1.5.0"
     lowered = rendered.text.lower()
     assert "cozy handheld sprite style" in lowered
     assert "style bible" in lowered

@@ -77,9 +77,8 @@ class VibemonAssetGenerator:
         self,
         identity: vibemon_identity.Identity,
         moves: Sequence[move_entity.Move],
-        visual_notes: str | None,
     ) -> str:
-        prompt = prompts.render("species-name.mdc", identity=identity, moves=moves, visual_notes=visual_notes)
+        prompt = prompts.render("species-name.mdc", identity=identity, moves=moves)
         result = await self._text_agent_client().run(prompt.text)
         name = _RX_WORDS_ONLY.sub(repl="", string=result.output)
         await _LOGGER.adebug(

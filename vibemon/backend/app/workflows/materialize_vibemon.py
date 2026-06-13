@@ -38,7 +38,7 @@ class ReferenceAssets:
 
 
 class VibemonAssetGenerator(Protocol):
-    async def generate_name(self, identity: Identity, moves: Sequence[Move], visual_notes: str | None) -> str: ...
+    async def generate_name(self, identity: Identity, moves: Sequence[Move]) -> str: ...
 
     async def generate_reference_image(self, vibemon: Vibemon) -> bytes: ...
 
@@ -115,11 +115,7 @@ class MaterializeVibemon:
             return vibemon, None, None
 
         if vibemon.lifecycle is VibemonLifecycleT.BORN:
-            name = await self._generator.generate_name(
-                vibemon.identity,
-                vibemon.moves,
-                vibemon.identity.provider_visual_notes,
-            )
+            name = await self._generator.generate_name(vibemon.identity, vibemon.moves)
             vibemon.identity = vibemon.identity.model_copy(update={"name": name})
 
         _ensure_aesthetic(vibemon)

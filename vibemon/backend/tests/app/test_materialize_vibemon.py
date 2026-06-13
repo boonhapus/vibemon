@@ -22,7 +22,7 @@ class FakeVibemonAssetGenerator:
     def __init__(self) -> None:
         self.sheet_reference_image: bytes | None = None
 
-    async def generate_name(self, identity: Identity, moves: list[Move], visual_notes: str | None) -> str:
+    async def generate_name(self, identity: Identity, moves: list[Move]) -> str:
         return "Testling"
 
     async def generate_reference_image(self, vibemon: Vibemon) -> bytes:
@@ -146,8 +146,7 @@ def _vibemon() -> Vibemon:
         identity=Identity(
             name="__",
             elements=(VibemonTypeT.FIRE,),
-            visual_notes="small ember shell",
-            provider_visual_notes="clear heat",
+            visual_notes="clear heat",
             base=BaseStats(),
         )
     )
