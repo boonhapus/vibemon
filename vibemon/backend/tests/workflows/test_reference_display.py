@@ -3,13 +3,13 @@ import io
 from PIL import Image
 
 from app.domains.sprite import types as sprite_types
-from app.workflows import asset_realization, pixelsnap
+from app.workflows import asset_realization, pixelsnap, sprite_postprocess
 
 
 def test_finalize_reference_display_orients_and_snaps() -> None:
     image = Image.new("RGBA", (768, 768), (200, 80, 40, 255))
     image.paste((255, 255, 255, 255), (600, 360, 660, 420))
-    normalized = asset_realization.encode_rgba_png(image)
+    normalized = sprite_postprocess.encode_rgba_png(image)
 
     display = Image.open(
         io.BytesIO(

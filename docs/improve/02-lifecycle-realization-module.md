@@ -1,6 +1,6 @@
 # 02 — Lifecycle realization: deep module for Christen/Manifest behind a small interface
 
-**Status:** proposed
+**Status:** implemented (flat variant) — `asset_realization.py` slimmed to the Lifecycle verbs + trainer-reference seam; dead facade re-exports removed, pipeline (`sprite_postprocess`/`rmbg`/`pixelsnap`) now private to the package
 **Priority:** highest (do with 04)
 **Vocabulary:** module / interface / seam / depth / locality / leverage per `improve-codebase-architecture` LANGUAGE.md; domain terms per `docs/development/CONTEXT.md`.
 
