@@ -1,6 +1,6 @@
 # 03 — Adoption plan + Generation Credit policy: push decisions into domain
 
-**Status:** proposed
+**Status:** implemented — `crew.plan_adoption` owns the full adoption decision (slot + release + `CrewFull`); workflow `_adoption_plan` now only locks/fetches and applies. Credit reserve/consume/release were already domain-owned, unchanged.
 **Priority:** high (pairs with 01)
 **Vocabulary:** module / interface / seam / depth / locality / leverage per `improve-codebase-architecture` LANGUAGE.md; domain terms per `docs/development/CONTEXT.md`.
 

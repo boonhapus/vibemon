@@ -69,3 +69,35 @@ def test_crew_requires_release_when_full() -> None:
 
 def test_crew_uses_release_slot_when_full() -> None:
     assert crew.select_adoption_slot(owned_count=crew.MAX_CREW_SIZE, used_slots=set(range(6)), release_slot=4) == 4
+
+
+def _crew(*slots: int) -> list[crew.CrewMember]:
+    return [crew.CrewMember(vibemon_id=uuid.uuid7(), crew_slot=slot) for slot in slots]
+
+
+def test_plan_adoption_fills_open_slot_and_ignores_release_when_room() -> None:
+    owned = _crew(0, 1)
+    plan = crew.plan_adoption(owned=owned, release_vibemon_id=owned[0].vibemon_id)
+
+    assert plan.slot == 2
+    assert plan.release_vibemon_id is None
+
+
+def test_plan_adoption_releases_into_freed_slot_when_full() -> None:
+    owned = _crew(0, 1, 2, 3, 4, 5)
+    released = owned[3]
+
+    plan = crew.plan_adoption(owned=owned, release_vibemon_id=released.vibemon_id)
+
+    assert plan.slot == 3
+    assert plan.release_vibemon_id == released.vibemon_id
+
+
+def test_plan_adoption_full_without_release_raises() -> None:
+    with pytest.raises(CrewFull):
+        crew.plan_adoption(owned=_crew(0, 1, 2, 3, 4, 5), release_vibemon_id=None)
+
+
+def test_plan_adoption_full_with_unowned_release_raises() -> None:
+    with pytest.raises(CrewFull):
+        crew.plan_adoption(owned=_crew(0, 1, 2, 3, 4, 5), release_vibemon_id=uuid.uuid7())

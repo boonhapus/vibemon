@@ -6,7 +6,7 @@ import uuid
 from sqlalchemy.ext.asyncio import AsyncSession
 import sqlalchemy as sa
 
-from app.core.errors import CandidateReviewUnavailable, CrewFull
+from app.core.errors import CandidateReviewUnavailable
 from app.core.ids import TrainerIdT
 from app.core.time import resolve_clock
 from app.domains.adoption import policy as adoption_policy
@@ -101,7 +101,7 @@ async def adopt_candidate(
         await sess.flush()
         raise CandidateReviewUnavailable("Candidate review has timed out.")
 
-    plan = await _adoption_plan(sess, trainer_id=trainer_id, release_vibemon_id=release_vibemon_id)
+    slot, release_row = await _adoption_plan(sess, trainer_id=trainer_id, release_vibemon_id=release_vibemon_id)
     vibemon = await mapper.vibemon_from_row(review.vibemon)
     if nickname is not None:
         trimmed = nickname.strip()
@@ -109,9 +109,9 @@ async def adopt_candidate(
     if manifest and vibemon.lifecycle is not VibemonLifecycleT.MANIFESTED:
         vibemon = await asset_realization.manifest_vibemon(vibemon)
 
-    if plan.release is not None:
-        wild_disposition.release_to_wild(sess, plan.release, trainer_id, now)
-    mapper.apply_adopted_vibemon_to_row(review.vibemon, vibemon, trainer_id=trainer_id, crew_slot=plan.slot)
+    if release_row is not None:
+        wild_disposition.release_to_wild(sess, release_row, trainer_id, now)
+    mapper.apply_adopted_vibemon_to_row(review.vibemon, vibemon, trainer_id=trainer_id, crew_slot=slot)
     review.status = CandidateReviewStatusT.ADOPTED.value
     review.resolution = CandidateReviewStatusT.ADOPTED.value
     review.resolved_at = now
@@ -151,18 +151,13 @@ async def reject_candidate(
     return await public_projection.public_vibemon(loaded, reviewing_trainer_id=trainer_id)
 
 
-class _AdoptionPlan:
-    def __init__(self, *, slot: int, release: models.Vibemon | None) -> None:
-        self.slot = slot
-        self.release = release
-
-
 async def _adoption_plan(
     sess: AsyncSession,
     *,
     trainer_id: TrainerIdT,
     release_vibemon_id: uuid.UUID | None,
-) -> _AdoptionPlan:
+) -> tuple[int, models.Vibemon | None]:
+    """Lock and fetch crew rows, then let the domain decide the adoption plan."""
     await trainer_repo.lock_trainer(sess, trainer_id)
     rows = (
         (
@@ -178,17 +173,12 @@ async def _adoption_plan(
         .scalars()
         .all()
     )
-    used = {row.crew_slot for row in rows if row.crew_slot is not None}
-    release = next((row for row in rows if row.id == release_vibemon_id), None) if release_vibemon_id else None
-    release_slot = release.crew_slot if release is not None else None
-    slot = crew.select_adoption_slot(
-        owned_count=len(rows),
-        used_slots=used,
-        release_slot=release_slot,
+    plan = crew.plan_adoption(
+        owned=[crew.CrewMember(vibemon_id=row.id, crew_slot=row.crew_slot) for row in rows],
+        release_vibemon_id=release_vibemon_id,
     )
-    if len(rows) >= crew.MAX_CREW_SIZE and release is None:
-        raise CrewFull("Release Vibemon is not owned by this trainer.")
-    return _AdoptionPlan(slot=slot, release=release if len(rows) >= crew.MAX_CREW_SIZE else None)
+    release_row = next((row for row in rows if row.id == plan.release_vibemon_id), None)
+    return plan.slot, release_row
 
 
 async def _reserve_credit(
