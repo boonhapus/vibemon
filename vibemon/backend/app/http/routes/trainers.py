@@ -24,7 +24,7 @@ from app.http import deps
 from app.http.schemas import TrainerUsernameBody, UsernameAvailabilityRead
 from app.http.schemas import crew as crew_schemas
 from app.storage.blob.monstore import MonStore, get_default_monstore
-from app.storage.database import mapper, models, read_model, trainer_repo
+from app.storage.database import models, trainer_repo
 from app.workflows import public_projection, trainer_reference
 
 _REFERENCE_MEDIA_BY_SUFFIX = {
@@ -193,13 +193,9 @@ async def upload_reference(
 
 async def _crew_list_read(db: AsyncSession, trainer_id: uuid.UUID) -> crew_schemas.CrewListRead:
     rows = await trainer_repo.load_owned_vibemons(db, trainer_id)
-    assembler = read_model.ReadModelAssembler(
-        schema_loader=mapper.vibemon_from_row,
-        asset_urler=public_projection.default_asset_urler,
-    )
     members = []
     for row in rows:
-        public = await assembler.assemble(row, reviewing_trainer_id=trainer_id)
+        public = await public_projection.public_vibemon(row, reviewing_trainer_id=trainer_id)
         members.append(crew_schemas.crew_member_read(public, reference_detected_facing=row.reference_detected_facing))
     return crew_schemas.CrewListRead(members=tuple(members))
 

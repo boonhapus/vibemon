@@ -1,6 +1,6 @@
 # 05 — Public projection: fold pass-through facade into a read-model module
 
-**Status:** proposed
+**Status:** implemented — `ReadModelAssembler` + `read_model.py` folded into `public_projection.py`; the DI class (schema_loader/asset_urler, never varied) is gone and row → `PublicVibemon` (incl. Monstore URL signing) is one hop. `mapper.py` stays the ORM↔domain adapter.
 **Priority:** medium (smaller win than 01–04)
 **Vocabulary:** module / interface / seam / depth / locality per `improve-codebase-architecture` LANGUAGE.md; domain terms per `docs/development/CONTEXT.md`.
 
