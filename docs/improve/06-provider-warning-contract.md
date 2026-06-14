@@ -1,6 +1,6 @@
 # 06 — Provider Warning path: make warnings testable per Provider
 
-**Status:** proposed
+**Status:** deferred (2026-06-13) — warnings are already a typed field (`Affinity.provider_notes: tuple[ProviderWarning, ...]`) and are testable today via `synthesize(...).provider_notes`, so the headline benefit is largely present without the port change. The contract rewrite touches `base.py` + 6 providers + birth aggregation + Birth Snapshot replay — high surface for low marginal value. Revisit when a concrete need arises (e.g. a new provider that must emit warnings).
 **Priority:** medium
 **Vocabulary:** module / interface / seam / depth / locality per `improve-codebase-architecture` LANGUAGE.md; domain terms per `docs/development/CONTEXT.md`.
 
