@@ -10,6 +10,7 @@ import sys
 import cyclopts
 import pydantic_ai
 
+from app.core.asset_paths import GENERATED_DIR
 from app.domains.vibemon import brand
 from app.genai import google as genai_google
 from app.genai import sprite_facing, static_assets
@@ -19,7 +20,7 @@ from scripts import _common
 COMMON_OPTIONS = cyclopts.Group("Common options", sort_key=0)
 ADVANCED_OPTIONS = cyclopts.Group("Advanced options", sort_key=1)
 
-DEFAULT_OUTPUT_DIR = static_assets.GENERATED_DIR / "assets"
+DEFAULT_OUTPUT_DIR = GENERATED_DIR / "assets"
 
 app = cyclopts.App(
     help=(
