@@ -1,6 +1,6 @@
 # 01 — Candidate Review module: fold five shallow workflow files into one deep module
 
-**Status:** proposed
+**Status:** implemented — `candidate_finalize` / `candidate_refresh` / `candidate_action` / `candidate_manifest` folded into `candidate.py`; HTTP routes import one module. `wild_disposition.py` kept separate (shared by the independent `release_vibemon` and `resolve_timeouts` flows, per the caveat below).
 **Priority:** high (second after 02+04)
 **Vocabulary:** module / interface / seam / depth / locality / leverage per `improve-codebase-architecture` LANGUAGE.md; domain terms per `docs/development/CONTEXT.md`.
 

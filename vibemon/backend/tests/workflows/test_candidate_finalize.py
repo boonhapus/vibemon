@@ -12,7 +12,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.domains.generation.seed import BirthSeed
 from app.domains.sprite import types as sprite_types
 from app.storage.database import candidate_review_repo, models, vibemon_repo
-from app.workflows import candidate_finalize
+from app.workflows import candidate as candidate_workflow
 from app.workflows.candidate import generate_candidate
 from tests.providers.fake_provider import WorkflowFakeProvider as FakeProvider
 
@@ -40,7 +40,7 @@ async def test_record_candidate_review_facing_persists_review_and_row(sess: Asyn
     row.reference_detected_facing = sprite_types.SpriteFacing.RIGHT.value
     await sess.flush()
 
-    facing = await candidate_finalize.record_candidate_review_facing(
+    facing = await candidate_workflow.record_candidate_review_facing(
         sess,
         trainer_id=trainer_id,
         vibemon_id=candidate.id,

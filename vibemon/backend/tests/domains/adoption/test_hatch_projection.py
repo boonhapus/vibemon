@@ -25,7 +25,7 @@ from app.domains.vibemon.schema import (
 )
 from app.domains.vibemon.types import EvolutionStageT, VibemonLifecycleT
 from app.storage.database import candidate_review_repo, models
-from app.workflows import candidate_action
+from app.workflows import candidate as candidate_workflow
 from app.workflows.candidate import generate_candidate
 from tests.providers.fake_provider import WorkflowFakeProvider as FakeProvider
 
@@ -155,7 +155,7 @@ async def test_candidate_action_read_uses_stored_review_facing(sess: AsyncSessio
     review.reference_facing = "right"
     await sess.flush()
 
-    payload = await candidate_action.candidate_action_read(
+    payload = await candidate_workflow.candidate_action_read(
         sess,
         trainer_id=trainer_id,
         vibemon_id=candidate.id,

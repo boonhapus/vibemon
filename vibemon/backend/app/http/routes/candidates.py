@@ -15,7 +15,6 @@ from app.http.schemas import candidates as candidate_schemas
 from app.storage.database import candidate_review_repo
 from app.workflows import birth_seed as birth_seed_factory
 from app.workflows import candidate as candidate_workflow
-from app.workflows import candidate_action, candidate_finalize, candidate_manifest, candidate_refresh
 
 
 @get("/current")
@@ -28,7 +27,7 @@ async def current_candidate(
     review = await candidate_review_repo.load_pending_candidate_review(db, trainer_id=trainer.id)
     if review is None:
         return None
-    return await candidate_action.candidate_action_read(
+    return await candidate_workflow.candidate_action_read(
         db,
         trainer_id=trainer.id,
         vibemon_id=review.vibemon_id,
@@ -71,13 +70,13 @@ async def generate_candidate(
         christen=True,
         bypass_credits=bypass_credits,
     )
-    facing = await candidate_finalize.record_candidate_review_facing(
+    facing = await candidate_workflow.record_candidate_review_facing(
         db,
         trainer_id=trainer.id,
         vibemon_id=public.id,
     )
     await db.commit()
-    return await candidate_action.candidate_action_read(
+    return await candidate_workflow.candidate_action_read(
         db,
         trainer_id=trainer.id,
         vibemon_id=public.id,
@@ -93,13 +92,13 @@ async def refresh_candidate(
 ) -> hatch_projection.CandidateActionRead:
     """Redraw the candidate's reference sprite via GenAI."""
     trainer = await deps.load_authenticated_trainer(request, db)
-    facing = await candidate_refresh.refresh_candidate_display_assets(
+    facing = await candidate_workflow.refresh_candidate_display_assets(
         db,
         trainer_id=trainer.id,
         vibemon_id=vibemon_id,
     )
     await db.commit()
-    return await candidate_action.candidate_action_read(
+    return await candidate_workflow.candidate_action_read(
         db,
         trainer_id=trainer.id,
         vibemon_id=vibemon_id,
@@ -138,10 +137,10 @@ async def adopt_candidate(
     await db.commit()
 
     session_factory: async_sessionmaker[AsyncSession] = request.app.state.session_factory
-    payload = await candidate_action.candidate_action_read(db, trainer_id=trainer.id, vibemon_id=adopted.id)
+    payload = await candidate_workflow.candidate_action_read(db, trainer_id=trainer.id, vibemon_id=adopted.id)
     return Response(
         content=payload,
-        background=BackgroundTask(candidate_manifest.manifest_adopted_vibemon, vibemon_id, session_factory),
+        background=BackgroundTask(candidate_workflow.manifest_adopted_vibemon, vibemon_id, session_factory),
     )
 
 

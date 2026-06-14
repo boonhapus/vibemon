@@ -3,12 +3,14 @@
 import datetime as dt
 import uuid
 
-from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
 import sqlalchemy as sa
+import structlog
 
 from app.core.errors import CandidateReviewUnavailable
 from app.core.ids import TrainerIdT
 from app.core.time import resolve_clock
+from app.domains.adoption import hatch_projection
 from app.domains.adoption import policy as adoption_policy
 from app.domains.adoption.candidate import CANDIDATE_REVIEW_TIMEOUT
 from app.domains.adoption.types import CandidateReviewStatusT
@@ -28,6 +30,9 @@ from app.storage.database import (
     vibemon_repo,
 )
 from app.workflows import asset_realization, birth_persist, public_projection, wild_disposition
+from app.workflows.reference_facing import resolve_reference_facing
+
+_LOGGER = structlog.get_logger(__name__)
 
 
 async def generate_candidate(
@@ -149,6 +154,88 @@ async def reject_candidate(
     await sess.flush()
     loaded = await vibemon_repo.load_vibemon(sess, vibemon_id)
     return await public_projection.public_vibemon(loaded, reviewing_trainer_id=trainer_id)
+
+
+async def record_candidate_review_facing(
+    sess: AsyncSession,
+    *,
+    trainer_id: TrainerIdT,
+    vibemon_id: uuid.UUID,
+) -> str:
+    """Persist hatch UI facing on the pending review and vibemon row after generate."""
+    row = await vibemon_repo.load_vibemon(sess, vibemon_id)
+    vibemon = await mapper.vibemon_from_row(row)
+    facing = resolve_reference_facing(vibemon)
+    review = await candidate_review_repo.pending_review(sess, trainer_id=trainer_id, vibemon_id=vibemon_id)
+    review.reference_facing = facing
+    row.reference_detected_facing = (
+        vibemon.reference_detected_facing.value if vibemon.reference_detected_facing else None
+    )
+    return facing
+
+
+async def refresh_candidate_display_assets(
+    sess: AsyncSession,
+    *,
+    trainer_id: TrainerIdT,
+    vibemon_id: uuid.UUID,
+) -> str:
+    """Regenerate the candidate's reference assets and return the refreshed facing."""
+    review = await candidate_review_repo.pending_review(sess, trainer_id=trainer_id, vibemon_id=vibemon_id)
+    vibemon = await mapper.vibemon_from_row(review.vibemon)
+    vibemon = await asset_realization.regenerate_display_assets(vibemon)
+    mapper.apply_vibemon_to_row(review.vibemon, vibemon)
+    await vibemon_repo.persist_assets(sess, vibemon)
+    facing = resolve_reference_facing(vibemon)
+    review.reference_facing = facing
+    return facing
+
+
+async def candidate_action_read(
+    sess: AsyncSession,
+    *,
+    trainer_id: TrainerIdT,
+    vibemon_id: uuid.UUID,
+    reference_facing: str | None = None,
+) -> hatch_projection.CandidateActionRead:
+    """Build the hatch UI payload for one candidate action response."""
+    row = await vibemon_repo.load_vibemon(sess, vibemon_id)
+    public = await public_projection.public_vibemon(row, reviewing_trainer_id=trainer_id)
+    crew_count = await trainer_repo.count_owned_vibemons(sess, trainer_id)
+
+    if reference_facing is None:
+        vibemon = await mapper.vibemon_from_row(row)
+        review = await candidate_review_repo.load_pending_candidate_review(sess, trainer_id=trainer_id)
+        if review is not None and review.vibemon_id == vibemon_id and review.reference_facing:
+            reference_facing = review.reference_facing
+        else:
+            reference_facing = resolve_reference_facing(vibemon)
+
+    return hatch_projection.CandidateActionRead(
+        candidate=hatch_projection.assemble_hatch_candidate(public, reference_facing=reference_facing),
+        crew_count=crew_count,
+    )
+
+
+async def manifest_adopted_vibemon(
+    vibemon_id: uuid.UUID,
+    session_factory: async_sessionmaker[AsyncSession],
+) -> None:
+    """Manifest an owned Vibemon in its own session; safe as a background task."""
+    async with session_factory() as sess:
+        try:
+            row = await vibemon_repo.load_vibemon(sess, vibemon_id)
+            vibemon = await mapper.vibemon_from_row(row)
+            if vibemon.lifecycle is VibemonLifecycleT.MANIFESTED:
+                return
+            vibemon = await asset_realization.manifest_vibemon(vibemon)
+            mapper.apply_vibemon_to_row(row, vibemon)
+            await vibemon_repo.persist_assets(sess, vibemon)
+            await sess.commit()
+            await _LOGGER.ainfo("background_manifest_complete", vibemon_id=str(vibemon_id))
+        except Exception as exc:
+            await sess.rollback()
+            await _LOGGER.aerror("background_manifest_failed", vibemon_id=str(vibemon_id), error=str(exc))
 
 
 async def _adoption_plan(
