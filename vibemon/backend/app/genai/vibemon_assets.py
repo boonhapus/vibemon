@@ -206,8 +206,16 @@ def validate_reference_likeness(data: bytes, *, media_type: str) -> None:
 
 
 @ft.cache
-def get_default_asset_generator() -> VibemonAssetGenerator:
-    """Process-wide asset generator wired from ``Settings.load()``."""
+def get_default_asset_generator() -> Any:
+    """Process-wide asset generator wired from ``Settings.load()``.
+
+    Returns the offline ``FakeVibemonAssetGenerator`` when ``genai.fake_assets``
+    is set (``VIBEMON_GENAI__FAKE_ASSETS=1`` / ``--fake-assets``).
+    """
+    if Settings.load().genai.fake_assets:
+        from app.genai.fake_assets import FakeVibemonAssetGenerator
+
+        return FakeVibemonAssetGenerator()
     return VibemonAssetGenerator()
 
 

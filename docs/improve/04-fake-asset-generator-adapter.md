@@ -1,6 +1,6 @@
 # 04 — VibemonAssetGenerator: turn hypothetical seam real with a fake adapter
 
-**Status:** proposed
+**Status:** implemented — `app/genai/fake_assets.py`, selected via `genai.fake_assets` (`VIBEMON_GENAI__FAKE_ASSETS=1`)
 **Priority:** highest (do with 02; cheap)
 **Vocabulary:** module / interface / seam / adapter / depth / locality per `improve-codebase-architecture` LANGUAGE.md; domain terms per `docs/development/CONTEXT.md`.
 

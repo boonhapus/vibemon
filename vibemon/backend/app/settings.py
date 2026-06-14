@@ -86,6 +86,8 @@ class GenAiModels(pydantic.BaseModel):
 
     text: GoogleModelString
     image: GoogleModelString
+    fake_assets: bool = False
+    """Use the offline ``FakeVibemonAssetGenerator`` instead of the Google client."""
 
 
 class StorageUrls(pydantic.BaseModel):
