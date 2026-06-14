@@ -13,7 +13,7 @@ import pydantic_ai
 from app.domains.vibemon import brand
 from app.genai import google as genai_google
 from app.genai import sprite_facing, static_assets
-from app.workflows import asset_realization
+from app.workflows import pixelsnap, sprite_postprocess
 from scripts import _common
 
 COMMON_OPTIONS = cyclopts.Group("Common options", sort_key=0)
@@ -108,7 +108,8 @@ async def _generate_png(
     if matte is None:
         return raw, None
 
-    rgba = asset_realization.normalize_matte_static_sprite(raw, bg_color=matte)
+    keyed = sprite_postprocess.normalize_trainer_reference_image(raw, bg_color=matte)
+    rgba = pixelsnap.snap_rgba_png(keyed)
     return rgba, matte.hex
 
 

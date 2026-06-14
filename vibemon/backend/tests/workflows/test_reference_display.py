@@ -3,7 +3,7 @@ import io
 from PIL import Image
 
 from app.domains.sprite import types as sprite_types
-from app.workflows import asset_realization, pixelsnap, sprite_postprocess
+from app.workflows import pixelsnap, sprite_postprocess
 
 
 def test_finalize_reference_display_orients_and_snaps() -> None:
@@ -13,7 +13,7 @@ def test_finalize_reference_display_orients_and_snaps() -> None:
 
     display = Image.open(
         io.BytesIO(
-            asset_realization.finalize_reference_display(
+            sprite_postprocess.finalize_reference_display(
                 normalized,
                 facing=sprite_types.SpriteFacing.RIGHT,
             )

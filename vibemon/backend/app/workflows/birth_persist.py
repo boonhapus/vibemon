@@ -10,7 +10,7 @@ from app.domains.generation.types import ProviderWarning
 from app.domains.vibemon.entity import Vibemon
 from app.storage.database import models, vibemon_repo
 from app.storage.secrets.repository import DbTrainerSecrets
-from app.workflows import asset_realization
+from app.workflows.materialize_vibemon import MaterializeVibemon
 
 
 async def birth_and_persist_vibemon(
@@ -30,7 +30,7 @@ async def birth_and_persist_vibemon(
         nickname=nickname,
     )
     if christen:
-        vibemon = await asset_realization.christen_vibemon(vibemon)
+        vibemon = await MaterializeVibemon().christen(vibemon)
     row = await vibemon_repo.persist_new_vibemon(
         sess,
         vibemon=vibemon,

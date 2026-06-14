@@ -29,7 +29,8 @@ from app.storage.database import (
     trainer_repo,
     vibemon_repo,
 )
-from app.workflows import asset_realization, birth_persist, public_projection, wild_disposition
+from app.workflows import birth_persist, public_projection, wild_disposition
+from app.workflows.materialize_vibemon import MaterializeVibemon
 from app.workflows.reference_facing import resolve_reference_facing
 
 _LOGGER = structlog.get_logger(__name__)
@@ -112,7 +113,7 @@ async def adopt_candidate(
         trimmed = nickname.strip()
         vibemon.nickname = trimmed or None
     if manifest and vibemon.lifecycle is not VibemonLifecycleT.MANIFESTED:
-        vibemon = await asset_realization.manifest_vibemon(vibemon)
+        vibemon = await MaterializeVibemon().manifest(vibemon)
 
     if release_row is not None:
         wild_disposition.release_to_wild(sess, release_row, trainer_id, now)
@@ -183,7 +184,7 @@ async def refresh_candidate_display_assets(
     """Regenerate the candidate's reference assets and return the refreshed facing."""
     review = await candidate_review_repo.pending_review(sess, trainer_id=trainer_id, vibemon_id=vibemon_id)
     vibemon = await mapper.vibemon_from_row(review.vibemon)
-    vibemon = await asset_realization.regenerate_display_assets(vibemon)
+    vibemon = await MaterializeVibemon().regenerate_display_assets(vibemon)
     mapper.apply_vibemon_to_row(review.vibemon, vibemon)
     await vibemon_repo.persist_assets(sess, vibemon)
     facing = resolve_reference_facing(vibemon)
@@ -228,7 +229,7 @@ async def manifest_adopted_vibemon(
             vibemon = await mapper.vibemon_from_row(row)
             if vibemon.lifecycle is VibemonLifecycleT.MANIFESTED:
                 return
-            vibemon = await asset_realization.manifest_vibemon(vibemon)
+            vibemon = await MaterializeVibemon().manifest(vibemon)
             mapper.apply_vibemon_to_row(row, vibemon)
             await vibemon_repo.persist_assets(sess, vibemon)
             await sess.commit()

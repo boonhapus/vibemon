@@ -12,7 +12,8 @@ from app.domains.generation.seed import BirthSeed
 from app.domains.vibemon.schema import PublicVibemon
 from app.domains.vibemon.types import VibemonLifecycleT
 from app.storage.database import mapper, vibemon_repo
-from app.workflows import asset_realization, public_projection
+from app.workflows import public_projection
+from app.workflows.materialize_vibemon import MaterializeVibemon
 from app.workflows import birth_seed as birth_seed_factory
 from app.workflows import candidate as candidate_workflow
 from scripts import _common
@@ -172,9 +173,9 @@ async def _materialize_vibemon(
     row = await vibemon_repo.load_vibemon(sess, vibemon_id)
     vibemon = await mapper.vibemon_from_row(row)
     if lifecycle is VibemonLifecycleT.CHRISTENED:
-        vibemon = await asset_realization.christen_vibemon(vibemon)
+        vibemon = await MaterializeVibemon().christen(vibemon)
     elif lifecycle is VibemonLifecycleT.MANIFESTED:
-        vibemon = await asset_realization.christen_and_manifest_vibemon(vibemon)
+        vibemon = await MaterializeVibemon().christen_and_manifest(vibemon)
     mapper.apply_vibemon_to_row(row, vibemon)
     await vibemon_repo.persist_assets(sess, vibemon)
     await sess.flush()

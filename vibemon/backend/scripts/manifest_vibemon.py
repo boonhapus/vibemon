@@ -10,7 +10,7 @@ import structlog
 
 from app.domains.vibemon.types import VibemonLifecycleT
 from app.storage.database import mapper, models, vibemon_repo
-from app.workflows import asset_realization
+from app.workflows.materialize_vibemon import MaterializeVibemon
 from scripts import _common
 
 _LOGGER = structlog.get_logger(__name__)
@@ -116,11 +116,11 @@ async def _run_batch(
                 row = await vibemon_repo.load_vibemon(sess, current_id)
                 vibemon = await mapper.vibemon_from_row(row)
                 if regenerate:
-                    vibemon = await asset_realization.regenerate_display_assets(vibemon)
+                    vibemon = await MaterializeVibemon().regenerate_display_assets(vibemon)
                 elif reprocess:
-                    vibemon = await asset_realization.reprocess_display_assets(vibemon)
+                    vibemon = await MaterializeVibemon().reprocess_display_assets(vibemon)
                 else:
-                    vibemon = await asset_realization.manifest_vibemon(vibemon)
+                    vibemon = await MaterializeVibemon().manifest(vibemon)
                 mapper.apply_vibemon_to_row(row, vibemon)
                 await vibemon_repo.persist_assets(sess, vibemon)
                 await sess.commit()

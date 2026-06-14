@@ -10,7 +10,7 @@ from app.genai import vibemon_assets
 from app.storage.blob import assets as blob_assets
 from app.storage.blob.monstore import get_default_monstore
 from app.storage.database import models
-from app.workflows import asset_realization
+from app.workflows import sprite_postprocess
 
 _LOGGER = structlog.get_logger(__name__)
 
@@ -35,7 +35,7 @@ async def upload_trainer_reference(
         likeness_media_type=media_type,
     )
 
-    normalized_reference = asset_realization.normalize_trainer_reference(
+    normalized_reference = sprite_postprocess.normalize_trainer_reference_image(
         raw_reference,
         bg_color=background_color,
     )
@@ -46,7 +46,7 @@ async def upload_trainer_reference(
         await _LOGGER.awarn("trainer_reference_facing_detection_failed", error=str(exc))
         reference_facing = sprite_types.SpriteFacing.RIGHT
 
-    display_reference = asset_realization.finalize_reference_display(
+    display_reference = sprite_postprocess.finalize_reference_display(
         normalized_reference,
         facing=reference_facing,
         profile=sprite_const.TRAINER_REFERENCE_SNAP,
