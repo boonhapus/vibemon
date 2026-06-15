@@ -28,6 +28,10 @@ from .openmeteo import schema as openmeteo_schema
 
 _LOGGER = structlog.get_logger(__name__)
 
+# Sigmoid shift for intensity: a typical day (tail distance ~ 0) maps to ~0.30 rather
+# than 0.50, anchoring the scale to monotonic rarity. sigmoid(-0.85) ≈ 0.30.
+_INTENSITY_FLOOR_SHIFT = 0.85
+
 _WINDY_WEATHER_CODES = frozenset(
     {
         WeatherCode.RAIN_SHOWERS_VIOLENT,
@@ -326,13 +330,15 @@ class ClimateProvider(VibeProvider[climate_schema.ClimatePayload]):
         """
         Calculates a normalized weather intensity score (0.0 to 1.0) for a specific day.
 
-        Computes Z-scores across extreme weather signals to identify the most extreme
-        outlier. The maximum absolute deviation is passed through a sigmoid function,
-        where 0.5 represents an average day, values > 0.5 indicate high intensity,
-        and values < 0.5 indicate unusually low intensity.
+        Computes Z-scores of the hatch day against its trailing ~6-week window, then
+        scores rarity by how far the day sits in the tail of that local distribution.
+        Temperature counts in both directions (a record cold day is as rare as a record
+        hot one); precipitation, wind, convective potential, and visibility degradation
+        count only on their intense tail (a calm/dry/clear day is common, not rare).
 
-        Signals: temperature extremes (heat/cold), precipitation, wind gusts, convective
-        potential, and visibility degradation.
+        The aggregate tail distance is passed through a shifted sigmoid so a typical day
+        lands on a soft floor (~0.30) and extremes climb toward 1.0 — monotonic rarity,
+        not a 0.5-centered anomaly.
         """
         # Aggregate signals representing intense weather
         temp_max = [v or 20.0 for v in daily["temperature_2m_max"]]
@@ -349,17 +355,19 @@ class ClimateProvider(VibeProvider[climate_schema.ClimatePayload]):
                 return 0.0
             return (values[index] - statistics.mean(values)) / stdev
 
-        # Find max absolute deviation across all intensity signals
-        deviations = [
-            z_score(temp_max),
-            z_score(temp_min),
-            z_score(precip),
-            z_score(wind_gusts),
-            z_score(cape),
-            z_score(visibility_inverted),
-        ]
-        deviation = max(deviations, key=abs)
-        return round(number=1.0 / (1.0 + math.exp(-deviation)), ndigits=4)
+        # Tail distance per signal: temperature is two-tailed (heat and cold are both
+        # notable), the rest one-tailed (only their intense excess is rare).
+        rarity_z = max(
+            abs(z_score(temp_max)),
+            abs(z_score(temp_min)),
+            max(z_score(precip), 0.0),
+            max(z_score(wind_gusts), 0.0),
+            max(z_score(cape), 0.0),
+            max(z_score(visibility_inverted), 0.0),
+        )
+        # Shift so a typical day (rarity_z ~ 0) sits on a soft floor near 0.30 rather
+        # than 0.50, keeping the scale monotonic in rarity and aligned with celestial.
+        return round(1.0 / (1.0 + math.exp(-(rarity_z - _INTENSITY_FLOOR_SHIFT))), ndigits=4)
 
     def determine_element_scores(
         self,

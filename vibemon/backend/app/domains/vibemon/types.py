@@ -2,11 +2,17 @@
 
 from typing import Annotated, Literal, Self
 import enum
+import math
 import random
 
 from annotated_types import Len
 
 from app.domains.move.types import VibemonTypeT
+
+# Strength of the rarity tilt on evolution-line seeding. At max rarity (intensity=1.0)
+# this roughly triples the pseudo-legendary chance and makes STAGE_3 the modal line;
+# at min rarity it concentrates mass on BASE. See EvolutionStageT.random_seed.
+_EVO_SEED_RARITY_TILT = 0.6
 
 type BaseStatT = Annotated[int, "a clamped value between [5, 255]"]
 type BaseStatNameT = Literal["hp", "attack", "defense", "sp_attack", "sp_defense", "speed"]
@@ -61,11 +67,25 @@ class EvolutionStageT(enum.IntEnum):
     ULTRA_LEGENDARY = 99
 
     @classmethod
-    def random_seed(cls, *, rng: random.Random | None = None) -> Self:
+    def random_seed(cls, *, rng: random.Random | None = None, intensity: float = 0.5) -> Self:
+        """Draw an evolution-line seed, biased toward stronger lines by birth rarity.
+
+        ``intensity`` is the merged birth rarity in [0, 1]. At 0.5 the draw matches the
+        neutral base distribution; higher rarity tilts mass toward the longer/stronger
+        lines (STAGE_3, PSEUDO_LEGENDARY) and lower rarity toward BASE, via an
+        exponential tilt on each stage's strength rank.
+        """
         stages = [cls.BASE, cls.STAGE_2, cls.STAGE_3, cls.PSEUDO_LEGENDARY]
-        rarity = [24, 41, 34, 1]
+        base_rarity = [24, 41, 34, 1]
+        # Strength ranks centered on the mean so a neutral intensity leaves weights intact.
+        centered_ranks = [-1.5, -0.5, 0.5, 1.5]
+        signed = (intensity - 0.5) * 2.0  # [-1, 1]: negative = common, positive = rare
+        weights = [
+            w * math.exp(_EVO_SEED_RARITY_TILT * signed * rank)
+            for w, rank in zip(base_rarity, centered_ranks, strict=True)
+        ]
         chooser = rng if rng is not None else random
-        return chooser.choices(stages, rarity, k=1)[0]
+        return chooser.choices(stages, weights, k=1)[0]
 
 
 class PoseT(enum.StrEnum):

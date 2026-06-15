@@ -35,6 +35,25 @@ from .reccobeats.api import ReccoBeatsAPIClient
 
 _LOGGER = structlog.get_logger(__name__)
 
+# Audio features whose play-weighted center defines a listener's sonic palette. Each
+# Signal.center is normalized so the population median sits at 0.5, so distance from
+# 0.5 across these features measures how distinctive (rare) the taste is.
+_PALETTE_FEATURES: tuple[str, ...] = (
+    "valence",
+    "energy",
+    "acousticness",
+    "instrumentalness",
+    "danceability",
+    "speechiness",
+    "tempo",
+    "loudness",
+)
+# Shifted sigmoid over normalized palette distance: a median-ish listener lands on a
+# soft floor (~0.17 at perfect-median, ~0.31 for a typical spread) and a far-from-median
+# palette climbs toward ~0.88. sigmoid(_SCALE * (rarity - _PIVOT)).
+_INTENSITY_DISTANCE_SCALE = 4.0
+_INTENSITY_DISTANCE_PIVOT = 0.40
+
 
 class MusicProvider(VibeProvider[schema.MusicPayload]):
     """
@@ -335,8 +354,8 @@ class MusicProvider(VibeProvider[schema.MusicPayload]):
         # RAW DATA
         signals = self.derive_signals(payload)
 
-        # INTENSITY SKEW
-        intensity = self.calculate_intensity(last7d=payload.last7d, last1m=payload.last1m)
+        # INTENSITY: rarity of the listener's sonic palette
+        intensity = self.calculate_intensity(signals)
 
         # RANKED ELEMENTS BASED ON THE DATA
         rankings, synth_notes = self.determine_element_scores(payload.tracks)
@@ -424,27 +443,23 @@ class MusicProvider(VibeProvider[schema.MusicPayload]):
         }
         # fmt: on
 
-    def calculate_intensity(self, *, last7d: int, last1m: int) -> float:
+    def calculate_intensity(self, signals: dict[str, Signal]) -> float:
         """
-        Map recent (7-day) vs. baseline play rates to [0, 1] via log-ratio sigmoid.
+        Score how rare a listener's sonic palette is via distance from the median listener.
 
-        `last1m` is the cumulative 30-day count (which includes the last 7 days),
-        so we subtract the week out to get a disjoint 23-day baseline. The score
-        compares the recent daily pace against that baseline:
-             0.5 -> recent pace matches baseline (steady)
-            >0.5 -> trending up
-            <0.5 -> cooling off
+        Each palette feature's play-weighted ``center`` is normalized so the population
+        median sits at 0.5. The RMS deviation from 0.5 across the palette measures how
+        distinctive the taste is: common middle-of-the-road palettes stay near a soft
+        floor, far-from-median palettes climb toward 1.0. Monotonic in rarity (no
+        0.5-centered momentum), aligned with the celestial and climate scales.
         """
-        prior_plays = last1m - last7d
-
-        if prior_plays <= 0:
-            # No baseline to compare against: hot if there's any recent activity,
-            # neutral if there's nothing at all.
-            return 1.0 if last7d else 0.5
-
-        ratio = (last7d / 7) / (prior_plays / 23)
-        z = math.log(ratio) if ratio > 0 else -10.0
-        return round(1.0 / (1.0 + math.exp(-z)), ndigits=4)
+        deviations = [signals[name].center - 0.5 for name in _PALETTE_FEATURES if name in signals]
+        if deviations:
+            rms = math.sqrt(sum(d * d for d in deviations) / len(deviations))
+            rarity = min(2.0 * rms, 1.0)  # center deviation maxes at 0.5; scale to [0, 1]
+        else:
+            rarity = 0.0
+        return round(1.0 / (1.0 + math.exp(-_INTENSITY_DISTANCE_SCALE * (rarity - _INTENSITY_DISTANCE_PIVOT))), ndigits=4)
 
     def determine_element_scores(
         self,

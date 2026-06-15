@@ -328,7 +328,7 @@ class CelestialProvider(VibeProvider[celestial_schema.CelestialPayload]):
         angular = sum(1 for name in const.TRADITIONAL_BODIES if bodies[name].house in const.ANGULAR_HOUSES)
         base = angular / len(const.TRADITIONAL_BODIES)
 
-        lunation = max(abs(chart.moon_illumination - 0.5) * 2.0, 0.0) * 0.15
+        lunation = abs(chart.moon_illumination - 0.5) * 2.0 * 0.15
         eclipse = 0.12 if chart.eclipse_season else 0.0
         tight_aspects = sum(1 for aspect in chart.aspects if aspect.orb_deg <= const.TIGHT_ASPECT_MAX_ORB)
         tension = min(tight_aspects, 4) / 4.0 * 0.10

@@ -137,6 +137,48 @@ def test_calculate_intensity_handles_missing_visibility() -> None:
     assert 0.0 <= intensity <= 1.0
 
 
+def _flat_window(hatch: dict[str, float]) -> dict[str, list[float | None]]:
+    """Build a 6-day window of mundane baseline days, then append one hatch day."""
+    baseline = {
+        "temperature_2m_max": 20.0,
+        "temperature_2m_min": 8.0,
+        "precipitation_sum": 1.5,
+        "wind_gusts_10m_max": 30.0,
+        "cape_mean": 100.0,
+        "visibility_mean": 15000.0,
+    }
+    return cast(
+        dict[str, list[float | None]],
+        {key: [baseline[key]] * 6 + [hatch.get(key, baseline[key])] for key in baseline},
+    )
+
+
+def test_intensity_typical_day_sits_on_soft_floor() -> None:
+    # A hatch day matching its baseline is common — it should land near the ~0.30 floor.
+    intensity = ClimateProvider().calculate_intensity(_flat_window({}), index=-1)
+
+    assert 0.25 <= intensity <= 0.35
+
+
+def test_intensity_is_symmetric_for_temperature_extremes() -> None:
+    # A record-cold hatch day is as rare as a record-hot one, so both score high.
+    provider = ClimateProvider()
+    heat = provider.calculate_intensity(_flat_window({"temperature_2m_max": 45.0}), index=-1)
+    cold = provider.calculate_intensity(_flat_window({"temperature_2m_min": -25.0}), index=-1)
+
+    assert heat > 0.6
+    assert cold > 0.6
+
+
+def test_intensity_ignores_calm_dry_tail() -> None:
+    # A drier/calmer-than-baseline day is common, not rare — stays on the floor.
+    calm = ClimateProvider().calculate_intensity(
+        _flat_window({"precipitation_sum": 0.0, "wind_gusts_10m_max": 5.0}), index=-1
+    )
+
+    assert calm <= 0.35
+
+
 def test_climate_move_catalog_has_fifteen_moves_per_exposed_element() -> None:
     provider = ClimateProvider()
     exposed_types = set(provider.get_exposed_elements())

@@ -281,6 +281,31 @@ class BiomeProvider(VibeProvider[biome_schema.BiomePayload]):
             inland_feature=water.get("inland_feature"),  # type: ignore[arg-type]
         )
 
+    @classmethod
+    def calculate_intensity(cls, payload: biome_schema.BiomePayload) -> float:
+        """Rarity of the birthplace biome: land-cover base plus altitude and water bonuses."""
+        land_cover = const.WorldCoverClassT(payload.land_cover_class)
+        base = const.LAND_COVER_RARITY.get(land_cover, const.LAND_COVER_RARITY_DEFAULT)
+
+        elevation = clamp(
+            (payload.elevation_m - const.ELEVATION_RARITY_FLOOR_M) / const.ELEVATION_RARITY_SPAN_M,
+            minimum=0.0,
+            maximum=1.0,
+        ) * const.ELEVATION_RARITY_WEIGHT
+
+        distances = [d for d in (payload.nearest_marine_km, payload.nearest_inland_water_km) if d is not None]
+        if distances:
+            proximity = clamp(
+                (const.WATER_ADJACENCY_KM - min(distances)) / const.WATER_ADJACENCY_KM,
+                minimum=0.0,
+                maximum=1.0,
+            )
+        else:
+            proximity = 0.0
+        water = proximity * const.WATER_ADJACENCY_WEIGHT
+
+        return round(clamp(base + elevation + water, minimum=0.0, maximum=1.0), ndigits=4)
+
     async def synthesize(self, seed: BirthSeed, payload: biome_schema.BiomePayload) -> Affinity:
         rng = seed.rng(f"provider.{self.name}.moves")
         land_cover = const.WorldCoverClassT(payload.land_cover_class)
@@ -307,7 +332,7 @@ class BiomeProvider(VibeProvider[biome_schema.BiomePayload]):
         return Affinity(
             identity=Identity(name="__", elements=elements, base=base_stats),
             visual_notes=self.visual_notes(payload, rng=seed.rng(f"provider.{self.name}.visuals")),
-            intensity=const.INTENSITY,
+            intensity=self.calculate_intensity(payload),
             provider_id=self.name,
             element_rankings=rankings,
             moves=pick_starter_moves(

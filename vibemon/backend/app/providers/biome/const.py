@@ -338,7 +338,33 @@ HIGH_ELEVATION_ELEMENT_WEIGHTS: Final[dict[VibemonTypeT, float]] = {
     VibemonTypeT.DRAGON: 0.20,
 }
 
-INTENSITY: Final[float] = 0.5
+# Intensity = rarity of the birthplace's biome. A per-land-cover base (approximating
+# global land-area share: common cover → soft floor, scarce cover → high) plus additive
+# bonuses for rare terrain (high altitude, water adjacency), clamped to [0, 1]. Mirrors
+# the celestial provider's "categorical base + rare-condition bonuses" shape.
+LAND_COVER_RARITY: Final[dict[WorldCoverClassT, float]] = {
+    WorldCoverClassT.TREE_COVER: 0.20,
+    WorldCoverClassT.CROPLAND: 0.20,
+    WorldCoverClassT.GRASSLAND: 0.22,
+    WorldCoverClassT.SHRUBLAND: 0.28,
+    WorldCoverClassT.BARE_SPARSE: 0.30,
+    WorldCoverClassT.BUILT_UP: 0.45,
+    WorldCoverClassT.PERMANENT_WATER: 0.45,
+    WorldCoverClassT.MOSS_LICHEN: 0.55,
+    WorldCoverClassT.HERBACEOUS_WETLAND: 0.55,
+    WorldCoverClassT.SNOW_ICE: 0.60,
+    WorldCoverClassT.MANGROVES: 0.65,
+}
+LAND_COVER_RARITY_DEFAULT: Final[float] = 0.30
+
+# Elevation bonus ramps from sea level toward high altitude (rare, evocative terrain).
+ELEVATION_RARITY_FLOOR_M: Final[float] = 1500.0
+ELEVATION_RARITY_SPAN_M: Final[float] = 2500.0
+ELEVATION_RARITY_WEIGHT: Final[float] = 0.25
+
+# Water-adjacency bonus: most land is deep inland, so coast/lakeside proximity is rare.
+WATER_ADJACENCY_KM: Final[float] = 2.0
+WATER_ADJACENCY_WEIGHT: Final[float] = 0.15
 
 # Visual-note composition thresholds (elevation uses the same Signal as scoring).
 HIGH_ELEVATION_VISUAL_THRESHOLD: Final[float] = 0.62

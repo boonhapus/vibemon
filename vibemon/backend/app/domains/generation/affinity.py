@@ -90,6 +90,7 @@ class Affinity(FrozenSchema):
 
         name = ""
         total = 0
+        intensity_mass = 0.0
         stats = {k: 0 for k in stat_keys}
         notes: list[str] = []
         pop_m: list[tuple[Move, int]] = []
@@ -98,6 +99,7 @@ class Affinity(FrozenSchema):
         for idx, affinity in enumerate(sorted(affinities, key=lambda a: (-a.intensity, a.provider_id))):
             weight = int(affinity.intensity * 100)
             total += weight
+            intensity_mass += affinity.intensity * weight
 
             for k in stat_keys:
                 stats[k] += weight * math.floor(getattr(affinity.identity.base, k))
@@ -113,6 +115,9 @@ class Affinity(FrozenSchema):
 
         try:
             stats_merged = {k: math.floor(stats[k] / total) for k in stat_keys}
+            # Intensity-weighted mean rarity: providers reporting rarer contexts count
+            # more, so a single extraordinary signal can lift the whole birth.
+            merged_intensity = intensity_mass / total
             elements = filter_element_types(fuse_element_rankings(*ranking_pairs))
             # Weight each pooled move by provider intensity AND type fit against the
             # fused elements, so the final sample respects the mon's actual typing.
@@ -122,7 +127,7 @@ class Affinity(FrozenSchema):
             _LOGGER.exception("Total is zero.", affinities=affinities)
             raise
 
-        evo_seed = types.EvolutionStageT.random_seed(rng=evo_rng)
+        evo_seed = types.EvolutionStageT.random_seed(rng=evo_rng, intensity=merged_intensity)
         evo_stage = types.EvolutionStageT.BASE
         stats_scaled = apply_evo_seed_bst_bias(stats_merged, evo_seed=evo_seed, evo_stage=evo_stage)
 

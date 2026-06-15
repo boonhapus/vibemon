@@ -294,13 +294,43 @@ def test_determine_element_scores_across_tracks() -> None:
     assert scores.get(VibemonTypeT.PSYCHIC, 0) > 0
 
 
-def test_calculate_intensity_balanced_pace() -> None:
-    assert MusicProvider().calculate_intensity(last7d=70, last1m=300) == 0.5
+def test_calculate_intensity_median_palette_sits_on_soft_floor() -> None:
+    # A track at the population median on every feature is the common, undistinctive
+    # listener — rarity should land near the floor, not at 0.5.
+    provider = MusicProvider()
+    signals = provider.derive_signals(_music_payload(_sample_track()))
+
+    assert provider.calculate_intensity(signals) <= 0.35
 
 
-def test_calculate_intensity_hot_week() -> None:
-    intensity = MusicProvider().calculate_intensity(last7d=140, last1m=300)
-    assert intensity > 0.65
+def test_calculate_intensity_extreme_palette_is_rare() -> None:
+    # A palette far from the median on every axis is a distinctive (rare) taste.
+    provider = MusicProvider()
+    signals = provider.derive_signals(
+        _music_payload(
+            _sample_track(
+                valence=0.97,
+                energy=0.98,
+                acousticness=0.95,
+                instrumentalness=0.92,
+                danceability=0.97,
+                speechiness=0.60,
+                tempo=178.0,
+                loudness=-3.2,
+            )
+        )
+    )
+
+    assert provider.calculate_intensity(signals) > 0.6
+
+
+def test_calculate_intensity_is_monotonic_in_distance() -> None:
+    # Pushing one axis further from the median can only raise rarity, never lower it.
+    provider = MusicProvider()
+    near = provider.calculate_intensity(provider.derive_signals(_music_payload(_sample_track(valence=0.55))))
+    far = provider.calculate_intensity(provider.derive_signals(_music_payload(_sample_track(valence=0.97))))
+
+    assert far > near
 
 
 def test_affinity_serializes_provider_notes() -> None:

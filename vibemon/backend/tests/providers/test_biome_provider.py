@@ -141,10 +141,41 @@ def test_inland_suburban_city_stays_steel_electric() -> None:
     assert filter_element_types(scores) == (VibemonTypeT.STEEL, VibemonTypeT.ELECTRIC)
 
 
-def test_intensity_constant_is_half() -> None:
-    from app.providers.biome import const
+def _biome_payload(**overrides: object) -> "biome_schema.BiomePayload":
+    from app.providers.biome import schema as biome_schema
 
-    assert const.INTENSITY == 0.5
+    data: dict[str, object] = {
+        "land_cover_class": "tree_cover",
+        "built_up_fraction": 0.0,
+        "elevation_m": 100.0,
+        "nearest_marine_km": None,
+        "marine_feature": None,
+        "nearest_inland_water_km": None,
+        "inland_feature": None,
+    }
+    data.update(overrides)
+    return biome_schema.BiomePayload.model_validate(data)
+
+
+def test_intensity_common_biome_sits_on_soft_floor() -> None:
+    # Lowland tree cover far from water is the common case — rarity stays near the floor.
+    assert BiomeProvider.calculate_intensity(_biome_payload()) == pytest.approx(0.20)
+
+
+def test_intensity_scarce_cover_and_altitude_are_rare() -> None:
+    # High-altitude snow/ice is a scarce cover on rare terrain — base 0.60 + full altitude bonus.
+    intensity = BiomeProvider.calculate_intensity(
+        _biome_payload(land_cover_class="snow_ice", elevation_m=4200.0)
+    )
+
+    assert intensity == pytest.approx(0.85)
+
+
+def test_intensity_water_adjacency_raises_rarity() -> None:
+    inland = BiomeProvider.calculate_intensity(_biome_payload())
+    coastal = BiomeProvider.calculate_intensity(_biome_payload(nearest_marine_km=0.0))
+
+    assert coastal > inland
 
 
 def test_visual_notes_built_up_near_inland_water() -> None:
@@ -259,7 +290,8 @@ async def test_synthesize_replay_from_london_payload() -> None:
     second = await provider.synthesize(seed, BiomeProvider.parse_payload(payload))
 
     assert first.provider_id == "biome"
-    assert first.intensity == 0.5
+    # built_up base (0.45) + lakeside proximity (0.08 km → ~0.144), no altitude bonus.
+    assert first.intensity == 0.594
     assert first.visual_notes == second.visual_notes
     assert first.visual_notes.split("; ")[0] in WorldCoverClassT.BUILT_UP.profile.visual_bases
     assert "still-water mirror flecks" in first.visual_notes
