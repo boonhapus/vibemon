@@ -1,0 +1,17 @@
+---
+name: register-day
+kind: asset-instance
+asset: game/backgrounds/register--day.png
+model: gemini-3-pro-image
+generated: 2026-06-16
+status: approved
+style_anchor: base-style-background.md
+reference_asset: game/backgrounds/register.png
+---
+Scene background for the /register onboarding screen — same world, horizon, ground plane, and right-third stage band as register--dawn.png, framed as a neighbouring view of one place, but at clear midday. Match the register field's painterly pixel-art rendering and soft atmospheric depth.
+
+Wide 16:9 horizontal landscape, camera zoomed in and angled slightly downward toward the ground; horizon around the vertical middle. Sky: calm pale-blue and warm-cream daytime sky with a few soft clouds and clear daylight glints in the upper highlights. Thin low band of distant pine treeline and soft rolling mountain silhouettes along the high horizon.
+
+Grass field dominates the lower half with the same golden-olive meadow tones. Keep the RIGHT third calm and low-contrast where the trainer stands. A gentle worn dirt footpath winds in from the left-center foreground toward the left edge; busier grass tufts, small rocks, and a few wildflowers only along the bottom foreground edge and in the distance. No characters, no nest, no large foreground trees.
+
+Bright warm midday trailhead mood — inviting and open.

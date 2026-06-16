@@ -1,0 +1,21 @@
+{
+  "assets": [
+    {
+      "asset": "game/backgrounds/title--night.png",
+      "bytes": 2150757,
+      "depends_on": null,
+      "derived_from": null,
+      "key": "title--night",
+      "kind": "background",
+      "matte": null,
+      "model": "gemini-3-pro-image",
+      "name": "title-night",
+      "output_asset": "game/backgrounds/title--night.png",
+      "output_path": "C:\\projects\\vibemon\\vibemon\\frontend\\static\\game\\backgrounds\\title--night.png",
+      "prompt_path": "vibemon\\frontend\\asset-prompts\\game\\backgrounds\\title--night.mdc",
+      "reference_asset": "game/backgrounds/title.png"
+    }
+  ],
+  "generated_at": "2026-06-16T22:58:31.354819+00:00",
+  "output_dir": "..\\frontend\\static"
+}

@@ -1,0 +1,19 @@
+---
+name: crew-showcase-dusk
+kind: asset-instance
+asset: game/backgrounds/crew-showcase--dusk.png
+model: gemini-3-pro-image
+generated: 2026-06-16
+status: approved
+style_anchor: base-style-background.md
+reference_asset: game/backgrounds/crew-showcase.png
+---
+Scene background for the /deck/crew formation screen — same composition, horizon, and full-width calm meadow ground plane as crew-showcase--day.png, but at **late dusk after sunset** (not late afternoon). This is the most restrained background of the set: it sits behind dense UI and a full row of standing characters, so keep it calm and uncluttered.
+
+Wide 16:9 horizontal landscape, camera zoomed in and angled slightly downward toward the ground; horizon around the vertical middle.
+
+Sky: the sun is **already below the horizon** — no direct sunlight anywhere. The sky is mostly deep violet, plum, and dusky indigo — kept especially soft and low-detail in the UPPER-LEFT quadrant for panel overlay. Any remaining light is a **very thin, low band** of muted ember and rose hugging the horizon line only — not a broad golden glow and not bright enough to read as afternoon. More early stars visible in the upper sky, sparse but clear. Thin low band of hazy distant pine treeline and soft rolling hills along the high horizon, nearly black against the cooling sky.
+
+Grass field is a calm, even, low-contrast meadow spanning the FULL width — continuous gentle ground plane in **cool olive and tobacco shadow**, dim and settling into night, not still lit by warm sun. No busy clumps in the character band. Concentrate what little detail there is only along the extreme bottom foreground edge and in the far distance. No characters, no path, no large foreground trees.
+
+**Do NOT** show golden-hour sunlight on the grass, bright amber afternoon sky, or sunlit hill faces. Settled twilight camp mood — peaceful, communal, almost night.

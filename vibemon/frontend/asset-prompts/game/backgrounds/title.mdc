@@ -1,0 +1,21 @@
+---
+name: title-day
+kind: asset-instance
+asset: game/backgrounds/title--day.png
+model: gemini-3-pro-image
+generated: 2026-06-16
+status: approved
+style_anchor: base-style-background.md
+reference_asset: game/backgrounds/hatch--day.png
+---
+Scene background for the title / home screen — the sheltered meadow clearing where hidden Vibemon rustle in the tall grass before the player begins. Same world, same painterly pixel-art rendering, warm palette, and soft atmospheric depth as the hatch and register fields — not a flatter or more outlined sprite-sheet look. Match the hatch--day reference for golden-olive meadow tones, luminous sky gradients, and gentle dither shading on grass and trees.
+
+Wide 16:9 horizontal landscape, camera zoomed in and angled slightly downward toward the ground. The horizon sits high — around the vertical middle of the image — so the lower half is open meadow and the upper half is sky. This scene carries more UI overlay than the onboarding fields (a large title logo across the top sky, a menu panel along the bottom center, and five mon silhouettes composited into the midground), so keep the sky and central stage band especially calm and low-contrast.
+
+Sky: calm pale-blue and warm-cream daytime sky with luminous painterly gradients — gently saturated, not grey. Keep the entire upper third soft and uncluttered: no sun, no clouds, no stars, no text (those are UI overlays at runtime). A thin low band of distant pine treeline and soft rolling mountain silhouettes rests along the high horizon line, hazy with gentle atmospheric distance.
+
+The meadow dominates the lower half. Short golden-olive grass fills most of the foreground with layered light and dark patches, individual blades catching warm sunny daylight, and a few tiny wildflowers scattered sparingly. In the center third, a large oval patch of taller golden grass reads as the mon stage band — softer, lower-contrast blades with gentle even shading where silhouettes will be composited at runtime. Layered pine trees flank the left and right midground, deep sage greens with lighter olive highlights and painterly dither on the branches — framing the clearing without closing it in. Low rounded stone or log barriers sit in the bottom-left and bottom-right foreground corners only; keep the bottom center open and quiet for the menu overlay.
+
+Concentrate the busiest, highest-contrast detail along the extreme bottom foreground edge, the tree trunks, and the far distance. No thick black or tobacco-brown outlines on grass tufts, rocks, flowers, or trees; edges stay soft and atmospheric like the hatch reference. No characters, no UI, no path, no vignette, no dark framing edges.
+
+Bright, inviting midday title-screen mood — warm, nostalgic, and still, like the meadow is holding its breath before the adventure starts.

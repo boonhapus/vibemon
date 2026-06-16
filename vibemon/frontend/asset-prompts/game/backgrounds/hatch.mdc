@@ -1,0 +1,14 @@
+---
+name: hatch-dawn
+kind: asset-instance
+asset: game/backgrounds/hatch--dawn.png
+model: gemini-3-pro-image
+generated: 2026-06-16
+status: approved
+style_anchor: base-style-background.md
+---
+Scene background for the /hatch onboarding screen — the field where the trainer stands beside the about-to-hatch Vibemon silhouette. Wide 16:9 horizontal landscape, camera zoomed in and angled slightly downward toward the ground. The horizon sits high — around the vertical middle of the image — so the lower half is a large open field of short soft grass filling the whole foreground, and the upper half is a glowing dawn sky.
+
+Sky: warm, richly saturated amber and rose glow near the horizon, deepening to dusky violet at the very top, with luminous painterly gradients. A few faint tiny stars high up, sparse. A thin low band of distant pine treeline and soft rolling mountain silhouettes rests right along the high horizon line, hazy with gentle atmospheric distance. The grass field is the dominant element: lush and densely textured with layered light and dark patches, individual blades catching the warm dawn light, scattered with a few tiny wildflowers. Kept open and uncluttered — no large objects, no nest, no foreground trees.
+
+Distinct from the battle field (open midday combat arena with trampled dirt rings) — this is a hushed dawn cradle: sheltered, expectant, still. Soft warm ambient dawn lighting across the whole scene.

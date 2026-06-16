@@ -1,0 +1,18 @@
+---
+name: crew-showcase-day
+kind: asset-instance
+asset: game/backgrounds/crew-showcase--day.png
+model: gemini-3-pro-image
+generated: 2026-06-16
+status: approved
+style_anchor: base-style-background.md
+---
+Scene background for the /deck/crew formation screen — the home meadow where the trainer surveys their whole crew lined up at rest. Same world and the same horizon and ground plane as the hatch and register fields, but read as a settled daytime gathering ground rather than the dawn arrival.
+
+Wide 16:9 horizontal landscape, camera zoomed in and angled slightly downward toward the ground, horizon around the vertical middle of the image. This is the most restrained background of the set — it sits behind a dense UI (a stat panel over the upper-left sky, name labels, a dialog bar, command buttons) and a full row of standing characters across the whole width, so keep it calm and uncluttered.
+
+Lighting: bright, warm golden midday — soft sunny daylight, gently saturated. A calm pale-blue and warm-cream daytime sky with a few soft clouds, kept especially soft and low-detail in the UPPER-LEFT quadrant so a panel can overlay it cleanly. A thin low band of hazy distant pine treeline and soft rolling hills rests along the high horizon.
+
+The grass field is a calm, even, low-contrast meadow that spans the FULL width of the foreground — a continuous gentle ground plane with no busy clumps or high-contrast patches anywhere a character would stand. Concentrate what little detail there is — a few wildflowers, small tufts, a stray rock — only along the extreme bottom foreground edge and in the far distance. Keep the entire central and mid band quiet and open. No characters, no nest, no path, no large foreground trees.
+
+A peaceful, settled, communal resting-camp mood. Soft even golden daylight across the whole scene.

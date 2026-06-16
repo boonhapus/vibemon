@@ -1,0 +1,19 @@
+---
+name: title-dawn
+kind: asset-instance
+asset: game/backgrounds/title--dawn.png
+model: gemini-3-pro-image
+generated: 2026-06-16
+status: draft
+style_anchor: base-style-background.md
+reference_asset: game/backgrounds/title.png
+---
+Scene background for the title / home screen — **the exact same shot as the reference image** (title--day): identical camera angle, horizon height, pine-tree framing, stone corner barriers, central tall-grass oval stage band, and meadow layout. Only change the **time of day to dawn** — do not change composition, framing, or layout.
+
+Wide 16:9 horizontal landscape, camera zoomed in and angled slightly downward toward the ground; horizon around the vertical middle. This scene carries more UI overlay than the onboarding fields (a large title logo across the top sky, a menu panel along the bottom center, and mon silhouettes composited into the midground), so keep the sky and central stage band especially calm and low-contrast.
+
+Sky: warm amber and rose glow near the horizon with rose-gold dawn blush in the highlights, deepening to dusky violet at the top — kept especially soft and uncluttered in the upper third. A few faint tiny stars high up, sparse. No sun disc, no clouds, no text. Thin low band of distant pine treeline and soft rolling mountain silhouettes along the high horizon, hazy with gentle atmospheric distance.
+
+The meadow dominates the lower half. Golden-olive grass with warm dawn light catching blade tips; the central oval patch of taller grass stays softer and lower-contrast for silhouette compositing. Layered pine trees flank the left and right midground with deep sage greens warmed by early light. Low rounded stone or log barriers in the bottom-left and bottom-right foreground corners only; keep the bottom center open and quiet for the menu overlay.
+
+**Do NOT** show bright midday blue sky, harsh sunlight, or golden-hour afternoon warmth. Hushed dawn title-screen mood — the clearing waking up, still and expectant before the adventure starts.

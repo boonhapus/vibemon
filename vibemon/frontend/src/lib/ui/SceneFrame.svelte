@@ -1,26 +1,33 @@
 <script lang="ts">
 	import type { Snippet } from 'svelte';
+	import { fade } from 'svelte/transition';
 
+	import SettingsNavButton from '$lib/domains/trainer/SettingsNavButton.svelte';
+	import { settingsStore } from '$lib/domains/trainer/settingsStore.svelte';
 	import BandedBackground from './BandedBackground.svelte';
 	import FilmGrain from './FilmGrain.svelte';
 
 	let {
 		backgroundSrc,
 		backgroundAlt = '',
+		backgroundFadeMs = 0,
 		bandedTop,
 		bandedBase,
 		bandedShadow,
 		class: className = '',
-		bezelCorner,
+		showSettingsKnob = true,
 		children
 	}: {
 		backgroundSrc?: string;
 		backgroundAlt?: string;
+		/** When > 0, crossfade between backgrounds on src change instead of hard-swapping. */
+		backgroundFadeMs?: number;
 		bandedTop?: string;
 		bandedBase?: string;
 		bandedShadow?: string;
 		class?: string;
-		bezelCorner?: Snippet;
+		/** Cabinet settings knob in the bottom-right bezel corner. */
+		showSettingsKnob?: boolean;
 		children?: Snippet;
 	} = $props();
 
@@ -28,16 +35,25 @@
 </script>
 
 <div class={frameClass}>
-	{#if backgroundSrc}
-		<img
-			class="scene-frame__background scene-frame__background--image"
-			src={backgroundSrc}
-			alt={backgroundAlt}
-			decoding="async"
-		/>
-	{:else}
-		<BandedBackground class="scene-frame__background" top={bandedTop} base={bandedBase} shadow={bandedShadow} />
-	{/if}
+	{#key backgroundSrc}
+		<div class="scene-frame__background-layer" transition:fade={{ duration: backgroundFadeMs }}>
+			{#if backgroundSrc}
+				<img
+					class="scene-frame__background scene-frame__background--image"
+					src={backgroundSrc}
+					alt={backgroundAlt}
+					decoding="async"
+				/>
+			{:else}
+				<BandedBackground
+					class="scene-frame__background"
+					top={bandedTop}
+					base={bandedBase}
+					shadow={bandedShadow}
+				/>
+			{/if}
+		</div>
+	{/key}
 	<div class="scene-frame__overlay">
 		{#if children}
 			{@render children()}
@@ -45,11 +61,11 @@
 	</div>
 	<div class="scene-frame__bezel" aria-hidden="true"></div>
 	<div class="scene-frame__bezel-lip" aria-hidden="true"></div>
-	{#if bezelCorner}
+	{#if showSettingsKnob}
 		<div class="scene-frame__corner-plate">
 			<span class="scene-frame__corner-screw" aria-hidden="true"></span>
 			<div class="scene-frame__corner-mount">
-				{@render bezelCorner()}
+				<SettingsNavButton bind:open={settingsStore.open} />
 			</div>
 		</div>
 	{/if}
@@ -104,8 +120,8 @@
 		right: calc(var(--vm-bezel-w) * 0.3);
 		bottom: calc(var(--vm-bezel-w) * 0.3);
 		z-index: 3;
-		width: clamp(4rem, 8.5vh, 5rem);
-		height: clamp(4rem, 8.5vh, 5rem);
+		width: var(--vm-settings-corner-size);
+		height: var(--vm-settings-corner-size);
 		border-top-left-radius: 100%;
 		pointer-events: auto;
 		background: var(--vm-cabinet-wood-grain-corner);
@@ -141,6 +157,12 @@
 	.scene-frame__corner-mount :global(.settings-nav) {
 		width: clamp(2.85rem, 6.4vh, 3.6rem);
 		height: clamp(2.85rem, 6.4vh, 3.6rem);
+	}
+
+	/* Each background generation gets its own layer so two can overlap mid-crossfade. */
+	.scene-frame__background-layer {
+		position: absolute;
+		inset: 0;
 	}
 
 	.scene-frame__background {

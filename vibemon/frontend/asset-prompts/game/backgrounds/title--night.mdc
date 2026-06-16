@@ -1,0 +1,23 @@
+---
+name: title-night
+kind: asset-instance
+asset: game/backgrounds/title--night.png
+model: gemini-3-pro-image
+generated: 2026-06-16
+status: draft
+style_anchor: base-style-background.md
+reference_asset: game/backgrounds/title.png
+---
+Scene background for the title / home screen — **the exact same shot as the reference image** (title--day): identical camera angle, horizon height, pine-tree framing, stone corner barriers, central tall-grass oval stage band, and meadow layout. Only change the **time of day to deep night well after dusk** — do not change composition, framing, or layout.
+
+This scene carries **more UI overlay than the onboarding fields** (a large dark title logo across the top sky, a menu panel along the bottom center, and dark mon silhouettes composited into the midground). It must stay **brighter and more legible than register--night** while still reading as night — prioritize luminous compositing zones over atmospheric darkness.
+
+Wide 16:9 horizontal landscape, camera zoomed in and angled slightly downward toward the ground; horizon around the vertical middle.
+
+Sky: soft moonlit blue-violet haze across the **entire upper third** — clearly night, but **not near-black**. Gentle star-fleck speckling, sparse tiny stars, not a dense Milky Way. A faint cool lunar glow lifts the sky value so dark UI text can sit on it. **No warm horizon glow, no sunset afterglow, no peach or amber light, and no sunlight on the mountains.** Thin low band of distant pine treeline and soft rolling mountain silhouettes, dark but separated from sky by subtle cool moonlit edge light.
+
+The meadow dominates the lower half with cool night-blue and desaturated indigo-green undertones. **The central oval patch of taller grass is the mon stage band — make it noticeably brighter than the surrounding turf**, with a cool moonlit silver-olive sheen and soft even shading so **dark silhouettes remain readable** against it. Layered pine trees flank left and right as deep night silhouettes. Stone or log barriers in the bottom corners only; bottom center open for the menu overlay.
+
+Peripheral meadow and tree shadows may stay darker for depth, but **never let the sky upper third or grass oval stage band collapse to the same darkness as register--night.**
+
+**Do NOT** show brown grass, tobacco-toned turf, warm olive fills, golden horizon bands, lit mountain slopes, or twilight warmth. Quiet moonlit title-screen mood — peaceful, mysterious, still inviting.

@@ -1,0 +1,17 @@
+---
+name: hatch-night
+kind: asset-instance
+asset: game/backgrounds/hatch--night.png
+model: gemini-3-pro-image
+generated: 2026-06-16
+status: approved
+style_anchor: base-style-background.md
+reference_asset: game/backgrounds/register--night.png
+---
+Scene background for the /hatch onboarding screen — same composition, horizon, and ground plane as hatch--dawn.png, but at **deep night well after dusk**. Wide 16:9 horizontal landscape, camera zoomed in and angled slightly downward toward the ground; horizon around the vertical middle. **Match the reference image's cool night grass palette and sky tone** — this is the same meadow at night as register--night, neighbouring view of one place.
+
+Sky: deep night-blue and dusky indigo with star-fleck speckling across the upper sky — many tiny soft stars, not a dense Milky Way. **No warm horizon glow, no sunset afterglow, no peach or amber light at the horizon, and no sunlight on the mountains.** The treeline and distant rolling mountains are **dark silhouettes only**, barely separated from the night sky by subtle cool moonlit edge light — not rim-lit by sun.
+
+Grass field dominates the lower half with **deep night-blue and dusky indigo-green undertones** and a **cool, faint moonlit sheen** on blade tips — **the same cool blue-violet meadow read as register--night, not brown, not tobacco, not warm olive, not earthy umber.** Keep the central stage band calm and low-contrast where characters stand (hatch layout — no footpath). A few tiny wildflowers barely visible. No characters, no nest, no foreground trees.
+
+**Do NOT** show brown grass, tobacco-toned turf, warm olive fills, golden horizon bands, lit mountain slopes, or twilight warmth. Quiet, hushed night cradle — sheltered, mysterious, still expectant.

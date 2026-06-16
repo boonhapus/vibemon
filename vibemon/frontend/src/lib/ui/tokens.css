@@ -74,6 +74,11 @@
 	/* Diegetic cabinet bezel width (DESIGN.md §5.2) — global so fixed-position
 	   chrome (toasts, corner controls) can stay inside the screen glass. */
 	--vm-bezel-w: clamp(10px, 1.8vw, 24px);
+	/* Bottom-right settings knob — reserve space so footer HUD rows do not overlap. */
+	--vm-settings-corner-size: clamp(4rem, 8.5vh, 5rem);
+	--vm-settings-corner-reserve: calc(
+		var(--vm-settings-corner-size) + var(--vm-bezel-w) * 0.3 + var(--vm-space-sm)
+	);
 
 	/* Cabinet wood grain — shared by SceneFrame bezel, corner plate, and settings knob. */
 	--vm-cabinet-wood-grain:

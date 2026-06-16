@@ -1,0 +1,19 @@
+---
+name: register-dusk
+kind: asset-instance
+asset: game/backgrounds/register--dusk.png
+model: gemini-3-pro-image
+generated: 2026-06-16
+status: approved
+style_anchor: base-style-background.md
+reference_asset: game/backgrounds/register.png
+---
+Scene background for the /register onboarding screen — same world, horizon, ground plane, and right-third stage band as register--dawn.png, framed as a neighbouring view of one place, but at **late dusk after sunset** (not late afternoon). Match the register field's painterly pixel-art rendering and soft atmospheric depth.
+
+Wide 16:9 horizontal landscape, camera zoomed in and angled slightly downward toward the ground; horizon around the vertical middle.
+
+Sky: the sun is **already below the horizon** — no direct sunlight anywhere. The sky is mostly deep violet, plum, and dusky indigo. Any remaining light is a **very thin, low band** of muted ember and rose hugging the horizon line only — not a broad golden glow and not bright enough to read as afternoon. More early stars visible in the upper sky, sparse but clear. Thin low band of distant pine treeline and soft rolling mountain silhouettes along the high horizon, nearly black against the cooling sky.
+
+Grass field dominates the lower half in **cool olive and tobacco shadow** — the meadow is dim and settling into night, not still lit by warm sun. Keep the RIGHT third calm and low-contrast where the trainer stands. A gentle worn dirt footpath winds in from the left-center foreground toward the left edge; busier detail only along the bottom foreground edge and in the distance. No characters, no nest, no large foreground trees.
+
+**Do NOT** show golden-hour sunlight on the grass, bright amber afternoon sky, or sunlit mountain faces. This is the last light leaving — quiet, cooling, almost night.

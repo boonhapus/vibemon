@@ -1,0 +1,21 @@
+---
+name: register-dawn
+kind: asset-instance
+asset: game/backgrounds/register--dawn.png
+model: gemini-3-pro-image
+generated: 2026-06-16
+status: approved
+style_anchor: base-style-background.md
+reference_asset: game/backgrounds/hatch.png
+---
+Scene background for the /register onboarding screen — the trailhead where the trainer first arrives, just before walking out into the field to hatch. Same world, same dawn field, and the exact same horizon and ground plane as the hatch scene, framed from a camera shifted to the right so it reads as a continuous, neighbouring view of one place — not a different location. Match the hatch field's painterly pixel-art rendering, warm dawn palette, and soft atmospheric depth — not a flatter or more outlined sprite-sheet look.
+
+Wide 16:9 horizontal landscape, camera zoomed in and angled slightly downward toward the ground. The horizon sits high — around the vertical middle of the image — so the lower half is a large open field filling the whole foreground, and the upper half is a glowing dawn sky.
+
+Sky: warm, richly saturated amber and rose glow near the horizon, deepening to dusky violet at the very top, with luminous painterly gradients. A few faint tiny stars high up, sparse. A thin low band of distant pine treeline and soft rolling mountain silhouettes rests right along the high horizon line, hazy with gentle atmospheric distance.
+
+The grass field is the dominant element: lush and densely textured with layered light and dark patches, individual blades catching the warm dawn light, scattered with a few tiny wildflowers — the same golden-olive meadow tones and painterly softness as the hatch field, not cooler sage greens or flat sprite fills. No thick black or tobacco-brown outlines on grass tufts, rocks, or flowers; edges stay soft and atmospheric like the hatch reference.
+
+Composition is the mirror of the hatch field: keep the RIGHT third of the field as a calm, quiet stage band — softer, lower-contrast grass with even shading — where the trainer stands. A gentle worn dirt footpath winds in from the left-center foreground and leads off toward the left edge, drawing the eye toward where the journey continues; flank it with the busier, higher-contrast grass tufts, small rocks, and a few wildflowers concentrated along the bottom foreground edge and in the distance. No characters, no nest, no large foreground trees.
+
+Same hushed dawn cradle as the hatch field — sheltered, expectant, still. Soft warm ambient dawn lighting across the whole scene.

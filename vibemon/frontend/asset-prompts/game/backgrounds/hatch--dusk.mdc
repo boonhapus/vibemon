@@ -1,0 +1,17 @@
+---
+name: hatch-dusk
+kind: asset-instance
+asset: game/backgrounds/hatch--dusk.png
+model: gemini-3-pro-image
+generated: 2026-06-16
+status: approved
+style_anchor: base-style-background.md
+reference_asset: game/backgrounds/hatch.png
+---
+Scene background for the /hatch onboarding screen — same composition, horizon, and ground plane as hatch--dawn.png, but at **late dusk after sunset** (not late afternoon). Wide 16:9 horizontal landscape, camera zoomed in and angled slightly downward toward the ground; horizon around the vertical middle.
+
+Sky: the sun is **already below the horizon** — no direct sunlight anywhere. The sky is mostly deep violet, plum, and dusky indigo. Any remaining light is a **very thin, low band** of muted ember and rose hugging the horizon line only — not a broad golden glow and not bright enough to read as afternoon. More early stars visible in the upper sky, sparse but clear. Thin low band of distant pine treeline and soft rolling mountain silhouettes along the high horizon, nearly black against the cooling sky, hazy with gentle atmospheric distance.
+
+Grass field dominates the lower half in **cool olive and tobacco shadow** — lush meadow settling into night, not still lit by warm sun. Individual blades dim; keep the central stage band calm and low-contrast where characters stand. A few tiny wildflowers in muted tones. No characters, no nest, no foreground trees.
+
+**Do NOT** show golden-hour sunlight on the grass, bright amber afternoon sky, or sunlit mountain faces. Hushed, expectant twilight — the field cooling after day, almost night, still sheltered and still.

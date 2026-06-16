@@ -1,0 +1,17 @@
+---
+name: crew-showcase-dawn
+kind: asset-instance
+asset: game/backgrounds/crew-showcase--dawn.png
+model: gemini-3-pro-image
+generated: 2026-06-16
+status: approved
+style_anchor: base-style-background.md
+reference_asset: game/backgrounds/crew-showcase.png
+---
+Scene background for the /deck/crew formation screen — same composition, horizon, and full-width calm meadow ground plane as crew-showcase--day.png, but at dawn. This is the most restrained background of the set: it sits behind dense UI and a full row of standing characters, so keep it calm and uncluttered.
+
+Wide 16:9 horizontal landscape, camera zoomed in and angled slightly downward toward the ground; horizon around the vertical middle. Sky: warm amber and rose glow near the horizon with rose-gold dawn blush in the highlights, deepening to dusky violet at the top — kept especially soft and low-detail in the UPPER-LEFT quadrant for panel overlay. A few faint tiny stars high up, sparse. Thin low band of hazy distant pine treeline and soft rolling hills along the high horizon.
+
+Grass field is a calm, even, low-contrast meadow spanning the FULL width — continuous gentle ground plane with no busy clumps in the character band. Concentrate what little detail there is only along the extreme bottom foreground edge and in the far distance. No characters, no path, no large foreground trees.
+
+Hushed dawn gathering mood — communal, expectant, still.

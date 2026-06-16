@@ -1,0 +1,17 @@
+---
+name: hatch-day
+kind: asset-instance
+asset: game/backgrounds/hatch--day.png
+model: gemini-3-pro-image
+generated: 2026-06-16
+status: approved
+style_anchor: base-style-background.md
+reference_asset: game/backgrounds/hatch.png
+---
+Scene background for the /hatch onboarding screen — same composition, horizon, and ground plane as hatch--dawn.png, but at clear midday. Wide 16:9 horizontal landscape, camera zoomed in and angled slightly downward toward the ground; horizon around the vertical middle.
+
+Sky: calm pale-blue and warm-cream daytime sky with a few soft clouds and clear daylight glints in the upper highlights — gently saturated, not grey. Thin low band of distant pine treeline and soft rolling mountain silhouettes along the high horizon, hazy with gentle atmospheric distance.
+
+Grass field dominates the lower half: lush golden-olive meadow with layered light and dark patches, individual blades catching warm sunny daylight. Keep the central stage band calm and low-contrast where characters stand. A few tiny wildflowers scattered sparingly. No characters, no nest, no foreground trees.
+
+Bright, settled midday mood — open and expectant, but sun-warmed rather than dawn-hushed.

@@ -1,0 +1,19 @@
+---
+name: title-dusk
+kind: asset-instance
+asset: game/backgrounds/title--dusk.png
+model: gemini-3-pro-image
+generated: 2026-06-16
+status: draft
+style_anchor: base-style-background.md
+reference_asset: game/backgrounds/title.png
+---
+Scene background for the title / home screen — **the exact same shot as the reference image** (title--day): identical camera angle, horizon height, pine-tree framing, stone corner barriers, central tall-grass oval stage band, and meadow layout. Only change the **time of day to late dusk after sunset** — do not change composition, framing, or layout.
+
+Wide 16:9 horizontal landscape, camera zoomed in and angled slightly downward toward the ground; horizon around the vertical middle. Keep the sky and central stage band especially calm and low-contrast for UI overlays (title logo, menu panel, mon silhouettes).
+
+Sky: the sun is **already below the horizon** — no direct sunlight anywhere. The sky is mostly deep violet, plum, and dusky indigo. Any remaining light is a **very thin, low band** of muted ember and rose hugging the horizon line only — not a broad golden glow. More early stars visible in the upper sky, sparse but clear. No sun disc, no clouds, no text. Thin low band of distant pine treeline and soft rolling mountain silhouettes, nearly black against the cooling sky.
+
+The meadow dominates the lower half in **cool olive and tobacco shadow** — the tall-grass oval stage band stays calm and low-contrast for silhouette compositing. Pine trees flank left and right as deep silhouettes with subtle cool rim light. Stone or log barriers in the bottom corners only; bottom center open for the menu overlay.
+
+**Do NOT** show golden-hour sunlight on the grass, bright amber afternoon sky, or sunlit mountain faces. Hushed twilight title-screen mood — the field cooling after day, almost night, still sheltered and still.
