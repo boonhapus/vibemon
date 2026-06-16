@@ -132,3 +132,52 @@
 		opacity: 0.25;
 	}
 }
+
+@keyframes idle-breathe {
+	0%,
+	100% {
+		transform: translateY(0) scale(1, 1);
+	}
+	50% {
+		transform: translateY(-2px) scale(1.02, 0.98);
+	}
+}
+
+@keyframes crew-spotlight-greet {
+	0% {
+		transform: translateY(0) scale(1, 1);
+	}
+	35% {
+		transform: translateY(-8px) scale(1.08, 0.92);
+	}
+	100% {
+		transform: translateY(0) scale(1, 1);
+	}
+}
+
+@keyframes crew-hop-in {
+	0% {
+		opacity: 0;
+		transform: translate(
+				calc(-50% + var(--px) * var(--radius-x)),
+				calc(-72% + var(--py) * var(--radius-y))
+			)
+			scale(calc(var(--depth-scale) * 0.72));
+	}
+	55% {
+		opacity: 1;
+		transform: translate(
+				calc(-50% + var(--px) * var(--radius-x)),
+				calc(-98% + var(--py) * var(--radius-y))
+			)
+			scale(calc(var(--depth-scale) * 1.06, 0.94));
+	}
+	100% {
+		opacity: 1;
+		transform: translate(
+				calc(-50% + var(--px) * var(--radius-x)),
+				calc(-92% + var(--py) * var(--radius-y))
+			)
+			scale(var(--depth-scale));
+	}
+}

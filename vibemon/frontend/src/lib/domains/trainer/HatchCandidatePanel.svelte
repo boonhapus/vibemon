@@ -32,6 +32,7 @@
 		candidate,
 		actionHint = $bindable<'refresh' | 'adopt' | 'release' | null>(null),
 		detailHint = $bindable<string | null>(null),
+		activeTab = $bindable<CandidateTab>('stats'),
 		releaseDisabled = false,
 		busy = false,
 		showActions = true,
@@ -42,6 +43,7 @@
 		candidate: HatchCandidate;
 		actionHint?: 'refresh' | 'adopt' | 'release' | null;
 		detailHint?: string | null;
+		activeTab?: CandidateTab;
 		releaseDisabled?: boolean;
 		busy?: boolean;
 		/** Hide the Release / Refresh / Adopt row for read-only contexts (e.g. crew). */
@@ -50,8 +52,6 @@
 		onRefresh?: () => void;
 		onAdopt?: () => void;
 	} = $props();
-
-	let activeTab = $state<CandidateTab>('stats');
 
 	let peakStat = $derived(
 		Math.max(...statLines.map(({ key }) => candidate.base_stats[key]), 1)

@@ -2,173 +2,239 @@
 	import { Tween, prefersReducedMotion } from 'svelte/motion';
 	import { linear } from 'svelte/easing';
 
+	import HatchSceneDepth from '$lib/domains/trainer/HatchSceneDepth.svelte';
 	import TrainerReference from '$lib/domains/trainer/TrainerReference.svelte';
 	import FreeFormButton from '$lib/ui/FreeFormButton.svelte';
 
-	import { PARTY_SIZE, type PartySlot } from './crewSlots';
+	import { runCrewIntro, type IntroRitual, type IntroStage } from './crewIntro';
+	import {
+		ROTATE_DURATION_MS,
+		STEPS_PER_ADVANCE,
+		depthCool,
+		depthScale,
+		effectiveCrewSlot,
+		isSpotlight,
+		mirrorForPosition,
+		quantizeRotation,
+		ringPosition,
+		seatTickPositions,
+		spotlightFactor,
+		spotlightSlot
+	} from './crewRingMath';
+	import { PARTY_SIZE, type PartySlot, type SwapAnimPair } from './crewSlots';
 
-	const ROTATE_DURATION_MS = 450;
-	/* DESIGN.md §6.1 — action states advance in discrete jumps, never smooth
-	   easing. Eight quantized sub-steps per 60° advance read as a clock tick. */
-	const STEPS_PER_ADVANCE = 8;
-	const SLOT_ANGLE_DEG = 360 / PARTY_SIZE;
-	/* Lead anchor at 5:00 — nearest the camera, trainer at the hub center. */
-	const LEAD_ANGLE_DEG = 60;
+	const INTRO_SPIN_SLOTS = PARTY_SIZE;
 
 	let {
 		slots,
 		rotation = 0,
 		selectedId = '',
 		trainerSpriteSrc = '/game/sprites/trainer@128.png',
+		swapMode = false,
+		swapBusy = false,
+		introReady = false,
+		introRitual = 'short',
+		swapAnimation = null,
 		onSelectSlot,
-		onTapEmpty
+		onTapEmpty,
+		onTapEmptyHatch,
+		onSelectSwapTarget,
+		onIntroComplete,
+		onRotationSettled,
+		onSpotlightGreet
 	}: {
 		slots: PartySlot[];
-		/** Cumulative rotation in slot units; slot `mod(rotation, 6)` sits at the lead anchor. */
 		rotation?: number;
 		selectedId?: string;
 		trainerSpriteSrc?: string;
+		swapMode?: boolean;
+		swapBusy?: boolean;
+		introReady?: boolean;
+		introRitual?: IntroRitual;
+		swapAnimation?: { pairs: SwapAnimPair[]; progress: number } | null;
 		onSelectSlot?: (slot: PartySlot) => void;
 		onTapEmpty?: (slot: PartySlot) => void;
+		onTapEmptyHatch?: () => void;
+		onSelectSwapTarget?: (slotIndex: number) => void;
+		onIntroComplete?: () => void;
+		onRotationSettled?: (spotlight: PartySlot | undefined) => void;
+		onSpotlightGreet?: (slot: PartySlot) => void;
 	} = $props();
 
-	// Starts at 0 and is synced to the `rotation` prop by the effect below.
 	const rotationTween = new Tween(0, { duration: ROTATE_DURATION_MS, easing: linear });
+	const introSpinTween = new Tween(0, { duration: ROTATE_DURATION_MS * INTRO_SPIN_SLOTS, easing: linear });
 
-	$effect(() => {
-		void rotationTween.set(rotation, {
-			duration: prefersReducedMotion.current ? 0 : ROTATE_DURATION_MS
-		});
-	});
+	let introStage = $state<IntroStage>('pending');
+	let landedSlots = $state<Set<number>>(new Set());
+	let greetId = $state<string | null>(null);
+	let lastSettledRotation = $state(0);
+	let lastSpotlightId = $state<string | null>(null);
+	let introStarted = $state(false);
+	let introAbort: AbortController | null = null;
 
-	/* Quantize the tweened rotation so each 60° advance lands in discrete
-	   mechanical jumps instead of a smooth spin. */
-	let quantizedRotation = $derived(
-		Math.round(rotationTween.current * STEPS_PER_ADVANCE) / STEPS_PER_ADVANCE
+	let displayRotation = $derived(
+		quantizeRotation(rotationTween.current) + introSpinTween.current
 	);
 
-	const DEPTH_SCALE_MIN = 0.62;
-	const DEPTH_SCALE_MAX = 1.78;
-	const DEPTH_BLUR_MAX = 1.6;
+	$effect(() => {
+		const target = rotation;
+		void (async () => {
+			await rotationTween.set(target, {
+				duration: prefersReducedMotion.current ? 0 : ROTATE_DURATION_MS
+			});
+			if (introStage !== 'done') return;
 
-	/* Depth peaks only at the 5:00 anchor — cos(slot offset) avoids the sin
-	   symmetry that made 5:00 and 7:00 equally prominent. */
-	function spotlightFactor(ringOffset: number): number {
-		return Math.cos(ringOffset * SLOT_ANGLE_DEG * (Math.PI / 180));
-	}
+			const settled = quantizeRotation(rotationTween.current);
+			const ticked = settled !== lastSettledRotation;
+			if (ticked) lastSettledRotation = settled;
 
-	function depthScale(ringOffset: number): number {
-		const spotlight = spotlightFactor(ringOffset);
-		const t = (spotlight + 1) / 2;
-		const curved = t * t * t;
-		return DEPTH_SCALE_MIN + curved * (DEPTH_SCALE_MAX - DEPTH_SCALE_MIN);
-	}
+			const spotlight = spotlightSlot(slots, settled);
+			const spotlightChanged = spotlight && spotlight.id !== lastSpotlightId;
+			if (spotlightChanged) {
+				lastSpotlightId = spotlight.id;
+				greetId = spotlight.id;
+				onSpotlightGreet?.(spotlight);
+				setTimeout(() => {
+					if (greetId === spotlight.id) greetId = null;
+				}, 520);
+			}
 
-	function depthBlur(ringOffset: number): number {
-		const spotlight = spotlightFactor(ringOffset);
-		const t = (spotlight + 1) / 2;
-		return DEPTH_BLUR_MAX * (1 - t * t);
-	}
+			if (ticked) onRotationSettled?.(spotlight);
+		})();
+	});
 
-	function isSpotlight(ringOffset: number): boolean {
-		return spotlightFactor(ringOffset) > 0.92;
-	}
+	$effect(() => {
+		if (!introReady || introStarted) return;
+		introStarted = true;
+		introAbort = new AbortController();
 
-	function mirrorForPosition(slot: PartySlot, cos: number): boolean {
-		if (slot.empty) return false;
-		const native = slot.facing ?? 'LEFT';
-		if (native === 'CENTER') return false;
-		// Face the trainer at the hub: left half of the ring reads rightward,
-		// right half reads leftward. Near the lead/back axis, keep native facing.
-		if (cos < -0.2) return native !== 'RIGHT';
-		if (cos > 0.2) return native === 'RIGHT';
-		return false;
-	}
+		const filledSlots = slots
+			.filter((slot) => !slot.empty)
+			.map((slot) => slot.crewSlot)
+			.sort((left, right) => left - right);
+
+		void runCrewIntro({
+			ritual: introRitual,
+			filledSlots,
+			prefersReducedMotion: prefersReducedMotion.current,
+			signal: introAbort.signal,
+			onStage: (stage) => {
+				introStage = stage;
+			},
+			onLandSlot: (crewSlot) => {
+				landedSlots = new Set([...landedSlots, crewSlot]);
+			},
+			onSpin: async (slotCount, durationMs) => {
+				await introSpinTween.set(slotCount, { duration: durationMs });
+				await introSpinTween.set(0, { duration: 0 });
+			}
+		})
+			.then(() => onIntroComplete?.())
+			.catch(() => {
+				introStage = 'done';
+			});
+
+		return () => {
+			introAbort?.abort();
+		};
+	});
 
 	let placements = $derived(
 		slots.map((slot) => {
-			const ringOffset = slot.crewSlot - quantizedRotation;
-			/* Position snaps on clock ticks; scale/blur follow the live tween so
-			   mons grow and shrink smoothly as they travel toward or away from
-			   the 5:00 spotlight. */
-			const ringOffsetSmooth = slot.crewSlot - rotationTween.current;
-			const angle = ((LEAD_ANGLE_DEG + ringOffset * SLOT_ANGLE_DEG) * Math.PI) / 180;
-			const cos = Math.cos(angle);
-			const sin = Math.sin(angle);
+			const crewSlot = effectiveCrewSlot(slot, swapAnimation);
+			const ringOffsetSmooth = crewSlot - (rotationTween.current + introSpinTween.current);
+			const position = ringPosition(crewSlot, displayRotation);
 			const spotlight = isSpotlight(ringOffsetSmooth);
+			const hopVisible = slot.empty || introStage === 'done' || landedSlots.has(slot.crewSlot);
 			return {
 				slot,
-				x: cos,
-				y: sin,
+				x: position.x,
+				y: position.y,
 				scale: depthScale(ringOffsetSmooth),
-				blur: depthBlur(ringOffsetSmooth),
+				cool: depthCool(ringOffsetSmooth),
 				zIndex: 10 + Math.round(spotlightFactor(ringOffsetSmooth) * 8),
 				spotlight,
-				mirrored: mirrorForPosition(slot, cos)
+				mirrored: mirrorForPosition(slot, position.cos),
+				hopVisible,
+				idleDelay: slot.crewSlot * 0.42,
+				greeting: greetId === slot.id
 			};
 		})
 	);
 
-	const ticks = Array.from({ length: PARTY_SIZE }, (_, index) => {
-		const angle = ((LEAD_ANGLE_DEG + index * SLOT_ANGLE_DEG) * Math.PI) / 180;
-		return { x: Math.cos(angle), y: Math.sin(angle) };
-	});
+	const ticks = seatTickPositions();
 
 	function slotAriaLabel(slot: PartySlot): string {
-		if (slot.empty) return 'Empty crew slot';
-		return `${slot.name}, level ${slot.level}, ${slot.currentHp} of ${slot.maxHp} HP`;
+		if (slot.empty) return `Empty crew slot ${slot.crewSlot + 1}`;
+		return `${slot.name}, level ${slot.level}`;
 	}
 
 	function handleSlotTap(slot: PartySlot) {
+		if (introStage !== 'done' || swapBusy) return;
+		if (swapMode) {
+			onSelectSwapTarget?.(slot.crewSlot);
+			return;
+		}
 		if (slot.empty) {
 			onTapEmpty?.(slot);
 			return;
 		}
 		onSelectSlot?.(slot);
 	}
+
+	function handleEmptyHatch(event: MouseEvent) {
+		event.stopPropagation();
+		onTapEmptyHatch?.();
+	}
 </script>
 
-<div class="crew-formation">
+<div class="crew-formation" class:crew-formation--swap-mode={swapMode}>
+	<HatchSceneDepth />
+
 	<div class="crew-formation__ground" aria-hidden="true">
 		{#each ticks as tick, index (index)}
-			<span
-				class="crew-formation__tick"
-				style:--px={tick.x}
-				style:--py={tick.y}
-			></span>
+			<span class="crew-formation__tick" style:--px={tick.x} style:--py={tick.y}></span>
 		{/each}
 	</div>
 
-	<div class="crew-formation__hub">
+	<div class="crew-formation__hub" class:crew-formation__hub--visible={introStage !== 'pending'}>
 		<TrainerReference spriteSrc={trainerSpriteSrc} class="crew-formation__trainer" />
 	</div>
 
 	{#each placements as placement (placement.slot.id)}
 		<div
 			class="crew-formation__slot"
+			class:crew-formation__slot--hop-in={!placement.slot.empty && placement.hopVisible && introStage === 'assemble'}
+			class:crew-formation__slot--hidden={!placement.slot.empty && !placement.hopVisible && introStage !== 'done'}
+			class:crew-formation__slot--swap={swapAnimation?.pairs.some((pair) => pair.memberId === placement.slot.id)}
 			style:--px={placement.x}
 			style:--py={placement.y}
 			style:--depth-scale={placement.scale}
+			style:--depth-cool="{placement.cool}deg"
 			style:--height-factor={placement.slot.heightFactor}
-			style:--depth-blur="{placement.blur}px"
+			style:--idle-delay="{placement.idleDelay}s"
 			style:z-index={placement.zIndex}
 		>
 			<FreeFormButton
 				class={[
 					'crew-formation__slot-button',
-					placement.slot.empty && 'crew-formation__slot-button--empty'
+					placement.slot.empty && 'crew-formation__slot-button--empty',
+					swapMode && 'crew-formation__slot-button--swap-target'
 				]
 					.filter(Boolean)
 					.join(' ')}
+				disabled={introStage !== 'done' || swapBusy}
 				ariaLabel={slotAriaLabel(placement.slot)}
 				onclick={() => handleSlotTap(placement.slot)}
 			>
 				<span
 					class={[
 						'crew-formation__platform',
+						placement.slot.empty && 'crew-formation__platform--empty',
 						!placement.slot.empty &&
 							selectedId === placement.slot.id &&
-							'crew-formation__platform--active'
+							'crew-formation__platform--active',
+						swapMode && 'crew-formation__platform--swap-target'
 					]
 						.filter(Boolean)
 						.join(' ')}
@@ -176,30 +242,42 @@
 				>
 					<span class="crew-formation__platform-number">{placement.slot.crewSlot + 1}</span>
 				</span>
-				<img
-					class={[
-						'crew-formation__sprite',
-						placement.slot.empty && 'crew-formation__sprite--empty',
-						placement.mirrored && 'crew-formation__sprite--mirrored',
-						placement.spotlight && 'crew-formation__sprite--spotlight',
-						!placement.spotlight && !placement.slot.empty && 'crew-formation__sprite--benched'
-					]
-						.filter(Boolean)
-						.join(' ')}
-					src={placement.slot.spriteSrc}
-					alt=""
-					decoding="async"
-				/>
+
 				{#if !placement.slot.empty}
 					<span
 						class={[
+							'crew-formation__sprite-wrap',
+							placement.mirrored && 'crew-formation__sprite-wrap--mirrored',
+							placement.spotlight && 'crew-formation__sprite-wrap--spotlight',
+							!placement.spotlight && 'crew-formation__sprite-wrap--benched',
+							placement.greeting && 'crew-formation__sprite-wrap--greet'
+						]
+							.filter(Boolean)
+							.join(' ')}
+					>
+						<img
+							class="crew-formation__sprite"
+							src={placement.slot.spriteSrc}
+							alt=""
+							decoding="async"
+						/>
+					</span>
+					<span
+						class={[
 							'crew-formation__nameplate',
-							placement.spotlight && 'crew-formation__nameplate--spotlight'
+							placement.spotlight && 'crew-formation__nameplate--spotlight',
+							placement.greeting && 'crew-formation__nameplate--greet'
 						]
 							.filter(Boolean)
 							.join(' ')}
 						aria-hidden="true"
 					>{placement.slot.name}</span>
+				{:else if swapMode}
+					<span class="crew-formation__empty-hint">Tap to place</span>
+				{:else}
+					<button type="button" class="crew-formation__hatch-link" onclick={handleEmptyHatch}>
+						Hatch
+					</button>
 				{/if}
 			</FreeFormButton>
 		</div>
@@ -208,18 +286,10 @@
 
 <style>
 	.crew-formation {
-		/* The ring sits close to the camera: wide enough that the back arc may
-		   slip behind the stats panel — the active front mon is what matters. */
 		--radius-x: min(36vw, 46rem);
-		/* Ground-level camera: keep the ellipse nearly flat on the floor;
-		   depth reads through scale and blur, not vertical lift. */
 		--radius-y: calc(var(--radius-x) * 0.1);
-		/* Horizontal anchor of the ring; the scene overrides this to share space
-		   with the stats column. */
 		--ring-x: 50%;
 		--hub-y: 78%;
-		/* All sprite heights derive from the trainer so species sizes stay honest.
-		   2x the native 128px grid: the whole formation sits close to the camera. */
 		--trainer-h: 256px;
 
 		position: relative;
@@ -228,7 +298,10 @@
 		min-height: 50dvh;
 	}
 
-	/* Elliptical clock-face ground plane centered on the trainer hub. */
+	.crew-formation :global(.hatch-scene-depth) {
+		z-index: 0;
+	}
+
 	.crew-formation__ground {
 		position: absolute;
 		left: var(--ring-x);
@@ -238,14 +311,20 @@
 		transform: translate(-50%, -50%);
 		border-radius: 50%;
 		pointer-events: none;
-		z-index: 0;
-		background: radial-gradient(
-			ellipse 100% 100% at 50% 50%,
-			color-mix(in srgb, #a3ad75 90%, white) 0%,
-			#8a9460 34%,
-			color-mix(in srgb, #8a9460 62%, #2f3622) 66%,
-			color-mix(in srgb, #2f3622 58%, #8a9460) 100%
-		);
+		z-index: 1;
+		background:
+			repeating-linear-gradient(
+				135deg,
+				rgb(138 148 96 / 0.08) 0 2px,
+				transparent 2px 5px
+			),
+			radial-gradient(
+				ellipse 100% 100% at 50% 50%,
+				color-mix(in srgb, #a3ad75 90%, white) 0%,
+				#8a9460 34%,
+				color-mix(in srgb, #8a9460 62%, #2f3622) 66%,
+				color-mix(in srgb, #2f3622 58%, #8a9460) 100%
+			);
 		-webkit-mask-image: radial-gradient(
 			ellipse 82% 78% at 50% 52%,
 			rgb(0 0 0 / 1) 0%,
@@ -268,7 +347,6 @@
 		);
 	}
 
-	/* Faint tick marks at the six fixed seat anchors. */
 	.crew-formation__tick {
 		position: absolute;
 		left: 50%;
@@ -290,14 +368,15 @@
 		transform: translate(-50%, -96%);
 		z-index: 10;
 		pointer-events: none;
+		opacity: 0;
+		transition: opacity 320ms steps(8);
 	}
 
-	/* Shrink the trainer reference for hub scale and hide its own platform —
-	   the clock-face ground takes its place. Quantized to the 128px sprite
-	   grid (DESIGN.md §5.2). */
+	.crew-formation__hub--visible {
+		opacity: 1;
+	}
+
 	.crew-formation__hub :global(.crew-formation__trainer) {
-		/* One source pixel = one CSS pixel: the hub trainer renders at native
-		   size so mon heights can be read against a stable yardstick. */
 		--sprite-h: var(--trainer-h);
 		--platform-strength: 0;
 	}
@@ -313,6 +392,15 @@
 		transform-origin: center bottom;
 	}
 
+	.crew-formation__slot--hidden {
+		opacity: 0;
+		pointer-events: none;
+	}
+
+	.crew-formation__slot--hop-in {
+		animation: crew-hop-in 420ms steps(8) both;
+	}
+
 	:global(.crew-formation__slot-button) {
 		position: relative;
 		padding: 0.25rem;
@@ -320,7 +408,6 @@
 		flex-shrink: 0;
 	}
 
-	/* Seat platform under each mon with a faded slot number. */
 	.crew-formation__platform {
 		position: absolute;
 		left: 50%;
@@ -338,7 +425,6 @@
 			transparent 78%
 		);
 		display: flex;
-		/* Number rides the front lip of the disc so the mon doesn't cover it. */
 		align-items: flex-end;
 		justify-content: center;
 		padding-bottom: 0.1rem;
@@ -346,11 +432,24 @@
 		z-index: 0;
 	}
 
+	.crew-formation__platform--empty {
+		opacity: 0.72;
+		border: 2px dashed color-mix(in srgb, var(--vm-tobacco) 30%, transparent);
+		background: radial-gradient(
+			ellipse 100% 100% at 50% 50%,
+			color-mix(in srgb, var(--vm-tobacco) 16%, transparent) 0%,
+			transparent 72%
+		);
+	}
+
+	.crew-formation__platform--swap-target {
+		box-shadow: 0 0 0 2px color-mix(in srgb, var(--vm-mustard) 55%, transparent);
+	}
+
 	.crew-formation__platform-number {
 		font-family: var(--vm-font-ui);
 		font-size: 1.05rem;
 		line-height: 1;
-		letter-spacing: 0;
 		color: var(--vm-parchment);
 		opacity: 0.55;
 		user-select: none;
@@ -366,9 +465,49 @@
 		);
 	}
 
-	.crew-formation__platform--active .crew-formation__platform-number {
+	.crew-formation__platform--active .crew-formation__platform-number,
+	.crew-formation__platform--empty .crew-formation__platform-number {
 		color: var(--vm-mustard);
 		opacity: 0.92;
+	}
+
+	.crew-formation__sprite-wrap {
+		position: relative;
+		z-index: 1;
+		display: block;
+		transform-origin: bottom center;
+	}
+
+	.crew-formation__sprite-wrap--mirrored {
+		transform: scale(-1, 1);
+	}
+
+	.crew-formation__sprite-wrap--spotlight {
+		animation: idle-breathe var(--anim-idle-duration) infinite ease-in-out;
+		animation-delay: var(--idle-delay, 0s);
+	}
+
+	.crew-formation__sprite-wrap--benched {
+		opacity: 0.88;
+		filter: brightness(0.82) saturate(0.78) hue-rotate(var(--depth-cool, 0deg));
+		animation: idle-breathe calc(var(--anim-idle-duration) * 1.08) infinite ease-in-out;
+		animation-delay: var(--idle-delay, 0s);
+	}
+
+	.crew-formation__sprite-wrap--greet {
+		animation: crew-spotlight-greet 520ms steps(8) both;
+	}
+
+	.crew-formation__sprite {
+		display: block;
+		flex-shrink: 0;
+		max-width: none;
+		height: calc(var(--trainer-h) * var(--height-factor, 0.8));
+		width: auto;
+		image-rendering: pixelated;
+		image-rendering: crisp-edges;
+		user-select: none;
+		pointer-events: none;
 	}
 
 	.crew-formation__nameplate {
@@ -390,44 +529,36 @@
 		user-select: none;
 	}
 
-	.crew-formation__sprite {
-		position: relative;
-		z-index: 1;
-		display: block;
-		flex-shrink: 0;
-		max-width: none;
-		/* Honest species height relative to the trainer; depth handles closeness. */
-		height: calc(var(--trainer-h) * var(--height-factor, 0.8));
-		width: auto;
-		image-rendering: pixelated;
-		image-rendering: crisp-edges;
-		user-select: none;
-		pointer-events: none;
-		filter: blur(var(--depth-blur, 0px));
-	}
-
-	.crew-formation__sprite--spotlight {
-		filter: blur(0);
-	}
-
-	.crew-formation__sprite--benched {
-		opacity: 0.72;
-		filter: blur(var(--depth-blur, 0px)) brightness(0.82) saturate(0.78);
-	}
-
-	.crew-formation__nameplate--spotlight {
+	.crew-formation__nameplate--spotlight,
+	.crew-formation__nameplate--greet {
 		font-size: 0.75rem;
 		color: var(--vm-mustard);
 	}
 
-	/* Facing changes are mirror-only — pixel sprites never rotate (DESIGN.md §5.1). */
-	.crew-formation__sprite--mirrored {
-		transform: scale(-1, 1);
+	.crew-formation__hatch-link,
+	.crew-formation__empty-hint {
+		position: relative;
+		z-index: 1;
+		display: block;
+		margin: 0.35rem auto 0;
+		padding: 0.15rem 0.45rem;
+		border: 0;
+		background: transparent;
+		font-family: var(--vm-font-ui);
+		font-size: 0.625rem;
+		line-height: 1.4;
+		letter-spacing: 0.08em;
+		color: var(--vm-mustard);
+		cursor: pointer;
 	}
 
-	.crew-formation__sprite--empty {
-		filter: blur(var(--depth-blur, 0px)) brightness(0);
-		opacity: 0.35;
+	.crew-formation__empty-hint {
+		color: color-mix(in srgb, var(--vm-parchment) 72%, var(--vm-mustard));
+		pointer-events: none;
+	}
+
+	.crew-formation--swap-mode :global(.crew-formation__slot-button--swap-target) {
+		cursor: pointer;
 	}
 
 	@media (max-width: 900px) {

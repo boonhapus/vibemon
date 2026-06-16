@@ -34,6 +34,18 @@ export type CandidateDisplay = {
 	size_class: 'small' | 'mid' | 'large';
 };
 
+export type CandidateReview = {
+	id: string;
+	trainer_id: string;
+	status: string;
+	shown_at: string;
+	timeout_at: string;
+	resolved_at: string | null;
+	resolution: string | null;
+	status_label: string;
+	resolved_label: string | null;
+};
+
 export type HatchCandidate = {
 	id: string;
 	name: string;
@@ -52,6 +64,7 @@ export type HatchCandidate = {
 	/** Audit-only; display PNGs are oriented screen-left at generation time. */
 	reference_facing: 'left' | 'right';
 	providers: string[];
+	candidate_review?: CandidateReview | null;
 };
 
 export type CandidateAction = {

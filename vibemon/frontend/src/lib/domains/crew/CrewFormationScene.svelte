@@ -1,92 +1,154 @@
 <script lang="ts">
 	import { onMount } from 'svelte';
 	import { goto } from '$app/navigation';
+	import { Tween, prefersReducedMotion } from 'svelte/motion';
+	import { linear } from 'svelte/easing';
 
-	import HatchCandidatePanel from '$lib/domains/trainer/HatchCandidatePanel.svelte';
 	import { fetchCrew, reorderCrew, type CrewMember } from '$lib/domains/trainer/hatchApi';
 	import { fetchTrainerMe } from '$lib/domains/trainer/trainerApi';
 	import DialogBox from '$lib/ui/DialogBox.svelte';
 	import FreeFormButton from '$lib/ui/FreeFormButton.svelte';
 	import GamePanel from '$lib/ui/GamePanel.svelte';
 	import SceneFrame from '$lib/ui/SceneFrame.svelte';
+	import { playGameAudio } from '$lib/ui/gameAudioStore.svelte';
 	import { showGameToast } from '$lib/ui/toastStore.svelte';
 
 	import CrewClockFormation from './CrewClockFormation.svelte';
-	import CrewMemberPanel from './CrewMemberPanel.svelte';
-	import { buildParty, mod, PARTY_SIZE, type PartySlot } from './crewSlots';
+	import CrewShowcasePanel from './CrewShowcasePanel.svelte';
+	import { buildSwapPairs, rotationDeltaToFront } from './crewRingMath';
+	import { buildParty, mod, PARTY_SIZE, type PartySlot, type SwapAnimPair } from './crewSlots';
 
 	const DEFAULT_TRAINER_SPRITE = '/game/sprites/trainer@128.png';
-	const FIRST_VISIT_HINT_KEY = 'vm-crew-formation-hint-seen';
+	const INTRO_RITUAL_KEY = 'vm-crew-formation-intro-seen';
+	const HINT_KEY = 'vm-crew-formation-hint-seen';
 	const EMPTY_SEAT_HINT_MS = 2600;
-	const POSITION_LABELS = ['Lead', '2', '3', '4', '5', '6'];
+	const SWAP_ANIM_MS = 600;
+	const POSITION_LABELS = ['Lead', '2', '3', '4', '5', '6'] as const;
 
 	let members = $state<CrewMember[]>([]);
 	let loading = $state(true);
-	let firstVisit = $state(false);
+	let showHint = $state(false);
+	let introRitual = $state<'full' | 'short' | 'none'>('short');
+	let introDone = $state(false);
 	let emptySeatHint = $state(false);
 	let trainerSpriteSrc = $state(DEFAULT_TRAINER_SPRITE);
 	let detailHint = $state<string | null>(null);
+	let panelTab = $state<'stats' | 'moves' | 'sources' | 'story'>('stats');
 	let swapBusy = $state(false);
+	let swapMode = $state(false);
+	let swapAnimPairs = $state<SwapAnimPair[] | null>(null);
+	let swapConfirm = $state<string | null>(null);
 
-	/** Cumulative view rotation in slot units; mod 6 picks the active (front)
-	 * crew_slot. Turning the ring never persists — only the position buttons do. */
 	let rotation = $state(0);
 	let emptySeatTimer: ReturnType<typeof setTimeout> | undefined;
+	let panelShell = $state<HTMLDivElement | null>(null);
+
+	const swapProgress = new Tween(0, { duration: SWAP_ANIM_MS, easing: linear });
+	let swapAnimation = $derived(
+		swapAnimPairs ? { pairs: swapAnimPairs, progress: swapProgress.current } : null
+	);
 
 	let party = $derived(buildParty(members));
 	let filledCount = $derived(members.length);
 	let activeSlot = $derived(party[mod(rotation, PARTY_SIZE)]);
 
 	let dialogText = $derived.by(() => {
-		if (loading) return 'Loading your crew...';
-		if (filledCount === 0) return 'No Vibemon adopted yet.';
-		if (emptySeatHint) return 'No Vibemon here — hatch one from your vibes.';
+		if (swapConfirm) return swapConfirm;
+		if (loading) return 'Gathering your crew...';
+		if (filledCount === 0) return 'No Vibemon in your crew yet.';
+		if (swapMode && activeSlot && !activeSlot.empty) {
+			return `Where should ${activeSlot.name} stand?`;
+		}
+		if (emptySeatHint) return 'Open seat — hatch a Vibemon from your vibes.';
+		if (!introDone && filledCount > 0) return 'Your crew gathers.';
 		if (detailHint) return detailHint;
-		if (firstVisit) return 'Turn the crew, then set your active mon\'s position.';
-		return 'Choose your active mon.';
+		if (showHint && introDone) return 'Turn the ring to review your crew.';
+		return 'Choose who to look at.';
 	});
 
 	function rotateBy(delta: number) {
-		if (loading || filledCount === 0) return;
+		if (loading || filledCount === 0 || swapMode || swapBusy || !introDone) return;
 		rotation += delta;
 	}
 
 	function rotateSlotToFront(slot: PartySlot) {
-		let delta = mod(slot.crewSlot - rotation, PARTY_SIZE);
-		if (delta > PARTY_SIZE / 2) delta -= PARTY_SIZE;
+		if (swapMode || swapBusy || !introDone) return;
+		const delta = rotationDeltaToFront(rotation, slot.crewSlot);
 		if (delta === 0) return;
 		rotation += delta;
 	}
 
-	/** Move the active mon into `target`; if occupied, the two mons swap seats. */
+	function slotLabel(slotIndex: number): string {
+		return POSITION_LABELS[slotIndex] ?? String(slotIndex + 1);
+	}
+
+	async function animateSwap(pairs: SwapAnimPair[]): Promise<void> {
+		if (pairs.length === 0) return;
+		swapAnimPairs = pairs;
+		await swapProgress.set(1, {
+			duration: prefersReducedMotion.current ? 0 : SWAP_ANIM_MS
+		});
+		swapAnimPairs = null;
+		await swapProgress.set(0, { duration: 0 });
+	}
+
 	async function moveActiveToSlot(target: number) {
 		const active = activeSlot;
 		if (!active || active.empty || swapBusy) return;
 		const from = active.crewSlot;
-		if (target === from) return;
+		if (target === from) {
+			if (swapMode) swapMode = false;
+			return;
+		}
 
 		const previous = members;
-		members = members.map((member) => {
-			if (member.crew_slot === from) return { ...member, crew_slot: target };
-			if (member.crew_slot === target) return { ...member, crew_slot: from };
-			return member;
-		});
-		// Keep the active mon at the front anchor after it changes seats.
-		rotation += target - from;
+		const pairs = buildSwapPairs(active.id, from, target, members);
+		const occupant = members.find((member) => member.crew_slot === target);
+		const activeName = active.name;
+		const targetLabel = slotLabel(target);
 
 		swapBusy = true;
+		swapMode = false;
+
 		try {
+			await animateSwap(pairs);
+
+			members = members.map((member) => {
+				if (member.crew_slot === from) return { ...member, crew_slot: target };
+				if (member.crew_slot === target) return { ...member, crew_slot: from };
+				return member;
+			});
+			rotation += target - from;
+
 			await reorderCrew(
 				members.map((member) => ({ id: member.id, crew_slot: member.crew_slot }))
 			);
+
+			playGameAudio('swap-commit');
+			swapConfirm =
+				occupant && occupant.id !== active.id
+					? `${activeName} and ${(occupant.nickname?.trim() || occupant.name).toUpperCase()} trade places.`
+					: `${activeName} takes the ${targetLabel} spot.`;
+			setTimeout(() => {
+				if (swapConfirm?.includes(activeName)) swapConfirm = null;
+			}, 2400);
 		} catch (error) {
 			members = previous;
-			rotation -= target - from;
 			const message = error instanceof Error ? error.message : 'Could not save your crew order.';
 			showGameToast(message, 'brick');
 		} finally {
 			swapBusy = false;
 		}
+	}
+
+	function handleSelectSwapTarget(slotIndex: number) {
+		void moveActiveToSlot(slotIndex);
+	}
+
+	function toggleSwapMode() {
+		if (loading || !activeSlot || activeSlot.empty || swapBusy || !introDone) return;
+		swapMode = !swapMode;
+		if (swapMode) panelTab = 'stats';
 	}
 
 	function handleTapEmpty() {
@@ -98,7 +160,15 @@
 		}, EMPTY_SEAT_HINT_MS);
 	}
 
+	function handleEmptyHatch() {
+		void goto('/hatch');
+	}
+
 	function handleCancel() {
+		if (swapMode) {
+			swapMode = false;
+			return;
+		}
 		void goto('/hatch');
 	}
 
@@ -106,8 +176,38 @@
 		void goto('/deck/crew/roster');
 	}
 
+	function handleIntroComplete() {
+		introDone = true;
+	}
+
+	function handleRotationSettled() {
+		playGameAudio('menu-nav');
+	}
+
+	function handleSpotlightGreet() {
+		playGameAudio('confirm');
+	}
+
+	function focusShowcase() {
+		panelTab = 'stats';
+		panelShell?.querySelector<HTMLElement>('.crew-showcase-panel__tab')?.focus();
+	}
+
 	function handleKeydown(event: KeyboardEvent) {
 		if (event.defaultPrevented) return;
+
+		if (event.key >= '1' && event.key <= '6') {
+			event.preventDefault();
+			const slotIndex = Number(event.key) - 1;
+			if (swapMode) {
+				void moveActiveToSlot(slotIndex);
+				return;
+			}
+			const slot = party[slotIndex];
+			if (slot) rotateSlotToFront(slot);
+			return;
+		}
+
 		switch (event.key) {
 			case 'ArrowLeft':
 				event.preventDefault();
@@ -117,6 +217,16 @@
 				event.preventDefault();
 				rotateBy(-1);
 				break;
+			case 'Enter':
+				event.preventDefault();
+				if (swapMode) return;
+				focusShowcase();
+				break;
+			case 'm':
+			case 'M':
+				event.preventDefault();
+				toggleSwapMode();
+				break;
 			case 'Escape':
 				event.preventDefault();
 				handleCancel();
@@ -125,11 +235,15 @@
 	}
 
 	onMount(() => {
+		let introSeen = true;
 		try {
-			firstVisit = localStorage.getItem(FIRST_VISIT_HINT_KEY) === null;
-			if (firstVisit) localStorage.setItem(FIRST_VISIT_HINT_KEY, '1');
+			introSeen = localStorage.getItem(INTRO_RITUAL_KEY) !== null;
+			if (!introSeen) localStorage.setItem(INTRO_RITUAL_KEY, '1');
+			showHint = localStorage.getItem(HINT_KEY) === null;
+			if (showHint) localStorage.setItem(HINT_KEY, '1');
 		} catch {
-			firstVisit = false;
+			introSeen = true;
+			showHint = false;
 		}
 
 		void (async () => {
@@ -139,8 +253,15 @@
 				if (session?.reference_url) {
 					trainerSpriteSrc = session.reference_url;
 				}
+				if (crew.members.length === 0) {
+					introRitual = 'none';
+					introDone = true;
+				} else {
+					introRitual = introSeen ? 'short' : 'full';
+				}
 			} catch {
 				showGameToast('Could not load your crew.', 'brick');
+				introDone = true;
 			} finally {
 				loading = false;
 			}
@@ -162,38 +283,34 @@
 				{rotation}
 				selectedId={activeSlot?.id ?? ''}
 				{trainerSpriteSrc}
+				{swapMode}
+				{swapBusy}
+				introReady={!loading}
+				{introRitual}
+				{swapAnimation}
 				onSelectSlot={rotateSlotToFront}
 				onTapEmpty={handleTapEmpty}
+				onTapEmptyHatch={handleEmptyHatch}
+				onSelectSwapTarget={handleSelectSwapTarget}
+				onIntroComplete={handleIntroComplete}
+				onRotationSettled={handleRotationSettled}
+				onSpotlightGreet={handleSpotlightGreet}
 			/>
 
 			<div class="crew-formation-scene__stats">
-				<CrewMemberPanel member={activeSlot ?? null} />
-				<div class="crew-formation-scene__positions" role="group" aria-label="Crew position">
-					{#each POSITION_LABELS as label, slotIndex (slotIndex)}
-						<FreeFormButton
-							ariaLabel={slotIndex === 0 ? 'Set as lead' : `Move to position ${label}`}
-							disabled={loading || !activeSlot || activeSlot.empty || swapBusy}
-							onclick={() => moveActiveToSlot(slotIndex)}
-						>
-							<GamePanel
-								tone="command"
-								class={[
-									'crew-formation-scene__position-panel',
-									activeSlot?.crewSlot === slotIndex &&
-										'crew-formation-scene__position-panel--current'
-								]
-									.filter(Boolean)
-									.join(' ')}
-							>
-								<span class="crew-formation-scene__position-label">{label}</span>
-							</GamePanel>
-						</FreeFormButton>
-					{/each}
-				</div>
 				{#if activeSlot?.detail}
-					{#key activeSlot.id}
-						<HatchCandidatePanel candidate={activeSlot.detail} showActions={false} bind:detailHint />
-					{/key}
+					<div bind:this={panelShell}>
+						{#key activeSlot.id}
+							<CrewShowcasePanel
+								candidate={activeSlot.detail}
+								level={activeSlot.level}
+								currentHp={activeSlot.currentHp}
+								maxHp={activeSlot.maxHp}
+								bind:detailHint
+								bind:activeTab={panelTab}
+							/>
+						{/key}
+					</div>
 				{/if}
 			</div>
 		</div>
@@ -204,6 +321,49 @@
 			</div>
 
 			<div class="crew-formation-scene__footer-actions">
+				{#if swapMode}
+					<div class="crew-formation-scene__positions" role="group" aria-label="Crew position">
+						{#each POSITION_LABELS as label, slotIndex (slotIndex)}
+							<FreeFormButton
+								ariaLabel={slotIndex === 0 ? 'Set as lead' : `Move to position ${label}`}
+								disabled={loading || !activeSlot || activeSlot.empty || swapBusy || !introDone}
+								onclick={() => moveActiveToSlot(slotIndex)}
+							>
+								<GamePanel
+									tone="command"
+									class={[
+										'crew-formation-scene__position-panel',
+										activeSlot?.crewSlot === slotIndex &&
+											'crew-formation-scene__position-panel--current'
+									]
+										.filter(Boolean)
+										.join(' ')}
+								>
+									<span class="crew-formation-scene__position-label">{label}</span>
+								</GamePanel>
+							</FreeFormButton>
+						{/each}
+					</div>
+				{/if}
+
+				<FreeFormButton
+					ariaLabel="Move crew member to another seat"
+					disabled={loading || !activeSlot || activeSlot.empty || swapBusy || !introDone}
+					onclick={toggleSwapMode}
+				>
+					<GamePanel
+						tone="command"
+						class={[
+							'crew-formation-scene__footer-panel',
+							swapMode && 'crew-formation-scene__footer-panel--active'
+						]
+							.filter(Boolean)
+							.join(' ')}
+					>
+						<span class="crew-formation-scene__footer-label">Move</span>
+					</GamePanel>
+				</FreeFormButton>
+
 				<FreeFormButton ariaLabel="Open roster view" onclick={handleRoster}>
 					<GamePanel tone="command" class="crew-formation-scene__footer-panel">
 						<span class="crew-formation-scene__footer-label">Roster</span>
@@ -212,7 +372,7 @@
 
 				<FreeFormButton ariaLabel="Cancel" onclick={handleCancel}>
 					<GamePanel tone="command" class="crew-formation-scene__footer-panel">
-						<span class="crew-formation-scene__footer-label">Cancel</span>
+						<span class="crew-formation-scene__footer-label">{swapMode ? 'Back' : 'Cancel'}</span>
 					</GamePanel>
 				</FreeFormButton>
 			</div>
@@ -230,7 +390,6 @@
 		gap: clamp(0.85rem, 2.4vh, 1.35rem);
 	}
 
-	/* Spotlight mons scale up past their layout box; don't clip wings at the bezel. */
 	:global(.scene-frame.scene-frame--crew-formation) {
 		overflow: visible;
 	}
@@ -241,16 +400,27 @@
 		overflow: visible;
 	}
 
-	/* Sit the ring left of center so the oval reads in the play area beside
-	   the stats column. */
 	.crew-formation-scene__play-area :global(.crew-formation) {
 		--ring-x: 54%;
 	}
 
+	.crew-formation-scene__stats {
+		position: absolute;
+		top: clamp(0.25rem, 1.5vh, 0.75rem);
+		left: clamp(0.25rem, 1vw, 0.75rem);
+		z-index: 30;
+		display: flex;
+		flex-direction: column;
+		width: min(30rem, 42vw);
+		max-width: calc(100% - 2rem);
+		max-height: calc(100% - 1rem);
+	}
+
 	.crew-formation-scene__positions {
 		display: grid;
-		grid-template-columns: minmax(0, 1.6fr) repeat(5, minmax(0, 1fr));
+		grid-template-columns: repeat(6, minmax(0, 1fr));
 		gap: clamp(0.25rem, 0.8vw, 0.45rem);
+		width: 100%;
 	}
 
 	:global(.crew-formation-scene__position-panel) {
@@ -271,29 +441,12 @@
 		text-align: center;
 	}
 
-	.crew-formation-scene__stats {
-		position: absolute;
-		top: clamp(0.25rem, 1.5vh, 0.75rem);
-		left: clamp(0.25rem, 1vw, 0.75rem);
-		z-index: 30;
-		display: flex;
-		flex-direction: column;
-		gap: clamp(0.4rem, 1.2vh, 0.65rem);
-		width: min(30rem, 42vw);
-		max-width: calc(100% - 2rem);
-		max-height: calc(100% - 1rem);
-	}
-
 	@media (max-width: 700px) {
 		.crew-formation-scene__play-area :global(.crew-formation) {
 			--ring-x: 48%;
 		}
 
 		.crew-formation-scene__stats {
-			width: min(16rem, 86vw);
-		}
-
-		.crew-formation-scene__stats :global(.hatch-candidate-panel-shell) {
 			display: none;
 		}
 	}
@@ -318,10 +471,18 @@
 		display: flex;
 		gap: clamp(0.5rem, 1.5vw, 0.75rem);
 		flex-shrink: 0;
+		flex-wrap: wrap;
+		justify-content: flex-end;
+		align-items: end;
 	}
 
 	:global(.crew-formation-scene__footer-panel) {
-		min-width: clamp(5rem, 16vw, 7rem);
+		min-width: clamp(4.5rem, 14vw, 6.5rem);
+	}
+
+	:global(.crew-formation-scene__footer-panel--active) {
+		--panel-command-accent: var(--vm-mustard);
+		--panel-command-surface: color-mix(in srgb, var(--vm-mustard) 22%, var(--vm-panel-command-bg));
 	}
 
 	.crew-formation-scene__footer-label {
@@ -337,10 +498,6 @@
 		.crew-formation-scene__footer {
 			grid-template-columns: 1fr;
 			justify-items: stretch;
-		}
-
-		.crew-formation-scene__footer-actions {
-			justify-content: flex-end;
 		}
 	}
 </style>

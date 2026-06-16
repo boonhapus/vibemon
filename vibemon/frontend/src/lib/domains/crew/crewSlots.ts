@@ -45,7 +45,7 @@ export function buildParty(members: CrewMember[], partySize: number = PARTY_SIZE
 		level: 0,
 		currentHp: 0,
 		maxHp: 0,
-		spriteSrc: PLACEHOLDER_SPRITE,
+		spriteSrc: '',
 		facing: null,
 		crewSlot,
 		empty: true,
@@ -83,3 +83,14 @@ export function hpPercent(slot: PartySlot): number {
 export function mod(value: number, base: number): number {
 	return ((value % base) + base) % base;
 }
+
+export type SwapAnimPair = {
+	memberId: string;
+	fromSlot: number;
+	toSlot: number;
+};
+
+export type SwapAnimation = {
+	pairs: SwapAnimPair[];
+	progress: number;
+};

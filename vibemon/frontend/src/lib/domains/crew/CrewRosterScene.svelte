@@ -8,8 +8,9 @@
 	import GamePanel from '$lib/ui/GamePanel.svelte';
 	import SceneFrame from '$lib/ui/SceneFrame.svelte';
 	import { showGameToast } from '$lib/ui/toastStore.svelte';
+	import SegmentedHpBar from '$lib/ui/SegmentedHpBar.svelte';
 
-	import { buildParty, hpPercent } from './crewSlots';
+	import { buildParty } from './crewSlots';
 
 	let members = $state<CrewMember[]>([]);
 	let loading = $state(true);
@@ -61,7 +62,7 @@
 						<div class="crew-scene__lead">
 							<img
 								class={['crew-scene__lead-sprite', lead.empty && 'crew-scene__sprite--empty'].filter(Boolean).join(' ')}
-								src={lead.spriteSrc}
+								src={lead.empty ? '/game/sprites/hatchling-silhouette@128.png' : lead.spriteSrc}
 								alt=""
 								decoding="async"
 							/>
@@ -73,15 +74,7 @@
 										<span class="crew-scene__name">{lead.name}</span>
 										<span class="crew-scene__level">Lv{lead.level}</span>
 									</div>
-									<div class="crew-scene__hp">
-										<div class="crew-scene__hp-label">HP</div>
-										<div class="crew-scene__hp-track" aria-hidden="true">
-											<div class="crew-scene__hp-fill" style:width="{hpPercent(lead)}%"></div>
-										</div>
-										<div class="crew-scene__hp-values">
-											{lead.currentHp} / {lead.maxHp}
-										</div>
-									</div>
+									<SegmentedHpBar current={lead.currentHp} max={lead.maxHp} />
 								{/if}
 							</div>
 						</div>
@@ -115,7 +108,7 @@
 								<div class="crew-scene__bench-row">
 									<img
 										class={['crew-scene__bench-sprite', member.empty && 'crew-scene__sprite--empty'].filter(Boolean).join(' ')}
-										src={member.spriteSrc}
+										src={member.empty ? '/game/sprites/hatchling-silhouette@128.png' : member.spriteSrc}
 										alt=""
 										decoding="async"
 									/>
@@ -127,14 +120,11 @@
 												<span class="crew-scene__name">{member.name}</span>
 												<span class="crew-scene__level">Lv{member.level}</span>
 											</div>
-											<div class="crew-scene__hp crew-scene__hp--compact">
-												<div class="crew-scene__hp-track" aria-hidden="true">
-													<div class="crew-scene__hp-fill" style:width="{hpPercent(member)}%"></div>
-												</div>
-												<div class="crew-scene__hp-values">
-													{member.currentHp} / {member.maxHp}
-												</div>
-											</div>
+											<SegmentedHpBar
+												compact
+												current={member.currentHp}
+												max={member.maxHp}
+											/>
 										{/if}
 									</div>
 								</div>
@@ -259,49 +249,11 @@
 		letter-spacing: 0.04em;
 	}
 
-	.crew-scene__level,
-	.crew-scene__hp-label,
-	.crew-scene__hp-values {
+	.crew-scene__level {
 		font-family: var(--vm-font-ui);
 		font-size: clamp(0.5625rem, 1.6vw, 0.75rem);
 		line-height: 1.5;
 		letter-spacing: 0.03em;
-	}
-
-	.crew-scene__hp {
-		display: grid;
-		grid-template-columns: auto 1fr;
-		grid-template-rows: auto auto;
-		gap: 0.35rem 0.55rem;
-		align-items: center;
-	}
-
-	.crew-scene__hp--compact {
-		grid-template-columns: 1fr;
-	}
-
-	.crew-scene__hp-label {
-		grid-row: span 2;
-	}
-
-	.crew-scene__hp-track {
-		height: clamp(0.55rem, 1.5vw, 0.75rem);
-		border: 2px solid var(--vm-tobacco);
-		background: color-mix(in srgb, var(--vm-tobacco) 12%, var(--vm-parchment));
-		padding: 1px;
-	}
-
-	.crew-scene__hp-fill {
-		height: 100%;
-		background: var(--vm-status-sage);
-	}
-
-	.crew-scene__hp-values {
-		text-align: right;
-	}
-
-	.crew-scene__hp--compact .crew-scene__hp-values {
-		text-align: left;
 	}
 
 	.crew-scene__bench {
