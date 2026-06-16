@@ -11,11 +11,10 @@ import cyclopts
 from app.domains.encounter.types import WildEncounterOutcomeT
 from app.domains.vibemon.strength import member_strength
 from app.storage.database import vibemon_repo
-from app.workflows import battle_play
+from app.workflows import actual_encounter, battle_play
 from app.workflows import birth_seed as birth_seed_factory
 from app.workflows import candidate as candidate_workflow
 from app.workflows import generate_wild_supply as wild_supply_workflow
-from app.workflows import wild_encounter as wild_encounter_workflow
 from scripts import _common
 
 COMMON_OPTIONS = cyclopts.Group("Common options", sort_key=0)
@@ -197,7 +196,7 @@ async def _simulate(
         generated_wild.append(generated.id)
 
     hero_row = await _load_strength_row(sess, hero_vibemon_id)
-    selection = await wild_encounter_workflow.pick_wild_encounter(
+    selection = await actual_encounter.pick_encounter(
         sess,
         trainer_id=_common.trainer_id(trainer_id),
         latitude=latitude,
@@ -247,7 +246,7 @@ async def _simulate(
             else WildEncounterOutcomeT.DEFEAT
         )
 
-    await wild_encounter_workflow.record_wild_encounter_outcome(
+    await actual_encounter.record_encounter_outcome_only(
         sess,
         trainer_id=_common.trainer_id(trainer_id),
         vibemon_id=selection.vibemon_id,

@@ -3,14 +3,16 @@
 from collections.abc import AsyncGenerator
 import uuid
 
-from litestar.connection import ASGIConnection
+from litestar.connection import ASGIConnection, Request
 from litestar.datastructures import State
 from litestar.exceptions import NotAuthorizedException
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
 
+from app.core.errors import BattleUnavailable
 from app.core.ids import TrainerIdT
 from app.settings import Settings
 from app.storage.database import models
+from app.workflows.battle_play import ActiveBattle, BattleSessionRegistry
 
 SESSION_COOKIE = "vibemon_trainer"
 
@@ -60,3 +62,19 @@ async def load_authenticated_trainer(
     if row is None:
         raise NotAuthorizedException(detail="Sign in to continue.")
     return row
+
+
+def battle_session_registry(request: Request) -> BattleSessionRegistry:
+    return request.app.state.battle_session_registry
+
+
+def load_battle_session(
+    request: Request,
+    *,
+    battle_id: uuid.UUID,
+    trainer_id: TrainerIdT,
+) -> ActiveBattle:
+    try:
+        return request.app.state.battle_session_registry.get(battle_id, trainer_id=trainer_id)
+    except BattleUnavailable as exc:
+        raise NotAuthorizedException(detail=str(exc)) from exc

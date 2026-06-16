@@ -6,14 +6,12 @@ import uuid
 
 from app.core.schema import FrozenSchema
 from app.domains.battle import entity
-from app.domains.generation.snapshot import BirthSnapshot
 from app.domains.move.entity import Move
 from app.domains.vibemon import identity as vibemon_identity
 from app.domains.vibemon.entity import Vibemon
 from app.domains.vibemon.progression import formulas
 from app.domains.vibemon.strength_formulas import apply_evo_seed_bst_bias
 from app.domains.vibemon.types import EvolutionStageT
-from app.providers import registry as provider_registry
 
 MAX_ACTIVE_MOVES = 4
 
@@ -63,28 +61,16 @@ class _XpAccumulator:
     awards: dict[uuid.UUID, int] = field(default_factory=lambda: defaultdict(int))
 
 
-def collect_move_pool(snapshot: BirthSnapshot, *, level: int) -> tuple[Move, ...]:
-    """Full provider move pool from a birth snapshot at ``level``."""
-    moves: dict[str, Move] = {}
-    for provider_name in sorted(snapshot.provider_payloads):
-        provider = provider_registry.get_catalog_provider(provider_name)()
-        for move in provider.selectable_moves(level=level):
-            moves[move.id] = move
-    return tuple(moves.values())
-
-
 def learnable_moves(
     vibemon: Vibemon,
     *,
-    snapshot: BirthSnapshot,
+    pool: tuple[Move, ...],
     level: int,
 ) -> tuple[Move, ...]:
     """Moves newly eligible at ``level`` that the mon does not already know."""
     known = {move.id for move in vibemon.moves}
     return tuple(
-        move
-        for move in collect_move_pool(snapshot, level=level)
-        if move.level_requirement <= level and move.id not in known
+        move for move in pool if move.level_requirement <= level and move.id not in known
     )
 
 
@@ -183,7 +169,7 @@ def resolve_progression_for_vibemon(
     vibemon: Vibemon,
     *,
     xp_gain: int,
-    snapshot: BirthSnapshot,
+    move_pool_by_level: dict[int, tuple[Move, ...]],
     auto_evolve: bool,
 ) -> ProgressionDelta:
     """Apply XP, auto-evolve wild mons, and surface owned-mon offers."""
@@ -215,7 +201,8 @@ def resolve_progression_for_vibemon(
                 )
 
         for level in range(xp_award.previous_level + 1, xp_award.new_level + 1):
-            for move in learnable_moves(updated, snapshot=snapshot, level=level):
+            pool = move_pool_by_level.get(level, ())
+            for move in learnable_moves(updated, pool=pool, level=level):
                 if len(updated.moves) < MAX_ACTIVE_MOVES:
                     updated = updated.model_copy(update={"moves": (*updated.moves, move)})
                 elif not auto_evolve:
@@ -235,18 +222,17 @@ def resolve_battle_progression(
     battle: entity.Battle,
     *,
     battle_id: uuid.UUID,
-    snapshots: dict[uuid.UUID, BirthSnapshot],
+    move_pool_by_vibemon: dict[uuid.UUID, dict[int, tuple[Move, ...]]],
     auto_evolve_by_id: dict[uuid.UUID, bool],
 ) -> BattleProgressionResult:
     """Resolve XP and progression for every battle participant."""
     xp_totals = accumulate_battle_xp(battle)
     deltas: list[ProgressionDelta] = []
     for combatant in _participants(battle):
-        snapshot = snapshots[combatant.id]
         delta = resolve_progression_for_vibemon(
             combatant,
             xp_gain=xp_totals.get(combatant.id, 0),
-            snapshot=snapshot,
+            move_pool_by_level=move_pool_by_vibemon[combatant.id],
             auto_evolve=auto_evolve_by_id.get(combatant.id, combatant.is_wild),
         )
         deltas.append(delta)

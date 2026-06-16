@@ -22,11 +22,12 @@ from sqlalchemy.ext.asyncio import async_sessionmaker
 from app.core import logging as app_logging
 from app.core.errors import VibemonServiceError
 from app.http import deps, errors
-from app.http.routes import assets, candidates, health, providers, trainers
+from app.http.routes import assets, candidates, encounters, health, providers, trainers
 from app.providers.music.lastfm import routes as lastfm_routes
 from app.settings import Settings
 from app.storage.database import engine as db_engine
 from app.storage.database import models
+from app.workflows.battle_play import BattleSessionRegistry
 
 _lastfm_app = lastfm_routes.create_app()
 
@@ -45,6 +46,7 @@ async def lifespan(app: Litestar) -> AsyncGenerator[None]:
         await conn.run_sync(models.Base.metadata.create_all)
     app.state.engine = engine
     app.state.session_factory = async_sessionmaker(engine, expire_on_commit=False)
+    app.state.battle_session_registry = BattleSessionRegistry()
     try:
         yield
     finally:
@@ -66,6 +68,7 @@ def create_app() -> Litestar:
             assets.assets_router,
             trainers.trainer_router,
             candidates.candidate_router,
+            encounters.encounter_router,
             providers.provider_router,
             lastfm_mount,
         ],

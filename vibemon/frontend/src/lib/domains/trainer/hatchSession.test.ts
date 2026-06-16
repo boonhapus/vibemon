@@ -4,28 +4,32 @@ import {
 	canAdopt,
 	canGenerate,
 	canReject,
-	createHatchFlowState,
+	createHatchSession,
 	hatchControlsBlocked,
 	hatchPhase,
-	releaseDisabled
-} from './hatchFlow';
+	releaseDisabled,
+	type HatchSessionBlockers
+} from './hatchSession';
 import { createProviderSelectionState } from './providerSelection';
 
-const blockers = { settingsOpen: false, providerModalOpen: false };
+const blockers: HatchSessionBlockers = { settingsOpen: false, providerModalOpen: false };
 
-describe('hatchFlow guards', () => {
+describe('hatchSession guards', () => {
 	it('blocks generate while a candidate is on screen', () => {
-		const state = createHatchFlowState({ candidate: { id: '1' } as never });
-		expect(canGenerate(state, blockers, 1)).toBe(false);
+		const state = createHatchSession({
+			candidate: { id: '1' } as never,
+			providers: { selectedIds: ['music'] }
+		});
+		expect(canGenerate(state, blockers)).toBe(false);
 	});
 
 	it('blocks generate without connected providers', () => {
-		const state = createHatchFlowState();
-		expect(canGenerate(state, blockers, 0)).toBe(false);
+		const state = createHatchSession();
+		expect(canGenerate(state, blockers)).toBe(false);
 	});
 
 	it('blocks reject for the first crew slot policy', () => {
-		const state = createHatchFlowState({
+		const state = createHatchSession({
 			candidate: { id: '1' } as never,
 			crewCount: 0
 		});
@@ -34,7 +38,7 @@ describe('hatchFlow guards', () => {
 	});
 
 	it('blocks adopt while generating', () => {
-		const state = createHatchFlowState({
+		const state = createHatchSession({
 			candidate: { id: '1' } as never,
 			generating: true
 		});
@@ -43,7 +47,7 @@ describe('hatchFlow guards', () => {
 	});
 
 	it('treats modal chrome as a control blocker', () => {
-		const state = createHatchFlowState({ adoptModalOpen: true });
+		const state = createHatchSession({ adoptModalOpen: true });
 		expect(hatchControlsBlocked(state, blockers)).toBe(true);
 	});
 });

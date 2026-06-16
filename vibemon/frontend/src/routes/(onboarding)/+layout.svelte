@@ -11,12 +11,18 @@
 	import SettingsModal from '$lib/domains/trainer/SettingsModal.svelte';
 	import { uploadTrainerReferenceWithSession } from '$lib/domains/trainer/trainerApi';
 	import {
-		bootstrapHatchSceneOnce,
+		bootstrapHatchSessionOnce,
 		clearHatchBootstrapCache,
-		clearHatchSceneState,
-		persistHatchSceneState,
-		restoreHatchSceneState
-	} from '$lib/domains/trainer/hatchSceneStore';
+		clearHatchSessionState,
+		createHatchSession,
+		createHatchSessionActions,
+		hatchControlsBlocked,
+		HATCH_SESSION_KEY,
+		persistHatchSession,
+		releaseDisabled,
+		restoreHatchSession,
+		type HatchSessionState
+	} from '$lib/domains/trainer/hatchSession';
 	import { readPendingUsername } from '$lib/domains/trainer/trainerRegisterStore.svelte';
 	import {
 		applyTrainerReferenceUrl,
@@ -24,17 +30,12 @@
 		type TrainerOnboardingUi
 	} from '$lib/domains/trainer/trainerOnboardingUi';
 	import {
-		createHatchFlowActions,
-		createHatchFlowState,
-		hatchControlsBlocked,
-		HATCH_FLOW_KEY,
-		releaseDisabled,
-		type HatchFlowState
-	} from '$lib/domains/trainer/hatchFlow';
-	import {
-		createProviderSelectionState,
-		PROVIDER_SELECTION_KEY,
-		type ProviderSelectionState
+		addSelectedProvider,
+		isProviderSelected,
+		markProviderWarmed,
+		removeSelectedProvider,
+		setProviderCoordinates,
+		setProviderFetching
 	} from '$lib/domains/trainer/providerSelection';
 	import AdoptNicknameModal from '$lib/domains/trainer/AdoptNicknameModal.svelte';
 	import HatchCandidatePanel from '$lib/domains/trainer/HatchCandidatePanel.svelte';
@@ -52,13 +53,11 @@
 	let { children }: { children: Snippet } = $props();
 
 	let onboardingUi = $state(createTrainerOnboardingUi());
-	let hatchFlow = $state(createHatchFlowState());
-	let providerSelection = $state(createProviderSelectionState());
+	let hatchSession = $state(createHatchSession());
 	let hatchSceneRestored = $state(false);
 
 	setContext<TrainerOnboardingUi>(ONBOARDING_UI_KEY, onboardingUi);
-	setContext<HatchFlowState>(HATCH_FLOW_KEY, hatchFlow);
-	setContext<ProviderSelectionState>(PROVIDER_SELECTION_KEY, providerSelection);
+	setContext<HatchSessionState>(HATCH_SESSION_KEY, hatchSession);
 
 	let isRegister = $derived(page.url.pathname.endsWith('/register'));
 	let isHatch = $derived(page.url.pathname.endsWith('/hatch'));
@@ -66,18 +65,16 @@
 		isHatch ? readHatchDevOverrides(page.url.searchParams) : { bypassCredits: false }
 	);
 
-	const hatchActions = createHatchFlowActions(hatchFlow, {
-		providers: providerSelection,
+	const hatchActions = createHatchSessionActions(hatchSession, {
 		bypassCredits: () => hatchDevOverrides.bypassCredits,
 		showToast: showGameToast,
-		onPersist: () => persistHatchSceneState(onboardingUi, hatchFlow, providerSelection),
-		onClearScene: clearHatchSceneState,
 		goto,
 		prefersReducedMotion: () => prefersReducedMotion.current
 	});
 
 	onMount(() => {
-		restoreHatchSceneState(onboardingUi, hatchFlow, providerSelection);
+		restoreHatchSession(hatchSession);
+		onboardingUi.referenceSpriteSrc = hatchSession.referenceSpriteSrc;
 		hatchSceneRestored = true;
 	});
 
@@ -86,15 +83,15 @@
 		providerModalOpen: providerConfigModalStore.open
 	});
 	let hatchSpriteSrc = $derived(
-		hatchFlow.spriteVisible && hatchFlow.candidate?.reference_url
-			? hatchFlow.candidate.reference_url
+		hatchSession.spriteVisible && hatchSession.candidate?.reference_url
+			? hatchSession.candidate.reference_url
 			: '/game/sprites/hatchling-silhouette@128.png'
 	);
-	let hatchShowSilhouette = $derived(!hatchFlow.spriteVisible);
-	let releaseBlocked = $derived(releaseDisabled(hatchFlow));
-	let hatchControlsBlockedState = $derived(hatchControlsBlocked(hatchFlow, flowBlockers));
-	let hatchable = $derived(!hatchControlsBlockedState && !hatchFlow.candidate);
-	let hatchSuspenseActive = $derived(hatchFlow.generating || hatchFlow.busy);
+	let hatchShowSilhouette = $derived(!hatchSession.spriteVisible);
+	let releaseBlocked = $derived(releaseDisabled(hatchSession));
+	let hatchControlsBlockedState = $derived(hatchControlsBlocked(hatchSession, flowBlockers));
+	let hatchable = $derived(!hatchControlsBlockedState && !hatchSession.candidate);
+	let hatchSuspenseActive = $derived(hatchSession.generating || hatchSession.busy);
 
 	let crossing = $state<'none' | 'forward' | 'back'>('none');
 	let mirrored = $derived(crossing === 'none' ? isHatch : crossing === 'back');
@@ -106,8 +103,8 @@
 	};
 
 	let hatchSceneStyle = $derived.by(() => {
-		const candidate = hatchFlow.candidate;
-		if (!candidate || !hatchFlow.spriteVisible) return '';
+		const candidate = hatchSession.candidate;
+		if (!candidate || !hatchSession.spriteVisible) return '';
 		const band = SIZE_BANDS[candidate.display?.size_class ?? 'mid'] ?? SIZE_BANDS.mid;
 		const t = (Math.min(Math.max(candidate.power_pips ?? 2, 1), 3) - 1) / 2;
 		const factor = band[0] + (band[1] - band[0]) * t;
@@ -189,11 +186,14 @@
 		const username = readPendingUsername();
 		if (!username) return;
 
-		void bootstrapHatchSceneOnce(onboardingUi, hatchFlow, providerSelection, username);
+		void bootstrapHatchSessionOnce(hatchSession, username).then(() => {
+			onboardingUi.referenceSpriteSrc = hatchSession.referenceSpriteSrc;
+			onboardingUi.referenceSpriteReady = hatchSession.referenceSpriteReady;
+		});
 	});
 
 	function handleHatchClick() {
-		if (hatchControlsBlockedState || hatchFlow.candidate) return;
+		if (hatchControlsBlockedState || hatchSession.candidate) return;
 		onboardingUi.hatchHintVisible = false;
 		void hatchActions.generate(flowBlockers);
 	}
@@ -227,13 +227,13 @@
 		{/if}
 		<div
 			class={referenceClass}
-			class:trainer-onboarding__reference--pending={isHatch && !onboardingUi.referenceSpriteReady}
+			class:trainer-onboarding__reference--pending={isHatch && !hatchSession.referenceSpriteReady}
 			onanimationend={handleReferenceAnimationEnd}
 			aria-hidden="true"
 		>
 			<div class="trainer-onboarding__reference-stage">
-				{#key onboardingUi.referenceSpriteSrc}
-					<TrainerReference {mirrored} spriteSrc={onboardingUi.referenceSpriteSrc} />
+				{#key hatchSession.referenceSpriteSrc}
+					<TrainerReference {mirrored} spriteSrc={hatchSession.referenceSpriteSrc} />
 				{/key}
 				{#if isRegister}
 					<TrainerReferenceCamera
@@ -241,8 +241,7 @@
 						disabled={onboardingUi.setupInProgress}
 						uploadReference={uploadRegisterReference}
 						onReferenceUrl={(referenceUrl) => {
-							applyTrainerReferenceUrl(onboardingUi, referenceUrl);
-							persistHatchSceneState(onboardingUi, hatchFlow, providerSelection);
+							void hatchActions.applyReferenceUrl(referenceUrl);
 						}}
 					/>
 				{/if}
@@ -250,17 +249,17 @@
 		</div>
 
 		{#if isHatch}
-			{#if hatchFlow.candidate}
+			{#if hatchSession.candidate}
 				<div
 					class="trainer-onboarding__candidate-stack"
-					class:trainer-onboarding__candidate-stack--revealing={hatchFlow.revealing}
+					class:trainer-onboarding__candidate-stack--revealing={hatchSession.revealing}
 				>
 					<HatchCandidatePanel
-						candidate={hatchFlow.candidate}
-						bind:actionHint={hatchFlow.actionHint}
-						bind:detailHint={hatchFlow.candidateHint}
+						candidate={hatchSession.candidate}
+						bind:actionHint={hatchSession.actionHint}
+						bind:detailHint={hatchSession.candidateHint}
 						releaseDisabled={releaseBlocked}
-						busy={hatchFlow.busy}
+						busy={hatchSession.busy}
 						onRelease={() => hatchActions.reject(flowBlockers)}
 						onRefresh={() => hatchActions.refresh(flowBlockers)}
 						onAdopt={() => hatchActions.openAdoptModal(flowBlockers)}
@@ -275,16 +274,16 @@
 					spriteSrc={hatchSpriteSrc}
 					showSilhouette={hatchShowSilhouette}
 					generating={hatchSuspenseActive}
-					beat={hatchFlow.beat}
-					revealing={hatchFlow.revealing}
+					beat={hatchSession.beat}
+					revealing={hatchSession.revealing}
 					onhatch={handleHatchClick}
 				/>
 			</div>
 
 			<AdoptNicknameModal
-				bind:open={hatchFlow.adoptModalOpen}
-				speciesName={hatchFlow.candidate?.name ?? 'your Vibemon'}
-				busy={hatchFlow.busy}
+				bind:open={hatchSession.adoptModalOpen}
+				speciesName={hatchSession.candidate?.name ?? 'your Vibemon'}
+				busy={hatchSession.busy}
 				onConfirm={(nickname) => hatchActions.confirmAdopt(nickname)}
 			/>
 		{/if}

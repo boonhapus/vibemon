@@ -3,19 +3,20 @@
 	import { onMount } from 'svelte';
 	import { getContext } from 'svelte';
 
-	import { bootstrapHatchSceneOnce } from './hatchSceneStore';
-	import { createHatchFlowState, HATCH_FLOW_KEY, type HatchFlowState } from './hatchFlow';
+	import {
+		bootstrapHatchSessionOnce,
+		createHatchSession,
+		HATCH_SESSION_KEY,
+		type HatchSessionState
+	} from './hatchSession';
 	import {
 		addSelectedProvider,
 		applyCandidateProviderIds,
-		createProviderSelectionState,
 		isProviderSelected,
 		markProviderWarmed,
-		PROVIDER_SELECTION_KEY,
 		removeSelectedProvider,
 		setProviderCoordinates,
-		setProviderFetching,
-		type ProviderSelectionState
+		setProviderFetching
 	} from './providerSelection';
 
 	import CrewNavButton from '$lib/domains/crew/CrewNavButton.svelte';
@@ -82,10 +83,7 @@
 	} = $props();
 
 	const onboardingUi = getContext<TrainerOnboardingUi | undefined>(ONBOARDING_UI_KEY);
-	const hatchFlow = getContext<HatchFlowState | undefined>(HATCH_FLOW_KEY) ?? createHatchFlowState();
-	const providerSelection =
-		getContext<ProviderSelectionState | undefined>(PROVIDER_SELECTION_KEY) ??
-		createProviderSelectionState();
+	const hatchSession = getContext<HatchSessionState | undefined>(HATCH_SESSION_KEY) ?? createHatchSession();
 
 	let providers = $state<ProviderCatalogEntry[]>([]);
 	let providerStatuses = $state<Record<string, ProviderStatusEntry>>({});
@@ -110,19 +108,19 @@
 	);
 	let activeStatus = $derived(configProviderId ? statusById[configProviderId] : undefined);
 	let activeFetching = $derived(
-		configProviderId ? providerSelection.fetchingIds.includes(configProviderId) : false
+		configProviderId ? hatchSession.providers.fetchingIds.includes(configProviderId) : false
 	);
 	let hoverDescription = $derived.by(() => {
 		const provider = hoveredKey ? providers.find((entry) => entry.id === hoveredKey) : undefined;
 		return provider ? providerDescription(provider) : '';
 	});
 	let candidateAppearedDialog = $derived(
-		hatchFlow.candidate ? `The vibes settle... meet ${hatchFlow.candidate.name}!` : ''
+		hatchSession.candidate ? `The vibes settle... meet ${hatchSession.candidate.name}!` : ''
 	);
 	let hatchActionHintText = $derived(
-		hatchFlow.actionHint ? HATCH_ACTION_HINTS[hatchFlow.actionHint] : ''
+		hatchSession.actionHint ? HATCH_ACTION_HINTS[hatchSession.actionHint] : ''
 	);
-	let hatchCandidateHintText = $derived(hatchFlow.candidateHint ?? '');
+	let hatchCandidateHintText = $derived(hatchSession.candidateHint ?? '');
 
 	function providerDescription(provider: ProviderCatalogEntry) {
 		if (!provider.implemented) {
@@ -153,7 +151,7 @@
 	}
 
 	function markWarmed(providerId: string) {
-		markProviderWarmed(providerSelection, providerId);
+		markProviderWarmed(hatchSession.providers, providerId);
 	}
 
 	function syncWarmedFromStatuses(statuses: ProviderStatusEntry[]) {
@@ -162,7 +160,7 @@
 			.map((entry) => entry.id);
 		if (prefetchedIds.length === 0) return;
 		for (const providerId of prefetchedIds) {
-			markProviderWarmed(providerSelection, providerId);
+			markProviderWarmed(hatchSession.providers, providerId);
 		}
 	}
 
@@ -171,11 +169,11 @@
 	}
 
 	function isSelected(id: string) {
-		return isProviderSelected(providerSelection, id);
+		return isProviderSelected(hatchSession.providers, id);
 	}
 
 	function isWarmed(id: string) {
-		return providerSelection.warmedIds.includes(id);
+		return hatchSession.providers.warmedIds.includes(id);
 	}
 
 	function hasPrefetchedData(id: string) {
@@ -209,7 +207,7 @@
 	}
 
 	function candidateReviewActive() {
-		return Boolean(hatchFlow.candidate);
+		return Boolean(hatchSession.candidate);
 	}
 
 	function blockProviderChangeForCandidateReview(): boolean {
@@ -224,8 +222,8 @@
 		if (onboardingUi) {
 			onboardingUi.hatchHintVisible = false;
 		}
-		hatchFlow.actionHint = null;
-		hatchFlow.candidateHint = null;
+		hatchSession.actionHint = null;
+		hatchSession.candidateHint = null;
 		vibeDeckHintVisible = false;
 		hoveredKey = entry.id;
 	}
@@ -246,7 +244,7 @@
 		if (onboardingUi) {
 			onboardingUi.hatchHintVisible = false;
 		}
-		hatchFlow.candidateHint = null;
+		hatchSession.candidateHint = null;
 		hoveredKey = null;
 		vibeDeckHintVisible = true;
 	}
@@ -287,11 +285,11 @@
 	function disableProvider(providerId: string) {
 		if (blockProviderChangeForCandidateReview()) return;
 		if (!isSelected(providerId)) return;
-		if (providerSelection.selectedIds.length === 1) {
+		if (hatchSession.providers.selectedIds.length === 1) {
 			showGameToast('Keep at least one vibe source connected.', 'amber');
 			return;
 		}
-		removeSelectedProvider(providerSelection, providerId);
+		removeSelectedProvider(hatchSession.providers, providerId);
 	}
 
 	async function handleProviderSingleTap(entry: ProviderCatalogEntry) {
@@ -349,14 +347,14 @@
 	}
 
 	async function refreshProviderStatuses() {
-		const key = providerStatusFetchKeyFor(providerSelection.coordinates);
+		const key = providerStatusFetchKeyFor(hatchSession.providers.coordinates);
 		if (providerStatusFetchKey === key && providerStatusFetchPromise) {
 			return providerStatusFetchPromise;
 		}
 		providerStatusFetchKey = key;
 		providerStatusFetchPromise = (async () => {
 			try {
-				const statuses = await fetchProviderStatus(providerSelection.coordinates);
+				const statuses = await fetchProviderStatus(hatchSession.providers.coordinates);
 				providerStatuses = Object.fromEntries(statuses.map((entry) => [entry.id, entry]));
 				syncWarmedFromStatuses(statuses);
 			} catch {
@@ -367,12 +365,12 @@
 	}
 
 	async function runPrefetch(providerId: string, forceRefresh = false) {
-		if (providerSelection.fetchingIds.includes(providerId)) return;
-		setProviderFetching(providerSelection, providerId, true);
+		if (hatchSession.providers.fetchingIds.includes(providerId)) return;
+		setProviderFetching(hatchSession.providers, providerId, true);
 		try {
 			const result = await prefetchProvider(providerId, {
-				latitude: providerSelection.coordinates?.latitude,
-				longitude: providerSelection.coordinates?.longitude,
+				latitude: hatchSession.providers.coordinates?.latitude,
+				longitude: hatchSession.providers.coordinates?.longitude,
 				forceRefresh
 			});
 			const existing = providerStatuses[providerId];
@@ -391,7 +389,7 @@
 			showGameToast(message, 'brick');
 			throw error;
 		} finally {
-			setProviderFetching(providerSelection, providerId, false);
+			setProviderFetching(hatchSession.providers, providerId, false);
 		}
 	}
 
@@ -419,8 +417,8 @@
 			} else {
 				markWarmed(providerId);
 			}
-			if (!isProviderSelected(providerSelection, providerId)) {
-				addSelectedProvider(providerSelection, providerId);
+			if (!isProviderSelected(hatchSession.providers, providerId)) {
+				addSelectedProvider(hatchSession.providers, providerId);
 			}
 		} catch {
 			return;
@@ -445,18 +443,18 @@
 	function applyCoordinates(coords: { latitude: number; longitude: number }) {
 		locationGranted = true;
 		if (
-			providerSelection.coordinates?.latitude === coords.latitude &&
-			providerSelection.coordinates?.longitude === coords.longitude
+			hatchSession.providers.coordinates?.latitude === coords.latitude &&
+			hatchSession.providers.coordinates?.longitude === coords.longitude
 		) {
 			return;
 		}
-		setProviderCoordinates(providerSelection, coords);
+		setProviderCoordinates(hatchSession.providers, coords);
 		storeTrainerCoordinates(coords);
 	}
 
 	function clearCoordinates() {
 		locationGranted = false;
-		setProviderCoordinates(providerSelection, null);
+		setProviderCoordinates(hatchSession.providers, null);
 		clearStoredTrainerCoordinates();
 	}
 
@@ -480,9 +478,9 @@
 	}
 
 	$effect(() => {
-		const providerIds = hatchFlow.candidate?.providers;
+		const providerIds = hatchSession.candidate?.providers;
 		if (!providerIds?.length) return;
-		applyCandidateProviderIds(providerSelection, providerIds);
+		applyCandidateProviderIds(hatchSession.providers, providerIds);
 	});
 
 	$effect.pre(() => {
@@ -490,7 +488,7 @@
 		providerConfigModalStore.status = activeStatus;
 		providerConfigModalStore.enabled = configProviderId ? isSelected(configProviderId) : false;
 		providerConfigModalStore.canDisable = configProviderId
-			? isSelected(configProviderId) && providerSelection.selectedIds.length > 1
+			? isSelected(configProviderId) && hatchSession.providers.selectedIds.length > 1
 			: false;
 		providerConfigModalStore.locationGranted = locationGranted;
 		providerConfigModalStore.fetching = activeFetching;
@@ -508,7 +506,13 @@
 		void (async () => {
 			const sessionReady =
 				embedded && onboardingUi
-					? await bootstrapHatchSceneOnce(onboardingUi, hatchFlow, providerSelection, username)
+					? await bootstrapHatchSessionOnce(hatchSession, username).then(() => {
+							if (onboardingUi) {
+								onboardingUi.referenceSpriteSrc = hatchSession.referenceSpriteSrc;
+								onboardingUi.referenceSpriteReady = hatchSession.referenceSpriteReady;
+							}
+							return true;
+						})
 					: Boolean(await resolveTrainerSession(username));
 			if (!sessionReady) {
 				catalogError = true;
@@ -552,7 +556,7 @@
 			</div>
 		{/if}
 
-		{#if !(embedded && hatchFlow.candidate)}
+		{#if !(embedded && hatchSession.candidate)}
 			<div class="trainer-configuration__providers">
 				<ProviderPatchPanel>
 					{#each providers as provider (provider.id)}
@@ -560,7 +564,7 @@
 							label={provider.label}
 							icon={providerIcon(provider)}
 							state={providerVisualState(provider)}
-							fetching={providerSelection.fetchingIds.includes(provider.id)}
+							fetching={hatchSession.providers.fetchingIds.includes(provider.id)}
 							blocked={candidateReviewActive()}
 							ariaLabel="{provider.label}: {providerDescription(provider)}"
 							onclick={() => handleProviderClick(provider)}
@@ -589,25 +593,25 @@
 					<GamePanel tone="status" class="hud-dialog-slot trainer-configuration__hatch-hint">
 						<p class="trainer-configuration__provider-hint-text">{HATCH_HINT_TEXT}</p>
 					</GamePanel>
-				{:else if embedded && (hatchFlow.generating || hatchFlow.busy) && hatchFlow.generatingLine}
-					{#key hatchFlow.generatingLine}
+				{:else if embedded && (hatchSession.generating || hatchSession.busy) && hatchSession.generatingLine}
+					{#key hatchSession.generatingLine}
 						<DialogBox
-							text={hatchFlow.generatingLine}
+							text={hatchSession.generatingLine}
 							typewriter={true}
 							showCursor={false}
 							charDelay={HATCH_TYPEWRITER_CHAR_DELAY}
 							class="hud-dialog-slot"
 						/>
 					{/key}
-				{:else if embedded && hatchFlow.actionHint}
+				{:else if embedded && hatchSession.actionHint}
 					<GamePanel tone="status" class="hud-dialog-slot trainer-configuration__provider-hint">
 						<p class="trainer-configuration__provider-hint-text">{hatchActionHintText}</p>
 					</GamePanel>
-				{:else if embedded && hatchFlow.candidateHint}
+				{:else if embedded && hatchSession.candidateHint}
 					<GamePanel tone="status" class="hud-dialog-slot trainer-configuration__provider-hint">
 						<p class="trainer-configuration__provider-hint-text">{hatchCandidateHintText}</p>
 					</GamePanel>
-				{:else if embedded && hatchFlow.candidate && !hatchFlow.generating && !hatchFlow.busy}
+				{:else if embedded && hatchSession.candidate && !hatchSession.generating && !hatchSession.busy}
 					<DialogBox
 						text={candidateAppearedDialog}
 						showCursor={showDialogCursor}

@@ -15,7 +15,7 @@ from app.domains.generation.snapshot import BirthSnapshot
 from app.domains.vibemon.history import VibemonHistoryEventT
 from app.domains.vibemon.progression import engine as progression_engine
 from app.domains.vibemon.progression import formulas as progression_formulas
-from app.storage.database import history_repo, mapper, models, move_catalog, vibemon_repo
+from app.storage.database import history_repo, learnset_catalog, mapper, models, move_catalog, vibemon_repo
 
 
 async def persist_battle_progression(
@@ -36,10 +36,18 @@ async def persist_battle_progression(
         row.id: BirthSnapshot(provider_payloads=dict(row.birth_snapshot.provider_payloads)) for row in rows.values()
     }
     auto_evolve_by_id = {row_id: row.disposition == "wild" for row_id, row in rows.items()}
+    move_pool_by_vibemon: dict[uuid.UUID, dict[int, tuple]] = {}
+    for combatant in (member for trainer in (battle.trainer_a, battle.trainer_b) for member in trainer.crew):
+        snapshot = snapshots[combatant.id]
+        max_level = combatant.level
+        pools: dict[int, tuple] = {}
+        for level in range(1, max_level + 1):
+            pools[level] = await learnset_catalog.moves_at_level(sess, snapshot, level=level)
+        move_pool_by_vibemon[combatant.id] = pools
     result = progression_engine.resolve_battle_progression(
         battle,
         battle_id=battle_id,
-        snapshots=snapshots,
+        move_pool_by_vibemon=move_pool_by_vibemon,
         auto_evolve_by_id=auto_evolve_by_id,
     )
 
@@ -139,7 +147,8 @@ async def accept_move_learn(
     row = await _load_owned_row(sess, trainer_id=trainer_id, vibemon_id=vibemon_id)
     vibemon = await mapper.vibemon_from_row(row)
     snapshot = BirthSnapshot(provider_payloads=dict(row.birth_snapshot.provider_payloads))
-    candidates = progression_engine.learnable_moves(vibemon, snapshot=snapshot, level=vibemon.level)
+    pool = await learnset_catalog.moves_at_level(sess, snapshot, level=vibemon.level)
+    candidates = progression_engine.learnable_moves(vibemon, pool=pool, level=vibemon.level)
     move = next((candidate for candidate in candidates if candidate.id == move_content_id), None)
     if move is None:
         raise BattleUnavailable("That move is not available to learn.")
@@ -201,7 +210,8 @@ async def decline_move_learn(
     row = await _load_owned_row(sess, trainer_id=trainer_id, vibemon_id=vibemon_id)
     vibemon = await mapper.vibemon_from_row(row)
     snapshot = BirthSnapshot(provider_payloads=dict(row.birth_snapshot.provider_payloads))
-    candidates = progression_engine.learnable_moves(vibemon, snapshot=snapshot, level=vibemon.level)
+    pool = await learnset_catalog.moves_at_level(sess, snapshot, level=vibemon.level)
+    candidates = progression_engine.learnable_moves(vibemon, pool=pool, level=vibemon.level)
     move = next((candidate for candidate in candidates if candidate.id == move_content_id), None)
     if move is None:
         raise BattleUnavailable("That move is not available to learn.")

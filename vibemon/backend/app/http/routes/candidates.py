@@ -15,6 +15,7 @@ from app.http.schemas import candidates as candidate_schemas
 from app.storage.database import candidate_review_repo
 from app.workflows import birth_seed as birth_seed_factory
 from app.workflows import candidate as candidate_workflow
+from app.workflows import hatch_candidate_projection
 
 
 @get("/current")
@@ -27,7 +28,7 @@ async def current_candidate(
     review = await candidate_review_repo.load_pending_candidate_review(db, trainer_id=trainer.id)
     if review is None:
         return None
-    return await candidate_workflow.candidate_action_read(
+    return await hatch_candidate_projection.candidate_action_read(
         db,
         trainer_id=trainer.id,
         vibemon_id=review.vibemon_id,
@@ -76,7 +77,7 @@ async def generate_candidate(
         vibemon_id=public.id,
     )
     await db.commit()
-    return await candidate_workflow.candidate_action_read(
+    return await hatch_candidate_projection.candidate_action_read(
         db,
         trainer_id=trainer.id,
         vibemon_id=public.id,
@@ -98,7 +99,7 @@ async def refresh_candidate(
         vibemon_id=vibemon_id,
     )
     await db.commit()
-    return await candidate_workflow.candidate_action_read(
+    return await hatch_candidate_projection.candidate_action_read(
         db,
         trainer_id=trainer.id,
         vibemon_id=vibemon_id,
@@ -137,7 +138,7 @@ async def adopt_candidate(
     await db.commit()
 
     session_factory: async_sessionmaker[AsyncSession] = request.app.state.session_factory
-    payload = await candidate_workflow.candidate_action_read(db, trainer_id=trainer.id, vibemon_id=adopted.id)
+    payload = await hatch_candidate_projection.candidate_action_read(db, trainer_id=trainer.id, vibemon_id=adopted.id)
     return Response(
         content=payload,
         background=BackgroundTask(candidate_workflow.manifest_adopted_vibemon, vibemon_id, session_factory),

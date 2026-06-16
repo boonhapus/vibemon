@@ -77,3 +77,13 @@ def _move_values(move: Move) -> dict[str, object]:
         "effects": [group.model_dump(mode="json") for group in move.effects],
         "behavior": move.behavior.model_dump(mode="json"),
     }
+
+
+async def upsert_catalog_moves(sess: AsyncSession, moves: tuple[Move, ...]) -> None:
+    """Ensure move definitions exist in the catalog without linking them to a Vibemon."""
+    cache = await load_move_cache(sess)
+    for move in moves:
+        move_row, created, _ = upsert_move(move, cache)
+        if created:
+            sess.add(move_row)
+    await sess.flush()

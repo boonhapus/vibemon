@@ -24,7 +24,7 @@ export function resolveTrainerReferenceUrl(
 	return DEFAULT_TRAINER_REFERENCE_SPRITE;
 }
 
-/** View-only onboarding chrome; hatch orchestration lives in hatchFlow.ts. */
+/** View-only onboarding chrome; hatch orchestration lives in hatchSession.ts. */
 export type TrainerOnboardingUi = {
 	referenceHintVisible: boolean;
 	hatchHintVisible: boolean;

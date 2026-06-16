@@ -150,34 +150,3 @@ async def finish_concluded_battle(
         battle_id=battle_id,
         now=now,
     )
-
-
-def events_to_messages(events: list[events.TurnEvent]) -> list[str]:
-    messages: list[str] = []
-    for event in events:
-        match event.kind:
-            case "move_used":
-                messages.append(f"{event.user} used {event.move}!")
-            case "move_missed":
-                messages.append(f"{event.move} missed {event.target}!")
-            case "move_failed":
-                reason = event.reason or "The move failed."
-                messages.append(reason)
-            case "damage":
-                crit = " A critical hit!" if event.is_crit else ""
-                messages.append(f"It dealt {event.amount} damage.{crit}")
-            case "faint":
-                messages.append(f"{event.target} fainted!")
-            case "status_inflicted":
-                messages.append(f"{event.target} was afflicted with {event.status}!")
-            case "status_damage":
-                messages.append(f"{event.target} took {event.amount} status damage.")
-            case "status_message":
-                messages.append(event.message_key.replace("_", " ").capitalize())
-            case "stat_change":
-                messages.append(f"{event.target}'s stats changed.")
-            case "heal":
-                messages.append(f"{event.target} recovered {event.amount} HP.")
-            case "weather_set":
-                messages.append(f"The weather became {event.weather}.")
-    return messages

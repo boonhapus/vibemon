@@ -10,12 +10,14 @@ import datetime as dt
 from app.core.ids import TrainerIdT
 from app.domains.adoption import schema as adoption_schema
 from app.domains.adoption.types import CandidateReviewStatusT
+from app.domains.generation.snapshot import BirthSnapshot
 from app.domains.generation.types import ProviderWarning
 from app.domains.move.catalog import TYPE_AFFINITIES, get_element_effectiveness
 from app.domains.move.types import VibemonTypeT
 from app.domains.vibemon.assets import AssetKind, SpriteAnchor
 from app.domains.vibemon.disposition import VibemonDispositionT
 from app.domains.vibemon.entity import Vibemon
+from app.domains.vibemon.progression import learnset
 from app.domains.vibemon.schema import (
     PublicAsset,
     PublicVibemon,
@@ -39,7 +41,7 @@ async def public_vibemon(
     assets = await _public_assets(row.assets)
     review = _visible_review(row.candidate_reviews, reviewing_trainer_id)
     aesthetic = vibemon.aesthetic
-    birth_providers = tuple(sorted(row.birth_snapshot.provider_payloads.keys()))
+    birth_providers = tuple(learnset.birth_provider_names(BirthSnapshot(provider_payloads=dict(row.birth_snapshot.provider_payloads))))
     return PublicVibemon(
         id=vibemon.id,
         nickname=vibemon.nickname,

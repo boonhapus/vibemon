@@ -92,3 +92,52 @@ def battle_state_read(
         opponent=combatant_read(opponent),
         winner_trainer_id=winner_id,
     )
+
+
+def battle_turn_read(
+    session: ActiveBattle,
+    *,
+    events: list[events.TurnEvent],
+    player_trainer_id: TrainerIdT,
+    wild_vibemon_id: uuid.UUID,
+) -> BattleTurnRead:
+    return BattleTurnRead(
+        events=tuple(events),
+        messages=tuple(events_to_messages(events)),
+        state=battle_state_read(
+            session,
+            player_trainer_id=player_trainer_id,
+            wild_vibemon_id=wild_vibemon_id,
+        ),
+    )
+
+
+def events_to_messages(events: list[events.TurnEvent]) -> list[str]:
+    messages: list[str] = []
+    for event in events:
+        match event.kind:
+            case "move_used":
+                messages.append(f"{event.user} used {event.move}!")
+            case "move_missed":
+                messages.append(f"{event.move} missed {event.target}!")
+            case "move_failed":
+                reason = event.reason or "The move failed."
+                messages.append(reason)
+            case "damage":
+                crit = " A critical hit!" if event.is_crit else ""
+                messages.append(f"It dealt {event.amount} damage.{crit}")
+            case "faint":
+                messages.append(f"{event.target} fainted!")
+            case "status_inflicted":
+                messages.append(f"{event.target} was afflicted with {event.status}!")
+            case "status_damage":
+                messages.append(f"{event.target} took {event.amount} status damage.")
+            case "status_message":
+                messages.append(event.message_key.replace("_", " ").capitalize())
+            case "stat_change":
+                messages.append(f"{event.target}'s stats changed.")
+            case "heal":
+                messages.append(f"{event.target} recovered {event.amount} HP.")
+            case "weather_set":
+                messages.append(f"The weather became {event.weather}.")
+    return messages

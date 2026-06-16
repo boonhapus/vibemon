@@ -12,8 +12,6 @@ export type ProviderSelectionState = {
 	coordinates: ProviderCoordinates | null;
 };
 
-export const PROVIDER_SELECTION_KEY = 'trainer-provider-selection';
-
 export function createProviderSelectionState(
 	initial?: Partial<ProviderSelectionState>
 ): ProviderSelectionState {
