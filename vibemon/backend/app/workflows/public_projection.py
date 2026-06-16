@@ -48,6 +48,7 @@ async def public_vibemon(
         moves=vibemon.moves,
         level=vibemon.level,
         xp=vibemon.xp,
+        growth_rate=vibemon.growth_rate,
         evo_stage=vibemon.evo_stage,
         lifecycle=vibemon.lifecycle,
         disposition=VibemonDispositionT(row.disposition) if row.disposition else None,

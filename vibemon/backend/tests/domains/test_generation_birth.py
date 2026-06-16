@@ -148,6 +148,7 @@ async def test_vibemon_birth_is_replayable_from_same_seed_and_snapshot() -> None
     second = Vibemon.birth(*await snapshot.regenerate(seed.providers, seed), birth_seed=seed)
 
     assert first.identity.model_dump(exclude={"generated_at"}) == second.identity.model_dump(exclude={"generated_at"})
+    assert first.growth_rate == second.growth_rate
     assert [move.id for move in first.moves] == [move.id for move in second.moves]
 
 

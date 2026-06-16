@@ -115,6 +115,7 @@ class Vibemon(Base):
     nickname: Mapped[str | None]
     xp: Mapped[int] = mapped_column(default=0)
     level: Mapped[int]
+    growth_rate: Mapped[str] = mapped_column(default="medium")
     evo_stage: Mapped[int]
     lifecycle: Mapped[str]
     disposition: Mapped[str | None]

@@ -10,6 +10,7 @@ from app.domains.vibemon.assets import AssetKind, AssetRef, SpriteAnchor
 from app.domains.vibemon.disposition import VibemonDispositionT
 from app.domains.vibemon.entity import Aesthetic, Vibemon
 from app.domains.vibemon.identity import BaseStats, Identity
+from app.domains.vibemon.progression.types import GrowthGroupT
 from app.domains.vibemon.types import EvolutionStageT, VibemonLifecycleT
 from app.storage.database import models
 
@@ -38,9 +39,17 @@ def apply_vibemon_to_row(row: models.Vibemon, vibemon: Vibemon) -> None:
     row.nickname = vibemon.nickname
     row.xp = vibemon.xp
     row.level = vibemon.level
+    row.growth_rate = vibemon.growth_rate.value
     row.evo_stage = int(vibemon.evo_stage)
     row.lifecycle = vibemon.lifecycle.value
     row.identity.name = vibemon.identity.name
+    base = vibemon.identity.base
+    row.identity.base_hp = base.hp
+    row.identity.base_attack = base.attack
+    row.identity.base_defense = base.defense
+    row.identity.base_sp_attack = base.sp_attack
+    row.identity.base_sp_defense = base.sp_defense
+    row.identity.base_speed = base.speed
     row.reference_detected_facing = (
         vibemon.reference_detected_facing.value if vibemon.reference_detected_facing is not None else None
     )
@@ -87,6 +96,7 @@ async def vibemon_from_row(row: models.Vibemon) -> Vibemon:
         moves=tuple(move_from_row(vibemon_move.move) for vibemon_move in sorted(row.moves, key=move_slot)),
         level=row.level,
         xp=row.xp,
+        growth_rate=GrowthGroupT(row.growth_rate or GrowthGroupT.MEDIUM.value),
         evo_stage=EvolutionStageT(row.evo_stage),
         trainer_id=row.trainer_id,
         crew_slot=row.crew_slot,

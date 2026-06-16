@@ -11,6 +11,7 @@ from app.domains.vibemon import brand
 from app.domains.vibemon.assets import AssetKind, SpriteAnchor
 from app.domains.vibemon.disposition import VibemonDispositionT
 from app.domains.vibemon.identity import Identity
+from app.domains.vibemon.progression.types import GrowthGroupT
 from app.domains.vibemon.types import EvolutionStageT, VibemonLifecycleT
 
 
@@ -50,6 +51,7 @@ class PublicVibemon(FrozenSchema):
     moves: tuple[Move, ...]
     level: int
     xp: int
+    growth_rate: GrowthGroupT
     evo_stage: EvolutionStageT
     lifecycle: VibemonLifecycleT
     disposition: VibemonDispositionT | None

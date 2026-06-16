@@ -35,6 +35,7 @@ async def persist_new_vibemon(
         nickname=vibemon.nickname,
         xp=vibemon.xp,
         level=vibemon.level,
+        growth_rate=vibemon.growth_rate.value,
         evo_stage=int(vibemon.evo_stage),
         lifecycle=vibemon.lifecycle.value,
         disposition=None,
@@ -62,6 +63,7 @@ async def persist_moves(
     moves: tuple[Move, ...],
     *,
     now: dt.datetime,
+    source: str = "birth",
 ) -> None:
     cache = await move_catalog.load_move_cache(sess)  # pyrefly: ignore
 
@@ -86,7 +88,7 @@ async def persist_moves(
                 "level": str(row.level),
                 "move_content_id": move_row.content_id,
                 "slot": str(slot),
-                "source": "birth",
+                "source": source,
             },
         )
 

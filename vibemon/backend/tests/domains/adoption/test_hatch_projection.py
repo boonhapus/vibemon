@@ -23,6 +23,7 @@ from app.domains.vibemon.schema import (
     TypeDefenseSummary,
     TypeMatchupSummary,
 )
+from app.domains.vibemon.progression.types import GrowthGroupT
 from app.domains.vibemon.types import EvolutionStageT, VibemonLifecycleT
 from app.storage.database import candidate_review_repo, models
 from app.workflows import candidate as candidate_workflow
@@ -66,6 +67,7 @@ def _public_vibemon(
         ),
         level=1,
         xp=0,
+        growth_rate=GrowthGroupT.MEDIUM,
         evo_stage=evo_seed,
         lifecycle=VibemonLifecycleT.CHRISTENED,
         disposition=None,

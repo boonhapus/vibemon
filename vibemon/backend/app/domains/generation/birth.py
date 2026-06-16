@@ -14,5 +14,6 @@ def birth_outcome_from_affinities(
         *affinities,
         rng=birth_seed.rng("affinity.merge"),
         evo_rng=birth_seed.rng("identity.evo_seed"),
+        growth_rng=birth_seed.rng("identity.growth_rate"),
         radiant_rng=birth_seed.rng("identity.radiant"),
     )

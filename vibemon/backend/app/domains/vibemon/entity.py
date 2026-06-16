@@ -16,6 +16,7 @@ from app.domains.sprite import types as sprite_types
 from app.domains.vibemon import brand, types
 from app.domains.vibemon import identity as vibemon_identity
 from app.domains.vibemon.assets import AssetKind, AssetRef
+from app.domains.vibemon.progression.types import GrowthGroupT
 from app.domains.vibemon.strength_formulas import base_stat_level_scaling
 
 __all__ = ["Aesthetic", "Vibemon"]
@@ -49,6 +50,7 @@ class Vibemon(Schema):
     moves: tuple[Move, ...] = ()
     level: int = 1
     xp: int = 0
+    growth_rate: GrowthGroupT = GrowthGroupT.MEDIUM
     evo_stage: types.EvolutionStageT = types.EvolutionStageT.BASE
     trainer_id: TrainerIdT | None = None
     crew_slot: int | None = None
@@ -83,6 +85,7 @@ class Vibemon(Schema):
             identity=outcome.identity,
             moves=outcome.moves,
             level=1,
+            growth_rate=outcome.growth_rate,
             evo_stage=outcome.evo_stage,
         )
         instance.aesthetic = Aesthetic.from_vibemon(instance)

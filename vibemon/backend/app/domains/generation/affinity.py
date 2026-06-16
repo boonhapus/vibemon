@@ -15,6 +15,8 @@ from app.domains.move.catalog import get_move_assignment_bonus
 from app.domains.move.entity import Move
 from app.domains.vibemon import types
 from app.domains.vibemon.identity import BaseStats, Identity
+from app.domains.vibemon.progression.formulas import roll_growth_rate
+from app.domains.vibemon.progression.types import GrowthGroupT
 from app.domains.vibemon.strength_formulas import apply_evo_seed_bst_bias
 
 _LOGGER = structlog.get_logger(__name__)
@@ -26,6 +28,7 @@ class BirthOutcome(FrozenSchema):
     identity: Identity
     moves: tuple[Move, ...]
     evo_stage: types.EvolutionStageT = types.EvolutionStageT.BASE
+    growth_rate: GrowthGroupT = GrowthGroupT.MEDIUM
 
 
 class Affinity(FrozenSchema):
@@ -78,6 +81,7 @@ class Affinity(FrozenSchema):
         *affinities: Affinity,
         rng: random.Random | None = None,
         evo_rng: random.Random | None = None,
+        growth_rng: random.Random | None = None,
         radiant_rng: random.Random | None = None,
     ) -> BirthOutcome:
         stat_keys = ("hp", "attack", "defense", "sp_attack", "sp_defense", "speed")
@@ -85,6 +89,8 @@ class Affinity(FrozenSchema):
             rng = random.Random()
         if evo_rng is None:
             evo_rng = rng
+        if growth_rng is None:
+            growth_rng = rng
         if radiant_rng is None:
             radiant_rng = rng
 
@@ -130,6 +136,11 @@ class Affinity(FrozenSchema):
         evo_seed = types.EvolutionStageT.random_seed(rng=evo_rng, intensity=merged_intensity)
         evo_stage = types.EvolutionStageT.BASE
         stats_scaled = apply_evo_seed_bst_bias(stats_merged, evo_seed=evo_seed, evo_stage=evo_stage)
+        growth_rate = roll_growth_rate(
+            rng=growth_rng,
+            evo_seed=evo_seed,
+            elements=tuple(dict.fromkeys(elements)),
+        )
 
         # Keep only the two strongest providers' notes (the loop is intensity-sorted) so
         # the sprite prompt gets a focused accent or two instead of a converging pile-up.
@@ -142,7 +153,7 @@ class Affinity(FrozenSchema):
             base=BaseStats(**stats_scaled),
         )
 
-        return BirthOutcome(identity=identity, moves=tuple(moves), evo_stage=evo_stage)
+        return BirthOutcome(identity=identity, moves=tuple(moves), evo_stage=evo_stage, growth_rate=growth_rate)
 
     @staticmethod
     def _rankings_for_merge(affinity: Affinity) -> dict[types.VibemonTypeT, float]:
