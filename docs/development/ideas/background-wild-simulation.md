@@ -6,11 +6,11 @@
 | **Priority** | Medium |
 | **Complexity** | High |
 | **Area** | Simulation |
-| **Related** | [vibemon-xp-and-evolution.md](vibemon-xp-and-evolution.md), [mon-event-history.md](mon-event-history.md), [geolocation-traversal-and-simulation.md](geolocation-traversal-and-simulation.md) |
+| **Related** | [mon-event-history.md](mon-event-history.md), [geolocation-traversal-and-simulation.md](geolocation-traversal-and-simulation.md) |
 
 ## Summary
 
-A background process that runs wild-vs-wild battles among unowned Vibemon, letting the wild population gain XP, level, and evolve on its own between trainer encounters. The XP/evolution *engine* is already disposition-agnostic (see [vibemon-xp-and-evolution.md](vibemon-xp-and-evolution.md)); this doc owns the missing *trigger* and the volume/retention problem it creates.
+A background process that runs wild-vs-wild battles among unowned Vibemon, letting the wild population gain XP, level, and evolve on its own between trainer encounters. The XP/evolution *engine* is already disposition-agnostic (implemented in `app/domains/vibemon/progression/`); this doc owns the missing *trigger* and the volume/retention problem it creates.
 
 ## Problem
 

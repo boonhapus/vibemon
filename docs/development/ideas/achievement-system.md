@@ -6,7 +6,7 @@
 | **Priority** | Medium |
 | **Complexity** | Medium–High |
 | **Area** | Meta-Progression & Discovery |
-| **Related** | [vibemon-xp-and-evolution.md](vibemon-xp-and-evolution.md), [vibe-gold-economy.md](vibe-gold-economy.md), [mon-event-history.md](mon-event-history.md), [generative-aesthetics-and-showcase.md](generative-aesthetics-and-showcase.md), [geolocation-traversal-and-simulation.md](geolocation-traversal-and-simulation.md), [posthog-analytics-day-one.md](posthog-analytics-day-one.md) |
+| **Related** | [vibe-gold-economy.md](vibe-gold-economy.md), [mon-event-history.md](mon-event-history.md), [generative-aesthetics-and-showcase.md](generative-aesthetics-and-showcase.md), [geolocation-traversal-and-simulation.md](geolocation-traversal-and-simulation.md), [posthog-analytics-day-one.md](posthog-analytics-day-one.md) |
 
 ## Summary
 

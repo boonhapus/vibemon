@@ -6,7 +6,7 @@
 | **Priority** | High |
 | **Complexity** | Medium |
 | **Area** | Core Data Model |
-| **Related** | [vibemon-xp-and-evolution.md](vibemon-xp-and-evolution.md), [vibe-gold-economy.md](vibe-gold-economy.md), [achievement-system.md](achievement-system.md) |
+| **Related** | [vibe-gold-economy.md](vibe-gold-economy.md), [achievement-system.md](achievement-system.md) |
 
 ## Summary
 
@@ -71,7 +71,7 @@ Any mon's detail page renders the ledger chronologically: owned mons show their 
 
 1. **Schema**: single `vibemon_event` table (mon id, type, occurred_at, JSON payload) — start permissive, tighten payloads per type as they stabilize.
 2. **Emit on existing flows first**: birth (generation), adoption, release, expiry are already implemented flows — wire emission there before XP exists.
-3. **Battle events** land with battle-result tracking; XP projection follows ([vibemon-xp-and-evolution.md](vibemon-xp-and-evolution.md)).
+3. **Battle events** land with battle-result tracking; XP projection is implemented in `app/domains/vibemon/progression/`.
 4. **Backfill**: existing mons get a synthetic `birth` event from their BirthSnapshot; adoption state backfilled from current disposition where derivable.
 5. **Timeline UI** last, once a few event types exist.
 

@@ -6,7 +6,7 @@
 | **Priority** | Low |
 | **Complexity** | Low |
 | **Area** | Meta-Progression |
-| **Related** | [vibemon-xp-and-evolution.md](vibemon-xp-and-evolution.md), [mon-event-history.md](mon-event-history.md) |
+| **Related** | [mon-event-history.md](mon-event-history.md) |
 
 ## Summary
 

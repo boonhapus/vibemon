@@ -6,7 +6,7 @@
 | **Priority** | Medium |
 | **Complexity** | High |
 | **Area** | Economy |
-| **Related** | [vibemon-xp-and-evolution.md](vibemon-xp-and-evolution.md), [geolocation-traversal-and-simulation.md](geolocation-traversal-and-simulation.md), [achievement-system.md](achievement-system.md) |
+| **Related** | [geolocation-traversal-and-simulation.md](geolocation-traversal-and-simulation.md), [achievement-system.md](achievement-system.md) |
 
 ## Summary
 
