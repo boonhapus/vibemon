@@ -1,8 +1,8 @@
 <script lang="ts">
+	import { untrack } from 'svelte';
 	import { Tween, prefersReducedMotion } from 'svelte/motion';
 	import { linear } from 'svelte/easing';
 
-	import HatchSceneDepth from '$lib/domains/trainer/HatchSceneDepth.svelte';
 	import TrainerReference from '$lib/domains/trainer/TrainerReference.svelte';
 	import FreeFormButton from '$lib/ui/FreeFormButton.svelte';
 
@@ -30,6 +30,7 @@
 		rotation = 0,
 		selectedId = '',
 		trainerSpriteSrc = '/game/sprites/trainer@128.png',
+		trainerName = '',
 		swapMode = false,
 		swapBusy = false,
 		introReady = false,
@@ -47,6 +48,7 @@
 		rotation?: number;
 		selectedId?: string;
 		trainerSpriteSrc?: string;
+		trainerName?: string;
 		swapMode?: boolean;
 		swapBusy?: boolean;
 		introReady?: boolean;
@@ -69,7 +71,6 @@
 	let greetId = $state<string | null>(null);
 	let lastSettledRotation = $state(0);
 	let lastSpotlightId = $state<string | null>(null);
-	let introStarted = $state(false);
 	let introAbort: AbortController | null = null;
 
 	let displayRotation = $derived(
@@ -103,21 +104,26 @@
 		})();
 	});
 
+	// Only re-run when introReady flips — snapshot slots/ritual so party updates do not abort mid-intro.
 	$effect(() => {
-		if (!introReady || introStarted) return;
-		introStarted = true;
-		introAbort = new AbortController();
+		if (!introReady) return;
 
-		const filledSlots = slots
-			.filter((slot) => !slot.empty)
-			.map((slot) => slot.crewSlot)
-			.sort((left, right) => left - right);
+		introAbort = new AbortController();
+		const signal = introAbort.signal;
+		const { ritual, filledSlots, reducedMotion } = untrack(() => ({
+			ritual: introRitual,
+			filledSlots: slots
+				.filter((slot) => !slot.empty)
+				.map((slot) => slot.crewSlot)
+				.sort((left, right) => left - right),
+			reducedMotion: prefersReducedMotion.current
+		}));
 
 		void runCrewIntro({
-			ritual: introRitual,
+			ritual,
 			filledSlots,
-			prefersReducedMotion: prefersReducedMotion.current,
-			signal: introAbort.signal,
+			prefersReducedMotion: reducedMotion,
+			signal,
 			onStage: (stage) => {
 				introStage = stage;
 			},
@@ -129,9 +135,10 @@
 				await introSpinTween.set(0, { duration: 0 });
 			}
 		})
-			.then(() => onIntroComplete?.())
-			.catch(() => {
+			.catch(() => {})
+			.finally(() => {
 				introStage = 'done';
+				onIntroComplete?.();
 			});
 
 		return () => {
@@ -189,8 +196,6 @@
 </script>
 
 <div class="crew-formation" class:crew-formation--swap-mode={swapMode}>
-	<HatchSceneDepth />
-
 	<div class="crew-formation__ground" aria-hidden="true">
 		{#each ticks as tick, index (index)}
 			<span class="crew-formation__tick" style:--px={tick.x} style:--py={tick.y}></span>
@@ -199,6 +204,11 @@
 
 	<div class="crew-formation__hub" class:crew-formation__hub--visible={introStage !== 'pending'}>
 		<TrainerReference spriteSrc={trainerSpriteSrc} class="crew-formation__trainer" />
+		{#if trainerName}
+			<span class="crew-formation__nameplate crew-formation__nameplate--trainer" aria-hidden="true">
+				{trainerName}
+			</span>
+		{/if}
 	</div>
 
 	{#each placements as placement (placement.slot.id)}
@@ -247,7 +257,6 @@
 					<span
 						class={[
 							'crew-formation__sprite-wrap',
-							placement.mirrored && 'crew-formation__sprite-wrap--mirrored',
 							placement.spotlight && 'crew-formation__sprite-wrap--spotlight',
 							!placement.spotlight && 'crew-formation__sprite-wrap--benched',
 							placement.greeting && 'crew-formation__sprite-wrap--greet'
@@ -256,7 +265,12 @@
 							.join(' ')}
 					>
 						<img
-							class="crew-formation__sprite"
+							class={[
+								'crew-formation__sprite',
+								placement.mirrored && 'crew-formation__sprite--mirrored'
+							]
+								.filter(Boolean)
+								.join(' ')}
 							src={placement.slot.spriteSrc}
 							alt=""
 							decoding="async"
@@ -286,20 +300,20 @@
 
 <style>
 	.crew-formation {
-		--radius-x: min(36vw, 46rem);
-		--radius-y: calc(var(--radius-x) * 0.1);
+		/* Wide, shallow ellipse — stretched left-right to echo the light-green grass
+		   bands flanking the meadow. */
+		--radius-x: min(42vw, 52rem);
+		--radius-y: calc(var(--radius-x) * 0.08);
 		--ring-x: 50%;
-		--hub-y: 78%;
-		--trainer-h: 256px;
+		/* Anchor low so the formation sits in the near-field grass rather than floating
+		   up on the horizon line (which left a large empty foreground apron). */
+		--hub-y: 90%;
+		--trainer-h: 336px;
 
 		position: relative;
 		width: 100%;
 		height: 100%;
 		min-height: 50dvh;
-	}
-
-	.crew-formation :global(.hatch-scene-depth) {
-		z-index: 0;
 	}
 
 	.crew-formation__ground {
@@ -312,19 +326,15 @@
 		border-radius: 50%;
 		pointer-events: none;
 		z-index: 1;
-		background:
-			repeating-linear-gradient(
-				135deg,
-				rgb(138 148 96 / 0.08) 0 2px,
-				transparent 2px 5px
-			),
-			radial-gradient(
-				ellipse 100% 100% at 50% 50%,
-				color-mix(in srgb, #a3ad75 90%, white) 0%,
-				#8a9460 34%,
-				color-mix(in srgb, #8a9460 62%, #2f3622) 66%,
-				color-mix(in srgb, #2f3622 58%, #8a9460) 100%
-			);
+		/* Whisper-faint darkened clearing — just enough to seat the formation on the
+		   painterly meadow without reading as an obvious ring. */
+		background: radial-gradient(
+			ellipse 100% 100% at 50% 50%,
+			rgb(34 24 16 / 0.1) 0%,
+			rgb(34 24 16 / 0.06) 52%,
+			rgb(34 24 16 / 0.025) 78%,
+			transparent 100%
+		);
 		-webkit-mask-image: radial-gradient(
 			ellipse 82% 78% at 50% 52%,
 			rgb(0 0 0 / 1) 0%,
@@ -478,10 +488,6 @@
 		transform-origin: bottom center;
 	}
 
-	.crew-formation__sprite-wrap--mirrored {
-		transform: scale(-1, 1);
-	}
-
 	.crew-formation__sprite-wrap--spotlight {
 		animation: idle-breathe var(--anim-idle-duration) infinite ease-in-out;
 		animation-delay: var(--idle-delay, 0s);
@@ -510,6 +516,11 @@
 		pointer-events: none;
 	}
 
+	/* Mirror lives on the img so idle/greet animations on the wrap cannot clobber it. */
+	.crew-formation__sprite--mirrored {
+		transform: scale(-1, 1);
+	}
+
 	.crew-formation__nameplate {
 		position: absolute;
 		top: calc(100% + 0.55rem);
@@ -517,6 +528,9 @@
 		transform: translateX(-50%);
 		max-width: 9rem;
 		overflow: hidden;
+		/* Breathing room so the clip edge (and the 1px outline) doesn't shave the first
+		   glyph's left bearing — letter-spacing pushes it right to the box edge. */
+		padding-inline: 0.25rem;
 		white-space: nowrap;
 		text-overflow: ellipsis;
 		font-family: var(--vm-font-ui);
@@ -524,7 +538,14 @@
 		line-height: 1.4;
 		letter-spacing: 0.07em;
 		color: var(--vm-parchment);
-		text-shadow: 0 1px 0 rgb(20 12 8 / 0.55);
+		/* Dark pixel-halo so the label reads over the bright meadow — a flat 1px outline
+		   plus a soft drop, rather than a single faint shadow. */
+		text-shadow:
+			0 0 3px rgb(20 12 8 / 0.85),
+			1px 0 0 rgb(20 12 8 / 0.7),
+			-1px 0 0 rgb(20 12 8 / 0.7),
+			0 1px 0 rgb(20 12 8 / 0.7),
+			0 -1px 0 rgb(20 12 8 / 0.7);
 		pointer-events: none;
 		user-select: none;
 	}
@@ -533,6 +554,14 @@
 	.crew-formation__nameplate--greet {
 		font-size: 0.75rem;
 		color: var(--vm-mustard);
+	}
+
+	.crew-formation__nameplate--trainer {
+		font-size: 0.8125rem;
+		color: var(--vm-parchment);
+		text-transform: uppercase;
+		/* Tucked near the feet, with a small gap so it isn't touching them. */
+		top: calc(100% - 1.25rem);
 	}
 
 	.crew-formation__hatch-link,

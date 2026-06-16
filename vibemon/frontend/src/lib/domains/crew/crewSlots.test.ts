@@ -2,7 +2,9 @@ import { describe, expect, it } from 'vitest';
 
 import {
 	buildSwapPairs,
+	mirrorForPosition,
 	quantizeRotation,
+	ringPosition,
 	rotationDeltaToFront,
 	spotlightSlot
 } from './crewRingMath';
@@ -56,6 +58,22 @@ describe('crewRingMath', () => {
 		expect(pairs).toEqual([
 			{ memberId: 'active', fromSlot: 0, toSlot: 3 },
 			{ memberId: 'other', fromSlot: 3, toSlot: 0 }
+		]);
+	});
+
+	it('mirrors left-of-center seats so sprites face inward', () => {
+		const slot = { empty: false } as never;
+		const atRest = Array.from({ length: PARTY_SIZE }, (_, crewSlot) =>
+			ringPosition(crewSlot, 0)
+		);
+
+		expect(atRest.map(({ x }) => mirrorForPosition(slot, x))).toEqual([
+			false,
+			false,
+			false,
+			true,
+			true,
+			true
 		]);
 	});
 

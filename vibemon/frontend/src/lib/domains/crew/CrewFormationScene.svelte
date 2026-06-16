@@ -9,6 +9,8 @@
 	import DialogBox from '$lib/ui/DialogBox.svelte';
 	import FreeFormButton from '$lib/ui/FreeFormButton.svelte';
 	import GamePanel from '$lib/ui/GamePanel.svelte';
+	import { gameSolarContext } from '$lib/domains/game/gameSolarContext.svelte';
+	import { sceneBackgroundSrc } from '$lib/domains/game/sceneBackgrounds';
 	import SceneFrame from '$lib/ui/SceneFrame.svelte';
 	import { playGameAudio } from '$lib/ui/gameAudioStore.svelte';
 	import { showGameToast } from '$lib/ui/toastStore.svelte';
@@ -32,6 +34,7 @@
 	let introDone = $state(false);
 	let emptySeatHint = $state(false);
 	let trainerSpriteSrc = $state(DEFAULT_TRAINER_SPRITE);
+	let trainerName = $state('');
 	let detailHint = $state<string | null>(null);
 	let panelTab = $state<'stats' | 'moves' | 'sources' | 'story'>('stats');
 	let swapBusy = $state(false);
@@ -42,15 +45,25 @@
 	let rotation = $state(0);
 	let emptySeatTimer: ReturnType<typeof setTimeout> | undefined;
 	let panelShell = $state<HTMLDivElement | null>(null);
+	let lastHintSlotId = $state('');
 
 	const swapProgress = new Tween(0, { duration: SWAP_ANIM_MS, easing: linear });
 	let swapAnimation = $derived(
 		swapAnimPairs ? { pairs: swapAnimPairs, progress: swapProgress.current } : null
 	);
+	let crewBackgroundSrc = $derived(sceneBackgroundSrc('crew-showcase', gameSolarContext.phase));
 
 	let party = $derived(buildParty(members));
 	let filledCount = $derived(members.length);
 	let activeSlot = $derived(party[mod(rotation, PARTY_SIZE)]);
+
+	let dialogBlocked = $derived(
+		Boolean(swapConfirm) ||
+			loading ||
+			filledCount === 0 ||
+			(Boolean(swapMode && activeSlot && !activeSlot.empty)) ||
+			emptySeatHint
+	);
 
 	let dialogText = $derived.by(() => {
 		if (swapConfirm) return swapConfirm;
@@ -61,13 +74,21 @@
 		}
 		if (emptySeatHint) return 'Open seat — hatch a Vibemon from your vibes.';
 		if (!introDone && filledCount > 0) return 'Your crew gathers.';
-		if (detailHint) return detailHint;
 		if (showHint && introDone) return 'Turn the ring to review your crew.';
 		return 'Choose who to look at.';
 	});
 
+	function handleDetailHintChange(hint: string | null) {
+		detailHint = hint;
+	}
+
+	function clearDetailHint() {
+		detailHint = null;
+	}
+
 	function rotateBy(delta: number) {
 		if (loading || filledCount === 0 || swapMode || swapBusy || !introDone) return;
+		clearDetailHint();
 		rotation += delta;
 	}
 
@@ -75,6 +96,7 @@
 		if (swapMode || swapBusy || !introDone) return;
 		const delta = rotationDeltaToFront(rotation, slot.crewSlot);
 		if (delta === 0) return;
+		clearDetailHint();
 		rotation += delta;
 	}
 
@@ -211,11 +233,11 @@
 		switch (event.key) {
 			case 'ArrowLeft':
 				event.preventDefault();
-				rotateBy(1);
+				rotateBy(-1);
 				break;
 			case 'ArrowRight':
 				event.preventDefault();
-				rotateBy(-1);
+				rotateBy(1);
 				break;
 			case 'Enter':
 				event.preventDefault();
@@ -253,6 +275,9 @@
 				if (session?.reference_url) {
 					trainerSpriteSrc = session.reference_url;
 				}
+				if (session?.username) {
+					trainerName = session.username;
+				}
 				if (crew.members.length === 0) {
 					introRitual = 'none';
 					introDone = true;
@@ -271,18 +296,43 @@
 			if (emptySeatTimer) clearTimeout(emptySeatTimer);
 		};
 	});
+
+	$effect(() => {
+		const slotId = activeSlot?.id ?? '';
+		if (slotId === lastHintSlotId) return;
+		lastHintSlotId = slotId;
+		clearDetailHint();
+	});
 </script>
 
 <svelte:window onkeydown={handleKeydown} />
 
-<SceneFrame bandedTop="#8a9460" bandedBase="#4f5734" bandedShadow="#2f3622" class="scene-frame--crew-formation">
+<SceneFrame backgroundSrc={crewBackgroundSrc} class="scene-frame--crew-formation">
 	<div class="crew-formation-scene">
+		<div class="crew-formation-scene__stats">
+			{#if activeSlot?.detail}
+				<div bind:this={panelShell}>
+					{#key activeSlot.id}
+						<CrewShowcasePanel
+							candidate={activeSlot.detail}
+							level={activeSlot.level}
+							currentHp={activeSlot.currentHp}
+							maxHp={activeSlot.maxHp}
+							onDetailHintChange={handleDetailHintChange}
+							bind:activeTab={panelTab}
+						/>
+					{/key}
+				</div>
+			{/if}
+		</div>
+
 		<div class="crew-formation-scene__play-area">
 			<CrewClockFormation
 				slots={party}
 				{rotation}
 				selectedId={activeSlot?.id ?? ''}
 				{trainerSpriteSrc}
+				{trainerName}
 				{swapMode}
 				{swapBusy}
 				introReady={!loading}
@@ -296,28 +346,17 @@
 				onRotationSettled={handleRotationSettled}
 				onSpotlightGreet={handleSpotlightGreet}
 			/>
-
-			<div class="crew-formation-scene__stats">
-				{#if activeSlot?.detail}
-					<div bind:this={panelShell}>
-						{#key activeSlot.id}
-							<CrewShowcasePanel
-								candidate={activeSlot.detail}
-								level={activeSlot.level}
-								currentHp={activeSlot.currentHp}
-								maxHp={activeSlot.maxHp}
-								bind:detailHint
-								bind:activeTab={panelTab}
-							/>
-						{/key}
-					</div>
-				{/if}
-			</div>
 		</div>
 
 		<div class="crew-formation-scene__footer">
 			<div class="crew-formation-scene__dialog">
-				<DialogBox text={dialogText} showCursor={false} typewriter={false} />
+				{#if detailHint && !dialogBlocked}
+					<GamePanel tone="status" class="hud-dialog-slot crew-formation-scene__detail-hint">
+						<p>{detailHint}</p>
+					</GamePanel>
+				{:else}
+					<DialogBox text={dialogText} showCursor={false} typewriter={false} />
+				{/if}
 			</div>
 
 			<div class="crew-formation-scene__footer-actions">
@@ -384,7 +423,9 @@
 	.crew-formation-scene {
 		position: relative;
 		min-height: 100dvh;
-		padding: clamp(1rem, 3vh, 1.75rem) clamp(1rem, 3vw, 1.75rem) clamp(1.25rem, 4vh, 2rem);
+		padding-left: var(--vm-hud-bottom-inset);
+		padding-right: max(var(--vm-hud-bottom-inset), var(--vm-settings-corner-reserve));
+		padding-bottom: var(--vm-hud-bottom-inset);
 		display: grid;
 		grid-template-rows: minmax(0, 1fr) auto;
 		gap: clamp(0.85rem, 2.4vh, 1.35rem);
@@ -392,6 +433,29 @@
 
 	:global(.scene-frame.scene-frame--crew-formation) {
 		overflow: visible;
+	}
+
+	.crew-formation-scene__stats {
+		position: absolute;
+		top: var(--vm-bezel-w);
+		left: var(--vm-bezel-w);
+		z-index: 30;
+		display: flex;
+		flex-direction: column;
+		width: min(var(--vm-hud-candidate-rail-max-width), calc(100% - var(--vm-bezel-w) * 2));
+		height: min(
+			var(--vm-hud-candidate-panel-min-height),
+			calc(100dvh - var(--vm-bezel-w) * 2 - clamp(1.25rem, 4vh, 2rem))
+		);
+		pointer-events: auto;
+	}
+
+	.crew-formation-scene__stats > div {
+		display: flex;
+		flex-direction: column;
+		flex: 1;
+		min-height: 0;
+		height: 100%;
 	}
 
 	.crew-formation-scene__play-area {
@@ -402,18 +466,6 @@
 
 	.crew-formation-scene__play-area :global(.crew-formation) {
 		--ring-x: 54%;
-	}
-
-	.crew-formation-scene__stats {
-		position: absolute;
-		top: clamp(0.25rem, 1.5vh, 0.75rem);
-		left: clamp(0.25rem, 1vw, 0.75rem);
-		z-index: 30;
-		display: flex;
-		flex-direction: column;
-		width: min(30rem, 42vw);
-		max-width: calc(100% - 2rem);
-		max-height: calc(100% - 1rem);
 	}
 
 	.crew-formation-scene__positions {

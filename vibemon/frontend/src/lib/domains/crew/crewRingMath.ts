@@ -7,8 +7,10 @@ export const STEPS_PER_ADVANCE = 8;
 export const SLOT_ANGLE_DEG = 360 / PARTY_SIZE;
 export const LEAD_ANGLE_DEG = 60;
 
+// Front/spotlight slot renders at the mon's normal trainer-relative height (max 1.0);
+// slots scale down toward the min as they rotate out of view.
 const DEPTH_SCALE_MIN = 0.62;
-const DEPTH_SCALE_MAX = 1.78;
+const DEPTH_SCALE_MAX = 1.0;
 
 export function quantizeRotation(rotation: number): number {
 	return Math.round(rotation * STEPS_PER_ADVANCE) / STEPS_PER_ADVANCE;
@@ -41,13 +43,15 @@ export function isSpotlight(ringOffset: number): boolean {
 	return spotlightFactor(ringOffset) > 0.92;
 }
 
-export function mirrorForPosition(slot: PartySlot, cos: number): boolean {
+export function mirrorForPosition(slot: PartySlot, x: number): boolean {
 	if (slot.empty) return false;
-	const native = slot.facing ?? 'LEFT';
-	if (native === 'CENTER') return false;
-	if (cos < -0.2) return native !== 'RIGHT';
-	if (cos > 0.2) return native === 'RIGHT';
-	return false;
+	// Reference sprites are canonicalized to face screen-LEFT in postprocessing
+	// (orient_reference_left), so facing is purely positional — never trust the stale
+	// per-mon reference_detected_facing here. A left-facing sprite already looks inward
+	// when right of center; mirror it to face RIGHT only when it's left of center.
+	// Single threshold at x=0 → exactly one flip per crossing; resting slots never sit
+	// at x≈0 (cos values are ±0.5/±1), so the sign is stable at rest.
+	return x < 0;
 }
 
 export function effectiveCrewSlot(
@@ -64,7 +68,7 @@ export function effectiveCrewSlot(
 
 export function ringPosition(crewSlot: number, displayRotation: number) {
 	const ringOffset = crewSlot - displayRotation;
-	const angle = ((LEAD_ANGLE_DEG + ringOffset * SLOT_ANGLE_DEG) * Math.PI) / 180;
+	const angle = ((LEAD_ANGLE_DEG - ringOffset * SLOT_ANGLE_DEG) * Math.PI) / 180;
 	return {
 		ringOffset,
 		x: Math.cos(angle),
@@ -80,7 +84,7 @@ export function spotlightSlot(slots: PartySlot[], rotation: number): PartySlot |
 
 export function seatTickPositions() {
 	return Array.from({ length: PARTY_SIZE }, (_, index) => {
-		const angle = ((LEAD_ANGLE_DEG + index * SLOT_ANGLE_DEG) * Math.PI) / 180;
+		const angle = ((LEAD_ANGLE_DEG - index * SLOT_ANGLE_DEG) * Math.PI) / 180;
 		return { x: Math.cos(angle), y: Math.sin(angle) };
 	});
 }

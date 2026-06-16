@@ -24,7 +24,7 @@ describe('buildCrewStoryEntries', () => {
 			evo_seed: 1,
 			evolution_line: { form_index: 1, form_count: 2, line_rarity: 'normal' },
 			moves: [],
-			display: { anchor_x: null, baseline_y: null, size_class: 'mid' },
+			display: { anchor_x: null, baseline_y: null, size_factor: 0.7 },
 			lifecycle: 'owned',
 			reference_url: null,
 			reference_facing: 'left',

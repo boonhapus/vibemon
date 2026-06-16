@@ -165,7 +165,10 @@
 	.crew-scene {
 		position: relative;
 		min-height: 100dvh;
-		padding: clamp(1rem, 3vh, 1.75rem) clamp(1rem, 3vw, 1.75rem) clamp(1.25rem, 4vh, 2rem);
+		padding: clamp(1rem, 3vh, 1.75rem)
+			max(clamp(1rem, 3vw, 1.75rem), var(--vm-settings-corner-reserve))
+			clamp(1.25rem, 4vh, 2rem)
+			clamp(1rem, 3vw, 1.75rem);
 		display: grid;
 		grid-template-rows: minmax(0, 1fr) auto;
 		gap: clamp(0.85rem, 2.4vh, 1.35rem);

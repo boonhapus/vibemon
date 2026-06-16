@@ -1,26 +1,15 @@
 /** Shared crew slot mapping for the roster and clock-formation views. */
 
 import type { CrewMember, HatchCandidate, SpriteFacing } from '$lib/domains/trainer/hatchApi';
+import {
+	EMPTY_SLOT_HEIGHT_FACTOR,
+	trainerRelativeHeight
+} from '$lib/domains/trainer/hatchDisplaySize';
 
 export const PLACEHOLDER_SPRITE = '/game/sprites/hatchling-silhouette@128.png';
 export const PARTY_SIZE = 6;
 
-/* Mon height relative to the trainer sprite, by size class — same bands the
-   hatch scene uses, interpolated by power pips so heights agree across pages. */
-const SIZE_BANDS: Record<string, [number, number]> = {
-	small: [0.4, 0.55],
-	mid: [0.7, 0.95],
-	large: [1.1, 1.3]
-};
-
-export const EMPTY_SLOT_HEIGHT_FACTOR = 0.5;
-
-export function trainerRelativeHeight(detail: HatchCandidate | null): number {
-	if (!detail) return EMPTY_SLOT_HEIGHT_FACTOR;
-	const band = SIZE_BANDS[detail.display?.size_class ?? 'mid'] ?? SIZE_BANDS.mid;
-	const t = (Math.min(Math.max(detail.power_pips ?? 2, 1), 3) - 1) / 2;
-	return band[0] + (band[1] - band[0]) * t;
-}
+export { EMPTY_SLOT_HEIGHT_FACTOR, trainerRelativeHeight };
 
 export type PartySlot = {
 	id: string;
