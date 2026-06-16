@@ -68,17 +68,48 @@ export async function checkUsernameAvailability(username: string): Promise<Usern
 	};
 }
 
+export type TrainerLoginResult =
+	| { status: 'ok'; session: TrainerSession }
+	| { status: 'not_found'; message: string }
+	| { status: 'invalid'; message: string }
+	| { status: 'error'; message: string };
+
 async function loginTrainerSession(username: string): Promise<TrainerSession | null> {
-	const response = await fetch('/api/trainers/login', {
-		method: 'POST',
-		credentials: 'include',
-		headers: { 'Content-Type': 'application/json' },
-		body: JSON.stringify({ username })
-	});
-	if (!response.ok) {
-		return null;
+	const result = await loginTrainer(username);
+	return result.status === 'ok' ? result.session : null;
+}
+
+/** Sign in with an existing trainer username and return the session payload. */
+export async function loginTrainer(username: string): Promise<TrainerLoginResult> {
+	const validationError = validateUsername(username);
+	if (validationError) {
+		return { status: 'invalid', message: validationError };
 	}
-	return (await response.json()) as TrainerSession;
+
+	let response: Response;
+	try {
+		response = await fetch('/api/trainers/login', {
+			method: 'POST',
+			credentials: 'include',
+			headers: { 'Content-Type': 'application/json' },
+			body: JSON.stringify({ username: username.trim() })
+		});
+	} catch {
+		return { status: 'error', message: 'Could not reach the server. Check your connection and try again.' };
+	}
+
+	if (response.status === 404) {
+		return {
+			status: 'not_found',
+			message: readErrorDetail(await response.json().catch(() => null)) ?? 'No Trainer found with that name.'
+		};
+	}
+
+	if (!response.ok) {
+		return { status: 'error', message: 'Could not sign in. Try again.' };
+	}
+
+	return { status: 'ok', session: (await response.json()) as TrainerSession };
 }
 
 async function registerTrainerSession(username: string): Promise<TrainerSession | null> {
@@ -194,6 +225,15 @@ export async function fetchTrainerMe(): Promise<TrainerSession | null> {
 		return null;
 	}
 	return (await response.json()) as TrainerSession;
+}
+
+/** Clear the server session cookie. */
+export async function logoutTrainer(): Promise<boolean> {
+	const response = await fetch('/api/trainers/logout', {
+		method: 'POST',
+		credentials: 'include'
+	});
+	return response.ok;
 }
 
 /**

@@ -1,12 +1,17 @@
 <script lang="ts">
+	import type { Snippet } from 'svelte';
+
 	let {
 		spriteSrc = '/game/sprites/trainer@128.png',
 		mirrored = false,
-		class: className = ''
+		class: className = '',
+		spriteOverlay
 	}: {
 		spriteSrc?: string;
 		mirrored?: boolean;
 		class?: string;
+		/** Rendered in a box aligned to the sprite image (e.g. hatch silhouette mask/hit). */
+		spriteOverlay?: Snippet;
 	} = $props();
 
 	let rootClass = $derived(
@@ -18,7 +23,12 @@
 	<div class="trainer-reference__platform">
 		<div class="trainer-reference__platform-core"></div>
 	</div>
-	<img class="trainer-reference__sprite" src={spriteSrc} alt="" decoding="async" />
+	<div class="trainer-reference__sprite-stage">
+		<img class="trainer-reference__sprite" src={spriteSrc} alt="" decoding="async" />
+		{#if spriteOverlay}
+			{@render spriteOverlay()}
+		{/if}
+	</div>
 </div>
 
 <style>
@@ -34,6 +44,21 @@
 		--scene-top: #c4a882;
 		--scene-base: #6b7a2a;
 		--platform-strength: 1;
+
+		/* Platform fills are themeable so scenes can swap the default lit disc for a
+		   dark contact shadow (e.g. painterly hatch field — see HatchScene.svelte). */
+		--platform-core-bg: radial-gradient(
+			ellipse 100% 100% at 50% 50%,
+			color-mix(in srgb, var(--scene-top) 92%, white) 0%,
+			color-mix(in srgb, var(--scene-top) 96%, var(--scene-base)) 38%,
+			color-mix(in srgb, var(--scene-top) 78%, var(--scene-base)) 62%,
+			color-mix(in srgb, var(--scene-base) 28%, var(--scene-top)) 100%
+		);
+		--platform-feather-bg: radial-gradient(
+			ellipse 100% 100% at 50% 54%,
+			color-mix(in srgb, var(--scene-top) 78%, var(--scene-base)) 0%,
+			color-mix(in srgb, var(--scene-top) 62%, var(--scene-base)) 100%
+		);
 
 		position: relative;
 		display: flex;
@@ -65,13 +90,7 @@
 		inset: -30% -20%;
 		border-radius: 50%;
 		opacity: calc(0.9 * var(--platform-strength));
-		background: radial-gradient(
-			ellipse 100% 100% at 50% 50%,
-			color-mix(in srgb, var(--scene-top) 92%, white) 0%,
-			color-mix(in srgb, var(--scene-top) 96%, var(--scene-base)) 38%,
-			color-mix(in srgb, var(--scene-top) 78%, var(--scene-base)) 62%,
-			color-mix(in srgb, var(--scene-base) 28%, var(--scene-top)) 100%
-		);
+		background: var(--platform-core-bg);
 		-webkit-mask-image: radial-gradient(
 			ellipse 72% 66% at 50% 54%,
 			rgb(0 0 0 / 1) 0%,
@@ -104,11 +123,7 @@
 		border-radius: 50%;
 		opacity: calc(0.5 * var(--platform-strength));
 		filter: blur(2px);
-		background: radial-gradient(
-			ellipse 100% 100% at 50% 54%,
-			color-mix(in srgb, var(--scene-top) 78%, var(--scene-base)) 0%,
-			color-mix(in srgb, var(--scene-top) 62%, var(--scene-base)) 100%
-		);
+		background: var(--platform-feather-bg);
 		-webkit-mask-image: radial-gradient(
 			ellipse 76% 68% at 50% 54%,
 			transparent 0%,
@@ -166,11 +181,12 @@
 		);
 	}
 
-	.trainer-reference__sprite {
+	.trainer-reference__sprite-stage {
 		position: relative;
 		z-index: 1;
+		flex-shrink: 0;
 		height: var(--sprite-h);
-		width: auto;
+		width: fit-content;
 		margin-bottom: calc(var(--platform-h) * -0.06);
 		backface-visibility: visible;
 		transform: perspective(600px)
@@ -178,16 +194,22 @@
 			translateY(calc(-2% + var(--sprite-foot-nudge-y, 0%)))
 			rotateY(0deg);
 		transform-origin: center bottom;
-		image-rendering: pixelated;
-		image-rendering: crisp-edges;
-		user-select: none;
-		pointer-events: none;
 	}
 
-	.trainer-reference--mirrored .trainer-reference__sprite {
+	.trainer-reference--mirrored .trainer-reference__sprite-stage {
 		transform: perspective(600px)
 			translateX(var(--sprite-foot-nudge-x, 0%))
 			translateY(calc(-2% + var(--sprite-foot-nudge-y, 0%)))
 			rotateY(180deg);
+	}
+
+	.trainer-reference__sprite {
+		display: block;
+		height: 100%;
+		width: auto;
+		image-rendering: pixelated;
+		image-rendering: crisp-edges;
+		user-select: none;
+		pointer-events: none;
 	}
 </style>

@@ -5,7 +5,7 @@
 	import GamePanel from '$lib/ui/GamePanel.svelte';
 	import PixelIcon from '$lib/ui/PixelIcon.svelte';
 	import StyleguideSpecimen from '$lib/ui/StyleguideSpecimen.svelte';
-	import { elementTypeColor } from '$lib/ui/elementTypes';
+	import { ELEMENT_TYPES, elementTypeColor } from '$lib/ui/elementTypes';
 </script>
 
 <svelte:head>
@@ -15,76 +15,80 @@
 <main class="styleguide">
 	<h1 class="styleguide__title">Vibemon Styleguide</h1>
 
-	<section class="styleguide__section">
-		<h2 class="styleguide__heading">Palette</h2>
-		<div class="styleguide__swatches">
-			{#each [
-				{ name: 'Parchment', token: '--vm-parchment', hex: '#f0e7ce' },
-				{ name: 'Tobacco', token: '--vm-tobacco', hex: '#3d2b1f' },
-				{ name: 'Burnt Orange', token: '--vm-burnt-orange', hex: '#c0542a' },
-				{ name: 'Sage Olive', token: '--vm-sage-olive', hex: '#6e7540' },
-				{ name: 'Grape Plum', token: '--vm-plum', hex: '#7c4d8a' },
-				{ name: 'Soft Mustard', token: '--vm-mustard', hex: '#c9a23f' }
-			] as swatch (swatch.token)}
-				<div class="styleguide__swatch">
-					<span
-						class="styleguide__swatch-chip"
-						style:background="var({swatch.token})"
-						aria-hidden="true"
-					></span>
-					<span class="styleguide__swatch-label">{swatch.name}</span>
-					<span class="styleguide__swatch-hex">{swatch.hex}</span>
-				</div>
-			{/each}
+	<section class="styleguide__section styleguide__intro">
+		<div class="styleguide__intro-col">
+			<h2 class="styleguide__heading">Palette</h2>
+			<h3 class="styleguide__subheading">Brand</h3>
+			<div class="styleguide__swatches">
+				{#each [
+					{ name: 'Parchment', token: '--vm-parchment', hex: '#f0e7ce' },
+					{ name: 'Tobacco', token: '--vm-tobacco', hex: '#3d2b1f' },
+					{ name: 'Burnt Orange', token: '--vm-burnt-orange', hex: '#c0542a' },
+					{ name: 'Sage Olive', token: '--vm-sage-olive', hex: '#6e7540' },
+					{ name: 'Grape Plum', token: '--vm-plum', hex: '#7c4d8a' },
+					{ name: 'Soft Mustard', token: '--vm-mustard', hex: '#c9a23f' }
+				] as swatch (swatch.token)}
+					<div class="styleguide__swatch">
+						<span
+							class="styleguide__swatch-chip"
+							style:background="var({swatch.token})"
+							aria-hidden="true"
+						></span>
+						<span class="styleguide__swatch-label">{swatch.name}</span>
+						<span class="styleguide__swatch-hex">{swatch.hex}</span>
+					</div>
+				{/each}
+			</div>
+			<h3 class="styleguide__subheading">Status</h3>
+			<div class="styleguide__swatches">
+				{#each [
+					{ name: 'Sage status', token: '--vm-status-sage', hex: '#6b9b5a' },
+					{ name: 'Amber status', token: '--vm-status-amber', hex: '#cc7a22' },
+					{ name: 'Brick status', token: '--vm-status-brick', hex: '#a03020' }
+				] as swatch (swatch.token)}
+					<div class="styleguide__swatch">
+						<span
+							class="styleguide__swatch-chip"
+							style:background="var({swatch.token})"
+							aria-hidden="true"
+						></span>
+						<span class="styleguide__swatch-label">{swatch.name}</span>
+						<span class="styleguide__swatch-hex">{swatch.hex}</span>
+					</div>
+				{/each}
+			</div>
+			<h2 class="styleguide__heading styleguide__heading--spaced">Spacing tokens</h2>
+			<div class="styleguide__spacing">
+				{#each [
+					{ name: 'xs', value: 'var(--vm-space-xs)' },
+					{ name: 'sm', value: 'var(--vm-space-sm)' },
+					{ name: 'md', value: 'var(--vm-space-md)' },
+					{ name: 'lg', value: 'var(--vm-space-lg)' },
+					{ name: 'xl', value: 'var(--vm-space-xl)' }
+				] as space (space.name)}
+					<div class="styleguide__space-row">
+						<span class="styleguide__space-label">{space.name}</span>
+						<span class="styleguide__space-bar" style:width={space.value}></span>
+						<span class="styleguide__space-value">{space.value}</span>
+					</div>
+				{/each}
+			</div>
 		</div>
-		<div class="styleguide__swatches styleguide__swatches--types">
-			{#each ['fire', 'water', 'grass', 'flying', 'psychic', 'ghost'] as type (type)}
-				<div class="styleguide__swatch">
-					<span
-						class="styleguide__swatch-chip"
-						style:background={elementTypeColor(type)}
-						aria-hidden="true"
-					></span>
-					<span class="styleguide__swatch-label">{type}</span>
-					<span class="styleguide__swatch-hex">{elementTypeColor(type)}</span>
-				</div>
-			{/each}
-		</div>
-		<div class="styleguide__swatches">
-			{#each [
-				{ name: 'Sage status', token: '--vm-status-sage', hex: '#6b9b5a' },
-				{ name: 'Amber status', token: '--vm-status-amber', hex: '#cc7a22' },
-				{ name: 'Brick status', token: '--vm-status-brick', hex: '#a03020' }
-			] as swatch (swatch.token)}
-				<div class="styleguide__swatch">
-					<span
-						class="styleguide__swatch-chip"
-						style:background="var({swatch.token})"
-						aria-hidden="true"
-					></span>
-					<span class="styleguide__swatch-label">{swatch.name}</span>
-					<span class="styleguide__swatch-hex">{swatch.hex}</span>
-				</div>
-			{/each}
-		</div>
-	</section>
-
-	<section class="styleguide__section">
-		<h2 class="styleguide__heading">Spacing tokens</h2>
-		<div class="styleguide__spacing">
-			{#each [
-				{ name: 'xs', value: 'var(--vm-space-xs)' },
-				{ name: 'sm', value: 'var(--vm-space-sm)' },
-				{ name: 'md', value: 'var(--vm-space-md)' },
-				{ name: 'lg', value: 'var(--vm-space-lg)' },
-				{ name: 'xl', value: 'var(--vm-space-xl)' }
-			] as space (space.name)}
-				<div class="styleguide__space-row">
-					<span class="styleguide__space-label">{space.name}</span>
-					<span class="styleguide__space-bar" style:width={space.value}></span>
-					<span class="styleguide__space-value">{space.value}</span>
-				</div>
-			{/each}
+		<div class="styleguide__intro-col">
+			<h2 class="styleguide__heading">Element types</h2>
+			<div class="styleguide__swatches styleguide__swatches--types">
+				{#each ELEMENT_TYPES as type (type)}
+					<div class="styleguide__swatch">
+						<span
+							class="styleguide__swatch-chip"
+							style:background={elementTypeColor(type)}
+							aria-hidden="true"
+						></span>
+						<span class="styleguide__swatch-label">{type}</span>
+						<span class="styleguide__swatch-hex">{elementTypeColor(type)}</span>
+					</div>
+				{/each}
+			</div>
 		</div>
 	</section>
 
@@ -155,10 +159,10 @@
 
 	<section class="styleguide__section">
 		<h2 class="styleguide__heading">Type badges</h2>
-		<div class="styleguide__row">
-			<ElementBadge type="fire" />
-			<ElementBadge type="flying" />
-			<ElementBadge type="grass" />
+		<div class="styleguide__row styleguide__badges">
+			{#each ELEMENT_TYPES as type (type)}
+				<ElementBadge {type} />
+			{/each}
 		</div>
 	</section>
 </main>
@@ -187,10 +191,44 @@
 		color: var(--vm-tobacco);
 	}
 
+	.styleguide__heading--spaced {
+		margin-top: var(--vm-space-lg);
+	}
+
+	.styleguide__subheading {
+		margin: var(--vm-space-sm) 0 var(--vm-space-xs);
+		font-family: var(--vm-font-ui);
+		font-size: 0.6875rem;
+		font-weight: 500;
+		letter-spacing: 0.04em;
+		text-transform: uppercase;
+		color: color-mix(in srgb, var(--vm-tobacco) 72%, var(--vm-brass));
+	}
+
 	.styleguide__section {
 		display: flex;
 		flex-direction: column;
 		gap: var(--vm-space-md);
+	}
+
+	.styleguide__intro {
+		display: grid;
+		grid-template-columns: minmax(0, 1fr) minmax(0, 1.35fr);
+		gap: var(--vm-space-xl);
+		align-items: start;
+	}
+
+	.styleguide__intro-col {
+		display: flex;
+		flex-direction: column;
+		gap: var(--vm-space-xs);
+		min-width: 0;
+	}
+
+	@media (max-width: 52rem) {
+		.styleguide__intro {
+			grid-template-columns: 1fr;
+		}
 	}
 
 	.styleguide__row {
@@ -207,7 +245,11 @@
 	}
 
 	.styleguide__swatches--types {
-		margin-top: var(--vm-space-xs);
+		grid-template-columns: repeat(auto-fill, minmax(5.5rem, 1fr));
+	}
+
+	.styleguide__badges {
+		gap: var(--vm-space-sm);
 	}
 
 	.styleguide__swatch {
@@ -238,7 +280,6 @@
 	.styleguide__spacing {
 		display: grid;
 		gap: var(--vm-space-sm);
-		max-width: 24rem;
 	}
 
 	.styleguide__space-row {

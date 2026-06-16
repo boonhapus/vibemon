@@ -1,5 +1,26 @@
 /** Vibemon type colors — docs/development/COLORS.md */
 
+export const ELEMENT_TYPES = [
+	'normal',
+	'fire',
+	'water',
+	'electric',
+	'grass',
+	'ice',
+	'fighting',
+	'poison',
+	'ground',
+	'flying',
+	'psychic',
+	'bug',
+	'rock',
+	'ghost',
+	'dragon',
+	'dark',
+	'steel',
+	'fairy'
+] as const;
+
 const TYPE_COLOR_HEX: Record<string, string> = {
 	normal: '#c4a882',
 	fire: '#c0542a',

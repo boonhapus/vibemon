@@ -148,12 +148,6 @@
 		opacity: 1;
 	}
 
-	/* Fetching: the plug taps the socket while the lamp blinks. */
-	.provider-patch-row--fetching .provider-patch-row__plug {
-		opacity: 1;
-		animation: provider-patch-plug-tap 900ms steps(2, jump-none) infinite;
-	}
-
 	/* Unimplemented: dashed empty recess, no plug, plate text recedes. */
 	.provider-patch-row--disabled {
 		--patch-text: color-mix(in srgb, var(--vm-tobacco) 45%, var(--vm-panel-command-bg));
@@ -233,18 +227,8 @@
 		}
 	}
 
-	@keyframes provider-patch-plug-tap {
-		0% {
-			transform: translateY(0);
-		}
-		100% {
-			transform: translateY(-2px);
-		}
-	}
-
 	@media (prefers-reduced-motion: reduce) {
-		.provider-patch-row--fetching .provider-patch-row__lamp,
-		.provider-patch-row--fetching .provider-patch-row__plug {
+		.provider-patch-row--fetching .provider-patch-row__lamp {
 			animation: none;
 		}
 	}

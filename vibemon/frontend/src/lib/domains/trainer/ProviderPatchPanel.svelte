@@ -1,32 +1,46 @@
 <script lang="ts">
 	import type { Snippet } from 'svelte';
 
+	/** Where the wood rail sits relative to the parchment plate. */
+	export type ProviderPatchMount = 'edge-left' | 'corner-tl';
+
 	/**
 	 * Provider patch panel on the hatch console (ui-cohesion-plan §3): a parchment
-	 * plate of input jacks mounted flush on the right HUD rail — wood-grain lip
-	 * on the left so it reads as cabinet hardware, not a floating island.
+	 * plate mounted flush on a HUD rail — wood-grain lip on the open edge(s) so it
+	 * reads as cabinet hardware, not a floating island.
+	 *
+	 * `edge-left` — right-side stack (hatch candidate / provider jacks): left rail.
+	 * `corner-tl` — top-left dock: top/left open into the cabinet bezel; rails on right + bottom.
 	 */
 	let {
 		children,
 		title = 'Vibe sources',
 		fill = false,
+		mount = 'edge-left',
 		ariaLabel = 'Vibe providers',
 		class: className = ''
 	}: {
 		children: Snippet;
 		title?: string | false;
 		fill?: boolean;
+		mount?: ProviderPatchMount;
 		ariaLabel?: string;
 		class?: string;
 	} = $props();
 
 	let panelClass = $derived(
-		['provider-patch-panel', fill && 'provider-patch-panel--fill', className].filter(Boolean).join(' ')
+		[
+			'provider-patch-panel',
+			fill && 'provider-patch-panel--fill',
+			mount === 'corner-tl' && 'provider-patch-panel--corner-tl',
+			className
+		]
+			.filter(Boolean)
+			.join(' ')
 	);
 </script>
 
-<div class={panelClass} role="group" aria-label={ariaLabel}>
-	<div class="provider-patch-panel__rail" aria-hidden="true"></div>
+{#snippet plateBody()}
 	<div class="provider-patch-panel__body">
 		{#if title}
 			<span class="provider-patch-panel__title" aria-hidden="true">{title}</span>
@@ -35,6 +49,17 @@
 			{@render children()}
 		</div>
 	</div>
+{/snippet}
+
+<div class={panelClass} role="group" aria-label={ariaLabel}>
+	{#if mount === 'corner-tl'}
+		{@render plateBody()}
+		<div class="provider-patch-panel__rail provider-patch-panel__rail--right" aria-hidden="true"></div>
+		<div class="provider-patch-panel__rail provider-patch-panel__rail--bottom" aria-hidden="true"></div>
+	{:else}
+		<div class="provider-patch-panel__rail" aria-hidden="true"></div>
+		{@render plateBody()}
+	{/if}
 </div>
 
 <style>
@@ -47,6 +72,12 @@
 		min-height: 100%;
 		background: transparent;
 		border-bottom: var(--vm-hud-panel-rail-thickness) solid rgb(42 30 22 / 0.55);
+	}
+
+	.provider-patch-panel--corner-tl {
+		grid-template-columns: minmax(0, 1fr) var(--vm-hud-panel-rail-thickness);
+		grid-template-rows: minmax(0, 1fr) var(--vm-hud-panel-rail-thickness);
+		border-bottom: 0;
 	}
 
 	.provider-patch-panel--fill {
@@ -75,6 +106,28 @@
 		box-shadow:
 			inset -2px 0 6px rgb(20 12 8 / 0.35),
 			inset 0 1px 0 rgb(240 231 206 / 0.12);
+	}
+
+	.provider-patch-panel--corner-tl .provider-patch-panel__rail--right {
+		grid-column: 2;
+		grid-row: 1;
+		box-shadow:
+			inset 2px 0 6px rgb(20 12 8 / 0.35),
+			inset 0 -1px 0 rgb(240 231 206 / 0.12);
+	}
+
+	.provider-patch-panel--corner-tl .provider-patch-panel__rail--bottom {
+		grid-column: 1 / -1;
+		grid-row: 2;
+		box-shadow:
+			inset 0 2px 6px rgb(20 12 8 / 0.35),
+			inset -1px 0 0 rgb(240 231 206 / 0.12);
+	}
+
+	.provider-patch-panel--corner-tl .provider-patch-panel__body {
+		grid-column: 1;
+		grid-row: 1;
+		border-top: 0;
 	}
 
 	.provider-patch-panel__body {

@@ -25,6 +25,7 @@ From the design and audio direction (`DESIGN.md` §1, §7.4):
 
 - **UI labels & buttons:** 1–4 words when possible. Stay consistent within a screen (Title Case or sentence case — pick one per context).
 - **Hints & tooltips:** One or two short sentences. Plain, direct.
+- **No em dashes in player copy.** Use periods, commas, or a gentle colon instead. Break ideas into short sentences rather than chaining clauses with `—`.
 - **Suspense / loading beats:** Sensory, gentle, present tense. Analog texture welcome (*static whispers*, *the glow gets a touch warmer*).
 - **Errors & warnings:** State what happened and what to do next. No blame. Prefer **warning** over **error** when non-fatal (`Provider Warning` semantics — see `CONTEXT.md`).
 
@@ -70,6 +71,17 @@ Evolution-line copy uses **Stage** (never Form). The hatchling is always stage 1
 | Deep line (pseudo-legendary seed) | **Stage 1 of 3** | *Deep evolution line* |
 
 Avoid "pseudo-legendary" in player copy — the ✦ pip carries rarity.
+
+**EVO hover hints** (ledger, one or two short sentences; use **Stage**, never Form):
+
+| Situation | Example hint |
+| :--- | :--- |
+| Single-stage | *Sproutling has no evolutions ahead.* |
+| Stage 1 of 2 | *Sproutling is at stage 1. One more evolution ahead.* |
+| Stage 1 of 3 | *Sproutling is at stage 1. Two more evolutions ahead.* |
+| Mid-stage | *Sproutling is at stage 2. One more evolution ahead.* |
+| Fully evolved | *Sproutling is fully evolved.* |
+| Deep line | Append: *A deep evolution line. Rarer and stronger than most three-stage paths.* |
 
 Provider column on `/hatch` is **signal inputs** / **vibe sources** (patch panel), never "carts."
 

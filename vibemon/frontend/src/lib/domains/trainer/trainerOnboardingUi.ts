@@ -27,10 +27,8 @@ export function resolveTrainerReferenceUrl(
 /** View-only onboarding chrome; hatch orchestration lives in hatchSession.ts. */
 export type TrainerOnboardingUi = {
 	referenceHintVisible: boolean;
-	hatchHintVisible: boolean;
-	settingsOpen: boolean;
 	referenceSpriteSrc: string;
-	/** False on /hatch until the trainer reference is resolved and preloaded. */
+	/** False until the trainer reference is resolved and preloaded (hatch scene). */
 	referenceSpriteReady: boolean;
 	registrationUsername: string;
 	pendingReferenceFile: File | null;
@@ -42,8 +40,6 @@ export type TrainerOnboardingUi = {
 export function createTrainerOnboardingUi(): TrainerOnboardingUi {
 	return {
 		referenceHintVisible: false,
-		hatchHintVisible: false,
-		settingsOpen: false,
 		referenceSpriteSrc: DEFAULT_TRAINER_REFERENCE_SPRITE,
 		referenceSpriteReady: false,
 		registrationUsername: '',

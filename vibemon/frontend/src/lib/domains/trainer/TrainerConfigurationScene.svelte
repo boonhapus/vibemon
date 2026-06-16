@@ -20,6 +20,10 @@
 	} from './providerSelection';
 
 	import CrewNavButton from '$lib/domains/crew/CrewNavButton.svelte';
+	import {
+		refreshGameSolarPhase,
+		syncGameSolarCoordinates
+	} from '$lib/domains/game/gameSolarContext.svelte';
 	import type { TrainerOnboardingUi } from '$lib/domains/trainer/trainerOnboardingUi';
 	import DialogBox from '$lib/ui/DialogBox.svelte';
 	import GamePanel from '$lib/ui/GamePanel.svelte';
@@ -28,6 +32,7 @@
 	import { showGameToast } from '$lib/ui/toastStore.svelte';
 
 	import { providerConfigModalStore } from './providerConfigModalStore.svelte';
+	import { settingsStore } from './settingsStore.svelte';
 	import {
 		fetchProviderCatalog,
 		fetchProviderStatus,
@@ -53,7 +58,8 @@
 	type ProviderVisualState = 'connected' | 'needs-config' | 'disabled';
 
 	const DIALOG_ANCHOR = `Sweet. Connect your vibes and let's get groovin'!`;
-	const HATCH_HINT_TEXT = `When you're ready, double-tap to hatch from your vibes.`;
+	const HATCH_READY_DIALOG_TEXT =
+		`Connect more vibes, tap your Vibemon, or press ENTER to hatch.`;
 	const HATCH_ACTION_HINTS = {
 		refresh: 'Redraw their look from your connected vibes.',
 		adopt: 'Welcome them to your crew — add a nickname if you like.',
@@ -121,6 +127,13 @@
 		hatchSession.actionHint ? HATCH_ACTION_HINTS[hatchSession.actionHint] : ''
 	);
 	let hatchCandidateHintText = $derived(hatchSession.candidateHint ?? '');
+	let hatchReadyDialogVisible = $derived(
+		embedded &&
+			hatchSession.providers.selectedIds.length >= 1 &&
+			!hatchSession.candidate &&
+			!hatchSession.generating &&
+			!hatchSession.busy
+	);
 
 	function providerDescription(provider: ProviderCatalogEntry) {
 		if (!provider.implemented) {
@@ -203,7 +216,7 @@
 	}
 
 	function modalBlocked() {
-		return Boolean(onboardingUi?.settingsOpen || providerConfigModalStore.open);
+		return Boolean(settingsStore.open || providerConfigModalStore.open);
 	}
 
 	function candidateReviewActive() {
@@ -219,9 +232,6 @@
 	function showProviderDescription(entry: ProviderCatalogEntry) {
 		if (modalBlocked()) return;
 		cancelHoverClear();
-		if (onboardingUi) {
-			onboardingUi.hatchHintVisible = false;
-		}
 		hatchSession.actionHint = null;
 		hatchSession.candidateHint = null;
 		vibeDeckHintVisible = false;
@@ -241,9 +251,6 @@
 	function showVibeDeckHint() {
 		if (modalBlocked()) return;
 		cancelHoverClear();
-		if (onboardingUi) {
-			onboardingUi.hatchHintVisible = false;
-		}
 		hatchSession.candidateHint = null;
 		hoveredKey = null;
 		vibeDeckHintVisible = true;
@@ -450,12 +457,16 @@
 		}
 		setProviderCoordinates(hatchSession.providers, coords);
 		storeTrainerCoordinates(coords);
+		syncGameSolarCoordinates(coords);
+		refreshGameSolarPhase();
 	}
 
 	function clearCoordinates() {
 		locationGranted = false;
 		setProviderCoordinates(hatchSession.providers, null);
 		clearStoredTrainerCoordinates();
+		syncGameSolarCoordinates(null);
+		refreshGameSolarPhase();
 	}
 
 	function requestLocation() {
@@ -589,10 +600,6 @@
 					<GamePanel tone="status" class="hud-dialog-slot trainer-configuration__provider-hint">
 						<p class="trainer-configuration__provider-hint-text">{providerDescription(activeProvider)}</p>
 					</GamePanel>
-				{:else if embedded && onboardingUi?.hatchHintVisible}
-					<GamePanel tone="status" class="hud-dialog-slot trainer-configuration__hatch-hint">
-						<p class="trainer-configuration__provider-hint-text">{HATCH_HINT_TEXT}</p>
-					</GamePanel>
 				{:else if embedded && (hatchSession.generating || hatchSession.busy) && hatchSession.generatingLine}
 					{#key hatchSession.generatingLine}
 						<DialogBox
@@ -630,6 +637,13 @@
 					<GamePanel tone="status" class="hud-dialog-slot trainer-configuration__vibe-deck-hint">
 						<p class="trainer-configuration__provider-hint-text">{VIBE_DECK_HINT_TEXT}</p>
 					</GamePanel>
+				{:else if hatchReadyDialogVisible}
+					<DialogBox
+						text={HATCH_READY_DIALOG_TEXT}
+						showCursor={showDialogCursor}
+						typewriter={false}
+						class="hud-dialog-slot"
+					/>
 				{:else}
 					<DialogBox text={dialogText || DIALOG_ANCHOR} showCursor={showDialogCursor} typewriter={typeDialogOnLoad} />
 				{/if}
