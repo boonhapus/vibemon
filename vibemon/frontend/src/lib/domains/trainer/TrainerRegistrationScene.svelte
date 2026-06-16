@@ -22,18 +22,20 @@
 		dialogText = 'Right on, Trainer! First.. what do folks call you?',
 		showDialogCursor = true,
 		typeDialogOnLoad = true,
+		initialUsername = '',
 		embedded = false,
 		onAccepted
 	}: {
 		dialogText?: string;
 		showDialogCursor?: boolean;
 		typeDialogOnLoad?: boolean;
+		initialUsername?: string;
 		embedded?: boolean;
 		onAccepted?: (username: string) => void;
 	} = $props();
 
 	const onboardingUi = getContext<TrainerOnboardingUi | undefined>(ONBOARDING_UI_KEY);
-	let username = $state('');
+	let username = $state(initialUsername.trim());
 	let referenceHintVisible = $state(false);
 	let referenceSpriteSrc = $state('/game/sprites/trainer@128.png');
 	let pendingReferenceFile = $state<File | null>(null);

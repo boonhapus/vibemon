@@ -1,5 +1,6 @@
 <script lang="ts">
 	import { goto } from '$app/navigation';
+	import { page } from '$app/state';
 	import { onMount } from 'svelte';
 	import { getContext } from 'svelte';
 
@@ -11,16 +12,17 @@
 	import { setPendingUsername } from '$lib/domains/trainer/trainerRegisterStore.svelte';
 	import TrainerRegistrationScene from '$lib/domains/trainer/TrainerRegistrationScene.svelte';
 
-	const onboardingUi = getContext<TrainerOnboardingUi | undefined>('trainer-onboarding-ui');
+	const registerUi = getContext<TrainerOnboardingUi | undefined>('trainer-onboarding-ui');
 
 	let sessionChecked = $state(false);
+	let initialUsername = $derived(page.url.searchParams.get('username') ?? '');
 
 	onMount(async () => {
 		const session = await fetchTrainerMe();
 		if (session) {
 			setPendingUsername(session.username);
-			if (session.reference_url && onboardingUi) {
-				applyTrainerReferenceUrl(onboardingUi, session.reference_url);
+			if (session.reference_url && registerUi) {
+				applyTrainerReferenceUrl(registerUi, session.reference_url);
 			}
 			await goto('/hatch');
 			return;
@@ -30,7 +32,7 @@
 
 	function handleAccepted(username: string) {
 		setPendingUsername(username);
-		goto('/hatch');
+		void goto('/hatch');
 	}
 </script>
 
@@ -39,5 +41,5 @@
 </svelte:head>
 
 {#if sessionChecked}
-	<TrainerRegistrationScene embedded onAccepted={handleAccepted} />
+	<TrainerRegistrationScene embedded initialUsername={initialUsername} onAccepted={handleAccepted} />
 {/if}
