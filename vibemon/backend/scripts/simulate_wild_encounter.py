@@ -11,6 +11,7 @@ import cyclopts
 from app.domains.encounter.types import WildEncounterOutcomeT
 from app.domains.vibemon.strength import member_strength
 from app.storage.database import vibemon_repo
+from app.workflows import battle_play
 from app.workflows import birth_seed as birth_seed_factory
 from app.workflows import candidate as candidate_workflow
 from app.workflows import generate_wild_supply as wild_supply_workflow
@@ -214,12 +215,13 @@ async def _simulate(
         }
 
     battle = None
+    progression = None
     outcome = _manual_outcome(resolution)
     if resolution is EncounterResolution.AUTO_BATTLE:
         hero = await _common.load_battle_vibemon(sess, hero_vibemon_id)
         wild = await _common.load_battle_vibemon(sess, selection.vibemon_id)
         opponent_id = uuid.uuid7()
-        battle = _common.simulate_battle(
+        battle_summary, battle_engine = _common.simulate_battle(
             hero,
             wild,
             trainer_a_id=trainer_id,
@@ -228,9 +230,20 @@ async def _simulate(
             trainer_b_name="wild",
             rng_seed=rng_seed,
         )
+        battle_id = uuid.uuid7()
+        progression = await battle_play.finish_concluded_battle(
+            sess,
+            battle=battle_engine.battle,
+            battle_id=battle_id,
+        )
+        battle = {
+            **battle_summary,
+            "battle_id": str(battle_id),
+            "progression": progression.model_dump(mode="json"),
+        }
         outcome = (
             WildEncounterOutcomeT.WIN_NO_ADOPT
-            if battle["winner_trainer_id"] == str(trainer_id)
+            if battle_summary["winner_trainer_id"] == str(trainer_id)
             else WildEncounterOutcomeT.DEFEAT
         )
 

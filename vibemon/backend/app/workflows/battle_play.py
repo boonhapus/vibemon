@@ -1,6 +1,7 @@
 """Interactive wild battle sessions backed by the domain engine."""
 
 from dataclasses import dataclass
+import datetime as dt
 import random
 import uuid
 
@@ -10,6 +11,7 @@ from app.core.errors import BattleUnavailable
 from app.core.ids import TrainerIdT
 from app.domains.battle import actions, ai, engine, entity, events
 from app.domains.battle.entity import BattleVibemon
+from app.domains.vibemon.progression import engine as progression_engine
 from app.storage.database import mapper, vibemon_repo, wild_pool_repo
 
 
@@ -109,6 +111,45 @@ def submit_player_turn(
     wild_move = ai.wild_move_action(wild_trainer, rng=random.Random())
 
     return session.engine.submit_actions([player_move, wild_move])
+
+
+async def finish_battle(
+    sess: AsyncSession,
+    *,
+    session: ActiveBattle,
+    registry: BattleSessionRegistry | None = None,
+    now: dt.datetime | None = None,
+) -> progression_engine.BattleProgressionResult:
+    """Persist XP and progression once an interactive battle has concluded."""
+    from app.workflows import battle_progression
+
+    result = await battle_progression.persist_battle_progression(
+        sess,
+        battle=session.engine.battle,
+        battle_id=session.battle_id,
+        now=now,
+    )
+    if registry is not None:
+        registry.remove(session.battle_id, trainer_id=session.trainer_id)
+    return result
+
+
+async def finish_concluded_battle(
+    sess: AsyncSession,
+    *,
+    battle: entity.Battle,
+    battle_id: uuid.UUID,
+    now: dt.datetime | None = None,
+) -> progression_engine.BattleProgressionResult:
+    """Persist XP and progression for any concluded battle engine state."""
+    from app.workflows import battle_progression
+
+    return await battle_progression.persist_battle_progression(
+        sess,
+        battle=battle,
+        battle_id=battle_id,
+        now=now,
+    )
 
 
 def events_to_messages(events: list[events.TurnEvent]) -> list[str]:

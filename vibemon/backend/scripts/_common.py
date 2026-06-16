@@ -193,7 +193,7 @@ def simulate_battle(
     trainer_b_name: str = "trainer-b",
     rng_seed: int | None = None,
     move_policy: BattleMovePolicyT = "first_available",
-) -> dict[str, object]:
+) -> tuple[dict[str, object], battle_engine.GameEngine]:
     rng = random.Random(rng_seed)
     policy_rng = (
         random.Random()
@@ -228,14 +228,17 @@ def simulate_battle(
             }
         )
     winner = engine.battle.winner
-    return {
-        "winner_trainer_id": None if winner is None else str(winner.id),
-        "winner": None if winner is None else winner.username,
-        "concluded": engine.battle.concluded,
-        "move_policy": move_policy,
-        "turns": turns,
-        "battle": engine.battle.to_json(),
-    }
+    return (
+        {
+            "winner_trainer_id": None if winner is None else str(winner.id),
+            "winner": None if winner is None else winner.username,
+            "concluded": engine.battle.concluded,
+            "move_policy": move_policy,
+            "turns": turns,
+            "battle": engine.battle.to_json(),
+        },
+        engine,
+    )
 
 
 def _policy_move(

@@ -10,26 +10,26 @@ import sqlalchemy as sa
 from app.core.errors import BattleUnavailable
 from app.core.ids import TrainerIdT
 from app.core.time import resolve_clock
+from app.domains.battle import entity
 from app.domains.generation.snapshot import BirthSnapshot
 from app.domains.vibemon.history import VibemonHistoryEventT
 from app.domains.vibemon.progression import engine as progression_engine
 from app.domains.vibemon.progression import formulas as progression_formulas
 from app.storage.database import history_repo, mapper, models, move_catalog, vibemon_repo
-from app.workflows.battle_play import ActiveBattle
 
 
-async def resolve_battle_progression(
+async def persist_battle_progression(
     sess: AsyncSession,
     *,
-    session: ActiveBattle,
+    battle: entity.Battle,
+    battle_id: uuid.UUID,
     now: dt.datetime | None = None,
 ) -> progression_engine.BattleProgressionResult:
     """Apply XP and progression for all battle participants after conclusion."""
-    if not session.engine.battle.concluded:
+    if not battle.concluded:
         raise BattleUnavailable("Battle is not concluded.")
 
     occurred_at = now or resolve_clock()
-    battle = session.engine.battle
     participant_ids = [combatant.id for trainer in (battle.trainer_a, battle.trainer_b) for combatant in trainer.crew]
     rows = await _load_participant_rows(sess, participant_ids)
     snapshots = {
@@ -38,7 +38,7 @@ async def resolve_battle_progression(
     auto_evolve_by_id = {row_id: row.disposition == "wild" for row_id, row in rows.items()}
     result = progression_engine.resolve_battle_progression(
         battle,
-        battle_id=session.battle_id,
+        battle_id=battle_id,
         snapshots=snapshots,
         auto_evolve_by_id=auto_evolve_by_id,
     )
@@ -53,7 +53,7 @@ async def resolve_battle_progression(
                 VibemonHistoryEventT.BATTLE_RESULT,
                 occurred_at,
                 {
-                    "battle_id": str(session.battle_id),
+                    "battle_id": str(battle_id),
                     "xp_gained": str(delta.xp_award.xp_gained),
                     "previous_level": str(delta.xp_award.previous_level),
                     "new_level": str(delta.xp_award.new_level),

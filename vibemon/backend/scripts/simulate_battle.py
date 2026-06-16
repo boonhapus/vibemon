@@ -8,6 +8,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 import cyclopts
 
 from app.domains.battle import entity as battle_entity
+from app.workflows import battle_play
 from scripts import _common
 
 COMMON_OPTIONS = cyclopts.Group("Common options", sort_key=0)
@@ -81,6 +82,15 @@ def simulate_battle(
             help="Automated move selector: first_available, best_damage, stab_first, status_aware, or random.",
         ),
     ] = "first_available",
+    persist_xp: Annotated[
+        bool,
+        cyclopts.Parameter(
+            name="--persist-xp",
+            group=COMMON_OPTIONS,
+            negative="--no-persist-xp",
+            help="Persist battle XP and progression to the database after the fight.",
+        ),
+    ] = True,
     database_url: Annotated[
         str | None,
         cyclopts.Parameter(
@@ -109,6 +119,7 @@ def simulate_battle(
             asset_store_url=storage.storage.assets,
             rng_seed=seed,
             move_policy=move_policy,
+            persist_xp=persist_xp,
         )
     )
 
@@ -125,6 +136,7 @@ async def _run(
     asset_store_url: str,
     rng_seed: int | None,
     move_policy: _common.BattleMovePolicyT,
+    persist_xp: bool,
 ) -> None:
     _common.ensure_local_blob_dir(asset_store_url)
     async with _common.session_scope(database_url=database_url) as sess:
@@ -135,7 +147,7 @@ async def _run(
             exclude_ids={selected_vibemon_a_id},
         )
 
-    result = _common.simulate_battle(
+    result, game_engine = _common.simulate_battle(
         vibemon_a,
         vibemon_b,
         trainer_a_id=trainer_a_id,
@@ -145,14 +157,22 @@ async def _run(
         rng_seed=rng_seed,
         move_policy=move_policy,
     )
-    _common.dump(
-        {
-            "experience": "battle",
-            "vibemon_a_id": str(selected_vibemon_a_id),
-            "vibemon_b_id": str(selected_vibemon_b_id),
-            **result,
-        }
-    )
+    payload: dict[str, object] = {
+        "experience": "battle",
+        "vibemon_a_id": str(selected_vibemon_a_id),
+        "vibemon_b_id": str(selected_vibemon_b_id),
+        **result,
+    }
+    if persist_xp:
+        battle_id = uuid.uuid7()
+        progression = await battle_play.finish_concluded_battle(
+            sess,
+            battle=game_engine.battle,
+            battle_id=battle_id,
+        )
+        payload["battle_id"] = str(battle_id)
+        payload["progression"] = progression.model_dump(mode="json")
+    _common.dump(payload)
 
 
 async def _load_selected_battle_vibemon(

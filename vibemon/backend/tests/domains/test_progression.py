@@ -6,7 +6,6 @@ import uuid
 import pytest
 
 from app.domains.battle import entity, events
-from app.domains.generation.snapshot import BirthSnapshot
 from app.domains.move.entity import EffectGroup, Move, MoveBehavior
 from app.domains.move.types import MoveCategoryT, MoveTargetT, VibemonTypeT
 from app.domains.vibemon.disposition import VibemonDispositionT
@@ -17,8 +16,12 @@ from app.domains.vibemon.progression import formulas
 from app.domains.vibemon.progression.types import GrowthGroupT
 from app.domains.vibemon.types import EvolutionStageT, VibemonLifecycleT
 from app.storage.database import models
-from app.workflows.battle_play import BattleSessionRegistry, start_wild_battle, submit_player_turn
-from app.workflows.battle_progression import resolve_battle_progression
+from app.workflows.battle_play import (
+    BattleSessionRegistry,
+    finish_battle,
+    start_wild_battle,
+    submit_player_turn,
+)
 from tests.conftest import TEST_TRAINER_ID
 
 
@@ -284,7 +287,7 @@ async def test_resolve_battle_progression_persists_xp_for_winner(sess, test_trai
     )
     submit_player_turn(session, move_name="Strike")
 
-    result = await resolve_battle_progression(sess, session=session, now=now)
+    result = await finish_battle(sess, session=session, now=now)
     hero_delta = next(delta for delta in result.deltas if delta.vibemon_id == hero_id)
     assert hero_delta.xp_award is not None
     assert hero_delta.xp_award.xp_gained > 0
