@@ -105,7 +105,12 @@ def test_assemble_hatch_candidate_maps_core_fields() -> None:
     assert payload.providers == ("climate",)
     assert payload.display.anchor_x == 0.5
     assert payload.display.baseline_y == 0.92
-    assert payload.display.size_class == "small"
+    assert payload.display.size_factor == hatch_projection.hatch_display_size_factor(
+        form_index=1,
+        form_count=1,
+        bst=public.identity.bst,
+        power_pips=payload.power_pips,
+    )
     assert payload.moves[0].name == "Leaf Slap"
     assert payload.moves[0].combat_hints == ("Never misses.",)
 
@@ -118,7 +123,41 @@ def test_assemble_hatch_candidate_three_stage_line_is_small_at_hatch() -> None:
     payload = hatch_projection.assemble_hatch_candidate(public)
 
     assert payload.evolution_line.form_count == 3
-    assert payload.display.size_class == "small"
+    assert payload.evolution_line.form_index == 1
+    assert payload.display.size_factor < hatch_projection.hatch_display_size_factor(
+        form_index=1,
+        form_count=1,
+        bst=public.identity.bst,
+        power_pips=payload.power_pips,
+    )
+
+
+def test_assemble_hatch_candidate_single_stage_high_bst_is_taller_than_runty_hatchling() -> None:
+    beefy = _public_vibemon(evo_seed=EvolutionStageT.BASE).model_copy(
+        update={
+            "identity": _public_vibemon().identity.model_copy(
+                update={
+                    "base": BaseStats(hp=49, attack=73, defense=50, sp_attack=138, sp_defense=86, speed=87),
+                }
+            )
+        }
+    )
+    runty = _public_vibemon(evo_seed=EvolutionStageT.STAGE_3).model_copy(
+        update={
+            "evo_stage": EvolutionStageT.BASE,
+            "identity": _public_vibemon().identity.model_copy(
+                update={
+                    "evo_seed": EvolutionStageT.STAGE_3,
+                    "base": BaseStats(hp=35, attack=40, defense=40, sp_attack=45, sp_defense=45, speed=40),
+                }
+            ),
+        }
+    )
+
+    beefy_payload = hatch_projection.assemble_hatch_candidate(beefy)
+    runty_payload = hatch_projection.assemble_hatch_candidate(runty)
+
+    assert beefy_payload.display.size_factor > runty_payload.display.size_factor
 
 
 def test_assemble_hatch_candidate_marks_deep_evolution_line() -> None:
@@ -131,7 +170,13 @@ def test_assemble_hatch_candidate_marks_deep_evolution_line() -> None:
     assert payload.evo_seed == int(EvolutionStageT.PSEUDO_LEGENDARY)
     assert payload.evolution_line.form_count == 3
     assert payload.evolution_line.line_rarity == "deep"
-    assert payload.display.size_class == "large"
+    assert payload.evolution_line.form_index == 1
+    assert payload.display.size_factor == hatch_projection.hatch_display_size_factor(
+        form_index=1,
+        form_count=3,
+        bst=public.identity.bst,
+        power_pips=payload.power_pips,
+    )
 
 
 @pytest.mark.asyncio

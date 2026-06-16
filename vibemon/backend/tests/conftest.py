@@ -2,6 +2,7 @@
 
 from collections.abc import AsyncGenerator, Generator
 import os
+import pathlib
 import uuid
 
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -39,8 +40,8 @@ def database_url() -> Generator[str]:
 
 
 @pytest.fixture(autouse=True)
-def vibemon_settings(monkeypatch: pytest.MonkeyPatch, database_url: str) -> None:
-    apply_test_settings(monkeypatch, database_url=database_url)
+def vibemon_settings(monkeypatch: pytest.MonkeyPatch, database_url: str, tmp_path: pathlib.Path) -> None:
+    apply_test_settings(monkeypatch, database_url=database_url, tmp_path=tmp_path)
     from app.settings import Settings
 
     Settings.load(refresh=True)

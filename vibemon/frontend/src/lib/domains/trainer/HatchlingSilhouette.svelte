@@ -1,13 +1,9 @@
 <script lang="ts">
-	import FreeFormButton from '$lib/ui/FreeFormButton.svelte';
-
 	import TrainerReference from './TrainerReference.svelte';
 
 	const SILHOUETTE_SRC = '/game/sprites/hatchling-silhouette@128.png';
-	const DOUBLE_TAP_MS = 750;
 
 	let {
-		hovered = $bindable(false),
 		hatchable = false,
 		spriteSrc = SILHOUETTE_SRC,
 		showSilhouette = false,
@@ -16,7 +12,6 @@
 		revealing = false,
 		onhatch
 	}: {
-		hovered?: boolean;
 		hatchable?: boolean;
 		spriteSrc?: string;
 		showSilhouette?: boolean;
@@ -26,8 +21,6 @@
 		onhatch?: () => void;
 	} = $props();
 
-	let singleTapTimer: ReturnType<typeof setTimeout> | undefined;
-
 	/* Placeholder blob asset is 128×90; generated candidate references are 1:1. */
 	let isPlaceholder = $derived(spriteSrc === SILHOUETTE_SRC);
 	/* The masked silhouette stays up through generation and dissolves during the
@@ -36,40 +29,15 @@
 	let masked = $derived(showSilhouette || generating || revealing);
 	let activeBeat = $derived(beat > 0 ? beat : generating ? 1 : 0);
 
-	function cancelSingleTap() {
-		if (singleTapTimer) {
-			clearTimeout(singleTapTimer);
-			singleTapTimer = undefined;
-		}
-	}
-
-	function showHint() {
-		if (!hatchable) return;
-		hovered = true;
-	}
-
-	function hideHint() {
-		hovered = false;
-	}
-
 	function handleHatchClick() {
 		if (!hatchable) return;
-
-		if (singleTapTimer) {
-			cancelSingleTap();
-			onhatch?.();
-			return;
-		}
-
-		singleTapTimer = setTimeout(() => {
-			singleTapTimer = undefined;
-			showHint();
-		}, DOUBLE_TAP_MS);
+		onhatch?.();
 	}
 </script>
 
 <div
 	class="hatchling-silhouette"
+	style:--mask-url={`url("${spriteSrc}")`}
 	class:hatchling-silhouette--placeholder={isPlaceholder}
 	class:hatchling-silhouette--masked={masked}
 	class:hatchling-silhouette--beat-1={activeBeat === 1}
@@ -78,32 +46,28 @@
 	class:hatchling-silhouette--revealing={revealing}
 >
 	<div class="hatchling-silhouette__reveal-shell">
-		<TrainerReference {spriteSrc} class="hatchling-silhouette__reference" />
-		{#if masked}
-			<div
-				class="hatchling-silhouette__sprite-bounds hatchling-silhouette__mask"
-				style:--mask-url={`url("${spriteSrc}")`}
-				aria-hidden="true"
-			>
-				<span class="hatchling-silhouette__mask-motion">
-					<span class="hatchling-silhouette__mask-halo hatchling-silhouette__mask-halo--a"></span>
-					<span class="hatchling-silhouette__mask-halo hatchling-silhouette__mask-halo--b"></span>
-					<span class="hatchling-silhouette__mask-body"></span>
-					<span class="hatchling-silhouette__mask-flash"></span>
-				</span>
-			</div>
-		{/if}
-		{#if hatchable}
-			<FreeFormButton
-				class="hatchling-silhouette__sprite-bounds hatchling-silhouette__hit"
-				ariaLabel="Hatch a new Vibemon from your selected vibes"
-				onclick={handleHatchClick}
-				onmouseenter={showHint}
-				onmouseleave={hideHint}
-				onfocus={showHint}
-				onblur={hideHint}
-			/>
-		{/if}
+		<TrainerReference {spriteSrc} class="hatchling-silhouette__reference">
+			{#snippet spriteOverlay()}
+				{#if masked}
+					<div class="hatchling-silhouette__mask" aria-hidden="true">
+						<span class="hatchling-silhouette__mask-motion">
+							<span class="hatchling-silhouette__mask-halo hatchling-silhouette__mask-halo--a"></span>
+							<span class="hatchling-silhouette__mask-halo hatchling-silhouette__mask-halo--b"></span>
+							<span class="hatchling-silhouette__mask-body"></span>
+							<span class="hatchling-silhouette__mask-flash"></span>
+						</span>
+					</div>
+				{/if}
+				{#if hatchable}
+					<button
+						type="button"
+						class="hatchling-silhouette__hit"
+						aria-label="Hatch a new Vibemon from your selected vibes"
+						onclick={handleHatchClick}
+					></button>
+				{/if}
+			{/snippet}
+		</TrainerReference>
 	</div>
 </div>
 
@@ -113,7 +77,6 @@
 		--hatchling-sprite-h: clamp(10.5rem, 25vh, 18rem);
 		/* Candidate references are square; the placeholder blob is 128×90. */
 		--hatchling-sprite-w: var(--hatchling-sprite-h);
-		/* Match TrainerReference — mask/hit read this on the root, not the nested reference. */
 		--platform-h: clamp(2rem, 4.5vw, 3rem);
 	}
 
@@ -127,9 +90,6 @@
 		--sprite-foot-nudge-x: calc((0.5 - var(--hatchling-anchor-x, 0.5)) * 100%);
 	}
 
-	/* Sprite-bounds (mask/hit) are siblings of TrainerReference — read foot nudge from root.
-	   TrainerReference must receive the same values explicitly; inherited custom props do not
-	   reliably reach its scoped transform rules from the parent component boundary. */
 	.hatchling-silhouette--placeholder :global(.hatchling-silhouette__reference) {
 		--sprite-foot-nudge-y: 3%;
 	}
@@ -150,8 +110,12 @@
 		--platform-w: calc(var(--sprite-h) * 0.82 * 1.5);
 	}
 
-	.hatchling-silhouette :global(.hatchling-silhouette__reference .trainer-reference__sprite) {
+	.hatchling-silhouette :global(.hatchling-silhouette__reference .trainer-reference__sprite-stage) {
 		width: var(--sprite-w);
+	}
+
+	.hatchling-silhouette :global(.hatchling-silhouette__reference .trainer-reference__sprite) {
+		width: 100%;
 		object-fit: contain;
 		object-position: bottom center;
 	}
@@ -162,32 +126,36 @@
 		visibility: hidden;
 	}
 
-	/* ---- masked silhouette (DESIGN.md §2.1: warm dark, never pure black) ---- */
-
-	/* Shared sprite canvas — mask and hit target must match TrainerReference foot placement.
-	   :global so the class forwarded onto FreeFormButton's inner <button> still matches. */
-	:global(.hatchling-silhouette__sprite-bounds) {
+	/* Mask and hit share the sprite-stage box — no separate absolute positioning. */
+	.hatchling-silhouette__mask,
+	.hatchling-silhouette__hit {
 		position: absolute;
-		bottom: calc(var(--platform-h) * 0.26);
-		left: 50%;
+		inset: 0;
 		box-sizing: border-box;
-		width: var(--hatchling-sprite-w);
-		height: var(--hatchling-sprite-h);
-		transform: translateX(calc(-50% + var(--sprite-foot-nudge-x, 0%)))
-			translateY(calc(-2% + var(--sprite-foot-nudge-y, 0%)));
-	}
-
-	.hatchling-silhouette:has(:global(.hatchling-silhouette__hit)) {
-		pointer-events: auto;
-	}
-
-	.hatchling-silhouette:has(:global(.hatchling-silhouette__hit)) :global(.hatchling-silhouette__reference) {
-		pointer-events: none;
 	}
 
 	.hatchling-silhouette__mask {
 		z-index: 1;
 		pointer-events: none;
+	}
+
+	.hatchling-silhouette__hit {
+		z-index: 2;
+		margin: 0;
+		padding: 0;
+		border: 0;
+		background: transparent;
+		cursor: pointer;
+		-webkit-tap-highlight-color: transparent;
+	}
+
+	.hatchling-silhouette__hit:focus-visible {
+		outline: 2px solid var(--vm-mustard);
+		outline-offset: 3px;
+	}
+
+	.hatchling-silhouette__hit:not(:disabled):active {
+		opacity: 0.82;
 	}
 
 	.hatchling-silhouette__mask-motion {
@@ -443,29 +411,5 @@
 		.hatchling-silhouette--revealing .hatchling-silhouette__mask {
 			opacity: 0;
 		}
-	}
-
-	:global(.hatchling-silhouette__hit) {
-		display: block;
-		z-index: 2;
-		margin: 0;
-		padding: 0;
-		border: 0;
-		cursor: pointer;
-		pointer-events: auto;
-		transition: transform 120ms ease;
-	}
-
-	:global(.hatchling-silhouette__hit:hover),
-	:global(.hatchling-silhouette__hit:focus-visible) {
-		transform: translateX(calc(-50% + var(--sprite-foot-nudge-x, 0%)))
-			translateY(calc(-2% + var(--sprite-foot-nudge-y, 0%)))
-			scale(1.03);
-	}
-
-	:global(.hatchling-silhouette__hit:not(:disabled):active) {
-		transform: translateX(calc(-50% + var(--sprite-foot-nudge-x, 0%)))
-			translateY(calc(-2% + var(--sprite-foot-nudge-y, 0%) + 1px));
-		opacity: 0.82;
 	}
 </style>

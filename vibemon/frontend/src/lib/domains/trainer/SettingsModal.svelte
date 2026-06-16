@@ -2,6 +2,8 @@
 	import { goto } from '$app/navigation';
 
 	import { showMobileViewportGuide } from '$lib/domains/game/mobileViewportGuideStore.svelte';
+	import { clearHatchBootstrapCache, clearHatchSessionState } from '$lib/domains/trainer/hatchSession';
+	import { logoutTrainer } from '$lib/domains/trainer/trainerApi';
 	import { clearPendingUsername } from '$lib/domains/trainer/trainerRegisterStore.svelte';
 	import FreeFormButton from '$lib/ui/FreeFormButton.svelte';
 	import GameModal from '$lib/ui/GameModal.svelte';
@@ -27,8 +29,11 @@
 		open = false;
 	}
 
-	function signOut() {
+	async function signOut() {
+		await logoutTrainer();
 		clearPendingUsername();
+		clearHatchSessionState();
+		clearHatchBootstrapCache();
 		close();
 		void goto('/');
 	}

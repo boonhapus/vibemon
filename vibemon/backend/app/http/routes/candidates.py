@@ -132,6 +132,7 @@ async def adopt_candidate(
         db,
         trainer_id=trainer.id,
         vibemon_id=vibemon_id,
+        release_vibemon_id=data.release_vibemon_id,
         nickname=data.nickname,
         manifest=False,
     )

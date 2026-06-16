@@ -24,8 +24,16 @@ class BaseStatsRead(Schema):
     total: int
 
 
-type SizeClassT = Literal["small", "mid", "large"]
 type LineRarityT = Literal["normal", "deep"]
+
+_SIZE_FACTOR_BASE = 0.36
+_SIZE_FACTOR_EVO_SPAN = 0.34
+_SIZE_FACTOR_BST_FLOOR = 260
+_SIZE_FACTOR_BST_CEILING = 620
+_SIZE_FACTOR_BST_SPAN = 0.30
+_SIZE_FACTOR_STR_SPAN = 0.14
+_SIZE_FACTOR_MIN = 0.36
+_SIZE_FACTOR_MAX = 1.32
 
 
 class CandidateDisplayRead(Schema):
@@ -33,7 +41,7 @@ class CandidateDisplayRead(Schema):
 
     anchor_x: float | None = None
     baseline_y: float | None = None
-    size_class: SizeClassT = "mid"
+    size_factor: float = 0.7
 
 
 class MoveRead(Schema):
@@ -94,30 +102,54 @@ _FORM_COUNTS: dict[vibemon_types.EvolutionStageT, int] = {
     vibemon_types.EvolutionStageT.ULTRA_LEGENDARY: 1,
 }
 
-_FORM_SIZE_CLASSES: dict[vibemon_types.EvolutionStageT, SizeClassT] = {
-    vibemon_types.EvolutionStageT.BASE: "small",
-    vibemon_types.EvolutionStageT.STAGE_2: "mid",
-    vibemon_types.EvolutionStageT.STAGE_3: "large",
+_STAGE_FORM_INDEX: dict[vibemon_types.EvolutionStageT, int] = {
+    vibemon_types.EvolutionStageT.BASE: 1,
+    vibemon_types.EvolutionStageT.STAGE_2: 2,
+    vibemon_types.EvolutionStageT.STAGE_3: 3,
 }
 
-_DEEP_LINE_SEEDS: frozenset[vibemon_types.EvolutionStageT] = frozenset(
-    {
-        vibemon_types.EvolutionStageT.PSEUDO_LEGENDARY,
-        vibemon_types.EvolutionStageT.LEGENDARY,
-        vibemon_types.EvolutionStageT.ULTRA_LEGENDARY,
-    }
-)
 
-
-def hatch_display_size_class(
+def evolution_form_index(
     *,
     evo_seed: vibemon_types.EvolutionStageT,
     evo_stage: vibemon_types.EvolutionStageT,
-) -> SizeClassT:
-    """Scale hatch sprites by current form; deep lines stay visibly bigger at stage 1."""
-    if evo_seed in _DEEP_LINE_SEEDS and evo_stage is vibemon_types.EvolutionStageT.BASE:
-        return "large"
-    return _FORM_SIZE_CLASSES.get(evo_stage, "mid")
+) -> int:
+    """Map the mon's current stage to its 1-based slot within the evolution line."""
+    if evo_seed in (
+        vibemon_types.EvolutionStageT.BASE,
+        vibemon_types.EvolutionStageT.LEGENDARY,
+        vibemon_types.EvolutionStageT.ULTRA_LEGENDARY,
+    ):
+        return 1
+    return _STAGE_FORM_INDEX.get(evo_stage, 1)
+
+
+def hatch_display_size_factor(
+    *,
+    form_index: int,
+    form_count: int,
+    bst: int,
+    power_pips: int,
+) -> float:
+    """Trainer-relative sprite height from evolution progress, raw BST, and STR pips."""
+    count = max(form_count, 1)
+    index = min(max(form_index, 1), count)
+    evo_progress = index / count
+
+    bst_span = _SIZE_FACTOR_BST_CEILING - _SIZE_FACTOR_BST_FLOOR
+    bst_norm = (bst - _SIZE_FACTOR_BST_FLOOR) / bst_span if bst_span > 0 else 0.0
+    bst_norm = min(max(bst_norm, 0.0), 1.0)
+
+    pips = min(max(power_pips, 1), 3)
+    str_progress = (pips - 1) / 2
+
+    factor = (
+        _SIZE_FACTOR_BASE
+        + evo_progress * _SIZE_FACTOR_EVO_SPAN
+        + bst_norm * _SIZE_FACTOR_BST_SPAN
+        + str_progress * _SIZE_FACTOR_STR_SPAN
+    )
+    return round(min(max(factor, _SIZE_FACTOR_MIN), _SIZE_FACTOR_MAX), 4)
 
 
 def base_stats_read(base: BaseStats) -> BaseStatsRead:
@@ -132,10 +164,14 @@ def base_stats_read(base: BaseStats) -> BaseStatsRead:
     )
 
 
-def evolution_line_read(evo_seed: vibemon_types.EvolutionStageT) -> EvolutionLineRead:
+def evolution_line_read(
+    evo_seed: vibemon_types.EvolutionStageT,
+    *,
+    evo_stage: vibemon_types.EvolutionStageT,
+) -> EvolutionLineRead:
     deep = evo_seed is vibemon_types.EvolutionStageT.PSEUDO_LEGENDARY
     return EvolutionLineRead(
-        form_index=1,
+        form_index=evolution_form_index(evo_seed=evo_seed, evo_stage=evo_stage),
         form_count=_FORM_COUNTS.get(evo_seed, 1),
         line_rarity="deep" if deep else "normal",
     )
@@ -205,6 +241,8 @@ def assemble_hatch_candidate(
         None,
     )
     evo_seed = vibemon.identity.evo_seed
+    strength_pips = power_pips(evo_seed, vibemon.identity.bst)
+    evolution_line = evolution_line_read(evo_seed, evo_stage=vibemon.evo_stage)
     return HatchCandidateRead(
         id=vibemon.id,
         name=vibemon.name,
@@ -212,15 +250,20 @@ def assemble_hatch_candidate(
         elements=tuple(element.value for element in vibemon.identity.elements),
         base_stats=base_stats_read(vibemon.identity.base),
         bst=vibemon.identity.bst,
-        power_pips=power_pips(evo_seed, vibemon.identity.bst),
+        power_pips=strength_pips,
         is_radiant=vibemon.identity.is_radiant,
         evo_seed=int(evo_seed),
-        evolution_line=evolution_line_read(evo_seed),
+        evolution_line=evolution_line,
         moves=tuple(move_read(move) for move in vibemon.moves),
         display=CandidateDisplayRead(
             anchor_x=reference.anchor.anchor_x if reference and reference.anchor else None,
             baseline_y=reference.anchor.baseline_y if reference and reference.anchor else None,
-            size_class=hatch_display_size_class(evo_seed=evo_seed, evo_stage=vibemon.evo_stage),
+            size_factor=hatch_display_size_factor(
+                form_index=evolution_line.form_index,
+                form_count=evolution_line.form_count,
+                bst=vibemon.identity.bst,
+                power_pips=strength_pips,
+            ),
         ),
         lifecycle=vibemon.lifecycle,
         reference_url=reference.url if reference else None,

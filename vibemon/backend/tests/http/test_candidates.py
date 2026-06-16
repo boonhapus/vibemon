@@ -189,15 +189,48 @@ async def test_refresh_candidate_redraws_reference(client: AsyncTestClient) -> N
     assert refreshed.json()["candidate"]["reference_url"] is not None
 
 
-async def _generate_and_adopt(client: AsyncTestClient, *, nickname: str) -> None:
+async def _generate_and_adopt(client: AsyncTestClient, *, nickname: str, bypass: bool = False) -> str:
+    query = "?bypass-credits=true" if bypass else ""
     generated = await client.post(
-        "/api/candidates/generate",
+        f"/api/candidates/generate{query}",
         json={"providers": ["climate"], "latitude": 41.88, "longitude": -87.63},
     )
     assert generated.status_code == 201
     vibemon_id = generated.json()["candidate"]["id"]
     adopted = await client.post(f"/api/candidates/{vibemon_id}/adopt", json={"nickname": nickname})
     assert adopted.status_code == 201
+    return vibemon_id
+
+
+async def test_adopt_candidate_swaps_when_crew_full(client: AsyncTestClient) -> None:
+    await _register(client)
+    owned_ids: list[str] = []
+    for index in range(3):
+        owned_ids.append(await _generate_and_adopt(client, nickname=f"Keeper{index}"))
+    for index in range(3, 6):
+        owned_ids.append(await _generate_and_adopt(client, nickname=f"Keeper{index}", bypass=True))
+
+    released_id = owned_ids[1]
+    incoming = await client.post(
+        "/api/candidates/generate?bypass-credits=true",
+        json={"providers": ["climate"], "latitude": 41.88, "longitude": -87.63},
+    )
+    assert incoming.status_code == 201
+    incoming_id = incoming.json()["candidate"]["id"]
+
+    adopted = await client.post(
+        f"/api/candidates/{incoming_id}/adopt",
+        json={"nickname": "Swapling", "release_vibemon_id": released_id},
+    )
+    assert adopted.status_code == 201
+    assert adopted.json()["crew_count"] == 6
+
+    crew = await client.get("/api/trainers/crew")
+    assert crew.status_code == 200
+    members = crew.json()["members"]
+    assert len(members) == 6
+    assert any(member["id"] == incoming_id and member["nickname"] == "Swapling" for member in members)
+    assert all(member["id"] != released_id for member in members)
 
 
 async def test_generate_candidate_bypass_credits_skips_daily_limit(client: AsyncTestClient) -> None:

@@ -50,6 +50,29 @@
 
 	.evo-line-pips__deep {
 		margin-left: 0.08em;
-		color: color-mix(in srgb, var(--vm-plum) 78%, var(--vm-brass));
+		color: var(--vm-mustard);
+		text-shadow: 0 0 0.35em color-mix(in srgb, var(--vm-burnt-orange) 45%, transparent);
+		animation: evo-line-deep-pulse 1.8s ease-in-out infinite;
+	}
+
+	@keyframes evo-line-deep-pulse {
+		0%,
+		100% {
+			opacity: 1;
+			transform: scale(1);
+			text-shadow: 0 0 0.35em color-mix(in srgb, var(--vm-burnt-orange) 45%, transparent);
+		}
+
+		50% {
+			opacity: 0.82;
+			transform: scale(1.14);
+			text-shadow: 0 0 0.6em color-mix(in srgb, var(--vm-burnt-orange) 72%, transparent);
+		}
+	}
+
+	@media (prefers-reduced-motion: reduce) {
+		.evo-line-pips__deep {
+			animation: none;
+		}
 	}
 </style>

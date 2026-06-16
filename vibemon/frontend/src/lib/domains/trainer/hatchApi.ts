@@ -31,7 +31,7 @@ export type EvolutionLine = {
 export type CandidateDisplay = {
 	anchor_x: number | null;
 	baseline_y: number | null;
-	size_class: 'small' | 'mid' | 'large';
+	size_factor: number;
 };
 
 export type CandidateReview = {
@@ -91,6 +91,57 @@ export type CrewList = {
 	members: CrewMember[];
 	max_size: number;
 };
+
+/** Matches backend `crew.MAX_CREW_SIZE`. */
+export const MAX_CREW_SIZE = 6;
+
+export type AdoptEligibility =
+	| { eligible: true; current: CandidateAction; needs_swap: boolean }
+	| { eligible: false; message: string; current: CandidateAction | null };
+
+export function assessAdoptEligibility(
+	current: CandidateAction | null,
+	vibemonId: string
+): AdoptEligibility {
+	if (!current) {
+		return {
+			eligible: false,
+			message: 'No pending Vibemon to adopt.',
+			current: null
+		};
+	}
+	if (current.candidate.id !== vibemonId) {
+		return {
+			eligible: false,
+			message: 'Finish reviewing your current Vibemon first.',
+			current
+		};
+	}
+	if (current.crew_count >= MAX_CREW_SIZE) {
+		return { eligible: true, current, needs_swap: true };
+	}
+	const review = current.candidate.candidate_review;
+	if (!review || review.status !== 'pending') {
+		return {
+			eligible: false,
+			message: 'This Vibemon is no longer available to adopt.',
+			current
+		};
+	}
+	if (Date.parse(review.timeout_at) <= Date.now()) {
+		return {
+			eligible: false,
+			message: 'Candidate review has timed out.',
+			current
+		};
+	}
+	return { eligible: true, current, needs_swap: false };
+}
+
+export async function fetchAdoptEligibility(vibemonId: string): Promise<AdoptEligibility> {
+	const current = await fetchCurrentCandidate();
+	return assessAdoptEligibility(current, vibemonId);
+}
 
 function readErrorDetail(payload: unknown): string | null {
 	if (!payload || typeof payload !== 'object') return null;
@@ -159,12 +210,23 @@ export async function rejectCandidate(vibemonId: string): Promise<void> {
 	}
 }
 
-export async function adoptCandidate(vibemonId: string, nickname?: string | null): Promise<CandidateAction> {
+export type AdoptCandidateInput = {
+	nickname?: string | null;
+	releaseVibemonId?: string | null;
+};
+
+export async function adoptCandidate(
+	vibemonId: string,
+	input: AdoptCandidateInput = {}
+): Promise<CandidateAction> {
 	const response = await fetch(`/api/candidates/${vibemonId}/adopt`, {
 		method: 'POST',
 		credentials: 'include',
 		headers: { 'Content-Type': 'application/json' },
-		body: JSON.stringify({ nickname: nickname ?? null })
+		body: JSON.stringify({
+			nickname: input.nickname ?? null,
+			release_vibemon_id: input.releaseVibemonId ?? null
+		})
 	});
 	if (!response.ok) {
 		const payload = await response.json().catch(() => null);

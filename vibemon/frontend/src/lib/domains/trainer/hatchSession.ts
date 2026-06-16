@@ -1,9 +1,10 @@
 /** Deep Hatch session: Candidate Review state, provider opt-in, persistence, and bootstrap. */
 
-import type { CandidateAction, HatchCandidate } from './hatchApi';
+import type { CandidateAction, CrewMember, HatchCandidate } from './hatchApi';
 import {
 	adoptCandidate,
-	fetchCurrentCandidate,
+	fetchAdoptEligibility,
+	fetchCrew,
 	generateCandidate,
 	rejectCandidate,
 	refreshCandidate
@@ -46,6 +47,8 @@ export type HatchSessionState = {
 	actionHint: HatchActionHint | null;
 	candidateHint: string | null;
 	adoptModalOpen: boolean;
+	adoptSwapMembers: CrewMember[] | null;
+	adoptReleaseTargetId: string | null;
 	providers: ProviderSelectionState;
 	referenceSpriteSrc: string;
 	referenceSpriteReady: boolean;
@@ -83,6 +86,8 @@ export function createHatchSession(initial?: Partial<HatchSessionState>): HatchS
 		actionHint: initial?.actionHint ?? null,
 		candidateHint: initial?.candidateHint ?? null,
 		adoptModalOpen: initial?.adoptModalOpen ?? false,
+		adoptSwapMembers: initial?.adoptSwapMembers ?? null,
+		adoptReleaseTargetId: initial?.adoptReleaseTargetId ?? null,
 		providers: createProviderSelectionState(initial?.providers),
 		referenceSpriteSrc: initial?.referenceSpriteSrc ?? DEFAULT_TRAINER_REFERENCE_SPRITE,
 		referenceSpriteReady: initial?.referenceSpriteReady ?? false
@@ -132,6 +137,12 @@ export function canRefresh(state: HatchSessionState, blockers: HatchSessionBlock
 
 export function canAdopt(state: HatchSessionState, blockers: HatchSessionBlockers): boolean {
 	return Boolean(state.candidate) && !hatchControlsBlocked(state, blockers);
+}
+
+export function clearAdoptModalState(state: HatchSessionState): void {
+	state.adoptModalOpen = false;
+	state.adoptSwapMembers = null;
+	state.adoptReleaseTargetId = null;
 }
 
 export function applyCandidateAction(state: HatchSessionState, action: CandidateAction | null): void {
@@ -196,18 +207,24 @@ export function clearHatchSessionState(): void {
 
 let hatchBootstrapKey: string | null = null;
 let hatchBootstrapPromise: Promise<boolean> | null = null;
+let hatchBootstrapState: HatchSessionState | null = null;
 
 export function clearHatchBootstrapCache(): void {
 	hatchBootstrapKey = null;
 	hatchBootstrapPromise = null;
+	hatchBootstrapState = null;
 }
 
 export function bootstrapHatchSessionOnce(state: HatchSessionState, username: string): Promise<boolean> {
 	const key = username.trim().toLowerCase();
-	if (hatchBootstrapKey === key && hatchBootstrapPromise) {
+	// Reuse only when the same live session object is bootstrapping. After hatch → deck/crew
+	// the onboarding layout remounts with a fresh session; a username-only cache would return
+	// an already-settled promise and leave referenceSpriteReady false on the new session.
+	if (hatchBootstrapKey === key && hatchBootstrapPromise && hatchBootstrapState === state) {
 		return hatchBootstrapPromise;
 	}
 	hatchBootstrapKey = key;
+	hatchBootstrapState = state;
 	hatchBootstrapPromise = bootstrapHatchSession(state, username);
 	return hatchBootstrapPromise;
 }
@@ -381,25 +398,62 @@ export function createHatchSessionActions(state: HatchSessionState, deps: HatchS
 			}
 		},
 
-		openAdoptModal(blockers: HatchSessionBlockers): void {
-			if (!canAdopt(state, blockers)) return;
-			state.adoptModalOpen = true;
+		async openAdoptModal(blockers: HatchSessionBlockers): Promise<void> {
+			const candidate = state.candidate;
+			if (!candidate || !canAdopt(state, blockers)) return;
+
+			state.busy = true;
+			state.candidateHint = null;
+			try {
+				const eligibility = await fetchAdoptEligibility(candidate.id);
+				if (!eligibility.eligible) {
+					if (eligibility.current) {
+						applyCandidateAction(state, eligibility.current);
+						persistHatchSession(state);
+					} else {
+						clearHatchCandidate(state);
+						clearHatchSessionState();
+					}
+					deps.showToast(eligibility.message, 'brick');
+					return;
+				}
+				if (eligibility.needs_swap) {
+					const crew = await fetchCrew();
+					state.adoptSwapMembers = crew.members;
+					state.adoptReleaseTargetId = null;
+				} else {
+					state.adoptSwapMembers = null;
+					state.adoptReleaseTargetId = null;
+				}
+				applyCandidateAction(state, eligibility.current);
+				state.adoptModalOpen = true;
+			} catch (error) {
+				const message =
+					error instanceof Error ? error.message : 'Could not verify adoption eligibility.';
+				deps.showToast(message, 'brick');
+			} finally {
+				state.busy = false;
+			}
 		},
 
 		async confirmAdopt(nickname: string | null): Promise<void> {
 			const candidate = state.candidate;
 			if (!candidate) {
-				state.adoptModalOpen = false;
+				clearAdoptModalState(state);
 				return;
 			}
+			if (state.adoptSwapMembers && !state.adoptReleaseTargetId) return;
 			state.busy = true;
 			state.candidateHint = null;
 			try {
-				const result = await adoptCandidate(candidate.id, nickname);
+				const result = await adoptCandidate(candidate.id, {
+					nickname,
+					releaseVibemonId: state.adoptReleaseTargetId
+				});
 				state.crewCount = result.crew_count;
 				clearHatchCandidate(state);
 				clearHatchSessionState();
-				state.adoptModalOpen = false;
+				clearAdoptModalState(state);
 				deps.showToast('Welcome to the crew — good vibes.', 'sage');
 				await deps.goto('/deck/crew');
 			} catch (error) {

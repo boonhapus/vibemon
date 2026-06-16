@@ -9,6 +9,7 @@
 	import MovePill from './MovePill.svelte';
 	import PowerPips from './PowerPips.svelte';
 	import StatBar from './StatBar.svelte';
+	import SegmentedHpBar from '$lib/ui/SegmentedHpBar.svelte';
 	import { candidateDisplayName, type BaseStats, type HatchCandidate } from './hatchApi';
 	import { evolutionLineHint } from './evolutionLineCopy';
 	import {
@@ -36,6 +37,10 @@
 		releaseDisabled = false,
 		busy = false,
 		showActions = true,
+		embedded = false,
+		runtimeHp,
+		hideStatKeys = [],
+		onDetailHintChange,
 		onRelease,
 		onRefresh,
 		onAdopt
@@ -48,13 +53,26 @@
 		busy?: boolean;
 		/** Hide the Release / Refresh / Adopt row for read-only contexts (e.g. crew). */
 		showActions?: boolean;
+		/** Render without the outer ProviderPatchPanel shell (e.g. nested in crew showcase). */
+		embedded?: boolean;
+		/** Current battle HP — shown above the stats grid when set (crew formation). */
+		runtimeHp?: { level: number; current: number; max: number };
+		/** Base stat rows to omit from the stat list (e.g. hide HP when runtime HP is shown). */
+		hideStatKeys?: (keyof BaseStats)[];
+		/** Notify parent scenes when a hover hint changes (crew formation dialog). */
+		onDetailHintChange?: (hint: string | null) => void;
 		onRelease?: () => void;
 		onRefresh?: () => void;
 		onAdopt?: () => void;
 	} = $props();
 
+	const HOVER_CLEAR_MS = 250;
+
+	let hiddenStatKeys = $derived(new Set(hideStatKeys));
+	let visibleStatLines = $derived(statLines.filter(({ key }) => !hiddenStatKeys.has(key)));
+
 	let peakStat = $derived(
-		Math.max(...statLines.map(({ key }) => candidate.base_stats[key]), 1)
+		Math.max(...visibleStatLines.map(({ key }) => candidate.base_stats[key]), 1)
 	);
 
 	function statPips(value: number): 1 | 2 | 3 {
@@ -101,128 +119,156 @@
 		return `${label} helped shape this hatch.`;
 	}
 
-	function showHint(text: string) {
-		actionHint = null;
-		detailHint = text;
-	}
+	let clearHintTimer: ReturnType<typeof setTimeout> | undefined;
 
-	function clearHint(text: string) {
-		if (detailHint === text) {
-			detailHint = null;
+	function cancelHintClear() {
+		if (clearHintTimer) {
+			clearTimeout(clearHintTimer);
+			clearHintTimer = undefined;
 		}
 	}
 
+	function showHint(text: string) {
+		cancelHintClear();
+		actionHint = null;
+		detailHint = text;
+		onDetailHintChange?.(text);
+	}
+
+	function clearHint(text: string) {
+		cancelHintClear();
+		clearHintTimer = setTimeout(() => {
+			if (detailHint === text) {
+				detailHint = null;
+				onDetailHintChange?.(null);
+			}
+			clearHintTimer = undefined;
+		}, HOVER_CLEAR_MS);
+	}
+
 	function selectTab(tab: CandidateTab) {
+		cancelHintClear();
 		activeTab = tab;
 		detailHint = null;
+		onDetailHintChange?.(null);
 	}
 </script>
 
-<ProviderPatchPanel title={false} fill ariaLabel="Candidate review" class="hatch-candidate-panel-shell">
-	<div class="hatch-candidate-panel">
-		<div class="hatch-candidate-panel__header">
-			<div class="hatch-candidate-panel__identity">
-				<div class="hatch-candidate-panel__title-row">
-					<h2 class="hatch-candidate-panel__name">{displayName}</h2>
-					<ul class="hatch-candidate-panel__types" role="list">
-						{#each candidate.elements as element (element)}
-							<li>
-								<ElementBadge type={element} />
-							</li>
-						{/each}
-					</ul>
+{#snippet candidatePanel()}
+	<div class="hatch-candidate-panel" class:hatch-candidate-panel--embedded={embedded}>
+		{#if !embedded}
+			<div class="hatch-candidate-panel__header">
+				<div class="hatch-candidate-panel__identity">
+					<div class="hatch-candidate-panel__title-row">
+						<h2 class="hatch-candidate-panel__name">{displayName}</h2>
+						<ul class="hatch-candidate-panel__types" role="list">
+							{#each candidate.elements as element (element)}
+								<li>
+									<ElementBadge type={element} />
+								</li>
+							{/each}
+						</ul>
+					</div>
+				</div>
+				<div class="hatch-candidate-panel__ledger">
+					<button
+						type="button"
+						class="hatch-candidate-panel__ledger-hit"
+						aria-label="Evolution line"
+						onmouseenter={() => showHint(evolutionLineHint(candidate.evolution_line, displayName, candidate.evo_seed))}
+						onmouseleave={() => clearHint(evolutionLineHint(candidate.evolution_line, displayName, candidate.evo_seed))}
+						onfocus={() => showHint(evolutionLineHint(candidate.evolution_line, displayName, candidate.evo_seed))}
+						onblur={() => clearHint(evolutionLineHint(candidate.evolution_line, displayName, candidate.evo_seed))}
+					>
+						<span class="hatch-candidate-panel__ledger-key">EVO</span>
+						<EvolutionLinePips line={candidate.evolution_line} />
+					</button>
+					<button
+						type="button"
+						class="hatch-candidate-panel__ledger-hit hatch-candidate-panel__ledger-hit--str"
+						aria-label="Strength"
+						onmouseenter={() => showHint(strengthHint(powerPips))}
+						onmouseleave={() => clearHint(strengthHint(powerPips))}
+						onfocus={() => showHint(strengthHint(powerPips))}
+						onblur={() => clearHint(strengthHint(powerPips))}
+					>
+						<span class="hatch-candidate-panel__ledger-key">STR</span>
+						<PowerPips compact pips={powerPips} />
+					</button>
 				</div>
 			</div>
-			<div class="hatch-candidate-panel__ledger">
+
+			<div class="hatch-candidate-panel__tabs" role="tablist" aria-label="Candidate details">
 				<button
 					type="button"
-					class="hatch-candidate-panel__ledger-hit"
-					aria-label="Evolution line"
-					onmouseenter={() => showHint(evolutionLineHint(candidate.evolution_line, displayName, candidate.evo_seed))}
-					onmouseleave={() => clearHint(evolutionLineHint(candidate.evolution_line, displayName, candidate.evo_seed))}
-					onfocus={() => showHint(evolutionLineHint(candidate.evolution_line, displayName, candidate.evo_seed))}
-					onblur={() => clearHint(evolutionLineHint(candidate.evolution_line, displayName, candidate.evo_seed))}
+					class="hatch-candidate-panel__tab"
+					class:hatch-candidate-panel__tab--active={activeTab === 'stats'}
+					role="tab"
+					aria-selected={activeTab === 'stats'}
+					onclick={() => selectTab('stats')}
 				>
-					<span class="hatch-candidate-panel__ledger-key">EVO</span>
-					<EvolutionLinePips line={candidate.evolution_line} />
+					Stats
 				</button>
 				<button
 					type="button"
-					class="hatch-candidate-panel__ledger-hit hatch-candidate-panel__ledger-hit--str"
-					aria-label="Strength"
-					onmouseenter={() => showHint(strengthHint(powerPips))}
-					onmouseleave={() => clearHint(strengthHint(powerPips))}
-					onfocus={() => showHint(strengthHint(powerPips))}
-					onblur={() => clearHint(strengthHint(powerPips))}
+					class="hatch-candidate-panel__tab"
+					class:hatch-candidate-panel__tab--active={activeTab === 'moves'}
+					role="tab"
+					aria-selected={activeTab === 'moves'}
+					onclick={() => selectTab('moves')}
 				>
-					<span class="hatch-candidate-panel__ledger-key">STR</span>
-					<PowerPips compact pips={powerPips} />
+					Moves
+				</button>
+				<button
+					type="button"
+					class="hatch-candidate-panel__tab"
+					class:hatch-candidate-panel__tab--active={activeTab === 'sources'}
+					role="tab"
+					aria-selected={activeTab === 'sources'}
+					onclick={() => selectTab('sources')}
+				>
+					Sources
 				</button>
 			</div>
-		</div>
-
-		<div class="hatch-candidate-panel__tabs" role="tablist" aria-label="Candidate details">
-			<button
-				type="button"
-				class="hatch-candidate-panel__tab"
-				class:hatch-candidate-panel__tab--active={activeTab === 'stats'}
-				role="tab"
-				aria-selected={activeTab === 'stats'}
-				onclick={() => selectTab('stats')}
-			>
-				Stats
-			</button>
-			<button
-				type="button"
-				class="hatch-candidate-panel__tab"
-				class:hatch-candidate-panel__tab--active={activeTab === 'moves'}
-				role="tab"
-				aria-selected={activeTab === 'moves'}
-				onclick={() => selectTab('moves')}
-			>
-				Moves
-			</button>
-			<button
-				type="button"
-				class="hatch-candidate-panel__tab"
-				class:hatch-candidate-panel__tab--active={activeTab === 'sources'}
-				role="tab"
-				aria-selected={activeTab === 'sources'}
-				onclick={() => selectTab('sources')}
-			>
-				Sources
-			</button>
-		</div>
+		{/if}
 
 		<div class="hatch-candidate-panel__body">
 			{#if activeTab === 'stats'}
 				<div class="hatch-candidate-panel__stats" role="tabpanel">
-					<button
-						type="button"
-						class="hatch-candidate-panel__chart"
-						aria-label="Base stat radar chart"
-						onmouseenter={() => showHint(radarHint())}
-						onmouseleave={() => clearHint(radarHint())}
-						onfocus={() => showHint(radarHint())}
-						onblur={() => clearHint(radarHint())}
-					>
-						<BstRadarChart stats={candidate.base_stats} size={168} />
-					</button>
-					<div class="hatch-candidate-panel__stat-list">
-						{#each statLines as line (line.key)}
-							{@const value = candidate.base_stats[line.key]}
-							{@const hint = statHint(line.label, value)}
-							<button
-								type="button"
-								class="hatch-candidate-panel__stat-hit"
-								onmouseenter={() => showHint(hint)}
-								onmouseleave={() => clearHint(hint)}
-								onfocus={() => showHint(hint)}
-								onblur={() => clearHint(hint)}
-							>
-								<StatBar label={line.label} {value} pips={statPips(value)} />
-							</button>
-						{/each}
+					{#if runtimeHp}
+						<div class="hatch-candidate-panel__runtime hatch-candidate-panel__runtime--lead">
+							<span class="hatch-candidate-panel__runtime-level">Lv{runtimeHp.level}</span>
+							<SegmentedHpBar current={runtimeHp.current} max={runtimeHp.max} />
+						</div>
+					{/if}
+					<div class="hatch-candidate-panel__stats-grid">
+						<button
+							type="button"
+							class="hatch-candidate-panel__chart"
+							aria-label="Base stat radar chart"
+							onmouseenter={() => showHint(radarHint())}
+							onmouseleave={() => clearHint(radarHint())}
+							onfocus={() => showHint(radarHint())}
+							onblur={() => clearHint(radarHint())}
+						>
+							<BstRadarChart stats={candidate.base_stats} size={168} />
+						</button>
+						<div class="hatch-candidate-panel__stat-list">
+							{#each visibleStatLines as line (line.key)}
+								{@const value = candidate.base_stats[line.key]}
+								{@const hint = statHint(line.label, value)}
+								<button
+									type="button"
+									class="hatch-candidate-panel__stat-hit"
+									onmouseenter={() => showHint(hint)}
+									onmouseleave={() => clearHint(hint)}
+									onfocus={() => showHint(hint)}
+									onblur={() => clearHint(hint)}
+								>
+									<StatBar label={line.label} {value} pips={statPips(value)} />
+								</button>
+							{/each}
+						</div>
 					</div>
 				</div>
 			{:else if activeTab === 'moves'}
@@ -280,7 +326,7 @@
 			{/if}
 		</div>
 
-		{#if showActions}
+		{#if showActions && !embedded}
 			<div class="hatch-candidate-panel__actions">
 				<HatchControls
 					bind:actionHint
@@ -294,7 +340,15 @@
 			</div>
 		{/if}
 	</div>
-</ProviderPatchPanel>
+{/snippet}
+
+{#if embedded}
+	{@render candidatePanel()}
+{:else}
+	<ProviderPatchPanel title={false} fill ariaLabel="Candidate review" class="hatch-candidate-panel-shell">
+		{@render candidatePanel()}
+	</ProviderPatchPanel>
+{/if}
 
 <style>
 	:global(.hatch-candidate-panel-shell.provider-patch-panel) {
@@ -308,7 +362,7 @@
 		--hatch-pip-gap: 0.28rem;
 		--hatch-readout-pip-gap: 0.55rem;
 		--hatch-pip-track-width: calc(3 * var(--hatch-pip-block-w) + 2 * var(--hatch-pip-gap));
-		--hatch-stats-grid: minmax(0, 1fr) minmax(0, max-content) var(--hatch-pip-track-width);
+		--hatch-stats-grid: minmax(0, 1.38fr) minmax(0, max-content) var(--hatch-pip-track-width);
 
 		display: flex;
 		flex-direction: column;
@@ -319,6 +373,12 @@
 		height: 100%;
 		color: var(--vm-tobacco-black);
 		font-family: var(--vm-font-ui);
+	}
+
+	.hatch-candidate-panel--embedded {
+		flex: 1;
+		min-height: 0;
+		overflow: hidden;
 	}
 
 	.hatch-candidate-panel__header {
@@ -464,7 +524,8 @@
 		display: flex;
 		flex-direction: column;
 		flex: 1;
-		min-height: 10rem;
+		min-height: 0;
+		overflow: hidden;
 	}
 
 	.hatch-candidate-panel__stats,
@@ -477,12 +538,44 @@
 	}
 
 	.hatch-candidate-panel__stats {
+		display: flex;
+		flex-direction: column;
+		gap: 0.45rem;
+		flex: 1;
+		min-height: 0;
+		overflow: hidden;
+	}
+
+	.hatch-candidate-panel__stats-grid {
 		display: grid;
 		grid-template-columns: var(--hatch-stats-grid);
-		align-items: center;
+		align-items: stretch;
 		column-gap: clamp(0.65rem, 2vw, 1.1rem);
 		flex: 1;
 		min-height: 0;
+		overflow: hidden;
+	}
+
+	.hatch-candidate-panel__runtime {
+		display: grid;
+		grid-template-columns: auto minmax(0, 1fr);
+		gap: 0.35rem 0.65rem;
+		align-items: center;
+		flex-shrink: 0;
+	}
+
+	.hatch-candidate-panel__runtime--lead {
+		padding: 0.5rem 0.55rem;
+		border-radius: var(--vm-radius-sm);
+		background: color-mix(in srgb, var(--vm-tobacco) 5%, var(--vm-parchment));
+		box-shadow: inset 0 1px 0 rgb(240 231 206 / 0.55);
+	}
+
+	.hatch-candidate-panel__runtime-level {
+		font-size: clamp(0.5625rem, 1.6vw, 0.6875rem);
+		line-height: 1;
+		letter-spacing: 0.08em;
+		color: color-mix(in srgb, var(--vm-tobacco) 72%, var(--vm-brass));
 	}
 
 	.hatch-candidate-panel__stat-list {
@@ -494,8 +587,9 @@
 		min-height: 0;
 		height: 100%;
 		min-width: 0;
-		gap: 0.58rem;
-		padding-block: 0.58rem;
+		gap: 0.4rem;
+		padding-block: 0;
+		justify-content: space-evenly;
 	}
 
 	.hatch-candidate-panel__stat-hit {
@@ -520,8 +614,10 @@
 		grid-row: 1;
 		justify-content: center;
 		align-items: center;
-		align-self: center;
+		align-self: stretch;
 		justify-self: stretch;
+		width: 100%;
+		height: 100%;
 		min-width: 0;
 		min-height: 0;
 		margin: 0;
@@ -535,9 +631,13 @@
 	}
 
 	.hatch-candidate-panel__chart :global(.bst-radar) {
-		width: clamp(8.5rem, 22vh, 11rem);
-		height: auto;
-		flex-shrink: 0;
+		display: block;
+		width: auto;
+		height: 100%;
+		max-width: 100%;
+		max-height: 100%;
+		aspect-ratio: 1;
+		flex-shrink: 1;
 	}
 
 	.hatch-candidate-panel__chart:focus-visible,
