@@ -22,7 +22,7 @@ from sqlalchemy.ext.asyncio import async_sessionmaker
 from app.core import logging as app_logging
 from app.core.errors import VibemonServiceError
 from app.http import deps, errors
-from app.http.routes import assets, candidates, encounters, health, providers, trainers
+from app.http.routes import assets, candidates, encounters, health, providers, title, trainers
 from app.providers.music.lastfm import routes as lastfm_routes
 from app.settings import Settings
 from app.storage.database import engine as db_engine
@@ -70,6 +70,7 @@ def create_app() -> Litestar:
             candidates.candidate_router,
             encounters.encounter_router,
             providers.provider_router,
+            title.title_router,
             lastfm_mount,
         ],
         lifespan=[lifespan],
