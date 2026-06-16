@@ -82,6 +82,7 @@ class FaintEvent(FrozenSchema):
 
     kind: Literal["faint"] = "faint"
     target: str
+    source: str | None = None
 
 
 class StatusInflictedEvent(FrozenSchema):

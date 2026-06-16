@@ -72,7 +72,7 @@ class GameEngine:
 
             self._execute_move_use(ctx, targeting.make_move_use(ctx, entry, entry.action))
             if entry.opponent.is_fainted:
-                ctx.events.append(events.FaintEvent(target=entry.opponent.name))
+                ctx.events.append(events.FaintEvent(target=entry.opponent.name, source=entry.actor.name))
                 break
 
     def _execute_move_use(self, ctx: turn.Turn, use: turn.MoveUse) -> None:
