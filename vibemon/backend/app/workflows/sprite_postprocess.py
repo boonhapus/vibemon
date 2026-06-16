@@ -20,6 +20,13 @@ def encode_rgba_png(image: Image.Image) -> bytes:
     return out.getvalue()
 
 
+def encode_rgb_png(image: Image.Image) -> bytes:
+    """Persist a matte-backed RGB sprite sheet or reference."""
+    out = io.BytesIO()
+    image.convert("RGB").save(out, format="PNG")
+    return out.getvalue()
+
+
 def normalize_trainer_reference_image(
     image: bytes | Image.Image,
     *,
@@ -100,23 +107,30 @@ def normalize_sprite_matte(
     image: bytes | Image.Image,
     *,
     bg_color: Color,
+    rows: int = 3,
+    cols: int = 3,
 ) -> bytes:
-    """Key a sprite sheet and snap background pixels to a uniform matte RGB."""
-    source = rmbg.to_pil(image)
-    stored_matte = bg_color.as_rgb()
-    rgba = rmbg.key_sprite(
-        source,
-        bg_color=stored_matte,
-        despill=True,
-        keep_specks=True,
-    )
-    arr = np.asarray(rgba)
-    rgb = arr[..., :3].copy()
-    rgb[arr[..., 3] < 128] = stored_matte
+    """Key each sheet cell like a reference sprite and flatten bg to the painted matte.
 
-    out = io.BytesIO()
-    Image.fromarray(rgb, "RGB").save(out, format="PNG")
-    return out.getvalue()
+    Whole-sheet keying must keep disconnected pose cells (``keep_specks=True``), which
+    also preserves mis-keyed interior pockets such as leg gaps. Per-cell keying matches
+    the reference pipeline and keys those gaps out correctly.
+    """
+    source = rmbg.to_pil(image).convert("RGB")
+    stored_matte = bg_color.as_rgb()
+    sheet_matte = rmbg.resolve_background_color(source, stored_matte)
+    rgb = np.asarray(source)
+    out = np.empty_like(rgb)
+
+    for _, _, ys, xs in _cell_slices(rgb.shape, rows=rows, cols=cols):
+        cell = Image.fromarray(rgb[ys, xs], "RGB")
+        rgba = rmbg.key_sprite(cell, bg_color=sheet_matte, despill=False, keep_specks=False)
+        cell_arr = np.asarray(rgba)
+        cell_rgb = cell_arr[..., :3].copy()
+        cell_rgb[cell_arr[..., 3] < 128] = sheet_matte
+        out[ys, xs] = cell_rgb
+
+    return encode_rgb_png(Image.fromarray(out, "RGB"))
 
 
 def validate_sprite_sheet(
@@ -204,9 +218,13 @@ def extract_sprites(
     return dict(zip(PoseT, aligned, strict=True))
 
 
-def _sheet_foreground_mask(rgb: np.ndarray, matte: tuple[int, int, int]) -> np.ndarray:
-    matte_rgb = np.array(matte, dtype=rgb.dtype)
+def _sheet_foreground_mask(rgb: np.ndarray, stored_matte: tuple[int, int, int]) -> np.ndarray:
+    matte_rgb = np.array(_resolve_sheet_matte(rgb, stored_matte), dtype=rgb.dtype)
     return np.any(rgb[..., :3] != matte_rgb, axis=-1)
+
+
+def _resolve_sheet_matte(rgb: np.ndarray, stored_matte: tuple[int, int, int]) -> tuple[int, int, int]:
+    return rmbg.resolve_background_color(Image.fromarray(rgb, "RGB"), stored_matte)
 
 
 def _prepare_reference_source(

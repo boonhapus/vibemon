@@ -27,6 +27,17 @@ def test_finalize_reference_display_orients_and_snaps() -> None:
     assert display.getpixel((width - width // 4, display.height // 2)) == (200, 80, 40, 255)
 
 
+def test_snap_preserves_transparent_gaps_on_downsample() -> None:
+    image = Image.new("RGBA", (32, 32), (0, 0, 0, 0))
+    for y in range(8, 24):
+        image.putpixel((10, y), (80, 140, 60, 255))
+        image.putpixel((21, y), (80, 140, 60, 255))
+
+    snapped = pixelsnap.snap(image, grid=16, adaptive_colors=8)
+
+    assert snapped.getpixel((8, 8))[3] == 0
+
+
 def test_adaptive_quantize_collapses_gradient_to_flat_regions() -> None:
     gradient = Image.new("RGBA", (256, 256))
     for x in range(256):

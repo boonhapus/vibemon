@@ -1,8 +1,28 @@
 """Snap anti-aliased pixel-art renders onto a true low-res display grid."""
 
 from PIL import Image
+import numpy as np
 
 from app.domains.sprite import const as sprite_const
+
+
+def _min_pool_alpha(alpha: Image.Image, target: tuple[int, int]) -> Image.Image:
+    """Downsample an alpha channel preserving transparency in mixed footprints."""
+    target_w, target_h = target
+    source = np.asarray(alpha, dtype=np.uint8)
+    source_h, source_w = source.shape
+    scale_x = source_w / target_w
+    scale_y = source_h / target_h
+    pooled = np.zeros((target_h, target_w), dtype=np.uint8)
+
+    for row in range(target_h):
+        y0 = int(row * scale_y)
+        y1 = max(y0 + 1, int((row + 1) * scale_y))
+        for col in range(target_w):
+            x0 = int(col * scale_x)
+            x1 = max(x0 + 1, int((col + 1) * scale_x))
+            pooled[row, col] = int(source[y0:y1, x0:x1].min())
+    return Image.fromarray(pooled, "L")
 
 
 def snap(
@@ -26,6 +46,7 @@ def snap(
     target = (max(1, round(rgba.width / scale)), max(1, round(rgba.height / scale)))
 
     small = rgba.resize(target, Image.Resampling.BOX)
+    small.putalpha(_min_pool_alpha(rgba.getchannel("A"), target))
 
     if quantize_palette:
         from app.workflows import _pixelsnap_palette
@@ -63,9 +84,7 @@ def snap_rgba_png(
 
     source = Image.open(io.BytesIO(image)) if isinstance(image, bytes) else image
     out = io.BytesIO()
-    snap(source, grid=grid, quantize_palette=quantize_palette, adaptive_colors=adaptive_colors).save(
-        out, format="PNG"
-    )
+    snap(source, grid=grid, quantize_palette=quantize_palette, adaptive_colors=adaptive_colors).save(out, format="PNG")
     return out.getvalue()
 
 

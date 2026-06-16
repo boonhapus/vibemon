@@ -165,6 +165,26 @@ def test_key_sprite_uses_known_matte() -> None:
     assert arr[20, 20, 3] > 200
 
 
+def test_normalize_sprite_matte_preserves_interior_leg_gap() -> None:
+    """Per-cell keying must not keep mis-keyed matte pockets between legs."""
+    drifted = (188, 84, 125)
+    stored = _MATTE
+    image = Image.new("RGB", (90, 90), drifted)
+    draw = ImageDraw.Draw(image)
+    draw.rectangle((30, 20, 60, 55), fill="#553344")
+    draw.rectangle((30, 55, 38, 72), fill="#553344")
+    draw.rectangle((52, 55, 60, 72), fill="#553344")
+
+    normalized = Image.open(
+        io.BytesIO(sprite_postprocess.normalize_sprite_matte(image, bg_color=stored, rows=1, cols=1))
+    ).convert("RGB")
+    cells = sprite_postprocess.extract_grid_cells(normalized, bg_color=stored, rows=1, cols=1)
+    alpha = np.asarray(cells[0])[..., 3]
+    gap = alpha[58:68, 42:48]
+
+    assert (gap < 128).any()
+
+
 def test_normalize_sprite_matte_snaps_background() -> None:
     matte = _MATTE
     image = Image.new("RGB", (48, 48), str(matte))
@@ -173,7 +193,7 @@ def test_normalize_sprite_matte_snaps_background() -> None:
     # Slight matte drift in a corner (simulates model noise)
     image.putpixel((0, 0), (210, 25, 140))
 
-    out = sprite_postprocess.normalize_sprite_matte(image, bg_color=matte)
+    out = sprite_postprocess.normalize_sprite_matte(image, bg_color=matte, rows=1, cols=1)
     normalized = Image.open(io.BytesIO(out)).convert("RGB")
 
     assert normalized.getpixel((0, 0)) == matte.as_rgb()
@@ -191,7 +211,7 @@ def test_extract_grid_cells_supports_non_square_grids() -> None:
             cy = int((row + 0.5) * 600 / rows)
             draw.ellipse((cx - 12, cy - 12, cx + 12, cy + 12), fill="#228822")
 
-    sheet = sprite_postprocess.normalize_sprite_matte(image, bg_color=matte)
+    sheet = sprite_postprocess.normalize_sprite_matte(image, bg_color=matte, rows=rows, cols=cols)
     cells = sprite_postprocess.extract_grid_cells(sheet, bg_color=matte, rows=rows, cols=cols)
 
     assert len(cells) == 24

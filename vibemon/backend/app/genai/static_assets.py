@@ -188,6 +188,8 @@ def is_mirror_derived(record: AssetPromptRecord) -> bool:
 
 
 def record_kind(record: AssetPromptRecord) -> str:
+    if "backgrounds" in record.path.parts:
+        return "background"
     if record.reference_asset is not None:
         return "icon"
     if "icons" in record.path.parts:
