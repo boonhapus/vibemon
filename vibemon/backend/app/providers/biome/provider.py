@@ -246,6 +246,18 @@ class BiomeProvider(VibeProvider[biome_schema.BiomePayload]):
 
     # ── CORE PROTOCOL MEMBERS ─────────────────────────────────────────────────────────
 
+    async def _water_proximity_or_default(self, latitude: float, longitude: float) -> dict[str, float | str | None]:
+        try:
+            return await self.water.proximity(latitude, longitude)
+        except Exception:
+            _LOGGER.exception("biome_water_fetch_failed", latitude=latitude, longitude=longitude)
+            return {
+                "nearest_marine_km": None,
+                "marine_feature": None,
+                "nearest_inland_water_km": None,
+                "inland_feature": None,
+            }
+
     async def fetch(
         self,
         seed: BirthSeed,
@@ -253,22 +265,15 @@ class BiomeProvider(VibeProvider[biome_schema.BiomePayload]):
         secrets: TrainerSecrets | None = None,
     ) -> biome_schema.BiomePayload:
         latitude, longitude = seed.geo_coords
-        worldcover_task = asyncio.create_task(self.worldcover.sample_class(latitude, longitude))
-        elevation_task = asyncio.create_task(self.elevation.point(latitude, longitude))
-        water_task = asyncio.create_task(self.water.proximity(latitude, longitude))
 
-        land_cover = await worldcover_task
-        elevation_m = await elevation_task
-        try:
-            water = await water_task
-        except Exception:
-            _LOGGER.exception("biome_water_fetch_failed", latitude=latitude, longitude=longitude)
-            water: dict[str, float | str | None] = {
-                "nearest_marine_km": None,
-                "marine_feature": None,
-                "nearest_inland_water_km": None,
-                "inland_feature": None,
-            }
+        async with asyncio.TaskGroup() as group:
+            worldcover_task = group.create_task(self.worldcover.sample_class(latitude, longitude))
+            elevation_task = group.create_task(self.elevation.point(latitude, longitude))
+            water_task = group.create_task(self._water_proximity_or_default(latitude, longitude))
+
+        land_cover = worldcover_task.result()
+        elevation_m = elevation_task.result()
+        water = water_task.result()
 
         built_up_fraction = self._built_up_fraction(land_cover)
         return biome_schema.BiomePayload(
@@ -287,11 +292,14 @@ class BiomeProvider(VibeProvider[biome_schema.BiomePayload]):
         land_cover = const.WorldCoverClassT(payload.land_cover_class)
         base = const.LAND_COVER_RARITY.get(land_cover, const.LAND_COVER_RARITY_DEFAULT)
 
-        elevation = clamp(
-            (payload.elevation_m - const.ELEVATION_RARITY_FLOOR_M) / const.ELEVATION_RARITY_SPAN_M,
-            minimum=0.0,
-            maximum=1.0,
-        ) * const.ELEVATION_RARITY_WEIGHT
+        elevation = (
+            clamp(
+                (payload.elevation_m - const.ELEVATION_RARITY_FLOOR_M) / const.ELEVATION_RARITY_SPAN_M,
+                minimum=0.0,
+                maximum=1.0,
+            )
+            * const.ELEVATION_RARITY_WEIGHT
+        )
 
         distances = [d for d in (payload.nearest_marine_km, payload.nearest_inland_water_km) if d is not None]
         if distances:

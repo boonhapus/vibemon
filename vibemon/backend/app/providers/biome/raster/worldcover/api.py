@@ -6,19 +6,20 @@ import datetime as dt
 import math
 
 from PIL import Image
-import niquests
 import structlog
 
 from app.providers._api.hooks import LoggingHook, RateLimiterHook
 from app.providers._api.policy import provider_default_headers, provider_retry_policy
+from app.providers._api.session import CachedAPIClient
 from app.providers.biome import const as biome_const
+from app.storage.cache.redis import make_cache_backend
 
 from . import const
 
 _LOGGER = structlog.get_logger(__name__)
 
 
-class TerrascopeWorldCoverClient(niquests.AsyncSession):
+class TerrascopeWorldCoverClient(CachedAPIClient):
     """Fetch WorldCover classification tiles via Terrascope WMTS KVP."""
 
     provider_name = const.PROVIDER_NAME
@@ -28,7 +29,9 @@ class TerrascopeWorldCoverClient(niquests.AsyncSession):
             (120, dt.timedelta(minutes=1)),
             provider=TerrascopeWorldCoverClient.provider_name,
         )
+        session_opts.setdefault("backend", make_cache_backend("terrascope_worldcover_wmts"))
         super().__init__(
+            expire_after=dt.timedelta(days=30),
             base_url=const.WMTS_BASE_URL,
             hooks=LoggingHook(provider=TerrascopeWorldCoverClient.provider_name) + rate_limiter,  # pyrefly: ignore
             retries=provider_retry_policy(),

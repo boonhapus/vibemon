@@ -1,6 +1,7 @@
 """OSM Overpass client for marine and inland water proximity."""
 
 from typing import Any
+import asyncio
 import datetime as dt
 
 import niquests
@@ -8,13 +9,15 @@ import structlog
 
 from app.providers._api.hooks import LoggingHook, RateLimiterHook
 from app.providers._api.policy import provider_default_headers
+from app.providers._api.session import CachedAPIClient
+from app.storage.cache.redis import make_cache_backend
 
 from . import const, utils
 
 _LOGGER = structlog.get_logger(__name__)
 
 
-class OverpassWaterClient(niquests.AsyncSession):
+class OverpassWaterClient(CachedAPIClient):
     """Nearest marine and inland water features via OSM Overpass."""
 
     provider_name = const.PROVIDER_NAME
@@ -24,12 +27,14 @@ class OverpassWaterClient(niquests.AsyncSession):
             (30, dt.timedelta(minutes=1)),
             provider=OverpassWaterClient.provider_name,
         )
+        session_opts.setdefault("backend", make_cache_backend("overpass_water_api"))
         super().__init__(
+            expire_after=dt.timedelta(days=30),
             hooks=LoggingHook(provider=OverpassWaterClient.provider_name) + rate_limiter,  # pyrefly: ignore
             retries=niquests.RetryConfiguration(
                 total=3,
                 backoff_factor=2,
-                status_forcelist=[429, 500, 502, 503],
+                status_forcelist=[429, 500, 502, 503, 504],
                 allowed_methods=["GET", "POST"],
                 raise_on_status=False,
                 respect_retry_after_header=True,
@@ -46,8 +51,10 @@ class OverpassWaterClient(niquests.AsyncSession):
 
         for endpoint in const.OVERPASS_ENDPOINTS:
             try:
-                marine_response = await self.post(endpoint, data=marine_query)
-                inland_response = await self.post(endpoint, data=inland_query)
+                marine_response, inland_response = await asyncio.gather(
+                    self.get(endpoint, params={"data": marine_query}),
+                    self.get(endpoint, params={"data": inland_query}),
+                )
                 marine_response.raise_for_status()
                 inland_response.raise_for_status()
                 marine = utils.nearest_element(

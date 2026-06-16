@@ -21,7 +21,7 @@ def provider_retry_policy(*, total: int = 5) -> niquests.RetryConfiguration:
     return niquests.RetryConfiguration(
         total=total,
         backoff_factor=2,
-        status_forcelist=[429, 500, 502, 503],
+        status_forcelist=[429, 500, 502, 503, 504],
         allowed_methods=["GET"],
         raise_on_status=False,
         respect_retry_after_header=True,
