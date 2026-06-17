@@ -19,7 +19,9 @@ from PIL import Image, ImageDraw
 
 from app.domains.move import entity as move_entity
 from app.domains.sprite import types as sprite_types
-from app.domains.vibemon import brand, entity as vibemon_entity, identity as vibemon_identity
+from app.domains.vibemon import brand
+from app.domains.vibemon import entity as vibemon_entity
+from app.domains.vibemon import identity as vibemon_identity
 
 # Grid the sprite sheet is keyed and sliced on (sprite_postprocess defaults).
 _SHEET_ROWS = 3

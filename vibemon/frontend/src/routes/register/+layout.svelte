@@ -57,6 +57,7 @@
 				<TrainerReferenceCamera
 					bind:hovered={registerUi.referenceHintVisible}
 					disabled={registerUi.setupInProgress}
+					allowReroll
 					uploadReference={uploadRegisterReference}
 					onReferenceUrl={(referenceUrl) => {
 						applyTrainerReferenceUrl(registerUi, referenceUrl);

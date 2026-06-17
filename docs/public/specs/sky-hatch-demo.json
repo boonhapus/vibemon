@@ -1,0 +1,40 @@
+{
+  "baseUrl": "https://localhost:5173",
+  "viewport": { "width": 1920, "height": 1080 },
+  "speed": 1.5,
+  "steps": [
+    { "action": "navigate", "url": "/?solar-phase=day" },
+    { "action": "wait", "for": 2000 },
+    { "action": "click", "selector": "[data-testid=\"title-menu-login\"]" },
+    { "action": "wait", "for": 2000 },
+    {
+      "action": "type",
+      "selector": "[data-testid=\"trainer-login-username\"]",
+      "text": "bahnoopus",
+      "delay": 45
+    },
+    { "action": "wait", "for": 2000 },
+    { "action": "click", "selector": "[data-testid=\"trainer-login-continue\"]" },
+    {
+      "action": "navigate",
+      "url": "/hatch?bypass-credits=true&solar-phase=day"
+    },
+    { "action": "wait", "for": 2000 },
+    { "action": "click", "selector": "[data-testid=\"provider-patch-climate\"]" },
+    { "action": "wait", "for": 2000 },
+    { "action": "geolocate", "latitude": 37.7749, "longitude": -122.4194, "accuracy": 50 },
+    { "action": "click", "selector": "[data-testid=\"provider-config-location\"]" },
+    { "action": "wait", "for": 2000 },
+    { "action": "click", "selector": "[data-testid=\"provider-config-enable\"]" },
+    { "action": "wait", "for": 2000 },
+    { "action": "click", "selector": "[data-testid=\"hatchling-hatch\"]" },
+    {
+      "action": "wait",
+      "for": "[data-testid=\"hatch-candidate-panel\"]",
+      "timeout": 180000
+    },
+    { "action": "wait", "for": 2000 },
+    { "action": "hover", "selector": "[data-testid=\"hatch-adopt\"]" },
+    { "action": "wait", "for": 5000 }
+  ]
+}

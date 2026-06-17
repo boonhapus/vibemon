@@ -37,7 +37,9 @@ export function refreshGameSolarPhase(at: Date = new Date()) {
 }
 
 export function applyGameSolarDevOverride(searchParams: URLSearchParams) {
-	setGameSolarOverride(parseSolarPhase(searchParams.get('solar-phase')));
+	const phase = parseSolarPhase(searchParams.get('solar-phase'));
+	if (!phase) return;
+	setGameSolarOverride(phase);
 	refreshGameSolarPhase();
 }
 

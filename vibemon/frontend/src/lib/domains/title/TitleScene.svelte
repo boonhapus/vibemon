@@ -118,6 +118,7 @@
 									selected={selectedIndex === index}
 									disabled={item.disabled}
 									class="title-scene__menu-button"
+									testId={`title-menu-${item.id}`}
 									onclick={() => {
 										if (item.disabled) return;
 										selectedIndex = index;

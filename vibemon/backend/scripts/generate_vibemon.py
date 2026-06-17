@@ -23,9 +23,9 @@ from app.providers.base import VibeProvider
 from app.storage.database import mapper, vibemon_repo
 from app.storage.secrets.repository import DbTrainerSecrets
 from app.workflows import birth_persist, public_projection
-from app.workflows.materialize_vibemon import MaterializeVibemon
 from app.workflows import candidate as candidate_workflow
 from app.workflows import generate_wild_supply as wild_workflow
+from app.workflows.materialize_vibemon import MaterializeVibemon
 from scripts import _common
 
 COMMON_OPTIONS = cyclopts.Group("Common options", sort_key=0)

@@ -41,7 +41,8 @@ async def public_vibemon(
     assets = await _public_assets(row.assets)
     review = _visible_review(row.candidate_reviews, reviewing_trainer_id)
     aesthetic = vibemon.aesthetic
-    birth_providers = tuple(learnset.birth_provider_names(BirthSnapshot(provider_payloads=dict(row.birth_snapshot.provider_payloads))))
+    snapshot = BirthSnapshot(provider_payloads=dict(row.birth_snapshot.provider_payloads))
+    birth_providers = tuple(learnset.birth_provider_names(snapshot))
     return PublicVibemon(
         id=vibemon.id,
         nickname=vibemon.nickname,

@@ -14,6 +14,7 @@
 		oncontextmenu,
 		disabled = false,
 		ariaLabel,
+		testId,
 		class: className = '',
 		children
 	}: {
@@ -29,6 +30,7 @@
 		oncontextmenu?: (event: MouseEvent) => void;
 		disabled?: boolean;
 		ariaLabel: string;
+		testId?: string;
 		class?: string;
 		children?: Snippet;
 	} = $props();
@@ -51,6 +53,7 @@
 	{oncontextmenu}
 	{disabled}
 	aria-label={ariaLabel}
+	data-testid={testId}
 >
 	{#if children}
 		{@render children()}

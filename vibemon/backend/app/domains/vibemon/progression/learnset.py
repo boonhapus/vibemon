@@ -3,7 +3,7 @@
 from collections.abc import Sequence
 
 from app.core.schema import FrozenSchema
-from app.domains.generation.snapshot import BirthSnapshot, LEARNSET_PAYLOAD_KEY
+from app.domains.generation.snapshot import LEARNSET_PAYLOAD_KEY, BirthSnapshot
 from app.domains.move import universal
 from app.domains.move.entity import Move
 from app.providers import registry as provider_registry

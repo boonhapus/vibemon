@@ -64,6 +64,7 @@
 	<FreeFormButton
 		class="hatch-controls__button hatch-controls__button--adopt"
 		ariaLabel="Adopt this Vibemon to your crew"
+		testId="hatch-adopt"
 		disabled={busy}
 		onclick={onAdopt}
 		onmouseenter={() => showHint('adopt')}

@@ -12,10 +12,10 @@ from app.domains.generation.seed import BirthSeed
 from app.domains.vibemon.schema import PublicVibemon
 from app.domains.vibemon.types import VibemonLifecycleT
 from app.storage.database import mapper, vibemon_repo
-from app.workflows import public_projection
-from app.workflows.materialize_vibemon import MaterializeVibemon
 from app.workflows import birth_seed as birth_seed_factory
 from app.workflows import candidate as candidate_workflow
+from app.workflows import public_projection
+from app.workflows.materialize_vibemon import MaterializeVibemon
 from scripts import _common
 
 COMMON_OPTIONS = cyclopts.Group("Common options", sort_key=0)

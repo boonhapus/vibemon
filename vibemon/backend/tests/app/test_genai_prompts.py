@@ -93,32 +93,36 @@ def test_trainer_reference_prompt_includes_likeness_and_trainer_archetype() -> N
         background_color="#00B140",
     )
 
-    assert rendered.version == "1.8.0"
+    assert rendered.version == "2.2.0"
     lowered = rendered.text.lower()
     assert "reference images" in lowered
     assert "image 1: user likeness" in lowered
     assert "image 2: style-bible trainer" in lowered
     assert "priority" in lowered
-    assert "image 1 likeness always wins" in lowered
-    assert "trainer archetype always wins" in lowered
+    assert "trainer-first stylization" in lowered
+    assert "image 2 always wins for rendering" in lowered
+    assert "image 1 always wins for who this person is" in lowered
     assert "group photos" in lowered
-    assert "distinctive facial features" in lowered
+    assert "photo-portrait fidelity" in lowered
     assert "ethnicity lock" in lowered
     assert "generic game protagonist" in lowered
     assert "if image 1 shows a white subject" in lowered
-    assert "formal-wear override" in lowered
-    assert "suit + tie" in lowered
+    assert "formal-wear translation" in lowered
     assert "likeness lock" in lowered
+    assert "identity (soft lock)" in lowered
+    assert "hair (hard lock" in lowered
+    assert "belongs to image 2" in lowered
+    assert "hair length clamp" in lowered
     assert "trainer archetype" in lowered
-    assert "identity (hard lock)" in lowered
-    assert "rendering fidelity" in lowered
     assert "cropped or face-heavy" in lowered
     assert "adult-leaning silhouette" in lowered
     assert "not a chibi or child body" in lowered
-    assert "palette hint" in lowered
-    assert "default trainer kit" in lowered
-    assert "skirt stays a skirt" in lowered
-    assert "never render photo-real street clothes" in lowered
+    assert "trainer-ize the user's actual outfit" in lowered
+    assert "a graphic tee stays a tee" in lowered
+    assert "if image 1 has no hat, draw no hat" in lowered
+    assert "photo-real street clothes" in lowered
+    assert "thick #3d2b1f tobacco brown" in lowered
+    assert "photo-portrait likeness" in lowered
     assert "never a flat single-tone face or washed-out skin" in lowered
     assert "technical chroma key" in lowered
     assert "cozy handheld trainer rendering" in lowered
@@ -129,7 +133,9 @@ def test_trainer_reference_prompt_includes_likeness_and_trainer_archetype() -> N
     assert "#00b140" in lowered
     assert "comfortable pants" not in lowered
     assert "gear lock" not in lowered
-    assert "never large backpacks" not in lowered
+    assert "default trainer kit" not in lowered
+    assert "equal parts trainer and user" not in lowered
+    assert "distinctive facial features" not in lowered
     assert "#ffffff" not in lowered
 
 

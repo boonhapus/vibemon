@@ -12,6 +12,7 @@
 		disabled = false,
 		autofocus = false,
 		onSubmit,
+		testId,
 		class: className = ''
 	}: {
 		username?: string;
@@ -20,6 +21,7 @@
 		disabled?: boolean;
 		autofocus?: boolean;
 		onSubmit?: () => void;
+		testId?: string;
 		class?: string;
 	} = $props();
 
@@ -29,12 +31,6 @@
 	let caretIndex = $state(0);
 
 	let slots = $derived(Array.from({ length: maxLength }, (_, index) => username[index] ?? ''));
-
-	function focusInput() {
-		if (!disabled) {
-			inputEl?.focus();
-		}
-	}
 
 	function syncCaret() {
 		const el = inputEl;
@@ -107,7 +103,6 @@
 			class="trainer-name-input__field"
 			class:trainer-name-input__field--focused={focused}
 			aria-hidden="true"
-			onclick={focusInput}
 		>
 			<span class="trainer-name-input__cursor" aria-hidden="true">▶</span>
 			<span class="trainer-name-input__slots" aria-hidden="true">
@@ -126,6 +121,7 @@
 		<input
 			bind:this={inputEl}
 			class="trainer-name-input__native"
+			data-testid={testId}
 			type="text"
 			inputmode="text"
 			autocomplete="nickname"
@@ -183,6 +179,7 @@
 		background: transparent;
 		cursor: text;
 		text-align: left;
+		pointer-events: none;
 	}
 
 	.trainer-name-input__field:has(+ .trainer-name-input__native:disabled) {
@@ -250,6 +247,8 @@
 	}
 
 	.trainer-name-input__native {
+		position: relative;
+		z-index: 1;
 		--trainer-name-cursor-width: var(--vm-hud-font-name-slot);
 		width: 100%;
 		min-height: var(--vm-hud-slot-height);

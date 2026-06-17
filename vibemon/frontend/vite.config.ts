@@ -20,6 +20,16 @@ if (!hasDevCert) {
 export default defineConfig({
 	logLevel: 'warn',
 	plugins: [sveltekit()],
+	// Pre-bundle SSR deps up front so mid-request re-optimization does not
+	// invalidate in-flight browser chunks (throwOutdatedRequest on deps_ssr/*).
+	optimizeDeps: {
+		include: ['svelte', 'suncalc']
+	},
+	ssr: {
+		optimizeDeps: {
+			include: ['svelte', 'suncalc']
+		}
+	},
 	server: {
 		// Bind all interfaces so LAN phones can reach the dev server.
 		host: true,

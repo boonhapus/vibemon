@@ -62,6 +62,7 @@
 					<button
 						type="button"
 						class="hatchling-silhouette__hit"
+						data-testid="hatchling-hatch"
 						aria-label="Hatch a new Vibemon from your selected vibes"
 						onclick={handleHatchClick}
 					></button>

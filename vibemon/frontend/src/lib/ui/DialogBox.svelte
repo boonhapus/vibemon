@@ -12,6 +12,7 @@
 		charDelay = 42,
 		continueDisabled = false,
 		onContinue,
+		continueTestId,
 		class: className = '',
 		children
 	}: {
@@ -21,6 +22,7 @@
 		charDelay?: number;
 		continueDisabled?: boolean;
 		onContinue?: () => void;
+		continueTestId?: string;
 		class?: string;
 		children?: Snippet;
 	} = $props();
@@ -95,6 +97,7 @@
 			role={continueReady ? 'button' : 'status'}
 			aria-live={continueReady ? undefined : 'polite'}
 			aria-label={continueReady ? 'Continue' : text}
+			data-testid={continueReady ? continueTestId : undefined}
 			tabindex={continueReady ? 0 : undefined}
 			onclick={handleContinueClick}
 			onkeydown={handleContinueKeydown}

@@ -17,6 +17,7 @@
 		disabled = false,
 		forceState,
 		ariaLabel,
+		testId,
 		class: className = '',
 		onclick,
 		onpointerdown,
@@ -35,6 +36,7 @@
 		disabled?: boolean;
 		forceState?: 'hover' | 'active' | 'focus';
 		ariaLabel?: string;
+		testId?: string;
 		class?: string;
 		onclick?: (event: MouseEvent) => void;
 		onpointerdown?: (event: PointerEvent) => void;
@@ -70,6 +72,7 @@
 	{disabled}
 	aria-label={ariaLabel}
 	aria-pressed={selected || undefined}
+	data-testid={testId}
 >
 	<span class="game-button__face">
 		<span class="game-button__cursor" aria-hidden="true">▶</span>

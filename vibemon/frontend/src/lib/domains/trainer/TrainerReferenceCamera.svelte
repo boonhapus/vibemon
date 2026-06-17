@@ -1,6 +1,8 @@
 <script lang="ts">
 	import { browser } from '$app/environment';
 
+	import FreeFormButton from '$lib/ui/FreeFormButton.svelte';
+	import PixelIcon from '$lib/ui/PixelIcon.svelte';
 	import { showGameToast } from '$lib/ui/toastStore.svelte';
 
 	import { uploadTrainerReference } from './trainerApi';
@@ -13,6 +15,7 @@
 		hovered = $bindable(false),
 		disabled = false,
 		deferUpload = false,
+		allowReroll = false,
 		uploadReference,
 		onReferenceUrl,
 		onFileSelected
@@ -21,6 +24,8 @@
 		disabled?: boolean;
 		/** Hold the likeness locally until a trainer session exists. */
 		deferUpload?: boolean;
+		/** Offer a re-roll button that regenerates from the last uploaded likeness. */
+		allowReroll?: boolean;
 		/** Custom upload path (e.g. register session before GenAI reference generation). */
 		uploadReference?: (file: File) => Promise<string | null>;
 		onReferenceUrl?: (referenceUrl: string) => void;
@@ -32,6 +37,9 @@
 	let pointerOver = $state(false);
 	let pickingFile = $state(false);
 	let uploading = $state(false);
+	let lastFile = $state<File | null>(null);
+
+	let canReroll = $derived(allowReroll && !deferUpload && lastFile !== null && !disabled && !uploading);
 
 	function showHint() {
 		hovered = true;
@@ -85,6 +93,7 @@
 			if (uploadReference) {
 				const referenceUrl = await uploadReference(file);
 				if (referenceUrl) {
+					lastFile = file;
 					onReferenceUrl?.(referenceUrl);
 				}
 				return;
@@ -92,6 +101,7 @@
 
 			const result = await uploadTrainerReference(file);
 			if (result.status === 'ok' && result.session.reference_url) {
+				lastFile = file;
 				onReferenceUrl?.(result.session.reference_url);
 				return;
 			}
@@ -104,6 +114,11 @@
 			uploading = false;
 			syncHintToPointer();
 		}
+	}
+
+	async function rerollReference() {
+		if (!lastFile || uploading || disabled) return;
+		await uploadImmediately(lastFile);
 	}
 
 	function stageLocally(file: File) {
@@ -163,6 +178,25 @@
 >
 	<img class="trainer-reference-camera__icon" src={CAMERA_SPRITE} alt="" decoding="async" />
 </button>
+
+{#if canReroll}
+	<FreeFormButton
+		class="trainer-reference-reroll"
+		ariaLabel="Re-roll Trainer look"
+		disabled={!canReroll}
+		onclick={rerollReference}
+		onmouseenter={showHint}
+		onmouseleave={handlePointerLeave}
+		onfocus={showHint}
+		onblur={() => {
+			if (!pickingFile && !uploading) {
+				syncHintToPointer();
+			}
+		}}
+	>
+		<PixelIcon name="refresh" class="vm-icon--raised trainer-reference-reroll__icon" />
+	</FreeFormButton>
+{/if}
 
 <input
 	bind:this={fileInput}
@@ -225,5 +259,46 @@
 		clip: rect(0, 0, 0, 0);
 		white-space: nowrap;
 		border: 0;
+	}
+
+	:global(.trainer-reference-reroll) {
+		position: absolute;
+		bottom: -6%;
+		right: -5%;
+		z-index: 2;
+		display: grid;
+		place-items: center;
+		width: clamp(2.25rem, 6vw, 2.75rem);
+		height: clamp(2.25rem, 6vw, 2.75rem);
+		padding: 0;
+		color: currentColor;
+	}
+
+	:global(.trainer-reference-reroll:hover:not(:disabled)),
+	:global(.trainer-reference-reroll:focus-visible:not(:disabled)) {
+		animation: trainer-reference-reroll-lift 240ms steps(2, jump-none) forwards;
+	}
+
+	@keyframes trainer-reference-reroll-lift {
+		from {
+			transform: translateY(0);
+		}
+		to {
+			transform: translateY(-3px);
+		}
+	}
+
+	:global(.trainer-reference-reroll__icon) {
+		width: 72%;
+		height: 72%;
+		color: currentColor;
+		transition: color 120ms ease;
+		pointer-events: none;
+		user-select: none;
+	}
+
+	:global(.trainer-reference-reroll:hover:not(:disabled) .trainer-reference-reroll__icon),
+	:global(.trainer-reference-reroll:focus-visible:not(:disabled) .trainer-reference-reroll__icon) {
+		color: var(--vm-plum);
 	}
 </style>

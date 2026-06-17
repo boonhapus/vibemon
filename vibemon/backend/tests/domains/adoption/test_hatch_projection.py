@@ -16,6 +16,7 @@ from app.domains.move.entity import Move
 from app.domains.move.types import MoveCategoryT, VibemonTypeT
 from app.domains.vibemon.assets import AssetKind, SpriteAnchor
 from app.domains.vibemon.identity import BaseStats, Identity
+from app.domains.vibemon.progression.types import GrowthGroupT
 from app.domains.vibemon.schema import (
     PublicAsset,
     PublicVibemon,
@@ -23,7 +24,6 @@ from app.domains.vibemon.schema import (
     TypeDefenseSummary,
     TypeMatchupSummary,
 )
-from app.domains.vibemon.progression.types import GrowthGroupT
 from app.domains.vibemon.types import EvolutionStageT, VibemonLifecycleT
 from app.storage.database import candidate_review_repo, models
 from app.workflows import hatch_candidate_projection

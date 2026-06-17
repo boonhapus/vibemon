@@ -434,7 +434,11 @@
 
 	async function handleModalEnable() {
 		if (!configProviderId) return;
-		await enableProvider(configProviderId);
+		const providerId = configProviderId;
+		await enableProvider(providerId);
+		if (isProviderSelected(hatchSession.providers, providerId)) {
+			providerConfigModalStore.open = false;
+		}
 	}
 
 	function handleModalDisable() {
@@ -577,6 +581,7 @@
 							state={providerVisualState(provider)}
 							fetching={hatchSession.providers.fetchingIds.includes(provider.id)}
 							blocked={candidateReviewActive()}
+							testId={`provider-patch-${provider.id}`}
 							ariaLabel="{provider.label}: {providerDescription(provider)}"
 							onclick={() => handleProviderClick(provider)}
 							onpointerdown={() => handleProviderPointerDown(provider)}

@@ -14,6 +14,7 @@
 		fetching = false,
 		blocked = false,
 		ariaLabel,
+		testId,
 		onclick,
 		onpointerdown,
 		onpointerup,
@@ -31,6 +32,7 @@
 		fetching?: boolean;
 		blocked?: boolean;
 		ariaLabel?: string;
+		testId?: string;
 		onclick?: (event: MouseEvent) => void;
 		onpointerdown?: (event: PointerEvent) => void;
 		onpointerup?: (event: PointerEvent) => void;
@@ -51,6 +53,7 @@
 	class:provider-patch-row--blocked={blocked}
 	aria-label={ariaLabel}
 	aria-pressed={state === 'connected' || undefined}
+	data-testid={testId}
 	{onclick}
 	{onpointerdown}
 	{onpointerup}

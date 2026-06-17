@@ -5,6 +5,7 @@ import {
 	adoptCandidate,
 	fetchAdoptEligibility,
 	fetchCrew,
+	fetchCurrentCandidate,
 	generateCandidate,
 	rejectCandidate,
 	refreshCandidate

@@ -141,7 +141,7 @@ def test_inland_suburban_city_stays_steel_electric() -> None:
     assert filter_element_types(scores) == (VibemonTypeT.STEEL, VibemonTypeT.ELECTRIC)
 
 
-def _biome_payload(**overrides: object) -> "biome_schema.BiomePayload":
+def _biome_payload(**overrides: object) -> biome_schema.BiomePayload:
     from app.providers.biome import schema as biome_schema
 
     data: dict[str, object] = {

@@ -187,7 +187,13 @@
 {#snippet loginBody()}
 	<div class="trainer-login" class:trainer-login--embedded={embedded}>
 		<div class="trainer-login__name">
-			<TrainerNameInput bind:username autofocus onSubmit={attemptContinue} disabled={setupBusy} />
+			<TrainerNameInput
+				bind:username
+				autofocus
+				testId="trainer-login-username"
+				onSubmit={attemptContinue}
+				disabled={setupBusy}
+			/>
 		</div>
 
 		{#if showRegisterOffer}
@@ -211,6 +217,7 @@
 					showCursor
 					typewriter={!confirmedSession}
 					continueDisabled={!canContinue}
+					continueTestId="trainer-login-continue"
 					onContinue={attemptContinue}
 				/>
 			{/if}

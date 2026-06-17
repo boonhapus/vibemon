@@ -151,6 +151,7 @@
 									<FreeFormButton
 										class="provider-config-modal__card provider-config-modal__card--pending provider-config-modal__card--action"
 										ariaLabel="Configure {requirement.label}"
+										testId={requirement.kind === 'geolocation' ? 'provider-config-location' : undefined}
 										onclick={() => handleRequirementAction(requirement)}
 									>
 										<div class="provider-config-modal__card-main">
@@ -226,6 +227,7 @@
 								variant={enabled ? 'secondary' : 'primary'}
 								class="provider-config-modal__action-button provider-config-modal__action-button--primary"
 								ariaLabel={enabled ? 'Disable provider' : 'Enable provider'}
+								testId="provider-config-enable"
 								disabled={enabled ? !canDisable || fetching : !canEnable}
 								onclick={handlePrimaryAction}
 							>

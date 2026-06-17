@@ -155,7 +155,11 @@
 </script>
 
 {#snippet candidatePanel()}
-	<div class="hatch-candidate-panel" class:hatch-candidate-panel--embedded={embedded}>
+	<div
+		class="hatch-candidate-panel"
+		class:hatch-candidate-panel--embedded={embedded}
+		data-testid="hatch-candidate-panel"
+	>
 		{#if !embedded}
 			<div class="hatch-candidate-panel__header">
 				<div class="hatch-candidate-panel__identity">
