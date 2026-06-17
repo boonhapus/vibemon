@@ -32,9 +32,22 @@ _REFERENCE_DIM = 96
 # Canned species names, indexed deterministically by Vibemon id so the same
 # Vibemon always christens to the same name across runs.
 _NAMES = (
-    "Fauxmon", "Mockling", "Stubbeast", "Placeholdra", "Nullkin",
-    "Driftfen", "Emberlite", "Gloamtail", "Pixelle", "Vaporhusk",
-    "Cindermoth", "Brackish", "Tindersnap", "Murklet", "Quartzeon", "Sablefin",
+    "Fauxmon",
+    "Mockling",
+    "Stubbeast",
+    "Placeholdra",
+    "Nullkin",
+    "Driftfen",
+    "Emberlite",
+    "Gloamtail",
+    "Pixelle",
+    "Vaporhusk",
+    "Cindermoth",
+    "Brackish",
+    "Tindersnap",
+    "Murklet",
+    "Quartzeon",
+    "Sablefin",
 )
 
 

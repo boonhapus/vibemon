@@ -21,9 +21,7 @@ class MoveResolver:
             if all(move.pp_current <= 0 for move in use.user.battle_moves):
                 use = use.model_copy(update={"move": _breaking_point_move()})
             else:
-                turn_events.append(
-                    events.MoveFailedEvent(user=use.user.name, move=use.move.name, reason="no_pp")
-                )
+                turn_events.append(events.MoveFailedEvent(user=use.user.name, move=use.move.name, reason="no_pp"))
                 return turn_events
 
         use.move.pp_current -= 1

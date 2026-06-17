@@ -459,7 +459,9 @@ class MusicProvider(VibeProvider[schema.MusicPayload]):
             rarity = min(2.0 * rms, 1.0)  # center deviation maxes at 0.5; scale to [0, 1]
         else:
             rarity = 0.0
-        return round(1.0 / (1.0 + math.exp(-_INTENSITY_DISTANCE_SCALE * (rarity - _INTENSITY_DISTANCE_PIVOT))), ndigits=4)
+        return round(
+            1.0 / (1.0 + math.exp(-_INTENSITY_DISTANCE_SCALE * (rarity - _INTENSITY_DISTANCE_PIVOT))), ndigits=4
+        )
 
     def determine_element_scores(
         self,

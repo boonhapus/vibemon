@@ -128,12 +128,8 @@ async def test_adopt_candidate_swaps_release_when_crew_full(
         nickname="Newcomer",
     )
 
-    released_row = (
-        await sess.execute(sa.select(models.Vibemon).where(models.Vibemon.id == released_id))
-    ).scalar_one()
-    incoming_row = (
-        await sess.execute(sa.select(models.Vibemon).where(models.Vibemon.id == incoming.id))
-    ).scalar_one()
+    released_row = (await sess.execute(sa.select(models.Vibemon).where(models.Vibemon.id == released_id))).scalar_one()
+    incoming_row = (await sess.execute(sa.select(models.Vibemon).where(models.Vibemon.id == incoming.id))).scalar_one()
     owned_count = (
         await sess.execute(
             sa.select(sa.func.count())

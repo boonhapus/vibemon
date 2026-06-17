@@ -164,9 +164,7 @@ def test_intensity_common_biome_sits_on_soft_floor() -> None:
 
 def test_intensity_scarce_cover_and_altitude_are_rare() -> None:
     # High-altitude snow/ice is a scarce cover on rare terrain — base 0.60 + full altitude bonus.
-    intensity = BiomeProvider.calculate_intensity(
-        _biome_payload(land_cover_class="snow_ice", elevation_m=4200.0)
-    )
+    intensity = BiomeProvider.calculate_intensity(_biome_payload(land_cover_class="snow_ice", elevation_m=4200.0))
 
     assert intensity == pytest.approx(0.85)
 

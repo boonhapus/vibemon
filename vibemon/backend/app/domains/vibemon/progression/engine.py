@@ -69,9 +69,7 @@ def learnable_moves(
 ) -> tuple[Move, ...]:
     """Moves newly eligible at ``level`` that the mon does not already know."""
     known = {move.id for move in vibemon.moves}
-    return tuple(
-        move for move in pool if move.level_requirement <= level and move.id not in known
-    )
+    return tuple(move for move in pool if move.level_requirement <= level and move.id not in known)
 
 
 def apply_evolution(vibemon: Vibemon, *, to_stage: EvolutionStageT) -> Vibemon:
