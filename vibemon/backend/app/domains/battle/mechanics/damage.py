@@ -73,7 +73,7 @@ def calc_damage(
     spread: bool = False,
 ) -> events.DamageResult:
     """Calculate damage with the modern ordered integer modifier pipeline."""
-    if move.category == MoveCategoryT.STATUS or move.power is None:
+    if not move.deals_damage:
         return events.DamageResult(
             damage=0,
             is_crit=False,

@@ -230,7 +230,7 @@ async def _simulate(
             rng_seed=rng_seed,
         )
         battle_id = uuid.uuid7()
-        progression = await battle_play.finish_concluded_battle(
+        progression = await battle_play.finish_battle(
             sess,
             battle=battle_engine.battle,
             battle_id=battle_id,

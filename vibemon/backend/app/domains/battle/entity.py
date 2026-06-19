@@ -2,6 +2,7 @@ from typing import Any, Self, cast
 
 import pydantic
 
+from app.core.ids import TrainerIdT
 from app.core.schema import Schema
 from app.domains.battle import actions as action_models
 from app.domains.battle import events as event_models
@@ -117,10 +118,11 @@ class Battle(Schema):
     turn_number: int = 1
     turn_history: list[TurnRecord] = pydantic.Field(default_factory=list)
     winner: BattleTrainer | None = None
+    fled_trainer_id: TrainerIdT | None = None
 
     @property
     def concluded(self) -> bool:
-        return self.winner is not None
+        return self.winner is not None or self.fled_trainer_id is not None
 
     def to_json(self) -> dict[str, Any]:
         return self.model_dump(mode="json")

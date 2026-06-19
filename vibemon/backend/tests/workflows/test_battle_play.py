@@ -3,6 +3,7 @@
 import datetime as dt
 import uuid
 
+from sqlalchemy.ext.asyncio import AsyncSession
 import pytest
 
 from app.domains.move.entity import EffectGroup, MoveBehavior
@@ -35,7 +36,7 @@ def _move_row(*, content_id: str, name: str, power: int = 120) -> models.Move:
 
 
 @pytest.mark.asyncio
-async def test_start_wild_battle_and_turn(sess, test_trainer) -> None:
+async def test_start_wild_battle_and_turn(sess: AsyncSession, test_trainer: uuid.UUID) -> None:
     now = dt.datetime(2026, 5, 19, 12, 0, tzinfo=dt.UTC)
     hero_id = uuid.uuid7()
     wild_id = uuid.uuid7()

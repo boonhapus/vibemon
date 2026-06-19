@@ -270,7 +270,7 @@ def _choose_move(
     if policy == "random":
         return rng.choice(usable)
 
-    damaging = [move for move in usable if move.power is not None and move.category != move_types.MoveCategoryT.STATUS]
+    damaging = [move for move in usable if move.deals_damage]
     if policy == "stab_first":
         stab = [move for move in damaging if move.type in user.elements]
         if stab:
@@ -297,7 +297,7 @@ def _estimated_damage_score(
     target: battle_entity.BattleVibemon,
     move: battle_entity.BattleMove | None,
 ) -> float:
-    if move is None or move.power is None or move.category == move_types.MoveCategoryT.STATUS:
+    if move is None or not move.deals_damage:
         return 0.0
 
     if move.category == move_types.MoveCategoryT.PHYSICAL:

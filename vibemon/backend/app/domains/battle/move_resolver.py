@@ -33,17 +33,35 @@ class MoveResolver:
             turn_events.append(events.MoveFailedEvent(user=use.user.name, move=use.move.name, reason="no_targets"))
             return turn_events
 
+        # `on_use` fires once when the move is used, independent of target topology
+        # (self-buffs, field setters, etc.), so it must run for non-FIELD moves too.
+        turn_events.extend(self._collect_effect_events(ctx, use, use.user, "on_use"))
+
         for target in targets:
             hit_events, hit = self._resolve_hit(ctx, use, target, spread=len(targets) > 1)
             turn_events.extend(hit_events)
             if hit.hit:
-                effects.apply_effects_for_trigger(ctx, use, target, "on_hit", damage_dealt=hit.damage)
-                effects.apply_effects_for_trigger(ctx, use, target, "after_damage", damage_dealt=hit.damage)
-
-        if use.move.target == MoveTargetT.FIELD:
-            effects.apply_effects_for_trigger(ctx, use, use.user, "on_use")
+                turn_events.extend(self._collect_effect_events(ctx, use, target, "on_hit", damage_dealt=hit.damage))
+                turn_events.extend(
+                    self._collect_effect_events(ctx, use, target, "after_damage", damage_dealt=hit.damage)
+                )
 
         return turn_events
+
+    def _collect_effect_events(
+        self,
+        ctx: turn.Turn,
+        use: turn.MoveUse,
+        target: entity.BattleVibemon,
+        trigger: str,
+        *,
+        damage_dealt: int = 0,
+    ) -> list[events.TurnEvent]:
+        start = len(ctx.events)
+        effects.apply_effects_for_trigger(ctx, use, target, trigger, damage_dealt=damage_dealt)
+        collected = ctx.events[start:]
+        del ctx.events[start:]
+        return collected
 
     def _resolve_hit(
         self,
@@ -59,7 +77,7 @@ class MoveResolver:
                 turn.HitResult(use=use, target=target, hit=False),
             )
 
-        if use.move.category == MoveCategoryT.STATUS or use.move.power is None:
+        if not use.move.deals_damage:
             return ([], turn.HitResult(use=use, target=target, damage=0, hit=True))
 
         result = damage.calc_damage(ctx, use.user, target, use.move, spread=spread)
@@ -94,7 +112,10 @@ def _breaking_point_move() -> entity.BattleMove:
     return entity.BattleMove(
         id=_BREAKING_POINT_ID,
         name="Breaking Point",
-        flavor_text="A desperate all-out strike used when no moves have PP remaining; the user takes minor recoil.",
+        flavor_text=(
+            "A last reckless blow when every other move is spent. "
+            "The recoil catches up right away."
+        ),
         type=VibemonTypeT.NORMAL,
         category=MoveCategoryT.PHYSICAL,
         power=50,
@@ -108,6 +129,7 @@ def _breaking_point_move() -> entity.BattleMove:
                     {
                         "kind": "recoil",
                         "ratio": 0.25,
+                        "basis": "max_hp",
                     },
                 ),
             },

@@ -139,6 +139,13 @@ class WeatherSetEvent(FrozenSchema):
     turns: int
 
 
+class FledEvent(FrozenSchema):
+    """A trainer fled the battle."""
+
+    kind: Literal["fled"] = "fled"
+    trainer_id: str
+
+
 type TurnEvent = Annotated[
     MoveUsedEvent
     | MoveMissedEvent
@@ -150,6 +157,7 @@ type TurnEvent = Annotated[
     | StatusMessageEvent
     | StatChangeEvent
     | HealEvent
-    | WeatherSetEvent,
+    | WeatherSetEvent
+    | FledEvent,
     pydantic.Discriminator("kind"),
 ]

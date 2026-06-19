@@ -1,12 +1,15 @@
 """HTTP tests for crew listing facing data and crew reorder."""
 
+from collections.abc import AsyncGenerator
 import io
 import uuid
 
+from litestar import Litestar
 from litestar.testing import AsyncTestClient
 from PIL import Image
 import pytest
 
+from app.domains.sprite import types as sprite_types
 from app.genai import vibemon_assets as genai_assets
 from app.http.app import create_app
 from app.storage.blob.monstore import get_default_monstore
@@ -14,12 +17,12 @@ from tests.providers.fake_provider import WorkflowFakeProvider as FakeProvider
 
 
 @pytest.fixture
-def http_app():
+def http_app() -> Litestar:
     return create_app()
 
 
 @pytest.fixture
-async def client(http_app):
+async def client(http_app: Litestar) -> AsyncGenerator[AsyncTestClient[Litestar]]:
     async with AsyncTestClient(app=http_app) as test_client:
         yield test_client
 
@@ -31,26 +34,24 @@ def _png_bytes() -> bytes:
 
 
 class _FakeAssetGenerator:
-    async def detect_trainer_reference_facing(self, reference_png: bytes):
-        from app.domains.sprite import types as sprite_types
-
+    async def detect_trainer_reference_facing(self, reference_png: bytes) -> sprite_types.SpriteFacing:
         return sprite_types.SpriteFacing.RIGHT
 
-    async def detect_vibemon_reference_facing(self, reference_png: bytes, *, vibemon_name: str):
-        from app.domains.sprite import types as sprite_types
-
+    async def detect_vibemon_reference_facing(
+        self, reference_png: bytes, *, vibemon_name: str
+    ) -> sprite_types.SpriteFacing:
         return sprite_types.SpriteFacing.RIGHT
 
-    async def generate_name(self, identity, moves):
+    async def generate_name(self, identity: object, moves: object) -> str:
         return "Testling"
 
-    async def generate_reference_image(self, vibemon):
+    async def generate_reference_image(self, vibemon: object) -> bytes:
         return _png_bytes()
 
-    async def generate_battle_cry_audio(self, vibemon):
+    async def generate_battle_cry_audio(self, vibemon: object) -> bytes:
         return b"mp3"
 
-    async def generate_sprite_sheet_image(self, vibemon, reference_image: bytes):
+    async def generate_sprite_sheet_image(self, vibemon: object, reference_image: bytes) -> bytes:
         return _png_bytes()
 
 
@@ -68,13 +69,13 @@ def fake_provider(monkeypatch: pytest.MonkeyPatch) -> None:
     )
 
 
-async def _register(client: AsyncTestClient, username: str = "Rotator") -> str:
+async def _register(client: AsyncTestClient[Litestar], username: str = "Rotator") -> str:
     response = await client.post("/api/trainers/register", json={"username": username})
     assert response.status_code == 201
     return response.json()["id"]
 
 
-async def _adopt_crew(client: AsyncTestClient, count: int) -> list[str]:
+async def _adopt_crew(client: AsyncTestClient[Litestar], count: int) -> list[str]:
     ids: list[str] = []
     for index in range(count):
         generated = await client.post(
@@ -89,7 +90,7 @@ async def _adopt_crew(client: AsyncTestClient, count: int) -> list[str]:
     return ids
 
 
-async def test_crew_member_exposes_reference_detected_facing(client: AsyncTestClient) -> None:
+async def test_crew_member_exposes_reference_detected_facing(client: AsyncTestClient[Litestar]) -> None:
     await _register(client)
     await _adopt_crew(client, 1)
 
@@ -98,9 +99,12 @@ async def test_crew_member_exposes_reference_detected_facing(client: AsyncTestCl
     members = crew.json()["members"]
     assert len(members) == 1
     assert members[0]["reference_detected_facing"] == "RIGHT"
+    assert members[0]["xp"] >= 0
+    assert members[0]["xp_to_next"] >= 0
+    assert 0.0 <= members[0]["xp_bar_ratio"] <= 1.0
 
 
-async def test_reorder_crew_requires_session(client: AsyncTestClient) -> None:
+async def test_reorder_crew_requires_session(client: AsyncTestClient[Litestar]) -> None:
     response = await client.put(
         "/api/trainers/crew/order",
         json={"members": [{"id": str(uuid.uuid4()), "crew_slot": 0}]},
@@ -108,7 +112,7 @@ async def test_reorder_crew_requires_session(client: AsyncTestClient) -> None:
     assert response.status_code == 401
 
 
-async def test_reorder_crew_rotates_slots(client: AsyncTestClient) -> None:
+async def test_reorder_crew_rotates_slots(client: AsyncTestClient[Litestar]) -> None:
     await _register(client)
     ids = await _adopt_crew(client, 3)
 
@@ -131,7 +135,7 @@ async def test_reorder_crew_rotates_slots(client: AsyncTestClient) -> None:
     assert [member["id"] for member in crew.json()["members"]] == [ids[1], ids[2], ids[0]]
 
 
-async def test_reorder_crew_rejects_partial_order(client: AsyncTestClient) -> None:
+async def test_reorder_crew_rejects_partial_order(client: AsyncTestClient[Litestar]) -> None:
     await _register(client)
     ids = await _adopt_crew(client, 2)
 
@@ -146,7 +150,7 @@ async def test_reorder_crew_rejects_partial_order(client: AsyncTestClient) -> No
     assert [member["id"] for member in crew.json()["members"]] == ids
 
 
-async def test_reorder_crew_rejects_duplicate_slots(client: AsyncTestClient) -> None:
+async def test_reorder_crew_rejects_duplicate_slots(client: AsyncTestClient[Litestar]) -> None:
     await _register(client)
     ids = await _adopt_crew(client, 2)
 
@@ -162,7 +166,7 @@ async def test_reorder_crew_rejects_duplicate_slots(client: AsyncTestClient) -> 
     assert response.status_code == 400
 
 
-async def test_reorder_crew_rejects_out_of_range_slot(client: AsyncTestClient) -> None:
+async def test_reorder_crew_rejects_out_of_range_slot(client: AsyncTestClient[Litestar]) -> None:
     await _register(client)
     ids = await _adopt_crew(client, 1)
 
@@ -173,7 +177,7 @@ async def test_reorder_crew_rejects_out_of_range_slot(client: AsyncTestClient) -
     assert response.status_code == 400
 
 
-async def test_reorder_crew_rejects_foreign_vibemon(client: AsyncTestClient) -> None:
+async def test_reorder_crew_rejects_foreign_vibemon(client: AsyncTestClient[Litestar]) -> None:
     await _register(client)
     ids = await _adopt_crew(client, 1)
 

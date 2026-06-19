@@ -165,7 +165,7 @@ async def _run(
     }
     if persist_xp:
         battle_id = uuid.uuid7()
-        progression = await battle_play.finish_concluded_battle(
+        progression = await battle_play.finish_battle(
             sess,
             battle=game_engine.battle,
             battle_id=battle_id,

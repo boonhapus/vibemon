@@ -10,7 +10,7 @@ from app.domains.move.entity import (
     StatusInflict,
     WeatherSet,
 )
-from app.domains.move.types import StatStageNameT, StatusConditionT
+from app.domains.move.types import StatusConditionT
 
 
 def _resolve_effect_target(
@@ -50,15 +50,22 @@ def apply_effect_group(
                         )
             case StatChange():
                 for recipient in _resolve_effect_target(effect.target, use, target):
-                    applied: dict[StatStageNameT, int] = {}
+                    if recipient.current_hp <= 0:
+                        continue
                     for stat_name, change in effect.changes.items():
-                        if hasattr(recipient.stat_stages, stat_name):
-                            current = getattr(recipient.stat_stages, stat_name)
-                            setattr(recipient.stat_stages, stat_name, stats.clamp_stage(current + change))
-                            applied[stat_name] = change
-                    if applied:
+                        if not hasattr(recipient.stat_stages, stat_name):
+                            continue
+                        current = getattr(recipient.stat_stages, stat_name)
+                        updated = stats.clamp_stage(current + change)
+                        if updated == current:
+                            continue
+                        setattr(recipient.stat_stages, stat_name, updated)
                         ctx.events.append(
-                            events.StatChangeEvent(source=use.user.name, target=recipient.name, changes=applied)
+                            events.StatChangeEvent(
+                                source=use.user.name,
+                                target=recipient.name,
+                                changes={stat_name: updated - current},
+                            )
                         )
             case Drain():
                 if damage_dealt > 0:
@@ -69,6 +76,19 @@ def apply_effect_group(
                             source=use.user.name, target=use.user.name, amount=amount, hp_after=use.user.current_hp
                         )
                     )
+            case Recoil(basis="max_hp"):
+                amount = max(1, int(use.user.max_hp * effect.ratio))
+                use.user.current_hp = max(0, use.user.current_hp - amount)
+                ctx.events.append(
+                    events.DamageEvent(
+                        source=use.user.name,
+                        target=use.user.name,
+                        amount=amount,
+                        hp_after=use.user.current_hp,
+                        is_crit=False,
+                        effectiveness=1.0,
+                    )
+                )
             case Recoil():
                 if damage_dealt > 0:
                     amount = max(1, int(damage_dealt * effect.ratio))

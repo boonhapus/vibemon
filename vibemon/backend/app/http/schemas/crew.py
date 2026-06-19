@@ -6,6 +6,7 @@ from app.core.schema import Schema
 from app.domains.adoption import hatch_projection
 from app.domains.vibemon import assets as vibemon_assets
 from app.domains.vibemon import entity as vibemon_entity
+from app.domains.vibemon.progression import formulas as progression_formulas
 from app.domains.vibemon.schema import PublicVibemon
 
 
@@ -16,6 +17,9 @@ class CrewMemberRead(Schema):
     level: int
     current_hp: int
     max_hp: int
+    xp: int
+    xp_to_next: int
+    xp_bar_ratio: float
     crew_slot: int
     sprite_url: str | None = None
     reference_detected_facing: str | None = None
@@ -65,6 +69,17 @@ def crew_member_read(vibemon: PublicVibemon, *, reference_detected_facing: str |
         level=vibemon.level,
         current_hp=battle.hp,
         max_hp=battle.hp,
+        xp=vibemon.xp,
+        xp_to_next=progression_formulas.xp_to_next_level(
+            level=vibemon.level,
+            xp=vibemon.xp,
+            growth_rate=vibemon.growth_rate,
+        ),
+        xp_bar_ratio=progression_formulas.xp_bar_ratio(
+            level=vibemon.level,
+            xp=vibemon.xp,
+            growth_rate=vibemon.growth_rate,
+        ),
         crew_slot=slot,
         sprite_url=sprite_url,
         reference_detected_facing=reference_detected_facing,
