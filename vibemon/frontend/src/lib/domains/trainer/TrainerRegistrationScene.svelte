@@ -35,7 +35,7 @@
 	} = $props();
 
 	const onboardingUi = getContext<TrainerOnboardingUi | undefined>(ONBOARDING_UI_KEY);
-	let username = $state(initialUsername.trim());
+	let username = $derived(initialUsername?.trim() ?? '');
 	let referenceHintVisible = $state(false);
 	let referenceSpriteSrc = $state('/game/sprites/trainer@128.png');
 	let pendingReferenceFile = $state<File | null>(null);

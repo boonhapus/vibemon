@@ -6,6 +6,7 @@ import datetime as dt
 
 from litestar import Router, get, post
 from litestar.connection import Request
+from litestar.datastructures import State
 from litestar.exceptions import HTTPException, NotFoundException
 from litestar.params import Parameter
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -41,7 +42,7 @@ async def list_providers() -> provider_schemas.ProviderCatalogListRead:
 
 @get("/status")
 async def provider_status(
-    request: Request,
+    request: Request[object, object, State],
     db: AsyncSession,
     latitude: Annotated[float | None, Parameter(query="latitude")] = None,
     longitude: Annotated[float | None, Parameter(query="longitude")] = None,
@@ -73,7 +74,7 @@ async def provider_status(
 @post("/{provider_id:str}/prefetch")
 async def prefetch_provider(
     provider_id: str,
-    request: Request,
+    request: Request[object, object, State],
     data: provider_schemas.ProviderPrefetchBody,
     db: AsyncSession,
 ) -> provider_schemas.ProviderPrefetchRead:

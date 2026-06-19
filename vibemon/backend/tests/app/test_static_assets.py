@@ -125,7 +125,7 @@ def test_sort_for_generation_puts_reference_icons_last(tmp_path: pathlib.Path) -
 def test_resolve_reference_bytes_prefers_generated_cache(tmp_path: pathlib.Path) -> None:
     output_dir = tmp_path / "out"
     output_dir.mkdir()
-    cached = {b"cached-bytes"}
+    cached = b"cached-bytes"
     resolved = static_assets.resolve_reference_bytes(
         "static/game/sprites/deck.png",
         output_dir=output_dir,

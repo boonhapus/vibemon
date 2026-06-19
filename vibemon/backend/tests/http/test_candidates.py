@@ -1,12 +1,15 @@
 """HTTP tests for candidate generation and review routes."""
 
+from collections.abc import AsyncGenerator
 import io
 
+from litestar import Litestar
 from litestar.testing import AsyncTestClient
 from PIL import Image
 import pytest
 
 from app.core.errors import InterfaceErrorCode
+from app.domains.sprite import types as sprite_types
 from app.domains.trainer import credits
 from app.genai import vibemon_assets as genai_assets
 from app.http.app import create_app
@@ -15,12 +18,12 @@ from tests.providers.fake_provider import WorkflowFakeProvider as FakeProvider
 
 
 @pytest.fixture
-def http_app():
+def http_app() -> Litestar:
     return create_app()
 
 
 @pytest.fixture
-async def client(http_app):
+async def client(http_app: Litestar) -> AsyncGenerator[AsyncTestClient[Litestar]]:
     async with AsyncTestClient(app=http_app) as test_client:
         yield test_client
 
@@ -32,32 +35,30 @@ def _png_bytes() -> bytes:
 
 
 class _FakeAssetGenerator:
-    facing_calls = 0
+    facing_calls: int = 0
 
-    async def detect_trainer_reference_facing(self, reference_png: bytes):
-        from app.domains.sprite import types as sprite_types
-
+    async def detect_trainer_reference_facing(self, reference_png: bytes) -> sprite_types.SpriteFacing:
         type(self).facing_calls += 1
         assert reference_png
         return sprite_types.SpriteFacing.RIGHT
 
-    async def detect_vibemon_reference_facing(self, reference_png: bytes, *, vibemon_name: str):
-        from app.domains.sprite import types as sprite_types
-
+    async def detect_vibemon_reference_facing(
+        self, reference_png: bytes, *, vibemon_name: str
+    ) -> sprite_types.SpriteFacing:
         type(self).facing_calls += 1
         assert reference_png
         return sprite_types.SpriteFacing.RIGHT
 
-    async def generate_name(self, identity, moves):
+    async def generate_name(self, identity: object, moves: object) -> str:
         return "Testling"
 
-    async def generate_reference_image(self, vibemon):
+    async def generate_reference_image(self, vibemon: object) -> bytes:
         return _png_bytes()
 
-    async def generate_battle_cry_audio(self, vibemon):
+    async def generate_battle_cry_audio(self, vibemon: object) -> bytes:
         return b"mp3"
 
-    async def generate_sprite_sheet_image(self, vibemon, reference_image: bytes):
+    async def generate_sprite_sheet_image(self, vibemon: object, reference_image: bytes) -> bytes:
         return _png_bytes()
 
 
@@ -76,13 +77,13 @@ def fake_provider(monkeypatch: pytest.MonkeyPatch) -> None:
     )
 
 
-async def _register(client: AsyncTestClient, username: str = "Hatcher") -> str:
+async def _register(client: AsyncTestClient[Litestar], username: str = "Hatcher") -> str:
     response = await client.post("/api/trainers/register", json={"username": username})
     assert response.status_code == 201
     return response.json()["id"]
 
 
-async def test_generate_candidate_requires_session(client: AsyncTestClient) -> None:
+async def test_generate_candidate_requires_session(client: AsyncTestClient[Litestar]) -> None:
     response = await client.post(
         "/api/candidates/generate",
         json={"providers": ["climate"], "latitude": 41.88, "longitude": -87.63},
@@ -90,7 +91,7 @@ async def test_generate_candidate_requires_session(client: AsyncTestClient) -> N
     assert response.status_code == 401
 
 
-async def test_generate_and_adopt_candidate(client: AsyncTestClient) -> None:
+async def test_generate_and_adopt_candidate(client: AsyncTestClient[Litestar]) -> None:
     trainer_id = await _register(client)
 
     generated = await client.post(
@@ -139,7 +140,7 @@ async def test_generate_and_adopt_candidate(client: AsyncTestClient) -> None:
     assert me.json()["id"] == trainer_id
 
 
-async def test_reject_candidate_blocked_for_first_vibemon(client: AsyncTestClient) -> None:
+async def test_reject_candidate_blocked_for_first_vibemon(client: AsyncTestClient[Litestar]) -> None:
     await _register(client)
     generated = await client.post(
         "/api/candidates/generate",
@@ -152,7 +153,7 @@ async def test_reject_candidate_blocked_for_first_vibemon(client: AsyncTestClien
     assert rejected.json()["code"] == InterfaceErrorCode.CANDIDATE_REVIEW_UNAVAILABLE.value
 
 
-async def test_reject_candidate_allowed_with_one_crew_member(client: AsyncTestClient) -> None:
+async def test_reject_candidate_allowed_with_one_crew_member(client: AsyncTestClient[Litestar]) -> None:
     await _register(client)
     first = await client.post(
         "/api/candidates/generate",
@@ -176,7 +177,7 @@ async def test_reject_candidate_allowed_with_one_crew_member(client: AsyncTestCl
     assert len(crew.json()["members"]) == 1
 
 
-async def test_refresh_candidate_redraws_reference(client: AsyncTestClient) -> None:
+async def test_refresh_candidate_redraws_reference(client: AsyncTestClient[Litestar]) -> None:
     await _register(client)
     generated = await client.post(
         "/api/candidates/generate",
@@ -189,7 +190,7 @@ async def test_refresh_candidate_redraws_reference(client: AsyncTestClient) -> N
     assert refreshed.json()["candidate"]["reference_url"] is not None
 
 
-async def _generate_and_adopt(client: AsyncTestClient, *, nickname: str, bypass: bool = False) -> str:
+async def _generate_and_adopt(client: AsyncTestClient[Litestar], *, nickname: str, bypass: bool = False) -> str:
     query = "?bypass-credits=true" if bypass else ""
     generated = await client.post(
         f"/api/candidates/generate{query}",
@@ -202,7 +203,7 @@ async def _generate_and_adopt(client: AsyncTestClient, *, nickname: str, bypass:
     return vibemon_id
 
 
-async def test_adopt_candidate_swaps_when_crew_full(client: AsyncTestClient) -> None:
+async def test_adopt_candidate_swaps_when_crew_full(client: AsyncTestClient[Litestar]) -> None:
     await _register(client)
     owned_ids: list[str] = []
     for index in range(3):
@@ -233,7 +234,7 @@ async def test_adopt_candidate_swaps_when_crew_full(client: AsyncTestClient) -> 
     assert all(member["id"] != released_id for member in members)
 
 
-async def test_generate_candidate_bypass_credits_skips_daily_limit(client: AsyncTestClient) -> None:
+async def test_generate_candidate_bypass_credits_skips_daily_limit(client: AsyncTestClient[Litestar]) -> None:
     await _register(client)
     for index in range(credits.DAILY_GENERATION_CREDITS):
         await _generate_and_adopt(client, nickname=f"Keeper{index}")
@@ -253,7 +254,7 @@ async def test_generate_candidate_bypass_credits_skips_daily_limit(client: Async
 
 
 async def test_generate_candidate_bypass_credits_rejected_in_prod(
-    client: AsyncTestClient,
+    client: AsyncTestClient[Litestar],
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     from app.settings import Settings

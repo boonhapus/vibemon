@@ -4,6 +4,7 @@ from __future__ import annotations
 
 from collections.abc import Callable
 from pathlib import Path
+from typing import Any, cast
 import argparse
 import atexit
 import contextlib
@@ -90,8 +91,8 @@ if sys.platform == "win32":
             raise OSError("SetInformationJobObject failed")
         return job
 
-    def _assign_to_job(job: int, process: subprocess.Popen[object]) -> None:
-        if not _kernel32.AssignProcessToJobObject(job, process._handle):
+    def _assign_to_job(job: int, process: subprocess.Popen[bytes]) -> None:
+        if not _kernel32.AssignProcessToJobObject(job, cast(Any, process)._handle):
             raise OSError("AssignProcessToJobObject failed")
 
     def _close_job(job: int) -> None:
@@ -126,14 +127,14 @@ def _spawn(
     *,
     cwd: Path,
     job: int | None = None,
-) -> subprocess.Popen[object]:
+) -> subprocess.Popen[bytes]:
     """Start a child process; on Windows keep it out of the console Ctrl+C group."""
     resolved = _resolve_command(command)
     kwargs: dict[str, object] = {}
     if sys.platform == "win32":
         # Ctrl+C should stop dev_stack only; we tear down children explicitly.
         kwargs["creationflags"] = subprocess.CREATE_NEW_PROCESS_GROUP | _CREATE_BREAKAWAY_FROM_JOB
-    process = subprocess.Popen(
+    process = subprocess.Popen(  # pyrefly: ignore
         resolved,
         cwd=cwd,
         env=os.environ.copy(),
@@ -212,7 +213,7 @@ def _unix_ipv4_addresses() -> set[str]:
         for part in parts:
             if "/" not in part or part.startswith("inet"):
                 continue
-            ip = part.split("/", 1)[0]
+            ip: str = part.split("/", 1)[0]
             if not ip.startswith("127."):
                 found.add(ip)
     return found
@@ -227,7 +228,7 @@ def _discover_ipv4_addresses() -> list[str]:
 
     try:
         for info in socket.getaddrinfo(socket.gethostname(), None, socket.AF_INET, socket.SOCK_STREAM):
-            ip = info[4][0]
+            ip = str(info[4][0])
             if not ip.startswith("127."):
                 found.add(ip)
     except OSError:
@@ -277,7 +278,7 @@ def _wait_for_ready(
     *,
     backend_host: str,
     backend_port: int,
-    processes: list[subprocess.Popen[object]],
+    processes: list[subprocess.Popen[bytes]],
     stop_requested: Callable[[], bool],
 ) -> int | None:
     """Return a child exit code when a server dies before becoming ready."""
@@ -315,7 +316,7 @@ def _wait_for_ready(
     return None
 
 
-def _kill_process_tree(process: subprocess.Popen[object]) -> None:
+def _kill_process_tree(process: subprocess.Popen[bytes]) -> None:
     if process.poll() is not None:
         return
 
@@ -327,17 +328,23 @@ def _kill_process_tree(process: subprocess.Popen[object]) -> None:
         )
         return
 
-    try:
-        os.killpg(os.getpgid(process.pid), signal.SIGTERM)
-    except ProcessLookupError, PermissionError, OSError:
+    if hasattr(os, "killpg"):
+        try:
+            os.killpg(os.getpgid(process.pid), signal.SIGTERM)  # pyrefly: ignore
+        except ProcessLookupError, PermissionError, OSError:
+            process.terminate()
+    else:
         process.terminate()
 
     try:
         process.wait(timeout=5)
     except subprocess.TimeoutExpired:
-        try:
-            os.killpg(os.getpgid(process.pid), signal.SIGKILL)
-        except ProcessLookupError, PermissionError, OSError:
+        if hasattr(os, "killpg"):
+            try:
+                os.killpg(os.getpgid(process.pid), signal.SIGKILL)  # pyrefly: ignore
+            except ProcessLookupError, PermissionError, OSError:
+                process.kill()
+        else:
             process.kill()
 
 

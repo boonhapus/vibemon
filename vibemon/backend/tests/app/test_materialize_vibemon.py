@@ -1,3 +1,4 @@
+from collections.abc import Sequence
 from typing import TYPE_CHECKING
 import io
 import uuid
@@ -22,7 +23,7 @@ class FakeVibemonAssetGenerator:
     def __init__(self) -> None:
         self.sheet_reference_image: bytes | None = None
 
-    async def generate_name(self, identity: Identity, moves: list[Move]) -> str:
+    async def generate_name(self, identity: Identity, moves: Sequence[Move]) -> str:
         return "Testling"
 
     async def generate_reference_image(self, vibemon: Vibemon) -> bytes:

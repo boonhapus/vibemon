@@ -48,7 +48,9 @@ def test_sprite_reference_prompt_uses_goldilocks_style_without_pokemon_language(
     assert "body shading only" in lowered
     # Chroma-key direction must carry hex + name + saturation intent so the model
     # paints the true key instead of a muted slate the matte solver can't separate.
-    matte = _prompt_vibemon().aesthetic.background_color
+    vibemon = _prompt_vibemon()
+    assert vibemon.aesthetic is not None
+    matte = vibemon.aesthetic.background_color
     assert matte.hex in rendered.text
     assert matte.name in rendered.text
     assert "chroma-key" in lowered

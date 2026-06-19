@@ -18,7 +18,7 @@ describe('hatchSession guards', () => {
 	it('blocks generate while a candidate is on screen', () => {
 		const state = createHatchSession({
 			candidate: { id: '1' } as never,
-			providers: { selectedIds: ['music'] }
+			providers: createProviderSelectionState({ selectedIds: ['music'] })
 		});
 		expect(canGenerate(state, blockers)).toBe(false);
 	});

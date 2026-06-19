@@ -1,3 +1,4 @@
+from sqlalchemy.ext.asyncio import AsyncSession
 import pytest
 import sqlalchemy as sa
 
@@ -14,7 +15,7 @@ from app.storage.database import models
 
 
 @pytest.mark.asyncio
-async def test_seed_canonical_trainer_writes_trainer_row_and_monstore_blob(sess) -> None:
+async def test_seed_canonical_trainer_writes_trainer_row_and_monstore_blob(sess: AsyncSession) -> None:
     monstore = MonStore("memory://")
     raw_bytes = load_canonical_trainer_raw_png()
     display_bytes = load_canonical_trainer_display_png()
@@ -53,7 +54,7 @@ async def test_seed_canonical_trainer_writes_trainer_row_and_monstore_blob(sess)
 
 
 @pytest.mark.asyncio
-async def test_seed_canonical_trainer_is_idempotent(sess) -> None:
+async def test_seed_canonical_trainer_is_idempotent(sess: AsyncSession) -> None:
     monstore = MonStore("memory://")
 
     assert await seed_canonical_trainer(sess, monstore=monstore) is True

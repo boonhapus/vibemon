@@ -1,6 +1,6 @@
 """Lifecycle realization with injected IO adapters."""
 
-from collections.abc import Sequence
+from collections.abc import Awaitable, Callable, Sequence
 from typing import Protocol
 import asyncio
 import dataclasses
@@ -296,7 +296,7 @@ def _next_revision(vibemon: Vibemon, kind: AssetKind) -> int:
 
 
 async def _put_asset_impl(
-    put_asset,
+    put_asset: Callable[..., Awaitable[AssetRef]],
     vibemon: Vibemon,
     kind: AssetKind,
     data: bytes,

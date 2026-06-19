@@ -9,6 +9,7 @@
 		HATCH_SESSION_KEY,
 		type HatchSessionState
 	} from './hatchSession';
+	import type { ProviderSelectionState } from './providerSelection';
 	import {
 		addSelectedProvider,
 		applyCandidateProviderIds,

@@ -3,6 +3,7 @@
 import uuid
 
 from litestar import Request, Router, get, post
+from litestar.datastructures import State
 from litestar.exceptions import ClientException
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -15,7 +16,7 @@ from app.workflows import actual_encounter
 
 @post("/start")
 async def start_encounter(
-    request: Request,
+    request: Request[object, object, State],
     data: encounter_schemas.EncounterStartBody,
     db: AsyncSession,
 ) -> encounter_schemas.EncounterStartResponse:
@@ -53,7 +54,7 @@ async def start_encounter(
 @get("/{battle_id:uuid}")
 async def get_encounter_battle(
     battle_id: uuid.UUID,
-    request: Request,
+    request: Request[object, object, State],
     db: AsyncSession,
 ) -> battle_read.BattleStateRead:
     trainer = await deps.load_authenticated_trainer(request, db)
@@ -68,7 +69,7 @@ async def get_encounter_battle(
 @post("/{battle_id:uuid}/turns")
 async def submit_encounter_turn(
     battle_id: uuid.UUID,
-    request: Request,
+    request: Request[object, object, State],
     data: encounter_schemas.EncounterTurnBody,
     db: AsyncSession,
 ) -> battle_read.BattleTurnRead:
@@ -80,7 +81,7 @@ async def submit_encounter_turn(
 @post("/{battle_id:uuid}/conclude")
 async def conclude_encounter(
     battle_id: uuid.UUID,
-    request: Request,
+    request: Request[object, object, State],
     data: encounter_schemas.EncounterConcludeBody,
     db: AsyncSession,
 ) -> encounter_schemas.EncounterConcludeResponse:

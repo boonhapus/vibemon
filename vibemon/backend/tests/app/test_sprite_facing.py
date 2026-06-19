@@ -27,5 +27,7 @@ def test_derive_left_right_poses_from_right_source() -> None:
 
     right = Image.open(io.BytesIO(poses["right"]))
     left = Image.open(io.BytesIO(poses["left"]))
-    assert right.getpixel((12, 8))[3] > 0
-    assert left.getpixel((3, 8))[3] > 0
+    right_pixel: tuple[int, int, int, int] = right.getpixel((12, 8))  # type: ignore[assignment]
+    left_pixel: tuple[int, int, int, int] = left.getpixel((3, 8))  # type: ignore[assignment]
+    assert right_pixel[3] > 0
+    assert left_pixel[3] > 0

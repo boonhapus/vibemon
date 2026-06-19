@@ -80,6 +80,7 @@ def test_reprocess_reference_flattens_existing_alpha_before_rekey() -> None:
             background_color=Color("#00B140", "Chroma Green", "test matte"),
         ),
     )
+    assert vibemon.aesthetic is not None
     reprocessed = Image.open(
         io.BytesIO(
             sprite_postprocess.normalize_reference_image(
@@ -138,6 +139,7 @@ def test_reference_key_preserves_dithered_interior_on_green_matte() -> None:
             background_color=Color("#00B140", "Chroma Green", "test matte"),
         ),
     )
+    assert vibemon.aesthetic is not None
     normalized = Image.open(
         io.BytesIO(
             sprite_postprocess.normalize_reference_image(

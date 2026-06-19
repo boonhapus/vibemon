@@ -14,6 +14,7 @@ from app.core.asset_paths import GENERATED_DIR
 from app.domains.vibemon import brand
 from app.genai import google as genai_google
 from app.genai import sprite_facing, static_assets
+from app.settings import Settings
 from app.workflows import pixelsnap, sprite_postprocess
 from scripts import _common
 
@@ -66,7 +67,7 @@ def _log(message: str) -> None:
 async def _generate_raw_image(
     record: static_assets.AssetPromptRecord,
     *,
-    settings,
+    settings: Settings,
     reference_bytes: bytes | None = None,
 ) -> bytes:
     agent = genai_google.build_image_agent(_google_model_string(record.model), settings.secrets)
@@ -93,7 +94,7 @@ async def _generate_raw_image(
 async def _generate_png(
     record: static_assets.AssetPromptRecord,
     *,
-    settings,
+    settings: Settings,
     reference_bytes: bytes | None = None,
 ) -> tuple[bytes, str | None]:
     matte: brand.Color | None = None
@@ -218,7 +219,7 @@ async def _generate_all(
     records: list[static_assets.AssetPromptRecord],
     *,
     output_dir: pathlib.Path,
-    settings,
+    settings: Settings,
 ) -> list[dict[str, object]]:
     generated_cache: dict[str, bytes] = {}
     rows: list[dict[str, object]] = []

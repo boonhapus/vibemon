@@ -9,7 +9,7 @@ import math
 from skyfield import almanac
 from skyfield.api import Loader, wgs84
 from skyfield.jpllib import SpiceKernel
-from skyfield.timelib import Timescale
+from skyfield.timelib import Time, Timescale
 
 from app.core.math import angular_distance
 from app.providers.celestial import const, houses
@@ -57,14 +57,14 @@ def _mean_node_longitudes(jd: float) -> tuple[float, float]:
     return ascending, (ascending + 180.0) % 360.0
 
 
-def _node_longitudes(time, earth, moon, *, eph: SpiceKernel, jd: float) -> tuple[float, float]:
+def _node_longitudes(time: Time, earth: object, moon: object, *, eph: SpiceKernel, jd: float) -> tuple[float, float]:
     window_start = time - 20.0
     window_end = time + 20.0
     times, events = almanac.find_discrete(window_start, window_end, almanac.moon_nodes(eph))
     ascending: list[float] = []
     descending: list[float] = []
     for node_time, event in zip(times, events, strict=True):
-        apparent = earth.at(node_time).observe(moon).apparent()
+        apparent = earth.at(node_time).observe(moon).apparent()  # pyrefly: ignore
         longitude = apparent.ecliptic_latlon()[1].degrees
         if int(event) == 1:
             ascending.append(longitude)
@@ -101,7 +101,7 @@ def compute_chart(
     bodies: list[models.BodyObservation] = []
 
     for name, target in _BODY_TARGETS:
-        apparent = observer.at(time).observe(eph[target]).apparent()
+        apparent = observer.at(time).observe(eph[target]).apparent()  # pyrefly: ignore
         _lat, lon, _distance = apparent.ecliptic_latlon()
         altitude = apparent.altaz()[0].degrees
         longitude_deg = lon.degrees

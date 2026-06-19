@@ -6,7 +6,7 @@ import uuid
 
 from litestar import Response, Router, get, post, put
 from litestar.connection import Request
-from litestar.datastructures import UploadFile
+from litestar.datastructures import State, UploadFile
 from litestar.enums import RequestEncodingType
 from litestar.exceptions import ClientException, HTTPException, NotFoundException
 from litestar.params import Body
@@ -41,7 +41,7 @@ class TrainerReferenceUpload:
 
 
 def _session_response(
-    request: Request,
+    request: Request[object, object, State],
     payload: trainer_schema.PublicTrainerRead,
 ) -> Response[trainer_schema.PublicTrainerRead]:
     r = Response(content=payload)
@@ -115,7 +115,7 @@ async def check_username(
 
 @post("/login")
 async def login(
-    request: Request,
+    request: Request[object, object, State],
     data: TrainerUsernameBody,
     db: AsyncSession,
 ) -> Response[trainer_schema.PublicTrainerRead]:
@@ -127,7 +127,7 @@ async def login(
 
 
 @post("/logout")
-async def logout(request: Request) -> Response[None]:
+async def logout(request: Request[object, object, State]) -> Response[None]:
     """Clear the session cookie."""
     r = Response(content=None, status_code=204)
     r.delete_cookie(key=deps.SESSION_COOKIE, path="/")
@@ -136,7 +136,7 @@ async def logout(request: Request) -> Response[None]:
 
 @get("/me")
 async def me(
-    request: Request,
+    request: Request[object, object, State],
     db: AsyncSession,
 ) -> trainer_schema.PublicTrainerRead:
     """Return the signed-in trainer."""
@@ -146,7 +146,7 @@ async def me(
 
 @post("/register")
 async def register(
-    request: Request,
+    request: Request[object, object, State],
     data: TrainerUsernameBody,
     db: AsyncSession,
 ) -> Response[trainer_schema.PublicTrainerRead]:
@@ -168,7 +168,7 @@ async def register(
 
 @post("/reference")
 async def upload_reference(
-    request: Request,
+    request: Request[object, object, State],
     data: Annotated[TrainerReferenceUpload, Body(media_type=RequestEncodingType.MULTI_PART)],
     db: AsyncSession,
 ) -> trainer_schema.PublicTrainerRead:
@@ -202,7 +202,7 @@ async def _crew_list_read(db: AsyncSession, trainer_id: uuid.UUID) -> crew_schem
 
 @get("/crew")
 async def list_crew(
-    request: Request,
+    request: Request[object, object, State],
     db: AsyncSession,
 ) -> crew_schemas.CrewListRead:
     """Return owned Vibemon for the trainer party screen."""
@@ -212,7 +212,7 @@ async def list_crew(
 
 @put("/crew/order")
 async def reorder_crew(
-    request: Request,
+    request: Request[object, object, State],
     data: crew_schemas.CrewOrderWrite,
     db: AsyncSession,
 ) -> crew_schemas.CrewListRead:

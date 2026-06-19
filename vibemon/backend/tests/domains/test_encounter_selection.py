@@ -13,16 +13,16 @@ async def test_pick_encounter_tops_up_supply_and_revalidates_choice() -> None:
     initial_id = uuid.uuid7()
     generated_ids = [uuid.uuid7(), uuid.uuid7()]
     eligible_calls: list[int] = []
-    generated: list[tuple[float, float]] = []
+    generated: list[tuple[float | None, float | None]] = []
     revealed: list[uuid.UUID] = []
 
-    async def list_eligible_wild_ids(latitude: float, longitude: float, limit: int) -> list[uuid.UUID]:
+    async def list_eligible_wild_ids(latitude: float | None, longitude: float | None, limit: int) -> list[uuid.UUID]:
         eligible_calls.append(limit)
         if len(eligible_calls) == 1:
             return [initial_id]
         return [initial_id, *generated_ids]
 
-    async def generate_supply(latitude: float, longitude: float) -> uuid.UUID:
+    async def generate_supply(latitude: float | None, longitude: float | None) -> uuid.UUID:
         generated.append((latitude, longitude))
         return generated_ids[len(generated) - 1]
 

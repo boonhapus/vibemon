@@ -39,7 +39,7 @@ def _composite_sprite(ref_path: Path) -> Image.Image:
     scale = min(BOX_W / crop_w, BOX_H / crop_h)
     width = max(1, round(crop_w * scale))
     height = max(1, round(crop_h * scale))
-    scaled = crop.resize((width, height), Image.NEAREST)
+    scaled = crop.resize((width, height), Image.Resampling.NEAREST)
 
     canvas = Image.new("RGBA", (CANVAS, CANVAS), (0, 0, 0, 0))
     x = CONTENT_BOX[0] + (BOX_W - width) // 2

@@ -110,7 +110,7 @@ async def test_birth_snapshot_replays_provider_payloads_by_provider_name() -> No
     )
 
     snapshot = await seed.fetch_snapshot()
-    affinities = list(await snapshot.regenerate(reversed(seed.providers), seed))
+    affinities = list(await snapshot.regenerate(list(reversed(seed.providers)), seed))
 
     assert set(snapshot.provider_payloads) == {"alpha", "beta"}
     assert [affinity.provider_id for affinity in affinities] == ["alpha", "beta"]

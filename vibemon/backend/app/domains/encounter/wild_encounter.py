@@ -60,7 +60,7 @@ class WildEncounterService:
         if len(eligible_ids) < desired_supply and self._supply_generator is not None:
             missing = desired_supply - len(eligible_ids)
             for _ in range(missing):
-                await self._supply_generator(latitude, longitude)
+                await self._supply_generator(latitude or 0.0, longitude or 0.0)
             eligible_ids = await list_eligible_wild_ids(latitude, longitude, desired_supply)
         if not eligible_ids:
             return None

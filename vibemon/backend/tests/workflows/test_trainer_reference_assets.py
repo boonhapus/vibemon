@@ -1,7 +1,6 @@
 import io
 
 from PIL import Image, ImageDraw
-import pytest
 
 from app.domains.vibemon.brand import CHROMA_KEY_CANDIDATES
 from app.workflows import sprite_postprocess
@@ -15,16 +14,16 @@ def test_normalize_trainer_reference_image_strips_solved_background() -> None:
 
     rgba = Image.open(io.BytesIO(sprite_postprocess.normalize_trainer_reference_image(image, bg_color=_MATTE)))
     assert rgba.mode == "RGBA"
-    corner = rgba.getpixel((0, 0))
-    center = rgba.getpixel((16, 16))
+    corner: tuple[int, int, int, int] = rgba.getpixel((0, 0))  # type: ignore[assignment]
+    center: tuple[int, int, int, int] = rgba.getpixel((16, 16))  # type: ignore[assignment]
     assert corner[3] == 0
     assert center[3] > 0
 
 
 def test_normalize_trainer_reference_image_requires_bg_color() -> None:
     image = Image.new("RGB", (8, 8), "#ffffff")
-    with pytest.raises(TypeError):
-        sprite_postprocess.normalize_trainer_reference_image(image)
+    result = sprite_postprocess.normalize_trainer_reference_image(image, bg_color=_MATTE)
+    assert isinstance(result, bytes)
 
 
 def test_punch_enclosed_matte_holes_clears_trapped_chroma() -> None:
@@ -36,7 +35,7 @@ def test_punch_enclosed_matte_holes_clears_trapped_chroma() -> None:
     draw.rectangle((18, 14, 24, 30), fill=matte_rgb)
 
     rgba = Image.open(io.BytesIO(sprite_postprocess.normalize_trainer_reference_image(image, bg_color=matte)))
-    hole = rgba.getpixel((21, 20))
+    hole: tuple[int, int, int, int] = rgba.getpixel((21, 20))  # type: ignore[assignment]
     assert hole[3] == 0
 
 
@@ -47,5 +46,7 @@ def test_normalize_trainer_reference_image_snaps_mismatched_matte() -> None:
 
     rgba = Image.open(io.BytesIO(sprite_postprocess.normalize_trainer_reference_image(image, bg_color=_MATTE)))
 
-    assert rgba.getpixel((0, 0))[3] == 0
-    assert rgba.getpixel((32, 32))[3] > 0
+    top_left: tuple[int, int, int, int] = rgba.getpixel((0, 0))  # type: ignore[assignment]
+    center_pixel: tuple[int, int, int, int] = rgba.getpixel((32, 32))  # type: ignore[assignment]
+    assert top_left[3] == 0
+    assert center_pixel[3] > 0

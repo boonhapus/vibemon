@@ -3,7 +3,7 @@
 import asyncio
 
 from sqlalchemy import inspect
-from sqlalchemy.ext.asyncio import async_sessionmaker
+from sqlalchemy.ext.asyncio import AsyncConnection, async_sessionmaker
 from sqlalchemy.orm import selectinload
 import cyclopts
 import sqlalchemy as sa
@@ -32,7 +32,7 @@ def _vibemon_column_names(sync_conn: sa.Connection) -> set[str]:
 
 
 async def _ensure_growth_rate_column(
-    conn: sa.Connection,
+    conn: AsyncConnection,
     *,
     database_url: str,
     dry_run: bool,

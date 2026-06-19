@@ -1,5 +1,8 @@
 """HTTP provider catalog route tests."""
 
+from collections.abc import AsyncGenerator
+
+from litestar import Litestar
 from litestar.testing import AsyncTestClient
 import pytest
 
@@ -7,17 +10,17 @@ from app.http.app import create_app
 
 
 @pytest.fixture
-def http_app():
+def http_app() -> Litestar:
     return create_app()
 
 
 @pytest.fixture
-async def client(http_app):
+async def client(http_app: Litestar) -> AsyncGenerator[AsyncTestClient[Litestar]]:
     async with AsyncTestClient(app=http_app) as test_client:
         yield test_client
 
 
-async def test_list_providers_returns_catalog(client: AsyncTestClient) -> None:
+async def test_list_providers_returns_catalog(client: AsyncTestClient[Litestar]) -> None:
     response = await client.get("/api/providers/")
     assert response.status_code == 200
     payload = response.json()
@@ -41,12 +44,12 @@ async def test_list_providers_returns_catalog(client: AsyncTestClient) -> None:
     assert music["implemented"] is False
 
 
-async def test_provider_status_requires_session(client: AsyncTestClient) -> None:
+async def test_provider_status_requires_session(client: AsyncTestClient[Litestar]) -> None:
     response = await client.get("/api/providers/status")
     assert response.status_code == 401
 
 
-async def test_provider_status_reports_music_unimplemented(client: AsyncTestClient) -> None:
+async def test_provider_status_reports_music_unimplemented(client: AsyncTestClient[Litestar]) -> None:
     register = await client.post("/api/trainers/register", json={"username": "ProviderAda"})
     assert register.status_code == 201
 
@@ -58,7 +61,9 @@ async def test_provider_status_reports_music_unimplemented(client: AsyncTestClie
     assert statuses["music"]["requirements"]["lastfm.link"]["status"] == "unavailable"
 
 
-async def test_prefetch_climate_requires_geolocation(client: AsyncTestClient, monkeypatch: pytest.MonkeyPatch) -> None:
+async def test_prefetch_climate_requires_geolocation(
+    client: AsyncTestClient[Litestar], monkeypatch: pytest.MonkeyPatch
+) -> None:
     register = await client.post("/api/trainers/register", json={"username": "ClimateTrainer"})
     assert register.status_code == 201
 
@@ -67,7 +72,9 @@ async def test_prefetch_climate_requires_geolocation(client: AsyncTestClient, mo
     assert response.json()["code"] == "provider_config_required"
 
 
-async def test_prefetch_climate_warms_provider(client: AsyncTestClient, monkeypatch: pytest.MonkeyPatch) -> None:
+async def test_prefetch_climate_warms_provider(
+    client: AsyncTestClient[Litestar], monkeypatch: pytest.MonkeyPatch
+) -> None:
     from app.providers import registry as provider_registry
     from app.providers.climate import schema as climate_schema
     from app.providers.climate.provider import ClimateProvider
@@ -78,7 +85,7 @@ async def test_prefetch_climate_warms_provider(client: AsyncTestClient, monkeypa
     called = {"fetch": False}
 
     class MockClimateProvider(ClimateProvider):
-        async def fetch(self, seed, *, secrets=None):
+        async def fetch(self, seed: object, *, secrets: object = None) -> climate_schema.ClimatePayload:
             called["fetch"] = True
             return climate_schema.ClimatePayload(
                 start_date="2026-01-01",

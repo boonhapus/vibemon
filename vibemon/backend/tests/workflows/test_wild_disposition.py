@@ -1,5 +1,6 @@
 """Unit tests for wild disposition transitions and encounter adjustments."""
 
+from unittest.mock import AsyncMock
 import datetime as dt
 import uuid
 
@@ -32,7 +33,7 @@ def test_mark_wild_clears_ownership_and_stamps_wild_fields() -> None:
 async def test_upsert_encounter_adjustment_rejects_unknown_source() -> None:
     with pytest.raises(ValueError, match="Unknown encounter adjustment source"):
         await upsert_encounter_adjustment(
-            None,  # session unused before source validation
+            AsyncMock(),  # session unused before source validation
             uuid.uuid7(),
             uuid.uuid7(),
             "polka",

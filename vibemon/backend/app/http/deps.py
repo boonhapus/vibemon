@@ -6,6 +6,7 @@ import uuid
 from litestar.connection import ASGIConnection, Request
 from litestar.datastructures import State
 from litestar.exceptions import NotAuthorizedException
+from litestar.handlers.http_handlers import HTTPRouteHandler
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
 
 from app.core.errors import BattleUnavailable
@@ -36,7 +37,9 @@ async def provide_db(state: State) -> AsyncGenerator[AsyncSession]:
         yield db
 
 
-def trainer_id_from_connection(connection: ASGIConnection) -> TrainerIdT | None:
+def trainer_id_from_connection(
+    connection: ASGIConnection[HTTPRouteHandler, object, object, State],
+) -> TrainerIdT | None:
     raw = connection.cookies.get(SESSION_COOKIE)
     if raw is None:
         return None
@@ -46,7 +49,7 @@ def trainer_id_from_connection(connection: ASGIConnection) -> TrainerIdT | None:
         return None
 
 
-def require_trainer_id(connection: ASGIConnection) -> TrainerIdT:
+def require_trainer_id(connection: ASGIConnection[HTTPRouteHandler, object, object, State]) -> TrainerIdT:
     trainer_id = trainer_id_from_connection(connection)
     if trainer_id is None:
         raise NotAuthorizedException(detail="Sign in to continue.")
@@ -54,7 +57,7 @@ def require_trainer_id(connection: ASGIConnection) -> TrainerIdT:
 
 
 async def load_authenticated_trainer(
-    connection: ASGIConnection,
+    connection: ASGIConnection[HTTPRouteHandler, object, object, State],
     db: AsyncSession,
 ) -> models.Trainer:
     trainer_id = require_trainer_id(connection)
@@ -64,12 +67,12 @@ async def load_authenticated_trainer(
     return row
 
 
-def battle_session_registry(request: Request) -> BattleSessionRegistry:
+def battle_session_registry(request: Request[object, object, State]) -> BattleSessionRegistry:
     return request.app.state.battle_session_registry
 
 
 def load_battle_session(
-    request: Request,
+    request: Request[object, object, State],
     *,
     battle_id: uuid.UUID,
     trainer_id: TrainerIdT,

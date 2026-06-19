@@ -5,6 +5,7 @@ import uuid
 
 from litestar import Request, Response, Router, get, post
 from litestar.background_tasks import BackgroundTask
+from litestar.datastructures import State
 from litestar.exceptions import ClientException
 from litestar.params import Parameter
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
@@ -20,7 +21,7 @@ from app.workflows import hatch_candidate_projection
 
 @get("/current")
 async def current_candidate(
-    request: Request,
+    request: Request[object, object, State],
     db: AsyncSession,
 ) -> hatch_projection.CandidateActionRead | None:
     """Return the trainer's pending candidate review, if any."""
@@ -37,7 +38,7 @@ async def current_candidate(
 
 @post("/generate")
 async def generate_candidate(
-    request: Request,
+    request: Request[object, object, State],
     data: candidate_schemas.CandidateGenerateBody,
     db: AsyncSession,
     bypass_credits: Annotated[bool, Parameter(query="bypass-credits")] = False,
@@ -88,7 +89,7 @@ async def generate_candidate(
 @post("/{vibemon_id:uuid}/refresh")
 async def refresh_candidate(
     vibemon_id: uuid.UUID,
-    request: Request,
+    request: Request[object, object, State],
     db: AsyncSession,
 ) -> hatch_projection.CandidateActionRead:
     """Redraw the candidate's reference sprite via GenAI."""
@@ -110,7 +111,7 @@ async def refresh_candidate(
 @post("/{vibemon_id:uuid}/reject")
 async def reject_candidate(
     vibemon_id: uuid.UUID,
-    request: Request,
+    request: Request[object, object, State],
     db: AsyncSession,
 ) -> None:
     """Release a pending candidate back to the wild supply."""
@@ -122,7 +123,7 @@ async def reject_candidate(
 @post("/{vibemon_id:uuid}/adopt")
 async def adopt_candidate(
     vibemon_id: uuid.UUID,
-    request: Request,
+    request: Request[object, object, State],
     data: candidate_schemas.CandidateAdoptBody,
     db: AsyncSession,
 ) -> Response[hatch_projection.CandidateActionRead]:
