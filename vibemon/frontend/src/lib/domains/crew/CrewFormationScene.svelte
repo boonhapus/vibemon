@@ -7,29 +7,41 @@
 	import { fetchCrew, reorderCrew, type CrewMember } from '$lib/domains/trainer/hatchApi';
 	import { fetchTrainerMe } from '$lib/domains/trainer/trainerApi';
 	import DialogBox from '$lib/ui/DialogBox.svelte';
-	import FreeFormButton from '$lib/ui/FreeFormButton.svelte';
 	import GamePanel from '$lib/ui/GamePanel.svelte';
-	import { gameSolarContext } from '$lib/domains/game/gameSolarContext.svelte';
+	import { sceneSolarPhase } from '$lib/domains/game/gameSolarContext.svelte';
 	import { sceneBackgroundSrc } from '$lib/domains/game/sceneBackgrounds';
 	import SceneFrame from '$lib/ui/SceneFrame.svelte';
 	import { playGameAudio } from '$lib/ui/gameAudioStore.svelte';
 	import { showGameToast } from '$lib/ui/toastStore.svelte';
 
 	import CrewClockFormation from './CrewClockFormation.svelte';
+	import CrewFormationMenu from './CrewFormationMenu.svelte';
 	import CrewShowcasePanel from './CrewShowcasePanel.svelte';
+	import {
+		CREW_FORMATION_COMMANDS,
+		CREW_SWAP_EMPTY_TOAST,
+		crewMenuHint,
+		navigateCrewPositionGrid,
+		type CrewCommandId
+	} from './crewFormationMenu';
+	import {
+		CREW_COMMAND_MENU_INDEX,
+		resolveCrewFormationKeydown,
+		resolveCrewFormationKeyup
+	} from './crewFormationKeyboard';
+	import { navigateBattleGrid } from '$lib/domains/battle/battleGridMenu';
+	import { isMacOs } from '$lib/ui/platform';
 	import { buildSwapPairs, rotationDeltaToFront } from './crewRingMath';
 	import { buildParty, mod, PARTY_SIZE, type PartySlot, type SwapAnimPair } from './crewSlots';
 
 	const DEFAULT_TRAINER_SPRITE = '/game/sprites/trainer@128.png';
 	const INTRO_RITUAL_KEY = 'vm-crew-formation-intro-seen';
-	const HINT_KEY = 'vm-crew-formation-hint-seen';
 	const EMPTY_SEAT_HINT_MS = 2600;
 	const SWAP_ANIM_MS = 600;
 	const POSITION_LABELS = ['Lead', '2', '3', '4', '5', '6'] as const;
 
 	let members = $state<CrewMember[]>([]);
 	let loading = $state(true);
-	let showHint = $state(false);
 	let introRitual = $state<'full' | 'short' | 'none'>('short');
 	let introDone = $state(false);
 	let emptySeatHint = $state(false);
@@ -41,6 +53,8 @@
 	let swapMode = $state(false);
 	let swapAnimPairs = $state<SwapAnimPair[] | null>(null);
 	let swapConfirm = $state<string | null>(null);
+	let menuIndex = $state(0);
+	let contextHeld = $state(false);
 
 	let rotation = $state(0);
 	let emptySeatTimer: ReturnType<typeof setTimeout> | undefined;
@@ -51,7 +65,7 @@
 	let swapAnimation = $derived(
 		swapAnimPairs ? { pairs: swapAnimPairs, progress: swapProgress.current } : null
 	);
-	let crewBackgroundSrc = $derived(sceneBackgroundSrc('crew-showcase', gameSolarContext.phase));
+	let crewBackgroundSrc = $derived(sceneBackgroundSrc('crew-showcase', sceneSolarPhase()));
 
 	let party = $derived(buildParty(members));
 	let filledCount = $derived(members.length);
@@ -65,18 +79,45 @@
 			emptySeatHint
 	);
 
+	let showControlsHint = $derived(
+		!contextHeld &&
+			!swapConfirm &&
+			!loading &&
+			filledCount > 0 &&
+			introDone &&
+			!swapMode &&
+			!emptySeatHint
+	);
+
 	let dialogText = $derived.by(() => {
+		if (contextHeld && !swapConfirm && !loading) {
+			return crewMenuHint(swapMode ? 'position' : 'command', menuIndex);
+		}
 		if (swapConfirm) return swapConfirm;
 		if (loading) return 'Gathering your crew...';
 		if (filledCount === 0) return 'No Vibemon in your crew yet.';
 		if (swapMode && activeSlot && !activeSlot.empty) {
 			return `Where should ${activeSlot.name} stand?`;
 		}
-		if (emptySeatHint) return 'Open seat — hatch a Vibemon from your vibes.';
+		if (emptySeatHint) return 'Open seat. Hatch a Vibemon from your vibes.';
 		if (!introDone && filledCount > 0) return 'Your crew gathers.';
-		if (showHint && introDone) return 'Turn the ring to review your crew.';
-		return 'Choose who to look at.';
+		return '';
 	});
+
+	let swapDisabled = $derived(
+		loading || !activeSlot || activeSlot.empty || swapBusy || !introDone
+	);
+
+	let spinModifierLabel = $derived(isMacOs() ? 'OPTION' : 'ALT');
+	let spinControlsHint = $derived(
+		`Hold ${spinModifierLabel} and use the arrow keys to spin the ring.`
+	);
+
+	function notifySwapBlocked() {
+		if (!activeSlot || activeSlot.empty) {
+			showGameToast(CREW_SWAP_EMPTY_TOAST, 'amber');
+		}
+	}
 
 	function handleDetailHintChange(hint: string | null) {
 		detailHint = hint;
@@ -87,17 +128,23 @@
 	}
 
 	function rotateBy(delta: number) {
-		if (loading || filledCount === 0 || swapMode || swapBusy || !introDone) return;
+		if (loading || filledCount === 0 || swapBusy || !introDone) return;
 		clearDetailHint();
 		rotation += delta;
 	}
 
 	function rotateSlotToFront(slot: PartySlot) {
-		if (swapMode || swapBusy || !introDone) return;
+		if (swapBusy || !introDone) return;
 		const delta = rotationDeltaToFront(rotation, slot.crewSlot);
 		if (delta === 0) return;
 		clearDetailHint();
 		rotation += delta;
+	}
+
+	function spinRingToSlot(slotIndex: number) {
+		if (loading || filledCount === 0 || swapBusy || !introDone) return;
+		const slot = party[slotIndex];
+		if (slot) rotateSlotToFront(slot);
 	}
 
 	function slotLabel(slotIndex: number): string {
@@ -131,6 +178,7 @@
 
 		swapBusy = true;
 		swapMode = false;
+		menuIndex = 0;
 
 		try {
 			await animateSwap(pairs);
@@ -167,9 +215,14 @@
 		void moveActiveToSlot(slotIndex);
 	}
 
-	function toggleSwapMode() {
-		if (loading || !activeSlot || activeSlot.empty || swapBusy || !introDone) return;
+	function tryToggleSwapMode() {
+		if (loading || swapBusy || !introDone) return;
+		if (!activeSlot || activeSlot.empty) {
+			notifySwapBlocked();
+			return;
+		}
 		swapMode = !swapMode;
+		menuIndex = 0;
 		if (swapMode) panelTab = 'stats';
 	}
 
@@ -189,6 +242,7 @@
 	function handleCancel() {
 		if (swapMode) {
 			swapMode = false;
+			menuIndex = 0;
 			return;
 		}
 		void goto('/hatch');
@@ -196,6 +250,105 @@
 
 	function handleRoster() {
 		void goto('/deck/crew/roster');
+	}
+
+	function handleSeekWild() {
+		void goto('/encounters');
+	}
+
+	function handleCommand(command: CrewCommandId) {
+		switch (command) {
+			case 'swap':
+				tryToggleSwapMode();
+				break;
+			case 'wild':
+				handleSeekWild();
+				break;
+			case 'roster':
+				handleRoster();
+				break;
+			case 'cancel':
+				handleCancel();
+				break;
+		}
+	}
+
+	function confirmMenuSelection() {
+		if (swapMode) {
+			void moveActiveToSlot(menuIndex);
+			return;
+		}
+
+		const command = CREW_FORMATION_COMMANDS[menuIndex];
+		if (!command) return;
+		if (command.id === 'swap' && swapDisabled) {
+			notifySwapBlocked();
+			return;
+		}
+		handleCommand(command.id);
+	}
+
+	function navigateMenu(key: string) {
+		menuIndex = swapMode
+			? navigateCrewPositionGrid(menuIndex, key)
+			: navigateBattleGrid(menuIndex, key);
+		playGameAudio('menu-nav');
+	}
+
+	function handleKeydown(event: KeyboardEvent) {
+		const action = resolveCrewFormationKeydown(event, { swapMode });
+		if (!action) return;
+
+		switch (action.type) {
+			case 'hold-read':
+				contextHeld = true;
+				return;
+			case 'consume':
+				event.preventDefault();
+				return;
+		}
+
+		if (swapBusy || loading) return;
+
+		switch (action.type) {
+			case 'ring-step':
+				event.preventDefault();
+				rotateBy(action.delta);
+				return;
+			case 'ring-slot':
+				event.preventDefault();
+				spinRingToSlot(action.slotIndex);
+				return;
+			case 'menu-nav':
+				event.preventDefault();
+				navigateMenu(action.key);
+				return;
+			case 'menu-confirm':
+				event.preventDefault();
+				confirmMenuSelection();
+				return;
+			case 'position-pick':
+				event.preventDefault();
+				menuIndex = action.slotIndex;
+				void moveActiveToSlot(action.slotIndex);
+				return;
+			case 'command': {
+				event.preventDefault();
+				menuIndex = CREW_COMMAND_MENU_INDEX[action.commandId];
+				if (action.commandId === 'swap' && swapDisabled) {
+					notifySwapBlocked();
+					return;
+				}
+				handleCommand(action.commandId);
+				return;
+			}
+		}
+	}
+
+	function handleKeyup(event: KeyboardEvent) {
+		if (resolveCrewFormationKeyup(event) === 'release-read') {
+			contextHeld = false;
+		}
 	}
 
 	function handleIntroComplete() {
@@ -210,62 +363,13 @@
 		playGameAudio('confirm');
 	}
 
-	function focusShowcase() {
-		panelTab = 'stats';
-		panelShell?.querySelector<HTMLElement>('.crew-showcase-panel__tab')?.focus();
-	}
-
-	function handleKeydown(event: KeyboardEvent) {
-		if (event.defaultPrevented) return;
-
-		if (event.key >= '1' && event.key <= '6') {
-			event.preventDefault();
-			const slotIndex = Number(event.key) - 1;
-			if (swapMode) {
-				void moveActiveToSlot(slotIndex);
-				return;
-			}
-			const slot = party[slotIndex];
-			if (slot) rotateSlotToFront(slot);
-			return;
-		}
-
-		switch (event.key) {
-			case 'ArrowLeft':
-				event.preventDefault();
-				rotateBy(-1);
-				break;
-			case 'ArrowRight':
-				event.preventDefault();
-				rotateBy(1);
-				break;
-			case 'Enter':
-				event.preventDefault();
-				if (swapMode) return;
-				focusShowcase();
-				break;
-			case 'm':
-			case 'M':
-				event.preventDefault();
-				toggleSwapMode();
-				break;
-			case 'Escape':
-				event.preventDefault();
-				handleCancel();
-				break;
-		}
-	}
-
 	onMount(() => {
 		let introSeen = true;
 		try {
 			introSeen = localStorage.getItem(INTRO_RITUAL_KEY) !== null;
 			if (!introSeen) localStorage.setItem(INTRO_RITUAL_KEY, '1');
-			showHint = localStorage.getItem(HINT_KEY) === null;
-			if (showHint) localStorage.setItem(HINT_KEY, '1');
 		} catch {
 			introSeen = true;
-			showHint = false;
 		}
 
 		void (async () => {
@@ -305,7 +409,7 @@
 	});
 </script>
 
-<svelte:window onkeydown={handleKeydown} />
+<svelte:window onkeydown={handleKeydown} onkeyup={handleKeyup} />
 
 <SceneFrame backgroundSrc={crewBackgroundSrc} class="scene-frame--crew-formation">
 	<div class="crew-formation-scene">
@@ -318,6 +422,9 @@
 							level={activeSlot.level}
 							currentHp={activeSlot.currentHp}
 							maxHp={activeSlot.maxHp}
+							xp={activeSlot.xp}
+							xpToNext={activeSlot.xpToNext}
+							xpBarRatio={activeSlot.xpBarRatio}
 							onDetailHintChange={handleDetailHintChange}
 							bind:activeTab={panelTab}
 						/>
@@ -349,71 +456,48 @@
 		</div>
 
 		<div class="crew-formation-scene__footer">
-			<div class="crew-formation-scene__dialog">
-				{#if detailHint && !dialogBlocked}
-					<GamePanel tone="status" class="hud-dialog-slot crew-formation-scene__detail-hint">
-						<p>{detailHint}</p>
-					</GamePanel>
-				{:else}
-					<DialogBox text={dialogText} showCursor={false} typewriter={false} />
-				{/if}
-			</div>
+			<div class="crew-formation-scene__dialog-bar">
+				<div class="crew-formation-scene__dialog">
+					{#if detailHint && !dialogBlocked}
+						<GamePanel tone="status" class="hud-dialog-slot battle-hud-dialog crew-formation-scene__detail-hint">
+							<p>{detailHint}</p>
+						</GamePanel>
+					{:else if showControlsHint}
+						<DialogBox
+							class="battle-hud-dialog"
+							text={spinControlsHint}
+							showCursor={false}
+							typewriter={false}
+						>
+							{#snippet children()}
+								<p class="crew-formation-scene__controls-copy">
+									Hold <span class="crew-formation-scene__hotkey">{spinModifierLabel}</span> and use the
+									<span class="crew-formation-scene__hotkey">arrow keys</span> to spin the ring!
+								</p>
+							{/snippet}
+						</DialogBox>
+					{:else}
+						<DialogBox class="battle-hud-dialog" text={dialogText} showCursor={false} typewriter={false} />
+					{/if}
+				</div>
 
-			<div class="crew-formation-scene__footer-actions">
-				{#if swapMode}
-					<div class="crew-formation-scene__positions" role="group" aria-label="Crew position">
-						{#each POSITION_LABELS as label, slotIndex (slotIndex)}
-							<FreeFormButton
-								ariaLabel={slotIndex === 0 ? 'Set as lead' : `Move to position ${label}`}
-								disabled={loading || !activeSlot || activeSlot.empty || swapBusy || !introDone}
-								onclick={() => moveActiveToSlot(slotIndex)}
-							>
-								<GamePanel
-									tone="command"
-									class={[
-										'crew-formation-scene__position-panel',
-										activeSlot?.crewSlot === slotIndex &&
-											'crew-formation-scene__position-panel--current'
-									]
-										.filter(Boolean)
-										.join(' ')}
-								>
-									<span class="crew-formation-scene__position-label">{label}</span>
-								</GamePanel>
-							</FreeFormButton>
-						{/each}
-					</div>
-				{/if}
-
-				<FreeFormButton
-					ariaLabel="Move crew member to another seat"
-					disabled={loading || !activeSlot || activeSlot.empty || swapBusy || !introDone}
-					onclick={toggleSwapMode}
-				>
-					<GamePanel
-						tone="command"
-						class={[
-							'crew-formation-scene__footer-panel',
-							swapMode && 'crew-formation-scene__footer-panel--active'
-						]
-							.filter(Boolean)
-							.join(' ')}
-					>
-						<span class="crew-formation-scene__footer-label">Move</span>
-					</GamePanel>
-				</FreeFormButton>
-
-				<FreeFormButton ariaLabel="Open roster view" onclick={handleRoster}>
-					<GamePanel tone="command" class="crew-formation-scene__footer-panel">
-						<span class="crew-formation-scene__footer-label">Roster</span>
-					</GamePanel>
-				</FreeFormButton>
-
-				<FreeFormButton ariaLabel="Cancel" onclick={handleCancel}>
-					<GamePanel tone="command" class="crew-formation-scene__footer-panel">
-						<span class="crew-formation-scene__footer-label">{swapMode ? 'Back' : 'Cancel'}</span>
-					</GamePanel>
-				</FreeFormButton>
+				<div class="crew-formation-scene__menu-overlay">
+					<CrewFormationMenu
+						mode={swapMode ? 'position' : 'command'}
+						selected={menuIndex}
+						{contextHeld}
+						swapDisabled={swapDisabled}
+						positionDisabled={swapDisabled}
+						currentSlotIndex={activeSlot?.crewSlot ?? null}
+						onSelect={(index) => {
+							menuIndex = index;
+							playGameAudio('menu-nav');
+						}}
+						onCommand={handleCommand}
+						onSwapBlocked={notifySwapBlocked}
+						onPosition={(slotIndex) => moveActiveToSlot(slotIndex)}
+					/>
+				</div>
 			</div>
 		</div>
 	</div>
@@ -421,11 +505,15 @@
 
 <style>
 	.crew-formation-scene {
+		--vm-battle-hud-inset: var(--vm-hud-bottom-inset);
+		--vm-battle-hud-column-width: 30%;
+
 		position: relative;
 		min-height: 100dvh;
-		padding-left: var(--vm-hud-bottom-inset);
-		padding-right: max(var(--vm-hud-bottom-inset), var(--vm-settings-corner-reserve));
-		padding-bottom: var(--vm-hud-bottom-inset);
+		padding-left: var(--vm-battle-hud-inset);
+		padding-right: var(--vm-battle-hud-inset);
+		padding-bottom: var(--vm-battle-hud-inset);
+		box-sizing: border-box;
 		display: grid;
 		grid-template-rows: minmax(0, 1fr) auto;
 		gap: clamp(0.85rem, 2.4vh, 1.35rem);
@@ -460,37 +548,12 @@
 
 	.crew-formation-scene__play-area {
 		position: relative;
-		min-height: 50dvh;
+		min-height: 0;
 		overflow: visible;
 	}
 
 	.crew-formation-scene__play-area :global(.crew-formation) {
 		--ring-x: 54%;
-	}
-
-	.crew-formation-scene__positions {
-		display: grid;
-		grid-template-columns: repeat(6, minmax(0, 1fr));
-		gap: clamp(0.25rem, 0.8vw, 0.45rem);
-		width: 100%;
-	}
-
-	:global(.crew-formation-scene__position-panel) {
-		min-width: 0;
-	}
-
-	:global(.crew-formation-scene__position-panel--current) {
-		--panel-command-accent: var(--vm-mustard);
-		--panel-command-surface: color-mix(in srgb, var(--vm-mustard) 22%, var(--vm-panel-command-bg));
-	}
-
-	.crew-formation-scene__position-label {
-		display: block;
-		font-family: var(--vm-font-ui);
-		font-size: clamp(0.5625rem, 1.6vw, 0.75rem);
-		line-height: 1.5;
-		letter-spacing: 0.05em;
-		text-align: center;
 	}
 
 	@media (max-width: 700px) {
@@ -504,52 +567,155 @@
 	}
 
 	.crew-formation-scene__footer {
-		display: grid;
-		grid-template-columns: minmax(0, 1fr) auto;
-		gap: clamp(0.75rem, 2vw, 1rem);
-		align-items: end;
+		position: relative;
+		z-index: 3;
+		height: var(--vm-hud-dialog-slot-height);
+		width: 100%;
+		overflow: hidden;
+	}
+
+	.crew-formation-scene__dialog-bar {
+		position: relative;
+		width: 100%;
+		height: 100%;
 	}
 
 	.crew-formation-scene__dialog {
+		position: absolute;
+		inset: 0;
 		display: flex;
-		justify-content: flex-start;
+		align-items: stretch;
 	}
 
-	.crew-formation-scene__dialog :global(.dialog-box) {
-		width: min(100%, var(--vm-hud-dialog-width));
-	}
-
-	.crew-formation-scene__footer-actions {
+	.crew-formation-scene__dialog :global(.dialog-box.battle-hud-dialog),
+	.crew-formation-scene__dialog :global(.game-panel.battle-hud-dialog) {
 		display: flex;
-		gap: clamp(0.5rem, 1.5vw, 0.75rem);
-		flex-shrink: 0;
-		flex-wrap: wrap;
-		justify-content: flex-end;
-		align-items: end;
+		flex: 1 1 auto;
+		flex-direction: column;
+		align-self: stretch;
+		width: 100%;
+		height: 100%;
+		min-height: 0;
+		min-width: 0;
 	}
 
-	:global(.crew-formation-scene__footer-panel) {
-		min-width: clamp(4.5rem, 14vw, 6.5rem);
+	.crew-formation-scene__dialog :global(.dialog-box.battle-hud-dialog .game-panel__frame),
+	.crew-formation-scene__dialog :global(.dialog-box.battle-hud-dialog .game-panel__inset),
+	.crew-formation-scene__dialog :global(.dialog-box.battle-hud-dialog .game-panel__surface),
+	.crew-formation-scene__dialog :global(.dialog-box.battle-hud-dialog .game-panel__content),
+	.crew-formation-scene__dialog :global(.game-panel.battle-hud-dialog .game-panel__frame),
+	.crew-formation-scene__dialog :global(.game-panel.battle-hud-dialog .game-panel__inset),
+	.crew-formation-scene__dialog :global(.game-panel.battle-hud-dialog .game-panel__surface),
+	.crew-formation-scene__dialog :global(.game-panel.battle-hud-dialog .game-panel__content) {
+		display: flex;
+		flex: 1 1 auto;
+		flex-direction: column;
+		width: 100%;
+		height: 100%;
+		min-height: 0;
+		min-width: 0;
+		box-sizing: border-box;
 	}
 
-	:global(.crew-formation-scene__footer-panel--active) {
-		--panel-command-accent: var(--vm-mustard);
-		--panel-command-surface: color-mix(in srgb, var(--vm-mustard) 22%, var(--vm-panel-command-bg));
+	.crew-formation-scene__dialog :global(.dialog-box.battle-hud-dialog .game-panel__frame),
+	.crew-formation-scene__dialog :global(.game-panel.battle-hud-dialog .game-panel__frame) {
+		box-shadow: none;
 	}
 
-	.crew-formation-scene__footer-label {
-		display: block;
+	.crew-formation-scene__dialog :global(.dialog-box.battle-hud-dialog .game-panel__surface) {
+		flex: 1 1 auto;
+	}
+
+	.crew-formation-scene__dialog :global(.dialog-box.battle-hud-dialog .dialog-box__content) {
+		flex: 1 1 auto;
+		height: auto;
+		min-height: 0;
+	}
+
+	.crew-formation-scene__dialog :global(.hud-dialog-slot) {
+		width: 100%;
+		height: 100%;
+	}
+
+	/* Keep hover-hint text clear of the command menu overlaying the right side:
+	   reserve its width and let the copy wrap to a second/third line instead of
+	   sliding under (and being clipped by) the actions panel. */
+	.crew-formation-scene__dialog :global(.crew-formation-scene__detail-hint .game-panel__content) {
+		justify-content: center;
+		padding-right: calc(var(--vm-battle-hud-column-width) + 0.85rem);
+	}
+
+	.crew-formation-scene__dialog :global(.crew-formation-scene__detail-hint p) {
+		margin: 0;
 		font-family: var(--vm-font-ui);
-		font-size: clamp(0.6875rem, 2vw, 0.875rem);
-		line-height: 1.5;
-		letter-spacing: 0.06em;
-		text-align: center;
+		font-size: var(--vm-hud-font-dialog-ui);
+		line-height: var(--vm-hud-dialog-line-height);
+		color: inherit;
+		display: -webkit-box;
+		-webkit-box-orient: vertical;
+		-webkit-line-clamp: 3;
+		line-clamp: 3;
+		overflow: hidden;
+	}
+
+	.crew-formation-scene__menu-overlay {
+		position: absolute;
+		top: 0;
+		right: 0;
+		bottom: 0;
+		z-index: 2;
+		display: flex;
+		flex-direction: column;
+		width: var(--vm-battle-hud-column-width);
+	}
+
+	.crew-formation-scene__menu-overlay :global(.crew-formation-menu.game-panel) {
+		flex: 1 1 auto;
+		display: flex;
+		flex-direction: column;
+		width: 100%;
+		height: 100%;
+		min-height: 0;
+		box-shadow: none;
+	}
+
+	.crew-formation-scene__menu-overlay :global(.crew-formation-menu .game-panel__frame) {
+		flex: 1 1 auto;
+		display: flex;
+		flex-direction: column;
+		height: 100%;
+		min-height: 0;
+		box-shadow: none;
+	}
+
+	.crew-formation-scene__menu-overlay :global(.crew-formation-menu .game-panel__inset),
+	.crew-formation-scene__menu-overlay :global(.crew-formation-menu .game-panel__surface),
+	.crew-formation-scene__menu-overlay :global(.crew-formation-menu .game-panel__content) {
+		flex: 1 1 auto;
+		display: flex;
+		flex-direction: column;
+		height: 100%;
+		min-height: 0;
 	}
 
 	@media (max-width: 480px) {
-		.crew-formation-scene__footer {
-			grid-template-columns: 1fr;
-			justify-items: stretch;
+		.crew-formation-scene {
+			--vm-battle-hud-column-width: 34%;
 		}
+	}
+
+	.crew-formation-scene__controls-copy {
+		margin: 0;
+		flex: 1;
+		min-width: 0;
+		font-family: var(--vm-font-ui);
+		font-weight: 400;
+		font-size: var(--vm-hud-font-dialog-ui);
+		line-height: var(--vm-hud-dialog-line-height);
+		color: inherit;
+	}
+
+	.crew-formation-scene__hotkey {
+		color: var(--vm-burnt-orange);
 	}
 </style>

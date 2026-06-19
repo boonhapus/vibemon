@@ -159,7 +159,8 @@
 				y: position.y,
 				scale: depthScale(ringOffsetSmooth),
 				cool: depthCool(ringOffsetSmooth),
-				zIndex: 10 + Math.round(spotlightFactor(ringOffsetSmooth) * 8),
+				// Above stats rail (z-index 30) so wide spotlight sprites aren't covered.
+				zIndex: spotlight ? 35 : 10 + Math.round(spotlightFactor(ringOffsetSmooth) * 8),
 				spotlight,
 				mirrored: mirrorForPosition(slot, position.cos),
 				hopVisible,
@@ -189,10 +190,6 @@
 		onSelectSlot?.(slot);
 	}
 
-	function handleEmptyHatch(event: MouseEvent) {
-		event.stopPropagation();
-		onTapEmptyHatch?.();
-	}
 </script>
 
 <div class="crew-formation" class:crew-formation--swap-mode={swapMode}>
@@ -225,6 +222,28 @@
 			style:--idle-delay="{placement.idleDelay}s"
 			style:z-index={placement.zIndex}
 		>
+			{#if placement.slot.empty && !swapMode}
+				<div class="crew-formation__slot-button crew-formation__slot-button--empty">
+					<FreeFormButton
+						class="crew-formation__slot-surface"
+						disabled={introStage !== 'done' || swapBusy}
+						ariaLabel={slotAriaLabel(placement.slot)}
+						onclick={() => handleSlotTap(placement.slot)}
+					>
+						<span class="crew-formation__platform crew-formation__platform--empty" aria-hidden="true">
+							<span class="crew-formation__platform-number">{placement.slot.crewSlot + 1}</span>
+						</span>
+					</FreeFormButton>
+					<FreeFormButton
+						class="crew-formation__hatch-link"
+						disabled={introStage !== 'done' || swapBusy}
+						ariaLabel="Hatch a Vibemon"
+						onclick={() => onTapEmptyHatch?.()}
+					>
+						Hatch
+					</FreeFormButton>
+				</div>
+			{:else}
 			<FreeFormButton
 				class={[
 					'crew-formation__slot-button',
@@ -264,17 +283,28 @@
 							.filter(Boolean)
 							.join(' ')}
 					>
-						<img
+						<span
 							class={[
-								'crew-formation__sprite',
-								placement.mirrored && 'crew-formation__sprite--mirrored'
+								'crew-formation__sprite-motion',
+								placement.spotlight && 'crew-formation__sprite-motion--spotlight',
+								!placement.spotlight && 'crew-formation__sprite-motion--benched',
+								placement.greeting && 'crew-formation__sprite-motion--greet'
 							]
 								.filter(Boolean)
 								.join(' ')}
-							src={placement.slot.spriteSrc}
-							alt=""
-							decoding="async"
-						/>
+						>
+							<img
+								class={[
+									'crew-formation__sprite',
+									placement.mirrored && 'crew-formation__sprite--mirrored'
+								]
+									.filter(Boolean)
+									.join(' ')}
+								src={placement.slot.spriteSrc}
+								alt=""
+								decoding="async"
+							/>
+						</span>
 					</span>
 					<span
 						class={[
@@ -288,12 +318,9 @@
 					>{placement.slot.name}</span>
 				{:else if swapMode}
 					<span class="crew-formation__empty-hint">Tap to place</span>
-				{:else}
-					<button type="button" class="crew-formation__hatch-link" onclick={handleEmptyHatch}>
-						Hatch
-					</button>
 				{/if}
 			</FreeFormButton>
+			{/if}
 		</div>
 	{/each}
 </div>
@@ -314,6 +341,7 @@
 		width: 100%;
 		height: 100%;
 		min-height: 50dvh;
+		overflow: visible;
 	}
 
 	.crew-formation__ground {
@@ -400,6 +428,7 @@
 			calc(-92% + var(--py) * var(--radius-y))
 		) scale(var(--depth-scale));
 		transform-origin: center bottom;
+		overflow: visible;
 	}
 
 	.crew-formation__slot--hidden {
@@ -411,11 +440,20 @@
 		animation: crew-hop-in 420ms steps(8) both;
 	}
 
-	:global(.crew-formation__slot-button) {
+	:global(.crew-formation__slot-button),
+	.crew-formation__slot-button {
 		position: relative;
 		padding: 0.25rem;
 		overflow: visible;
 		flex-shrink: 0;
+	}
+
+	:global(.crew-formation__slot-surface) {
+		display: block;
+		position: relative;
+		width: 100%;
+		min-height: 3.5rem;
+		padding: 0;
 	}
 
 	.crew-formation__platform {
@@ -485,22 +523,29 @@
 		position: relative;
 		z-index: 1;
 		display: block;
+		overflow: visible;
 		transform-origin: bottom center;
 	}
 
-	.crew-formation__sprite-wrap--spotlight {
+	.crew-formation__sprite-motion {
+		display: block;
+		overflow: visible;
+		transform-origin: bottom center;
+	}
+
+	.crew-formation__sprite-motion--spotlight {
 		animation: idle-breathe var(--anim-idle-duration) infinite ease-in-out;
 		animation-delay: var(--idle-delay, 0s);
 	}
 
-	.crew-formation__sprite-wrap--benched {
+	.crew-formation__sprite-motion--benched {
 		opacity: 0.88;
 		filter: brightness(0.82) saturate(0.78) hue-rotate(var(--depth-cool, 0deg));
 		animation: idle-breathe calc(var(--anim-idle-duration) * 1.08) infinite ease-in-out;
 		animation-delay: var(--idle-delay, 0s);
 	}
 
-	.crew-formation__sprite-wrap--greet {
+	.crew-formation__sprite-motion--greet {
 		animation: crew-spotlight-greet 520ms steps(8) both;
 	}
 

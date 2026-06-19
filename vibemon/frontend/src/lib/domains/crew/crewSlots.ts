@@ -17,6 +17,9 @@ export type PartySlot = {
 	level: number;
 	currentHp: number;
 	maxHp: number;
+	xp: number;
+	xpToNext: number;
+	xpBarRatio: number;
 	spriteSrc: string;
 	facing: SpriteFacing | null;
 	crewSlot: number;
@@ -34,6 +37,9 @@ export function buildParty(members: CrewMember[], partySize: number = PARTY_SIZE
 		level: 0,
 		currentHp: 0,
 		maxHp: 0,
+		xp: 0,
+		xpToNext: 0,
+		xpBarRatio: 0,
 		spriteSrc: '',
 		facing: null,
 		crewSlot,
@@ -51,6 +57,9 @@ export function buildParty(members: CrewMember[], partySize: number = PARTY_SIZE
 			level: member.level,
 			currentHp: member.current_hp,
 			maxHp: member.max_hp,
+			xp: member.xp,
+			xpToNext: member.xp_to_next,
+			xpBarRatio: member.xp_bar_ratio,
 			spriteSrc: member.sprite_url ?? PLACEHOLDER_SPRITE,
 			facing: member.reference_detected_facing,
 			crewSlot: slot,
