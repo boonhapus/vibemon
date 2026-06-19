@@ -92,6 +92,24 @@ def xp_to_reach_level(level: int, *, growth_rate: GrowthGroupT) -> int:
     return round(coeff * level**3)
 
 
+def xp_to_next_level(*, level: int, xp: int, growth_rate: GrowthGroupT) -> int:
+    """XP remaining before the next level, or 0 at max level."""
+    if level >= MAX_LEVEL:
+        return 0
+    next_threshold = xp_to_reach_level(level + 1, growth_rate=growth_rate)
+    return max(0, next_threshold - xp)
+
+
+def xp_bar_ratio(*, level: int, xp: int, growth_rate: GrowthGroupT) -> float:
+    """Within-level XP progress in [0, 1] using the level's XP bounds."""
+    if level >= MAX_LEVEL:
+        return 1.0
+    floor = xp_to_reach_level(level, growth_rate=growth_rate)
+    ceiling = xp_to_reach_level(level + 1, growth_rate=growth_rate)
+    span = max(1, ceiling - floor)
+    return min(1.0, max(0.0, (xp - floor) / span))
+
+
 def level_from_total_xp(total_xp: int, *, growth_rate: GrowthGroupT) -> int:
     """Highest level whose cumulative XP threshold is met by ``total_xp``."""
     level = 1

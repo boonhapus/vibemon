@@ -2,14 +2,17 @@
 
 from collections import defaultdict
 from dataclasses import dataclass, field
+from typing import Literal
+import random
 import uuid
 
 from app.core.schema import FrozenSchema
 from app.domains.battle import entity
 from app.domains.move.entity import Move
+from app.domains.move.types import VibemonTypeT
 from app.domains.vibemon import identity as vibemon_identity
 from app.domains.vibemon.entity import Vibemon
-from app.domains.vibemon.progression import formulas
+from app.domains.vibemon.progression import formulas, move_offers
 from app.domains.vibemon.strength_formulas import apply_evo_seed_bst_bias
 from app.domains.vibemon.types import EvolutionStageT
 
@@ -39,7 +42,11 @@ class EvolutionApplied(FrozenSchema):
 
 class MoveLearnOffer(FrozenSchema):
     vibemon_id: uuid.UUID
-    move: Move
+    vibemon_name: str
+    moves: tuple[Move, ...]
+    requires_replace: bool
+    levels_crossed: int
+    phase: Literal["kit_building", "upgrade"]
 
 
 class ProgressionDelta(FrozenSchema):
@@ -59,17 +66,6 @@ class BattleProgressionResult(FrozenSchema):
 @dataclass
 class _XpAccumulator:
     awards: dict[uuid.UUID, int] = field(default_factory=lambda: defaultdict(int))
-
-
-def learnable_moves(
-    vibemon: Vibemon,
-    *,
-    pool: tuple[Move, ...],
-    level: int,
-) -> tuple[Move, ...]:
-    """Moves newly eligible at ``level`` that the mon does not already know."""
-    known = {move.id for move in vibemon.moves}
-    return tuple(move for move in pool if move.level_requirement <= level and move.id not in known)
 
 
 def apply_evolution(vibemon: Vibemon, *, to_stage: EvolutionStageT) -> Vibemon:
@@ -107,8 +103,58 @@ def apply_xp(vibemon: Vibemon, xp_gain: int) -> tuple[Vibemon, XpAward | None]:
     )
 
 
-def _combatants_by_name(battle: entity.Battle) -> dict[str, entity.BattleVibemon]:
-    lookup: dict[str, entity.BattleVibemon] = {}
+def sample_move_learn_offer(
+    vibemon: Vibemon,
+    *,
+    battle_id: uuid.UUID,
+    provider_moves: tuple[Move, ...],
+    universal_moves: tuple[Move, ...],
+    learned_exclude_ids: set[str],
+    element_rankings: dict[VibemonTypeT, float] | None = None,
+    levels_crossed: int = 1,
+    rng: random.Random | None = None,
+) -> MoveLearnOffer | None:
+    """Build a weighted four-choice offer from the eligible learnset pool."""
+    eligible = move_offers.eligible_with_universal_fallback(
+        provider_moves,
+        universal_moves,
+        exclude_ids=learned_exclude_ids,
+        level=vibemon.level,
+    )
+    offer_rng = rng or move_offers.offer_rng(battle_id=battle_id, vibemon_id=vibemon.id)
+    sample = move_offers.sample_move_options(
+        eligible,
+        elements=vibemon.identity.elements,
+        element_rankings=element_rankings,
+        rng=offer_rng,
+    )
+    if not sample:
+        return None
+    active_count = len(vibemon.moves)
+    phase: Literal["kit_building", "upgrade"] = (
+        "kit_building" if active_count < MAX_ACTIVE_MOVES else "upgrade"
+    )
+    return MoveLearnOffer(
+        vibemon_id=vibemon.id,
+        vibemon_name=vibemon.name,
+        moves=sample,
+        requires_replace=active_count >= MAX_ACTIVE_MOVES,
+        levels_crossed=levels_crossed,
+        phase=phase,
+    )
+
+
+def _apply_wild_move_learn(vibemon: Vibemon, move: Move) -> Vibemon:
+    if len(vibemon.moves) < MAX_ACTIVE_MOVES:
+        return vibemon.model_copy(update={"moves": (*vibemon.moves, move)})
+    slot = move_offers.replacement_slot_index(vibemon.moves)
+    updated_moves = list(vibemon.moves)
+    updated_moves[slot] = move
+    return vibemon.model_copy(update={"moves": tuple(updated_moves)})
+
+
+def _combatants_by_name(battle: entity.Battle) -> dict[str, entity.Vibemon]:
+    lookup: dict[str, entity.Vibemon] = {}
     for trainer in (battle.trainer_a, battle.trainer_b):
         for combatant in trainer.crew:
             lookup[combatant.name] = combatant
@@ -122,7 +168,7 @@ def _is_fainted(combatant: entity.BattleVibemon | Vibemon) -> bool:
 
 
 def _participants(battle: entity.Battle) -> tuple[entity.BattleVibemon | Vibemon, ...]:
-    participants: list[entity.BattleVibemon] = []
+    participants: list[entity.Vibemon] = []
     for trainer in (battle.trainer_a, battle.trainer_b):
         participants.extend(trainer.crew)
     return tuple(participants)
@@ -166,15 +212,19 @@ def accumulate_battle_xp(battle: entity.Battle) -> dict[uuid.UUID, int]:
 def resolve_progression_for_vibemon(
     vibemon: Vibemon,
     *,
+    battle_id: uuid.UUID,
     xp_gain: int,
-    move_pool_by_level: dict[int, tuple[Move, ...]],
+    provider_moves: tuple[Move, ...],
+    universal_moves: tuple[Move, ...],
+    learned_exclude_ids: set[str],
     auto_evolve: bool,
+    element_rankings: dict[VibemonTypeT, float] | None = None,
 ) -> ProgressionDelta:
-    """Apply XP, auto-evolve wild mons, and surface owned-mon offers."""
+    """Apply XP, auto-evolve wild mons, and surface owned-mon move offers."""
     updated, xp_award = apply_xp(vibemon, xp_gain)
     evolution_applied: EvolutionApplied | None = None
     evolution_offer: EvolutionOffer | None = None
-    move_offers: list[MoveLearnOffer] = []
+    move_learn_offer: MoveLearnOffer | None = None
 
     if xp_award is not None and xp_award.new_level > xp_award.previous_level:
         pending = formulas.pending_evolution_stage(
@@ -198,13 +248,41 @@ def resolve_progression_for_vibemon(
                     to_stage=pending,
                 )
 
-        for level in range(xp_award.previous_level + 1, xp_award.new_level + 1):
-            pool = move_pool_by_level.get(level, ())
-            for move in learnable_moves(updated, pool=pool, level=level):
-                if len(updated.moves) < MAX_ACTIVE_MOVES:
-                    updated = updated.model_copy(update={"moves": (*updated.moves, move)})
-                elif not auto_evolve:
-                    move_offers.append(MoveLearnOffer(vibemon_id=updated.id, move=move))
+        levels_crossed = xp_award.new_level - xp_award.previous_level
+        active_count = len(updated.moves)
+        offer_rng = move_offers.offer_rng(battle_id=battle_id, vibemon_id=updated.id)
+        if move_offers.should_offer(
+            active_move_count=active_count,
+            levels_crossed=levels_crossed,
+            rng=offer_rng,
+        ):
+            sampled_offer = sample_move_learn_offer(
+                updated,
+                battle_id=battle_id,
+                provider_moves=provider_moves,
+                universal_moves=universal_moves,
+                learned_exclude_ids=learned_exclude_ids,
+                element_rankings=element_rankings,
+                levels_crossed=levels_crossed,
+                rng=offer_rng,
+            )
+            if sampled_offer is not None:
+                if auto_evolve:
+                    pick_rng = move_offers.offer_rng(
+                        battle_id=battle_id,
+                        vibemon_id=updated.id,
+                        salt="wild_pick",
+                    )
+                    picked = move_offers.auto_pick_from_sample(
+                        sampled_offer.moves,
+                        elements=updated.identity.elements,
+                        element_rankings=element_rankings,
+                        rng=pick_rng,
+                    )
+                    if picked is not None:
+                        updated = _apply_wild_move_learn(updated, picked)
+                else:
+                    move_learn_offer = sampled_offer
 
     return ProgressionDelta(
         vibemon_id=updated.id,
@@ -212,7 +290,7 @@ def resolve_progression_for_vibemon(
         xp_award=xp_award,
         evolution_applied=evolution_applied,
         evolution_offer=evolution_offer,
-        move_learn_offers=tuple(move_offers),
+        move_learn_offers=(move_learn_offer,) if move_learn_offer is not None else (),
     )
 
 
@@ -220,18 +298,26 @@ def resolve_battle_progression(
     battle: entity.Battle,
     *,
     battle_id: uuid.UUID,
-    move_pool_by_vibemon: dict[uuid.UUID, dict[int, tuple[Move, ...]]],
+    provider_moves_by_id: dict[uuid.UUID, tuple[Move, ...]],
+    universal_moves: tuple[Move, ...],
+    learned_exclude_by_id: dict[uuid.UUID, set[str]],
     auto_evolve_by_id: dict[uuid.UUID, bool],
+    element_rankings_by_id: dict[uuid.UUID, dict[VibemonTypeT, float]] | None = None,
 ) -> BattleProgressionResult:
     """Resolve XP and progression for every battle participant."""
     xp_totals = accumulate_battle_xp(battle)
+    rankings_by_id = element_rankings_by_id or {}
     deltas: list[ProgressionDelta] = []
     for combatant in _participants(battle):
         delta = resolve_progression_for_vibemon(
             combatant,
+            battle_id=battle_id,
             xp_gain=xp_totals.get(combatant.id, 0),
-            move_pool_by_level=move_pool_by_vibemon[combatant.id],
+            provider_moves=provider_moves_by_id[combatant.id],
+            universal_moves=universal_moves,
+            learned_exclude_ids=learned_exclude_by_id.get(combatant.id, set()),
             auto_evolve=auto_evolve_by_id.get(combatant.id, combatant.is_wild),
+            element_rankings=rankings_by_id.get(combatant.id),
         )
         deltas.append(delta)
     return BattleProgressionResult(battle_id=battle_id, deltas=tuple(deltas))

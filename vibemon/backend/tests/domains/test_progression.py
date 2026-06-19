@@ -3,6 +3,7 @@
 import datetime as dt
 import uuid
 
+from sqlalchemy.ext.asyncio import AsyncSession
 import pytest
 
 from app.domains.battle import entity, events
@@ -74,6 +75,19 @@ def test_xp_curve_is_cubic_by_growth_group() -> None:
     assert formulas.xp_to_reach_level(10, growth_rate=GrowthGroupT.FAST) == 4_000
     assert formulas.xp_to_reach_level(10, growth_rate=GrowthGroupT.MEDIUM) == 5_000
     assert formulas.xp_to_reach_level(10, growth_rate=GrowthGroupT.SLOW) == 6_000
+
+
+def test_xp_bar_helpers_use_within_level_bounds() -> None:
+    level = 8
+    growth = GrowthGroupT.MEDIUM
+    floor = formulas.xp_to_reach_level(level, growth_rate=growth)
+    ceiling = formulas.xp_to_reach_level(level + 1, growth_rate=growth)
+    mid_xp = floor + (ceiling - floor) // 2
+
+    assert formulas.xp_to_next_level(level=level, xp=mid_xp, growth_rate=growth) == ceiling - mid_xp
+    ratio = formulas.xp_bar_ratio(level=level, xp=mid_xp, growth_rate=growth)
+    assert 0.45 <= ratio <= 0.55
+    assert formulas.xp_bar_ratio(level=level, xp=floor, growth_rate=growth) == 0.0
 
 
 def test_level_from_total_xp_respects_growth_rate() -> None:
@@ -157,7 +171,7 @@ def test_apply_evolution_rescales_base_stats() -> None:
 
 
 @pytest.mark.asyncio
-async def test_resolve_battle_progression_persists_xp_for_winner(sess, test_trainer) -> None:
+async def test_resolve_battle_progression_persists_xp_for_winner(sess: AsyncSession, test_trainer: uuid.UUID) -> None:
     now = dt.datetime(2026, 5, 19, 12, 0, tzinfo=dt.UTC)
     hero_id = uuid.uuid7()
     wild_id = uuid.uuid7()
@@ -295,3 +309,46 @@ async def test_resolve_battle_progression_persists_xp_for_winner(sess, test_trai
     refreshed = await sess.get(models.Vibemon, hero_id)
     assert refreshed is not None
     assert refreshed.xp == hero_delta.xp_award.new_xp
+
+
+def test_owned_offer_does_not_mutate_active_moves() -> None:
+    battle_id = uuid.uuid7()
+    starter = _move(content_id="test.strike", name="Strike")
+    learnable = _move(content_id="test.learn", name="Learn", level_requirement=1)
+    vibemon = _vibemon(level=1, xp=0, trainer_id=TEST_TRAINER_ID)
+    pool = (starter, learnable)
+    delta = progression_engine.resolve_progression_for_vibemon(
+        vibemon,
+        battle_id=battle_id,
+        xp_gain=formulas.xp_to_reach_level(8, growth_rate=GrowthGroupT.MEDIUM),
+        provider_moves=pool,
+        universal_moves=(),
+        learned_exclude_ids={starter.id},
+        auto_evolve=False,
+    )
+    assert delta.xp_award is not None
+    assert delta.xp_award.new_level > delta.xp_award.previous_level
+    if delta.move_learn_offers:
+        assert len(delta.vibemon.moves) == len(vibemon.moves)
+
+
+def test_wild_offer_mutates_active_moves_on_hit(monkeypatch: pytest.MonkeyPatch) -> None:
+    from app.domains.vibemon.progression import move_offers
+
+    battle_id = uuid.uuid7()
+    starter = _move(content_id="test.strike", name="Strike")
+    learnable = _move(content_id="test.learn", name="Learn", level_requirement=1)
+    vibemon = _vibemon(level=1, xp=0)
+    monkeypatch.setattr(move_offers, "should_offer", lambda **_kwargs: True)
+    pool = (starter, learnable)
+    delta = progression_engine.resolve_progression_for_vibemon(
+        vibemon,
+        battle_id=battle_id,
+        xp_gain=formulas.xp_to_reach_level(2, growth_rate=GrowthGroupT.MEDIUM),
+        provider_moves=pool,
+        universal_moves=(),
+        learned_exclude_ids={starter.id},
+        auto_evolve=True,
+    )
+    assert delta.move_learn_offers == ()
+    assert len(delta.vibemon.moves) >= len(vibemon.moves)

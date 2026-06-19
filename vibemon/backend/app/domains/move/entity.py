@@ -34,6 +34,7 @@ class Drain(FrozenSchema):
 class Recoil(FrozenSchema):
     kind: Literal["recoil"] = "recoil"
     ratio: float
+    basis: Literal["damage", "max_hp"] = "damage"
 
 
 class WeatherSet(FrozenSchema):
@@ -132,6 +133,22 @@ class Move(FrozenSchema):
     @property
     def canonical_name(self) -> str:
         return canonicalize_move_name(self.name)
+
+    @property
+    def provider(self) -> str:
+        """Provider slug parsed from the canonical move id."""
+        return move_provider_slug(self.id)
+
+    @property
+    def deals_damage(self) -> bool:
+        """True when the move can roll battle damage (non-status with defined power)."""
+        return self.power is not None and self.category != MoveCategoryT.STATUS
+
+
+def move_provider_slug(move_id: str) -> str:
+    """Return the provider slug prefix from a canonical move id."""
+    validate_move_id(move_id)
+    return move_id.split(".", 1)[0]
 
 
 def validate_move_id(move_id: str) -> None:

@@ -1,61 +1,65 @@
-"""Birth-scoped learnset materialization and snapshot storage."""
+"""Birth-provider move pools resolved live from provider catalogs."""
 
 from collections.abc import Sequence
+import datetime as dt
+import uuid
 
-from app.core.schema import FrozenSchema
+from app.domains.generation.affinity import Affinity
+from app.domains.generation.merge import fuse_element_rankings
+from app.domains.generation.seed import BirthSeed
 from app.domains.generation.snapshot import LEARNSET_PAYLOAD_KEY, BirthSnapshot
-from app.domains.move import universal
 from app.domains.move.entity import Move
+from app.domains.move.types import VibemonTypeT
 from app.providers import registry as provider_registry
 
 
-class LearnsetEntry(FrozenSchema):
-    content_id: str
-    level_requirement: int
+def birth_provider_names(snapshot: BirthSnapshot) -> tuple[str, ...]:
+    """Return birth provider ids stored on the snapshot, ignoring legacy learnset payloads."""
+    return tuple(key for key in sorted(snapshot.provider_payloads) if key != LEARNSET_PAYLOAD_KEY)
 
 
-def materialize_learnset(provider_names: Sequence[str]) -> tuple[LearnsetEntry, ...]:
-    """Capture the full provider move pool at birth without live Provider instances later."""
-    entries: dict[str, LearnsetEntry] = {}
-    for move in universal.moves():
-        entries[move.id] = LearnsetEntry(content_id=move.id, level_requirement=move.level_requirement)
-    for provider_name in sorted(provider_names):
-        try:
-            provider = provider_registry.get_catalog_provider(provider_name)()
-        except KeyError:
-            continue
-        for move in provider.moves():
-            entries[move.id] = LearnsetEntry(content_id=move.id, level_requirement=move.level_requirement)
-    return tuple(entries.values())
+def birth_seed_for_snapshot(
+    snapshot: BirthSnapshot,
+    *,
+    timestamp: dt.datetime,
+    geo_coords: tuple[float, float],
+    trainer_id: uuid.UUID,
+) -> BirthSeed:
+    """Rebuild a domain birth seed from persisted snapshot metadata."""
+    return BirthSeed(
+        timestamp=timestamp,
+        geo_coords=geo_coords,
+        trainer_id=trainer_id,
+        providers=provider_registry.build_provider_instances(birth_provider_names(snapshot)),
+    )
 
 
-def materialize_learnset_moves(provider_names: Sequence[str]) -> tuple[Move, ...]:
-    """Full Move objects for catalog upsert at birth."""
+async def fused_element_rankings(snapshot: BirthSnapshot, *, birth_seed: BirthSeed) -> dict[VibemonTypeT, float]:
+    """Fuse per-provider element evidence the same way birth typing does."""
+    affinities = list(await snapshot.regenerate(birth_seed.providers, birth_seed))
+    if not affinities:
+        return {}
+    pairs = [(Affinity._rankings_for_merge(affinity), 1.0) for affinity in affinities]
+    return fuse_element_rankings(*pairs)
+
+
+def moves_for_providers(
+    provider_names: Sequence[str],
+    *,
+    level: int,
+) -> tuple[Move, ...]:
+    """Resolve the current provider catalog union eligible at ``level``."""
     moves: dict[str, Move] = {}
-    for move in universal.moves():
-        moves[move.id] = move
     for provider_name in sorted(provider_names):
         try:
-            provider = provider_registry.get_catalog_provider(provider_name)()
+            provider_cls = provider_registry.get_catalog_provider(provider_name)
         except KeyError:
             continue
-        for move in provider.moves():
+        for move in provider_cls.moves_at_level(level=level):
             moves[move.id] = move
     return tuple(moves.values())
 
 
-def snapshot_with_learnset(snapshot: BirthSnapshot, entries: tuple[LearnsetEntry, ...]) -> BirthSnapshot:
-    payloads = dict(snapshot.provider_payloads)
-    payloads[LEARNSET_PAYLOAD_KEY] = {"entries": [entry.model_dump(mode="json") for entry in entries]}
-    return BirthSnapshot(provider_payloads=payloads)
-
-
-def learnset_entries(snapshot: BirthSnapshot) -> tuple[LearnsetEntry, ...]:
-    raw = snapshot.provider_payloads.get(LEARNSET_PAYLOAD_KEY)
-    if raw is None:
-        return ()
-    return tuple(LearnsetEntry.model_validate(entry) for entry in raw["entries"])
-
-
-def birth_provider_names(snapshot: BirthSnapshot) -> tuple[str, ...]:
-    return tuple(key for key in sorted(snapshot.provider_payloads) if key != LEARNSET_PAYLOAD_KEY)
+def provider_moves_at_level(snapshot: BirthSnapshot, *, level: int) -> tuple[Move, ...]:
+    """Birth-provider moves eligible at ``level`` (universal excluded)."""
+    return moves_for_providers(birth_provider_names(snapshot), level=level)

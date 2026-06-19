@@ -9,13 +9,10 @@ import json
 import random
 import uuid
 
-from astral import Observer
-from astral.sun import sun
 import pydantic
 
 from app.core.schema import FrozenSchema
 
-from . import types
 from .ports import BirthProvider, TrainerSecrets
 from .snapshot import BirthSnapshot
 
@@ -49,31 +46,6 @@ class BirthSeed(FrozenSchema):
     def local_time(self) -> dt.datetime:
         """Birth instant in the seed's local timezone."""
         return self.timestamp.astimezone(self.local_timezone)
-
-    @property
-    def solar_phase(self) -> types.SolarPhase:
-        """Local solar-time phase derived from timestamp and coordinates."""
-        latitude, longitude = self.geo_coords
-        observer = Observer(latitude=latitude, longitude=longitude)
-
-        try:
-            solar = sun(observer, date=self.local_time.date(), tzinfo=self.local_timezone)
-        except ValueError:
-            return types.SolarPhase.NIGHT if abs(latitude) > 66.0 else types.SolarPhase.DAY
-
-        if self.local_time < solar["dawn"]:
-            return types.SolarPhase.NIGHT
-
-        if self.local_time < solar["sunrise"]:
-            return types.SolarPhase.DAWN
-
-        if self.local_time < solar["sunset"]:
-            return types.SolarPhase.DAY
-
-        if self.local_time < solar["dusk"]:
-            return types.SolarPhase.DUSK
-
-        return types.SolarPhase.NIGHT
 
     @staticmethod
     def _hash_seed_material(seed_material: dict[str, Any]) -> int:

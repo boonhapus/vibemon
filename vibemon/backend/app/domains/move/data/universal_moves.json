@@ -2,7 +2,7 @@
   {
     "id": "universal.tackle",
     "name": "Tackle",
-    "flavor_text": "A basic physical strike that any Vibemon can perform.",
+    "flavor_text": "A full-body check thrown with plain, honest force.",
     "type": "normal",
     "category": "physical",
     "power": 40,
@@ -10,9 +10,129 @@
     "pp": 35
   },
   {
+    "id": "universal.claw_rake",
+    "name": "Scuff",
+    "flavor_text": "A scraping rush with whatever rough edge the user can find.",
+    "type": "normal",
+    "category": "physical",
+    "power": 40,
+    "accuracy": 1.0,
+    "pp": 35
+  },
+  {
+    "id": "universal.palm_strike",
+    "name": "Smack",
+    "flavor_text": "An open-hand blow meant to land hard and clear.",
+    "type": "normal",
+    "category": "physical",
+    "power": 40,
+    "accuracy": 1.0,
+    "pp": 35
+  },
+  {
+    "id": "universal.dampen_cry",
+    "name": "Snarl",
+    "flavor_text": "A rough warning sound that cuts the foe's fight short.",
+    "type": "normal",
+    "category": "status",
+    "power": null,
+    "accuracy": 1.0,
+    "pp": 40,
+    "effects": [
+      {
+        "chance": 1.0,
+        "trigger": "on_hit",
+        "effects": [
+          {
+            "kind": "stat",
+            "target": "target",
+            "changes": {
+              "attack": -1
+            }
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "id": "universal.baleful_stare",
+    "name": "Intimidate",
+    "flavor_text": "A fixed, unblinking look that leaves the foe's guard feeling thin.",
+    "type": "normal",
+    "category": "status",
+    "power": null,
+    "accuracy": 1.0,
+    "pp": 40,
+    "effects": [
+      {
+        "chance": 1.0,
+        "trigger": "on_hit",
+        "effects": [
+          {
+            "kind": "stat",
+            "target": "target",
+            "changes": {
+              "defense": -1
+            }
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "id": "universal.rally_pulse",
+    "name": "Rally",
+    "flavor_text": "A quick inward breath that steels the user for the hit to come.",
+    "type": "normal",
+    "category": "status",
+    "power": null,
+    "accuracy": 1.0,
+    "pp": 40,
+    "effects": [
+      {
+        "chance": 1.0,
+        "trigger": "on_hit",
+        "effects": [
+          {
+            "kind": "stat",
+            "target": "self",
+            "changes": {
+              "attack": 1
+            }
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "id": "universal.brace_up",
+    "name": "Brace",
+    "flavor_text": "The user sets their weight and holds a firmer line.",
+    "type": "normal",
+    "category": "status",
+    "power": null,
+    "accuracy": 1.0,
+    "pp": 40,
+    "effects": [
+      {
+        "chance": 1.0,
+        "trigger": "on_hit",
+        "effects": [
+          {
+            "kind": "stat",
+            "target": "self",
+            "changes": {
+              "defense": 1
+            }
+          }
+        ]
+      }
+    ]
+  },
+  {
     "id": "universal.snap_strike",
     "name": "Snap Strike",
-    "flavor_text": "A reflexive opening hit that lands before heavier attacks can start.",
+    "flavor_text": "A reflex hit that slips in before the rest of the exchange can begin.",
     "type": "normal",
     "category": "physical",
     "power": 40,
