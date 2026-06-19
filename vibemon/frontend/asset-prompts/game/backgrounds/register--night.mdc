@@ -3,8 +3,8 @@ name: register-night
 kind: asset-instance
 asset: game/backgrounds/register--night.png
 model: gemini-3-pro-image
-generated: 2026-06-16
-status: approved
+generated: 2026-06-17
+status: draft
 style_anchor: base-style-background.md
 reference_asset: game/backgrounds/register.png
 ---
@@ -12,8 +12,8 @@ Scene background for the /register onboarding screen — same world, horizon, gr
 
 Wide 16:9 horizontal landscape, camera zoomed in and angled slightly downward toward the ground; horizon around the vertical middle.
 
-Sky: deep night-blue and dusky indigo with star-fleck speckling across the upper sky — many tiny soft stars, not a dense Milky Way. **No warm horizon glow, no sunset afterglow, no peach or amber light at the horizon, and no sunlight on the mountains.** The treeline and distant rolling mountains are **dark silhouettes only**, barely separated from the night sky by subtle cool moonlit edge light — not rim-lit by sun.
+Sky: soft moonlit blue-violet haze across the upper third — clearly night, but **not near-black**. A soft, dim moon with a faint halo sits in the **upper-left sky**, trailing a few wispy moonlit clouds, and a gentle, restrained cool lunar glow lifts the sky value only slightly — keep the moonlight understated, not bright. Gentle star-fleck speckling **gathered low near the horizon band and thinning out toward the top of the sky** — sparse tiny soft stars, not a dense Milky Way. **No warm horizon glow, no sunset afterglow, no peach or amber light at the horizon, and no sunlight on the mountains.** The treeline and distant rolling mountains are **dark silhouettes only**, barely separated from the night sky by subtle cool moonlit edge light — not rim-lit by sun.
 
-Grass field dominates the lower half with deep night-blue undertones and a **cool, faint moonlit sheen** on blade tips — not warm light. Keep the RIGHT third calm and low-contrast where the trainer stands. A gentle worn dirt footpath winds in from the left-center foreground toward the left edge, barely visible in moonlight; busier detail only along the bottom foreground edge and in the distance. No characters, no nest, no large foreground trees.
+Grass field dominates the lower half with **cool night-blue and desaturated indigo-green undertones** and a **cool moonlit silver sheen** on blade tips — not warm light, not brown, not tobacco, not warm olive, not earthy umber. Keep the RIGHT third calm and low-contrast where the trainer stands. A gentle worn dirt footpath winds in from the left-center foreground toward the left edge, barely visible in moonlight; busier detail only along the bottom foreground edge and in the distance. No characters, no nest, no large foreground trees.
 
-**Do NOT** show any remaining daylight, golden horizon bands, lit mountain slopes, or twilight warmth. This is full night — mysterious, hushed, still inviting.
+**Do NOT** show any remaining daylight, golden horizon bands, lit mountain slopes, or twilight warmth, and **do NOT** let the sky collapse to near-black. Luminous moonlit night — mysterious, hushed, still inviting.

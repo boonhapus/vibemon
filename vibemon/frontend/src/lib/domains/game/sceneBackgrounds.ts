@@ -1,13 +1,14 @@
 import { type SolarPhase } from './solarPhase';
 
-export type SceneBackgroundId = 'title' | 'register' | 'hatch' | 'crew-showcase';
+export type SceneBackgroundId = 'title' | 'register' | 'hatch' | 'crew-showcase' | 'battle';
 
 /** Canonical phase each scene was authored for — used as legacy single-file fallback. */
 export const SCENE_CANONICAL_PHASE: Record<SceneBackgroundId, SolarPhase> = {
 	title: 'day',
 	register: 'dawn',
 	hatch: 'dawn',
-	'crew-showcase': 'day'
+	'crew-showcase': 'day',
+	battle: 'day'
 };
 
 export function sceneBackgroundAsset(scene: SceneBackgroundId, phase: SolarPhase): string {

@@ -1,0 +1,28 @@
+---
+name: battle-night
+kind: asset-instance
+asset: game/backgrounds/battle--night.png
+model: gemini-3-pro-image
+generated: 2026-06-17
+status: draft
+style_anchor: base-style-background.md
+reference_asset: game/backgrounds/battle.png
+---
+Scene background for the wild-battle screen — **the exact same shot as the reference image** (battle--day): identical camera angle, horizon height, distant pine treeline, the two trampled-dirt battle rings, and meadow layout. Only change the **time of day to deep night well after dusk** — do not change composition, framing, or the ring placement.
+
+This scene carries **dense UI overlay** (opponent HUD upper-left, player HUD mid-right, dialog bar lower-left, command menu lower-right) and two composited Vibemon sprites at runtime. It must stay **bright and legible enough** for those plates while still reading as night — prioritize luminous compositing zones and clearly readable battle rings over atmospheric darkness.
+
+Wide 16:9 horizontal landscape, camera zoomed in and angled slightly downward toward the ground; horizon around the vertical middle.
+
+Sky: soft moonlit blue-violet haze across the **entire upper third** — clearly night, but **not near-black**. Gentle star-fleck speckling, sparse tiny stars, not a dense Milky Way. A faint cool lunar glow lifts the sky value so dark UI text can sit on it, kept especially soft in the UPPER-LEFT quadrant for the opponent HUD plate. **No warm horizon glow, no sunset afterglow, no peach or amber light, and no sunlight on the hills.** A thin low band of distant pine treeline and soft rolling hills rests along the high horizon, dark but separated from the sky by subtle cool moonlit edge light.
+
+The grass field fills the lower two-thirds with cool night-blue and desaturated indigo-green undertones, a few tiny wildflowers scattered sparingly. Keep the broad center diagonal between the two rings open and uncluttered — this is the sightline projectiles travel across.
+
+**Two-ring battle layout** (unchanged from the reference):
+- **Player ring (near, lower-left):** a compact elliptical patch of trampled dirt in the **left center** of the frame, its center at **50–55% down from the top**, inset from the left edge; roughly **7–9% of frame width**. Give it a cool moonlit silver-brown sheen so a sprite reads clearly on it. The entire bottom **25%** of the frame below this ring stays open grass only — reserved for dialog/command UI overlays.
+- **Opponent ring (far, upper-right):** a smaller matching elliptical dirt patch around 22–28% down from the top, inset from the right edge; roughly **6–7% of frame width** and slightly softer in contrast to sell distance.
+- The two rings sit on a diagonal axis (lower-left to upper-right). Grass grows up to the ring edges; do not merge the rings into one continuous dirt field.
+
+Concentrate the busiest, highest-contrast grass tufts, wildflowers, and small rocks only along the extreme bottom foreground edge and in the far distance — not inside either ring or across the open center band. Keep the mid-right sky and lower-right grass soft for the player HUD and command menu overlays. No thick black or tobacco-brown outlines on grass, dirt, or trees; edges stay soft and atmospheric.
+
+**Do NOT** show brown grass, tobacco-toned turf, warm olive fills, golden horizon bands, lit hill slopes, or twilight warmth. Quiet moonlit combat-arena mood — peaceful and still, but alert and ready for battle.

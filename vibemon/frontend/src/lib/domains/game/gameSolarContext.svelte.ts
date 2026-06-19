@@ -22,6 +22,15 @@ export const gameSolarContext = $state({
 	phase: DEFAULT_SOLAR_PHASE as SolarPhase
 });
 
+/** False until mount — keeps SSR and hydration on DEFAULT_SOLAR_PHASE, then crossfades to live phase. */
+let scenePhaseReady = $state(false);
+
+/** Phase for scene backdrops — stable across SSR/hydration, then live after mount. */
+export function sceneSolarPhase(): SolarPhase {
+	if (!scenePhaseReady) return DEFAULT_SOLAR_PHASE;
+	return gameSolarContext.phase;
+}
+
 export function syncGameSolarCoordinates(coords: TrainerCoordinates | null = readStoredTrainerCoordinates()) {
 	gameSolarContext.coordinates = coords;
 }
@@ -37,23 +46,25 @@ export function refreshGameSolarPhase(at: Date = new Date()) {
 }
 
 export function applyGameSolarDevOverride(searchParams: URLSearchParams) {
-	const phase = parseSolarPhase(searchParams.get('solar-phase'));
-	if (!phase) return;
-	setGameSolarOverride(phase);
+	setGameSolarOverride(parseSolarPhase(searchParams.get('solar-phase')));
 	refreshGameSolarPhase();
 }
 
 let refreshTimer: ReturnType<typeof setInterval> | undefined;
 
 export function startGameSolarClock() {
-	if (!browser || refreshTimer) return;
-	syncGameSolarCoordinates();
-	refreshGameSolarPhase();
-	refreshTimer = setInterval(() => refreshGameSolarPhase(), PHASE_REFRESH_MS);
+	if (!browser) return;
+	if (!refreshTimer) {
+		syncGameSolarCoordinates();
+		refreshGameSolarPhase();
+		refreshTimer = setInterval(() => refreshGameSolarPhase(), PHASE_REFRESH_MS);
+	}
+	scenePhaseReady = true;
 }
 
 export function stopGameSolarClock() {
 	if (!refreshTimer) return;
 	clearInterval(refreshTimer);
 	refreshTimer = undefined;
+	scenePhaseReady = false;
 }

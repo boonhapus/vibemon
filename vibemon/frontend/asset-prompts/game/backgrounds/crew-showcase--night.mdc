@@ -3,8 +3,8 @@ name: crew-showcase-night
 kind: asset-instance
 asset: game/backgrounds/crew-showcase--night.png
 model: gemini-3-pro-image
-generated: 2026-06-16
-status: approved
+generated: 2026-06-17
+status: draft
 style_anchor: base-style-background.md
 reference_asset: game/backgrounds/crew-showcase.png
 ---
@@ -12,8 +12,8 @@ Scene background for the /deck/crew formation screen — **the exact same shot a
 
 Wide 16:9 horizontal landscape, camera zoomed in and angled slightly downward toward the ground; horizon around the vertical middle.
 
-Sky: deep night-blue and dusky indigo with star-fleck speckling — kept especially soft and low-detail in the UPPER-LEFT quadrant for panel overlay. **No warm horizon glow, no sunset afterglow, no peach or amber light at the horizon, and no sunlight on the hills.** The same thin low band of hazy distant pine treeline and soft rolling hills from the reference, now **dark silhouettes only**, barely separated from the night sky by subtle cool moonlit edge light — not rim-lit by sun.
+Sky: soft moonlit blue-violet haze across the upper third — clearly night, but **not near-black**. A soft, dim moon with a faint halo sits in the **upper-right sky**, trailing a few wispy moonlit clouds, and a gentle, restrained cool lunar glow lifts the sky value only slightly — keep the moonlight understated, not bright. Keep the UPPER-LEFT quadrant especially soft and low-detail for the panel overlay — no moon or bright clouds there. Gentle star-fleck speckling **gathered low near the horizon band and thinning out toward the top of the sky** — sparse tiny soft stars, not a dense Milky Way. **No warm horizon glow, no sunset afterglow, no peach or amber light at the horizon, and no sunlight on the hills.** The same thin low band of hazy distant pine treeline and soft rolling hills from the reference are now **dark silhouettes only**, barely separated from the night sky by subtle cool moonlit edge light — not rim-lit by sun.
 
-Grass field is the **same calm, even, low-contrast meadow spanning the FULL width** as the reference — continuous gentle ground plane recolored for night with **deep night-blue and dusky indigo-green undertones** and a **cool, faint moonlit sheen** on blade tips — **not brown, not tobacco, not warm olive, not earthy umber.** No busy clumps in the character band. Concentrate what little detail there is only along the extreme bottom foreground edge and in the far distance. No characters, no path, no large foreground trees.
+Grass field is the **same calm, even, low-contrast meadow spanning the FULL width** as the reference — continuous gentle ground plane recolored for night with **deep night-blue and dusky indigo-green undertones** and a **cool moonlit silver sheen** on blade tips — **not brown, not tobacco, not warm olive, not earthy umber.** No busy clumps in the character band. Concentrate what little detail there is only along the extreme bottom foreground edge and in the far distance. No characters, no path, no large foreground trees.
 
-**Do NOT** change the reference composition, add a footpath, shift the horizon, or borrow a different scene layout. **Do NOT** show brown grass, golden horizon bands, lit hill slopes, or twilight warmth. Quiet night camp mood — peaceful, communal, resting under stars.
+**Do NOT** change the reference composition, add a footpath, shift the horizon, or borrow a different scene layout. **Do NOT** show brown grass, golden horizon bands, lit hill slopes, or twilight warmth, and **do NOT** let the sky collapse to near-black. Quiet luminous night camp — peaceful, communal, resting under a bright moon and stars.

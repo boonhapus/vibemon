@@ -8,6 +8,7 @@ describe('sceneBackgroundSrc', () => {
 		expect(sceneBackgroundSrc('hatch', 'dawn')).toBe('/game/backgrounds/hatch.png');
 		expect(sceneBackgroundSrc('register', 'dawn')).toBe('/game/backgrounds/register.png');
 		expect(sceneBackgroundSrc('crew-showcase', 'day')).toBe('/game/backgrounds/crew-showcase.png');
+		expect(sceneBackgroundSrc('battle', 'day')).toBe('/game/backgrounds/battle.png');
 	});
 
 	it('uses phase suffixes for non-canonical variants', () => {
@@ -17,6 +18,9 @@ describe('sceneBackgroundSrc', () => {
 		expect(sceneBackgroundSrc('crew-showcase', 'dusk')).toBe(
 			'/game/backgrounds/crew-showcase--dusk.png'
 		);
+		expect(sceneBackgroundSrc('battle', 'dawn')).toBe('/game/backgrounds/battle--dawn.png');
+		expect(sceneBackgroundSrc('battle', 'dusk')).toBe('/game/backgrounds/battle--dusk.png');
+		expect(sceneBackgroundSrc('battle', 'night')).toBe('/game/backgrounds/battle--night.png');
 	});
 });
 

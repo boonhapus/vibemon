@@ -1,0 +1,26 @@
+---
+name: battle-day
+kind: asset-instance
+asset: game/backgrounds/battle.png
+model: gemini-3-pro-image
+generated: 2026-06-17
+status: draft
+style_anchor: base-style-background.md
+reference_asset: game/backgrounds/hatch--day.png
+---
+Scene background for the wild-battle screen — an open meadow combat arena in the same world as the hatch, register, and crew-showcase fields. Same painterly pixel-art rendering, warm palette, distant pine treeline, and soft rolling mountain silhouettes as hatch--day.png — not a flatter or more outlined sprite-sheet look. Match the hatch--day reference for golden-olive meadow tones, luminous sky gradients, and gentle dither shading on grass and trees.
+
+Wide 16:9 horizontal landscape, camera zoomed in and angled slightly downward toward the ground; horizon around the vertical middle. This scene carries dense UI overlay (opponent HUD upper-left, player HUD mid-right, dialog bar lower-left, command menu lower-right) and two composited Vibemon sprites at runtime, so keep sky bands and the UI quadrants calm and low-contrast while the two battle rings read clearly.
+
+Lighting: bright, warm golden midday — soft sunny daylight, gently saturated. A calm pale-blue and warm-cream daytime sky with a few soft clouds, kept especially soft and low-detail in the UPPER-LEFT quadrant for the opponent HUD plate. A thin low band of hazy distant pine treeline and soft rolling hills rests along the high horizon.
+
+The grass field fills the lower two-thirds: lush golden-olive meadow with layered light and dark patches, individual blades catching warm sunny daylight, and a few tiny wildflowers scattered sparingly. Keep the broad center diagonal between the two rings open and uncluttered — this is the sightline projectiles travel across.
+
+**Two-ring battle layout** (match `docs/development/ideas/mockup/battle-screen-mockup.png` staging):
+- **Player ring (near, lower-left):** a compact elliptical patch of trampled warm tan-brown dirt in the **left center** of the frame — its center at **50–55% down from the top**, inset from the left edge. Never place this ring in the bottom third of the frame. Modest size only (roughly **7–9% of frame width**); reads as worn earth packed flat by repeated battles with subtle concentric scuff marks. The entire bottom **25%** of the frame below this ring must be open grass only — reserved for dialog/command UI overlays. This is where the hero Vibemon stands, facing up-right toward the opponent.
+- **Opponent ring (far, upper-right):** a smaller matching elliptical dirt patch in the upper-right midground — around 22–28% down from the top, inset from the right edge. Same trampled earth treatment but visibly smaller (roughly 6–7% of frame width) and slightly softer in contrast to sell distance. This is where the wild Vibemon stands, facing down-left toward the hero.
+- The two rings sit on a diagonal axis (lower-left to upper-right), classic handheld battle staging. Grass grows up to the ring edges; do not merge the rings into one continuous dirt field. Keep both rings restrained — small battle pads, not large arenas.
+
+Concentrate the busiest, highest-contrast grass tufts, wildflowers, and small rocks only along the extreme bottom foreground edge and in the far distance — not inside either ring or across the open center band. Keep the mid-right sky and lower-right grass soft for the player HUD and command menu overlays. No thick black or tobacco-brown outlines on grass, dirt, or trees; edges stay soft and atmospheric like the hatch reference.
+
+No characters, no UI, no text, no vignette, no dark framing edges. Open midday combat-arena mood — alert, sun-warmed, and ready — distinct from the calm resting-camp crew-showcase meadow.

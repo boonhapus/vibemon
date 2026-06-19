@@ -2,7 +2,7 @@
 	import { goto } from '$app/navigation';
 	import { onMount } from 'svelte';
 
-	import { gameSolarContext } from '$lib/domains/game/gameSolarContext.svelte';
+	import { sceneSolarPhase } from '$lib/domains/game/gameSolarContext.svelte';
 	import { sceneBackgroundSrc } from '$lib/domains/game/sceneBackgrounds';
 	import GameButton from '$lib/ui/GameButton.svelte';
 	import GamePanel from '$lib/ui/GamePanel.svelte';
@@ -28,10 +28,9 @@
 
 	let selectedIndex = $state(0);
 	let grassMons = $state<Array<(typeof TITLE_MON_SLOTS)[number] & { spriteSrc: string }>>([]);
-	let backgroundSrc = $derived(sceneBackgroundSrc('title', gameSolarContext.phase));
-	let logoLit = $derived(
-		gameSolarContext.phase === 'night' || gameSolarContext.phase === 'dusk'
-	);
+	let solarPhase = $derived(sceneSolarPhase());
+	let backgroundSrc = $derived(sceneBackgroundSrc('title', solarPhase));
+	let logoLit = $derived(solarPhase === 'night' || solarPhase === 'dusk');
 
 	function enabledMenuIndexes(): number[] {
 		return MENU_ITEMS.map((item, index) => (item.disabled ? -1 : index)).filter((index) => index >= 0);

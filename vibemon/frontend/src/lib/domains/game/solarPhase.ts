@@ -1,4 +1,9 @@
-/** Local solar phase from coordinates — mirrors backend BirthSeed.solar_phase (UTC timezone). */
+/**
+ * Live, UI-only solar phase for scene-background ambiance — computed from the player's
+ * current time and coordinates. Dawn/dusk are intentionally widened to the golden hours so
+ * crepuscular backgrounds appear earlier; this is distinct from the backend birth-instant
+ * phase used for mon generation and is not meant to mirror it.
+ */
 
 import SunCalc from 'suncalc';
 
@@ -30,7 +35,11 @@ function isValidTime(value: Date): boolean {
 	return Number.isFinite(value.getTime());
 }
 
-/** Resolve solar phase at `at` for `coords`. Uses UTC bands to match backend BirthSeed defaults. */
+/**
+ * Resolve the display solar phase at `at` for `coords`. Dawn spans civil dawn through the
+ * morning golden hour, dusk spans the evening golden hour through civil dusk — so twilight
+ * backgrounds show earlier than the bare sunrise/sunset boundaries.
+ */
 export function resolveSolarPhase(
 	coords: GeoCoordinates | null | undefined,
 	at: Date = new Date()
@@ -38,14 +47,19 @@ export function resolveSolarPhase(
 	if (!coords) return DEFAULT_SOLAR_PHASE;
 
 	const times = SunCalc.getTimes(at, coords.latitude, coords.longitude);
-	if (!isValidTime(times.dawn) || !isValidTime(times.sunrise) || !isValidTime(times.sunset) || !isValidTime(times.dusk)) {
+	if (
+		!isValidTime(times.dawn) ||
+		!isValidTime(times.goldenHourEnd) ||
+		!isValidTime(times.goldenHour) ||
+		!isValidTime(times.dusk)
+	) {
 		return polarFallback(coords.latitude);
 	}
 
 	const instant = at.getTime();
 	if (instant < times.dawn.getTime()) return 'night';
-	if (instant < times.sunrise.getTime()) return 'dawn';
-	if (instant < times.sunset.getTime()) return 'day';
+	if (instant < times.goldenHourEnd.getTime()) return 'dawn';
+	if (instant < times.goldenHour.getTime()) return 'day';
 	if (instant < times.dusk.getTime()) return 'dusk';
 	return 'night';
 }

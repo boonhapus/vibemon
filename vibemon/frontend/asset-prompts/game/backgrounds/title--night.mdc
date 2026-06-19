@@ -3,7 +3,7 @@ name: title-night
 kind: asset-instance
 asset: game/backgrounds/title--night.png
 model: gemini-3-pro-image
-generated: 2026-06-16
+generated: 2026-06-17
 status: draft
 style_anchor: base-style-background.md
 reference_asset: game/backgrounds/title.png
@@ -14,7 +14,7 @@ This scene carries **more UI overlay than the onboarding fields** (a large dark 
 
 Wide 16:9 horizontal landscape, camera zoomed in and angled slightly downward toward the ground; horizon around the vertical middle.
 
-Sky: soft moonlit blue-violet haze across the **entire upper third** — clearly night, but **not near-black**. Gentle star-fleck speckling, sparse tiny stars, not a dense Milky Way. A faint cool lunar glow lifts the sky value so dark UI text can sit on it. **No warm horizon glow, no sunset afterglow, no peach or amber light, and no sunlight on the mountains.** Thin low band of distant pine treeline and soft rolling mountain silhouettes, dark but separated from sky by subtle cool moonlit edge light.
+Sky: soft moonlit blue-violet haze across the **entire upper third** — clearly night, but **not near-black**. A soft, dim moon with a faint halo sits **off-center in the upper-right sky**, trailing a few wispy moonlit clouds, kept clear of the centered title logo; a gentle, restrained cool lunar glow lifts the sky value only slightly so dark UI text can sit on it — keep the moonlight understated, not bright. Gentle star-fleck speckling **gathered low near the horizon band and thinning out toward the top of the sky** — sparse tiny stars, not a dense Milky Way. **No warm horizon glow, no sunset afterglow, no peach or amber light, and no sunlight on the mountains.** Thin low band of distant pine treeline and soft rolling mountain silhouettes, dark but separated from sky by subtle cool moonlit edge light.
 
 The meadow dominates the lower half with cool night-blue and desaturated indigo-green undertones. **The central oval patch of taller grass is the mon stage band — make it noticeably brighter than the surrounding turf**, with a cool moonlit silver-olive sheen and soft even shading so **dark silhouettes remain readable** against it. Layered pine trees flank left and right as deep night silhouettes. Stone or log barriers in the bottom corners only; bottom center open for the menu overlay.
 
