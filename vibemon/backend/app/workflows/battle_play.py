@@ -70,11 +70,7 @@ def collect_owned_move_offers(
 ) -> tuple[progression_engine.MoveLearnOffer, ...]:
     """Order offers: active battler first, then bench by crew slot."""
     player_trainer = battle.trainer_a if battle.trainer_a.id == player_trainer_id else battle.trainer_b
-    offer_by_id = {
-        offer.vibemon_id: offer
-        for delta in result.deltas
-        for offer in delta.move_learn_offers
-    }
+    offer_by_id = {offer.vibemon_id: offer for delta in result.deltas for offer in delta.move_learn_offers}
     owned_crew = [combatant for combatant in player_trainer.crew if combatant.is_owned]
     owned_crew.sort(key=lambda combatant: (combatant.id != hero_vibemon_id, player_trainer.crew.index(combatant)))
     ordered: list[progression_engine.MoveLearnOffer] = []

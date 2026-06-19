@@ -375,9 +375,7 @@ def test_single_target_self_buff_applies_on_use_stat_change() -> None:
 
     assert attacker.stat_stages.sp_attack == 1
     assert any(
-        isinstance(event, events.StatChangeEvent)
-        and event.target == "Attacker"
-        and event.changes.get("sp_attack") == 1
+        isinstance(event, events.StatChangeEvent) and event.target == "Attacker" and event.changes.get("sp_attack") == 1
         for event in turn_events
     )
 

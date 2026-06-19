@@ -131,9 +131,7 @@ def sample_move_learn_offer(
     if not sample:
         return None
     active_count = len(vibemon.moves)
-    phase: Literal["kit_building", "upgrade"] = (
-        "kit_building" if active_count < MAX_ACTIVE_MOVES else "upgrade"
-    )
+    phase: Literal["kit_building", "upgrade"] = "kit_building" if active_count < MAX_ACTIVE_MOVES else "upgrade"
     return MoveLearnOffer(
         vibemon_id=vibemon.id,
         vibemon_name=vibemon.name,

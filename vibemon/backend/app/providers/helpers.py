@@ -286,10 +286,7 @@ def pick_starter_moves(
     if len(candidates) < k:
         raise ValueError(f"Cannot select {k} starter moves from {len(candidates)} eligible starter moves")
 
-    weighted = [
-        (move, move_assignment_weight(move, rankings=rankings, elements=elements))
-        for move in candidates
-    ]
+    weighted = [(move, move_assignment_weight(move, rankings=rankings, elements=elements)) for move in candidates]
     damaging = [(move, weight) for move, weight in weighted if move.deals_damage]
 
     if not damaging:

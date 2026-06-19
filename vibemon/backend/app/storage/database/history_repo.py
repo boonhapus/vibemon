@@ -15,12 +15,16 @@ async def load_history_events(
     vibemon_id: uuid.UUID,
 ) -> tuple[dict[str, object], ...]:
     rows = (
-        await sess.execute(
-            sa.select(models.VibemonHistory)
-            .where(models.VibemonHistory.vibemon_id == vibemon_id)
-            .order_by(models.VibemonHistory.occurred_at, models.VibemonHistory.id)
+        (
+            await sess.execute(
+                sa.select(models.VibemonHistory)
+                .where(models.VibemonHistory.vibemon_id == vibemon_id)
+                .order_by(models.VibemonHistory.occurred_at, models.VibemonHistory.id)
+            )
         )
-    ).scalars().all()
+        .scalars()
+        .all()
+    )
     return tuple({"event_type": row.event_type, "payload": dict(row.payload)} for row in rows)
 
 

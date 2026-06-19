@@ -112,10 +112,7 @@ def _breaking_point_move() -> entity.BattleMove:
     return entity.BattleMove(
         id=_BREAKING_POINT_ID,
         name="Breaking Point",
-        flavor_text=(
-            "A last reckless blow when every other move is spent. "
-            "The recoil catches up right away."
-        ),
+        flavor_text=("A last reckless blow when every other move is spent. The recoil catches up right away."),
         type=VibemonTypeT.NORMAL,
         category=MoveCategoryT.PHYSICAL,
         power=50,

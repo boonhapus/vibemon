@@ -202,11 +202,7 @@ class VibeProvider[PayloadT: schema.ProviderPayload](abc.ABC):
     @classmethod
     def starter_moves(cls, *, level: int = 1) -> tuple[Move, ...]:
         """Return provider moves plus shared universal moves for starter sampling."""
-        return tuple(
-            move
-            for move in (*universal.moves(), *cls.moves())
-            if move.level_requirement <= level
-        )
+        return tuple(move for move in (*universal.moves(), *cls.moves()) if move.level_requirement <= level)
 
 
 class UnimplementedProvider(VibeProvider[schema.UnimplementedPayload]):
