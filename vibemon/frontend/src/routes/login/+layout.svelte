@@ -6,7 +6,7 @@
 		createTrainerOnboardingUi,
 		type TrainerOnboardingUi
 	} from '$lib/domains/trainer/trainerOnboardingUi';
-	import { gameSolarContext } from '$lib/domains/game/gameSolarContext.svelte';
+	import { sceneSolarPhase } from '$lib/domains/game/gameSolarContext.svelte';
 	import { sceneBackgroundSrc } from '$lib/domains/game/sceneBackgrounds';
 	import SceneFrame from '$lib/ui/SceneFrame.svelte';
 
@@ -15,7 +15,7 @@
 	let { children }: { children: Snippet } = $props();
 
 	let loginUi = $state(createTrainerOnboardingUi());
-	let loginBackgroundSrc = $derived(sceneBackgroundSrc('register', gameSolarContext.phase));
+	let loginBackgroundSrc = $derived(sceneBackgroundSrc('register', sceneSolarPhase()));
 
 	setContext<TrainerOnboardingUi>(LOGIN_UI_KEY, loginUi);
 

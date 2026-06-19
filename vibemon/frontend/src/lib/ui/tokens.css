@@ -39,6 +39,24 @@
 	--vm-leading-tight: 1.3;
 	--vm-leading-body: 1.55;
 
+	/* Crew cabinet readout — 4-tier ramp (DESIGN.md §3.1):
+	   name (identity) > value (data: numbers, move names) > subtitle (field labels) > body (descriptions).
+	   The name owns the title tier alone; data values sit a clear step below so a stat
+	   number never rivals the Vibemon's name, and field labels stay quiet/engraved. */
+	--vm-crew-readout-name: clamp(1.3125rem, 3.9vw, 1.6875rem);
+	--vm-crew-readout-value: clamp(1rem, 2.8vw, 1.1875rem);
+	--vm-crew-readout-title: var(--vm-crew-readout-value);
+	--vm-crew-readout-subtitle: clamp(0.6875rem, 1.85vw, 0.8125rem);
+	--vm-crew-readout-body: var(--vm-text-caption);
+	--vm-crew-readout-subtitle-color: color-mix(in srgb, var(--vm-tobacco) 62%, var(--vm-plum));
+	--vm-crew-readout-muted-color: color-mix(in srgb, var(--vm-tobacco) 58%, var(--vm-brass));
+	/* Inset readout surfaces — move cards, story cards, striped source rows.
+	   Shared by the crew showcase and the standalone hatch panel so both read
+	   as the same plate. */
+	--vm-crew-readout-inset-surface: color-mix(in srgb, var(--vm-tobacco) 10%, var(--vm-cabinet-guide-surface));
+	--vm-crew-readout-inset-border: color-mix(in srgb, var(--vm-tobacco) 16%, transparent);
+	--vm-crew-readout-fill: var(--vm-status-sage);
+
 	--vm-radius-sm: 4px;
 	--vm-radius-md: 8px;
 	--vm-radius-lg: 12px;
@@ -74,21 +92,40 @@
 	/* Diegetic cabinet bezel width (DESIGN.md §5.2) — global so fixed-position
 	   chrome (toasts, corner controls) can stay inside the screen glass. */
 	--vm-bezel-w: clamp(10px, 1.8vw, 24px);
+	/* Expanded top rail — parchment + bottom wood lip (--vm-bezel-w) inside. */
+	--vm-bezel-guide-h: clamp(4.75rem, 10.5vh, 6.25rem);
+	--vm-guide-surface-pad-top: clamp(10px, 1.6vh, var(--vm-space-md));
+	--vm-bezel-top-current: var(--vm-bezel-w);
+	/* Guide roll — DESIGN.md §6.1: bezel leads, parchment trails ~3 frames. */
+	--vm-guide-reveal-duration: 280ms;
+	--vm-guide-stagger: 120ms;
+	/* Bottom-left guide knob — reserve space so footer HUD rows do not overlap. */
+	--vm-guide-corner-size: var(--vm-settings-corner-size);
+	--vm-guide-corner-reserve: calc(
+		var(--vm-guide-corner-size) + var(--vm-bezel-w) * 0.3 + var(--vm-space-sm)
+	);
 	/* Bottom-right settings knob — reserve space so footer HUD rows do not overlap. */
 	--vm-settings-corner-size: clamp(4rem, 8.5vh, 5rem);
 	--vm-settings-corner-reserve: calc(
 		var(--vm-settings-corner-size) + var(--vm-bezel-w) * 0.3 + var(--vm-space-sm)
 	);
 
-	/* Cabinet wood grain — shared by SceneFrame bezel, corner plate, and settings knob. */
+	/* Cabinet wood grain — bezel + corner underlays; use background-attachment: fixed together. */
 	--vm-cabinet-wood-grain:
 		repeating-linear-gradient(0deg, rgb(20 12 8 / 0.14) 0 1px, transparent 1px 7px),
 		repeating-linear-gradient(0deg, rgb(240 231 206 / 0.045) 0 2px, transparent 2px 11px),
 		linear-gradient(180deg, #4a3428, #3d2b1f 35%, #2f2117);
-	--vm-cabinet-wood-grain-corner:
-		repeating-linear-gradient(0deg, rgb(20 12 8 / 0.12) 0 1px, transparent 1px 7px),
-		repeating-linear-gradient(0deg, rgb(240 231 206 / 0.04) 0 2px, transparent 2px 11px),
-		linear-gradient(145deg, #4a3428, #3d2b1f 55%, #2f2117);
+	--vm-cabinet-wood-grain-fixed: fixed;
+	/* Knob glyphs — accent on wood (set on svg; FreeFormButton uses color:inherit). */
+	--vm-cabinet-knob-icon-guide: var(--vm-plum);
+	--vm-cabinet-knob-icon-settings: var(--vm-burnt-orange);
+	/* Guide bay insert — warmer command tan (#e0cda8). */
+	--vm-cabinet-guide-surface: var(--vm-panel-command-bg);
+	/* Thin horizontal rails — flat tobacco base so lips match vertical bezel peers. */
+	--vm-cabinet-wood-grain-flat:
+		repeating-linear-gradient(0deg, rgb(20 12 8 / 0.14) 0 1px, transparent 1px 7px),
+		repeating-linear-gradient(0deg, rgb(240 231 206 / 0.045) 0 2px, transparent 2px 11px),
+		var(--vm-tobacco);
 
 	/* Shared HUD layout anchors — provider column and bottom dialog row. */
 	--vm-hud-rail-inset: clamp(1.25rem, 4vw, 2.5rem);
@@ -102,7 +139,7 @@
 	--vm-hud-provider-rail-min-height: 22.5rem;
 	/* Candidate readout covers the provider rail footprint it swaps in for and
 	   runs longer — viewport-capped so the bottom dialog row stays clear. */
-	--vm-hud-candidate-panel-min-height: max(var(--vm-hud-provider-rail-min-height), min(27rem, 62vh));
+	--vm-hud-candidate-panel-min-height: max(var(--vm-hud-provider-rail-min-height), min(27.5rem, 63vh));
 	/* Right HUD rail: wood lip + parchment plate, inset from cabinet bezel. */
 	--vm-hud-rail-width: calc(var(--vm-hud-provider-column-width) + var(--vm-hud-panel-rail-thickness));
 	--vm-hud-candidate-rail-max-width: calc(var(--vm-hud-candidate-panel-max-width) + var(--vm-hud-panel-rail-thickness));
@@ -113,13 +150,20 @@
 	--anim-idle-duration: 3s;
 	--anim-attack-duration: 0.6s;
 	--anim-hurt-duration: 0.35s;
-	--anim-projectile-duration: 0.5s;
+	--anim-projectile-duration: 0.62s;
 	--anim-transition-duration: 0.7s;
 	--anim-transition-steps: 16;
 	--anim-action-steps: 12;
 	--anim-ui-reveal-steps: 8;
 	--anim-toast-duration: 360ms;
 	--anim-onboarding-cross-duration: 1.04s;
+	/* Battle hit-feedback — stepped, cozy-small amplitude (DESIGN.md §6.1/§6.5) */
+	--anim-impact-shake-duration: 260ms;
+	--anim-impact-shake-steps: 8;
+	--anim-knockback-duration: 320ms;
+	--anim-burst-duration: 360ms;
+	--anim-status-aura-duration: 650ms;
+	--anim-faint-duration: 720ms;
 
 	/* Screen-space post-process — docs/development/DESIGN.md §4
 	   0 = off, ~0.10 = whisper, 1 = strong grain */

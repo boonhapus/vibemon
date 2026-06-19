@@ -3,8 +3,11 @@
 	import ElementBadge from '$lib/ui/ElementBadge.svelte';
 	import GameButton from '$lib/ui/GameButton.svelte';
 	import GamePanel from '$lib/ui/GamePanel.svelte';
+	import CrewFormationMenu from '$lib/domains/crew/CrewFormationMenu.svelte';
 	import PixelIcon from '$lib/ui/PixelIcon.svelte';
+	import GuideNavButton from '$lib/domains/trainer/GuideNavButton.svelte';
 	import StyleguideSpecimen from '$lib/ui/StyleguideSpecimen.svelte';
+	import CabinetGuidePanel from '$lib/ui/CabinetGuidePanel.svelte';
 	import { ELEMENT_TYPES, elementTypeColor } from '$lib/ui/elementTypes';
 </script>
 
@@ -112,6 +115,30 @@
 		{#snippet children()}
 			<GameButton variant="primary" disabled>Press</GameButton>
 			<GameButton variant="secondary" disabled>Stars</GameButton>
+		{/snippet}
+	</StyleguideSpecimen>
+
+	<StyleguideSpecimen title="Crew formation menu">
+		{#snippet children()}
+			<div class="styleguide__crew-menu">
+				<CrewFormationMenu mode="command" />
+			</div>
+			<div class="styleguide__crew-menu styleguide__crew-menu--position">
+				<CrewFormationMenu mode="position" currentSlotIndex={0} />
+			</div>
+		{/snippet}
+	</StyleguideSpecimen>
+
+	<StyleguideSpecimen title="Cabinet bezel — guide panel">
+		{#snippet children()}
+			<div class="styleguide__cabinet-frame">
+				<GuideNavButton />
+				<span class="styleguide__cabinet-caption">Guide knob · panel closed</span>
+			</div>
+			<div class="styleguide__cabinet-frame styleguide__cabinet-frame--expanded">
+				<CabinetGuidePanel />
+				<span class="styleguide__cabinet-caption">Guide panel · rolled down</span>
+			</div>
 		{/snippet}
 	</StyleguideSpecimen>
 
@@ -359,5 +386,64 @@
 		font-family: var(--vm-font-ui);
 		font-size: 0.8125rem;
 		line-height: 1.6;
+	}
+
+	.styleguide__crew-menu {
+		width: min(100%, 12rem);
+		height: var(--vm-hud-dialog-slot-height);
+	}
+
+	.styleguide__crew-menu--position {
+		width: min(100%, 14rem);
+	}
+
+	.styleguide__cabinet-frame {
+		position: relative;
+		width: min(100%, 20rem);
+		min-height: 5.5rem;
+		padding-top: var(--vm-bezel-w);
+		border: var(--vm-bezel-w) solid transparent;
+		border-top-width: var(--vm-bezel-top-current, var(--vm-bezel-w));
+		border-image: linear-gradient(180deg, #4a3428, #3d2b1f 55%, #2f2117) 1;
+		background:
+			linear-gradient(to bottom, #c4a882 0%, #c4a882 52%, #6b7a2a 79%, #6b7a2a 100%) padding-box;
+		box-shadow: inset 0 0 0 2px rgb(42 30 22 / 0.45);
+		--vm-bezel-top-current: var(--vm-bezel-w);
+	}
+
+	.styleguide__cabinet-frame :global(.guide-nav) {
+		position: absolute;
+		left: 0.35rem;
+		bottom: 0.35rem;
+	}
+
+	.styleguide__cabinet-frame--expanded {
+		--vm-bezel-top-current: var(--vm-bezel-guide-h);
+		border-top-width: var(--vm-bezel-guide-h);
+		min-height: calc(5.5rem + var(--vm-bezel-guide-h) - var(--vm-bezel-w));
+	}
+
+	.styleguide__cabinet-frame--expanded :global(.cabinet-guide-panel) {
+		position: absolute;
+		top: 0;
+		left: 0;
+		right: 0;
+		height: var(--vm-bezel-guide-h);
+	}
+
+	.styleguide__cabinet-frame--expanded :global(.cabinet-guide-panel__surface) {
+		transform: translateY(0);
+	}
+
+	.styleguide__cabinet-caption {
+		position: absolute;
+		left: 50%;
+		bottom: var(--vm-space-sm);
+		transform: translateX(-50%);
+		font-family: var(--vm-font-body);
+		font-size: 0.625rem;
+		color: var(--vm-tobacco);
+		opacity: 0.72;
+		white-space: nowrap;
 	}
 </style>

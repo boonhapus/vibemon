@@ -1,10 +1,14 @@
 <script lang="ts">
 	import type { Snippet } from 'svelte';
+	import { onMount } from 'svelte';
 	import { fade } from 'svelte/transition';
 
+	import { cabinetMetaStore } from '$lib/domains/game/cabinetMetaStore.svelte';
+	import GuideNavButton from '$lib/domains/trainer/GuideNavButton.svelte';
 	import SettingsNavButton from '$lib/domains/trainer/SettingsNavButton.svelte';
 	import { settingsStore } from '$lib/domains/trainer/settingsStore.svelte';
 	import BandedBackground from './BandedBackground.svelte';
+	import CabinetGuidePanel from './CabinetGuidePanel.svelte';
 	import FilmGrain from './FilmGrain.svelte';
 
 	let {
@@ -16,43 +20,73 @@
 		bandedShadow,
 		class: className = '',
 		showSettingsKnob = true,
+		showGuideKnob = true,
+		meta,
 		children
 	}: {
 		backgroundSrc?: string;
 		backgroundAlt?: string;
-		/** When > 0, crossfade between backgrounds on src change instead of hard-swapping. */
 		backgroundFadeMs?: number;
 		bandedTop?: string;
 		bandedBase?: string;
 		bandedShadow?: string;
 		class?: string;
-		/** Cabinet settings knob in the bottom-right bezel corner. */
 		showSettingsKnob?: boolean;
+		showGuideKnob?: boolean;
+		meta?: Snippet;
 		children?: Snippet;
 	} = $props();
 
-	let frameClass = $derived(['scene-frame', className].filter(Boolean).join(' '));
+	let frameClass = $derived(
+		[
+			'scene-frame',
+			cabinetMetaStore.expanded && 'scene-frame--guide-expanded',
+			className
+		]
+			.filter(Boolean)
+			.join(' ')
+	);
+
+	/** Crossfade only after first paint — pageload shows the backdrop instantly. */
+	let backgroundCrossfadeReady = $state(false);
+
+	onMount(() => {
+		const id = requestAnimationFrame(() => {
+			backgroundCrossfadeReady = true;
+		});
+		return () => cancelAnimationFrame(id);
+	});
 </script>
+
+{#snippet backgroundLayer()}
+	{#if backgroundSrc}
+		<img
+			class="scene-frame__background scene-frame__background--image"
+			src={backgroundSrc}
+			alt={backgroundAlt}
+			decoding="async"
+		/>
+	{:else}
+		<BandedBackground
+			class="scene-frame__background"
+			top={bandedTop}
+			base={bandedBase}
+			shadow={bandedShadow}
+		/>
+	{/if}
+{/snippet}
 
 <div class={frameClass}>
 	{#key backgroundSrc}
-		<div class="scene-frame__background-layer" transition:fade={{ duration: backgroundFadeMs }}>
-			{#if backgroundSrc}
-				<img
-					class="scene-frame__background scene-frame__background--image"
-					src={backgroundSrc}
-					alt={backgroundAlt}
-					decoding="async"
-				/>
-			{:else}
-				<BandedBackground
-					class="scene-frame__background"
-					top={bandedTop}
-					base={bandedBase}
-					shadow={bandedShadow}
-				/>
-			{/if}
-		</div>
+		{#if backgroundCrossfadeReady}
+			<div class="scene-frame__background-layer" transition:fade={{ duration: backgroundFadeMs }}>
+				{@render backgroundLayer()}
+			</div>
+		{:else}
+			<div class="scene-frame__background-layer">
+				{@render backgroundLayer()}
+			</div>
+		{/if}
 	{/key}
 	<div class="scene-frame__overlay">
 		{#if children}
@@ -61,6 +95,15 @@
 	</div>
 	<div class="scene-frame__bezel" aria-hidden="true"></div>
 	<div class="scene-frame__bezel-lip" aria-hidden="true"></div>
+	{#if showGuideKnob}
+		<CabinetGuidePanel {meta} />
+		<div class="scene-frame__guide-plate">
+			<span class="scene-frame__guide-screw" aria-hidden="true"></span>
+			<div class="scene-frame__guide-mount">
+				<GuideNavButton />
+			</div>
+		</div>
+	{/if}
 	{#if showSettingsKnob}
 		<div class="scene-frame__corner-plate">
 			<span class="scene-frame__corner-screw" aria-hidden="true"></span>
@@ -79,20 +122,25 @@
 		min-height: 100dvh;
 		overflow: hidden;
 		background: var(--vm-tobacco-black);
-		/* Bezel width lives in tokens.css (--vm-bezel-w) so chrome rendered
-		   outside the frame (e.g. toasts) can respect it too. */
+		--vm-bezel-top-current: var(--vm-bezel-w);
 	}
 
-	/* Wooden TV-cabinet frame: tobacco wood with faint horizontal grain,
-	   painted only on the border ring via mask-composite. */
+	.scene-frame--guide-expanded {
+		--vm-bezel-top-current: var(--vm-bezel-guide-h);
+	}
+
 	.scene-frame__bezel {
 		position: absolute;
 		inset: 0;
 		z-index: 2;
 		pointer-events: none;
 		box-sizing: border-box;
-		padding: var(--vm-bezel-w);
+		padding: var(--vm-bezel-top-current) var(--vm-bezel-w) var(--vm-bezel-w) var(--vm-bezel-w);
 		background: var(--vm-cabinet-wood-grain);
+		background-attachment: var(--vm-cabinet-wood-grain-fixed);
+		transition:
+			padding-top var(--vm-guide-reveal-duration) steps(var(--anim-ui-reveal-steps), jump-none)
+			var(--vm-guide-bezel-delay, var(--vm-guide-stagger));
 		-webkit-mask:
 			linear-gradient(#fff 0 0) content-box,
 			linear-gradient(#fff 0 0);
@@ -103,18 +151,87 @@
 		mask-composite: exclude;
 	}
 
-	/* Inner lip — the shadowed seam where the screen meets the cabinet. */
+	.scene-frame--guide-expanded .scene-frame__bezel,
+	.scene-frame--guide-expanded .scene-frame__bezel-lip {
+		--vm-guide-bezel-delay: 0ms;
+	}
+
 	.scene-frame__bezel-lip {
 		position: absolute;
-		inset: var(--vm-bezel-w);
+		inset: var(--vm-bezel-top-current) var(--vm-bezel-w) var(--vm-bezel-w) var(--vm-bezel-w);
 		z-index: 2;
 		pointer-events: none;
+		transition:
+			inset var(--vm-guide-reveal-duration) steps(var(--anim-ui-reveal-steps), jump-none)
+			var(--vm-guide-bezel-delay, var(--vm-guide-stagger));
 		box-shadow:
 			inset 0 0 0 2px rgb(42 30 22 / 0.55),
 			inset 0 2px 10px rgb(42 30 22 / 0.3);
 	}
 
-	/* Quarter-round corner plate — cabinet hardware mount (ui-cohesion-plan §4). */
+	@media (prefers-reduced-motion: reduce) {
+		.scene-frame__bezel,
+		.scene-frame__bezel-lip,
+		:global(.cabinet-guide-panel) {
+			transition: none;
+		}
+	}
+
+	.scene-frame__guide-plate {
+		position: absolute;
+		left: calc(var(--vm-bezel-w) * 0.3);
+		bottom: calc(var(--vm-bezel-w) * 0.3);
+		z-index: 3;
+		width: var(--vm-guide-corner-size);
+		height: var(--vm-guide-corner-size);
+		border-top-right-radius: 100%;
+		pointer-events: auto;
+		background: transparent;
+	}
+
+	/* Fixed grain underlay — knob face is transparent; wood tiles with the bezel rail. */
+	.scene-frame__guide-plate::before,
+	.scene-frame__corner-plate::before {
+		content: '';
+		position: absolute;
+		inset: 0;
+		z-index: -1;
+		background: var(--vm-cabinet-wood-grain);
+		background-attachment: var(--vm-cabinet-wood-grain-fixed);
+		pointer-events: none;
+	}
+
+	.scene-frame__guide-plate::before {
+		border-top-right-radius: 100%;
+	}
+
+	.scene-frame__guide-screw {
+		position: absolute;
+		top: 0.55rem;
+		right: 0.55rem;
+		width: 7px;
+		height: 7px;
+		border-radius: 50%;
+		background: radial-gradient(circle at 35% 30%, #c9a23f, var(--vm-brass) 55%, #6b4423);
+		box-shadow:
+			inset 0 -1px 1px rgb(20 12 8 / 0.45),
+			0 0 0 1px rgb(42 30 22 / 0.35);
+	}
+
+	.scene-frame__guide-mount {
+		position: absolute;
+		inset: 0;
+		display: flex;
+		align-items: flex-end;
+		justify-content: center;
+		padding: 0.2rem 0.35rem 0.15rem 0.15rem;
+	}
+
+	.scene-frame__guide-mount :global(.guide-nav) {
+		width: auto;
+		height: auto;
+	}
+
 	.scene-frame__corner-plate {
 		position: absolute;
 		right: calc(var(--vm-bezel-w) * 0.3);
@@ -124,12 +241,11 @@
 		height: var(--vm-settings-corner-size);
 		border-top-left-radius: 100%;
 		pointer-events: auto;
-		background: var(--vm-cabinet-wood-grain-corner);
-		box-shadow:
-			inset 0 1px 0 rgb(240 231 206 / 0.13),
-			inset -2px -2px 7px rgb(20 12 8 / 0.36),
-			0 3px 0 rgb(42 30 22 / 0.44),
-			0 5px 11px rgb(20 12 8 / 0.3);
+		background: transparent;
+	}
+
+	.scene-frame__corner-plate::before {
+		border-top-left-radius: 100%;
 	}
 
 	.scene-frame__corner-screw {
@@ -149,17 +265,16 @@
 		position: absolute;
 		inset: 0;
 		display: flex;
-		align-items: center;
+		align-items: flex-end;
 		justify-content: center;
-		padding: 0.35rem 0.2rem 0.2rem 0.35rem;
+		padding: 0.2rem 0.15rem 0.15rem 0.35rem;
 	}
 
 	.scene-frame__corner-mount :global(.settings-nav) {
-		width: clamp(2.85rem, 6.4vh, 3.6rem);
-		height: clamp(2.85rem, 6.4vh, 3.6rem);
+		width: auto;
+		height: auto;
 	}
 
-	/* Each background generation gets its own layer so two can overlap mid-crossfade. */
 	.scene-frame__background-layer {
 		position: absolute;
 		inset: 0;

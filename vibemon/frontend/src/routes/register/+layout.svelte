@@ -9,7 +9,7 @@
 		createTrainerOnboardingUi,
 		type TrainerOnboardingUi
 	} from '$lib/domains/trainer/trainerOnboardingUi';
-	import { gameSolarContext } from '$lib/domains/game/gameSolarContext.svelte';
+	import { sceneSolarPhase } from '$lib/domains/game/gameSolarContext.svelte';
 	import { sceneBackgroundSrc } from '$lib/domains/game/sceneBackgrounds';
 	import SceneFrame from '$lib/ui/SceneFrame.svelte';
 	import { showGameToast } from '$lib/ui/toastStore.svelte';
@@ -20,7 +20,7 @@
 
 	let registerUi = $state(createTrainerOnboardingUi());
 	let registerBackgroundSrc = $derived(
-		sceneBackgroundSrc('register', gameSolarContext.phase)
+		sceneBackgroundSrc('register', sceneSolarPhase())
 	);
 
 	setContext<TrainerOnboardingUi>(REGISTER_UI_KEY, registerUi);
