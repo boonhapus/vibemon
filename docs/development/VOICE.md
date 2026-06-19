@@ -56,6 +56,60 @@ Use **canonical domain terms** — never franchise leakage or generic substitute
 | Wild capture | **Press**, **Slot Cart** | throw, trap |
 | Leave roster | **Release** (to **Wild**) | delete, discard |
 | Non-fatal issue | **Warning**, gentle note | error, failure |
+| Battle: open moves | **Moves** | Fight |
+| Battle: field device | **Deck** | Bag, items |
+| Battle: swap member | **Crew** | Vibemon, Party, Switch |
+| Battle: leave encounter | **Run** | flee, escape |
+| Experience track | **XP** | EXP, exp |
+| Level up | **grew to Lv {n}** | leveled up, gained a level |
+
+## Battle Command Menu
+
+The four-way command menu keeps the canonical 2×2 *shape* but uses Vibemon's own language, never franchise labels:
+
+```
+MOVES   DECK
+CREW    RUN
+```
+
+- **MOVES** — opens the active Vibemon's move list. (Not "Fight" — VOICE bans franchise mimicry.)
+- **DECK** — the **Vibe Deck** (items, **Press** capture). (Not "Bag" — `CONTEXT.md` bans it.)
+- **CREW** — swap the active **Crew** member. (Not "Vibemon"/"Party".)
+- **RUN** — leave a **Wild** encounter.
+
+A slot with no shipped behavior renders **shown-but-greyed**, not removed — the empty slot signals depth that is coming, in keeping with "Journey, not punishment."
+
+## Battle HUD & Progression
+
+- **HP** and **XP** are the two stacked plate labels — both two letters so they align in the molded-gauge readout. ("XP" not "EXP"; the code field is `xp`, the player label is XP.)
+- The **XP bar fills silently** — no spoken number callout (VOICE: no stat references in player-facing prose).
+- **Level-up** is the only progression line spoken: *"{name} grew to Lv {n}!"* ("grew" reads organic and cozy, not mechanical).
+- Reserve for later (out of scope now): *"{name} is ready to learn a new move."*
+
+## Battle Beats (Wild Encounter)
+
+There is no wild *trainer* — only a lone **Wild** Vibemon. Copy never implies an opposing trainer. Register stays cozy and unhurried; wins get no fanfare, defeat gets no blame.
+
+| Beat | Copy |
+| :--- | :--- |
+| Encounter reveal | *A wild {name} steps out.* |
+| Send out member | *Go, {name}!* |
+| Opponent faints (win) | *The wild {name} faints.* |
+| Your member faints | *{name} faints.* |
+| Battle won | *(silent — proceed straight to XP / level-up)* |
+| **Defeat** (no **Crew** left) | *You and your crew head home to rest.* |
+| Run | *You slip away.* |
+
+- **Faint** keeps the mainline word — gentle, understood, backed by the record-winding-down faint SFX (`DESIGN.md` §7.3). Do not coin a cozier synonym; it would muddy a core concept.
+- **Defeat** copy follows "Journey, not punishment" — never *"You lost"*, *"whited out"*, or *"Game over."*
+
+## Deck Read (hold-C hidden depth)
+
+Holding **C** consults the **Vibe Deck** to reveal hidden depth; releasing returns to the resting screen. On-screen hint: *Hold C — Read*.
+
+- **Baseline** (always visible, canonical): HP + exact HP numbers, XP bar, and each move's PP / power / accuracy / type.
+- **Deck Read** (held) adds only the hidden depth: stat-stage arrows (non-zero only), status/volatile **turn counters**, *XP to Lv {n}*, and per-move **effectiveness**.
+- **Effectiveness** shows as glyph + tint on every move tile; the highlighted move also spells the phrase: *Super effective* / *Not very effective* / *No effect*. Keep these three phrases exact — no "It's super effective!" franchise punctuation.
 
 Capture-specific preferred strings: `GEAR.md` §Player-Facing Copy.
 

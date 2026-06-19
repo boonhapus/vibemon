@@ -210,6 +210,14 @@ A Vibemon type label (for example fire, water, ghost).
 **Move**:
 A battle action definition available to a **Vibemon**.
 
+**Provider-Eligible Move**:
+A **Move** from a **Vibemon**'s birth **Provider** catalogs that its level has unlocked for learning.
+_Avoid_: Learnset entry (implementation term), affinity move
+
+**Move Learn Offer**:
+An ephemeral battle-end prompt where a **Trainer** chooses at most one **Provider-Eligible Move** for an **Owned** **Vibemon**, or declines.
+_Avoid_: Candidate (adoption term), move teach, TM
+
 **Move Catalog**:
 The persisted set of published, human-approved **Move** definitions.
 
@@ -222,8 +230,18 @@ A typed command submitted for turn resolution.
 **Battle Event**:
 A frontend-consumable event emitted during battle resolution.
 
+**Deck Read**:
+The held-input battle affordance that surfaces hidden-depth read-outs — stat stages, status/volatile turn counters, exact **XP** to next level, and per-**Move** effectiveness against the current opponent. Diegetically, consulting the **Vibe Deck** as the encounter reference device. Baseline battle info (HP, **Move** PP/power/accuracy/type) stays visible without it.
+_Avoid_: Context mode, inspect mode
+_Player copy_: Hold C — Read
+
 **Battle Outcome**:
 The final result of a battle.
+
+**Faint**:
+The state a **Vibemon** enters at zero battle HP, removing it from the active **Battle Slot**. A **Battle Event** (`FaintEvent`) and a player-facing beat.
+_Avoid_: Death, KO, defeated (reserve **Defeat** for the battle-level outcome)
+_Player copy_: faints
 
 **Defeat**:
 A **Battle Outcome** where the trainer neither wins nor runs.
@@ -255,6 +273,7 @@ The near-term user-facing surface under `vibemon/scripts`; scripts are thin adap
 - **Crew Strength** is derived from per-member **Member Strength**.
 - **Lifecycle** states describe presentation readiness; **Service** describes orchestration.
 - **Move Catalog** stores approved **Move** definitions composed of **Effect** primitives.
+- **Move Learn Offer** draws from **Provider-Eligible Move**s; a **Trainer** resolves it before leaving battle.
 - **Birth** starts from **Birth Context**; each opted-in **Provider** adds a **Provider Observation** that synthesizes to an **Affinity**.
 - **Birth Snapshot** holds all **Provider Observations** for one **Birth**; replay re-synthesizes **Affinities** without re-fetching upstream sources.
 - **Provider Warnings** on an **Affinity** are non-fatal; the birth workflow may surface them during **Candidate Review**.
@@ -265,3 +284,4 @@ The near-term user-facing surface under `vibemon/scripts`; scripts are thin adap
 - **Biome Provider** is the ground/place **Provider** (formerly referred to as geography in early plans); **Music Provider** is the taste/culture axis, not place or sky.
 - **Cartridge** is evocative hardware copy only; canonical domain and UI term is **Vibe Cart** / **Cart**.
 - **Hatch** / **Generation** presents a **Candidate** for **Adoption** at birth — not the same ritual or UI as wild **Press** onto a **Blank Cart**.
+- **Move** animation is presentation, not an **Effect**, and is owned by the frontend — never modeled in the **Move Catalog**. A client derives a generic *Animation Profile* from a **Move**'s `category` + `element`; bespoke overrides live client-side. See `docs/development/adr/0004-move-animation-is-a-frontend-concern.md`.

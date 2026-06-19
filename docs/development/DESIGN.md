@@ -373,3 +373,46 @@ Trainers do not throw spheres. They carry a **Vibe Deck** on the belt and store 
 Wild capture presentation: slot **Blank Cart** → **Press** → stepped reel pulse → labeled cart returns to folio. Use plastic thunk + warm blip SFX (§7.3). **Hatch** / **Generation** birth rituals stay separate from field capture.
 
 Full visual tokens, tier names, player copy, and concept-art prompt anchors: **`GEAR.md`**. Domain definitions: **`CONTEXT.md`**. Copy tone: **`VOICE.md`**.
+
+## 9. Wild Battle Screen
+
+The wild battle UI is a **320×180-first scene** (`BattleScene`) mounted at `/battle/{id}`. It mirrors the cozy handheld flow: intro iris → command menu → move select → event replay → loop or end. Copy follows `VOICE.md` **Battle Beats**; progression label is **XP** (two letters, pairs with HP).
+
+### 9.1 State Machine
+
+| Phase | Player sees | Input |
+| :--- | :--- | :--- |
+| `intro` | Iris open + *A wild {name} steps out.* | Enter / Space |
+| `command` | 2×2 **MOVES / DECK / CREW / RUN** (DECK + CREW greyed) | Arrow keys + Enter |
+| `moveSelect` | 2×2 move tiles + side panel (PP, power, accuracy, type) | Arrow keys + Enter; Esc back |
+| `resolving` | Event-replay queue (dialog → animation → HP drain) | Enter / Space between steps |
+| `won` | Silent → XP bar; optional *{name} grew to Lv {n}!* | Enter returns to crew |
+| `defeat` | *You and your crew head home to rest.* | Enter returns to crew |
+| `fled` | *You slip away.* | Enter returns to crew |
+
+**Event-replay model:** each `BattleTurnRead` becomes an ordered queue — `message` lines from the API, `animation` beats derived from `(category, type)`, `hurt` flash, and `hp` tweens to the post-turn values. The HUD never jumps instantly to the final state while `resolving`.
+
+### 9.2 Deck Read (hold C)
+
+Hint: *Hold C — Read*. Keyboard-only this slice.
+
+| Layer | Always visible (baseline) | Shown while C held (Deck Read) |
+| :--- | :--- | :--- |
+| Combatant HUD | Name, Lv, HP bar + exact HP, XP bar (hero) | Stat-stage arrows (non-zero), status/volatile turn counters, *XP to Lv {n}* |
+| Move menu | PP, power, accuracy, type per tile | Effectiveness glyph + tint on every tile; highlighted tile spells *Super effective* / *Not very effective* / *No effect* |
+
+Reveal uses stepped opacity (`--anim-ui-reveal-steps`) — quick, on-aesthetic, not a smooth fade.
+
+### 9.3 Animation Profile
+
+Frontend derives animation from `(category, type)` per `docs/development/adr/0004`. No `animation_key` on domain moves.
+
+| `(category, type)` | Animation | CSS / timing |
+| :--- | :--- | :--- |
+| `physical` + any | Contact lunge toward opponent | `physical-lunge`, `--anim-attack-duration`, `steps(--anim-action-steps)` |
+| `special` + any | Type-tinted projectile across field | `projectile-travel`, `--anim-projectile-duration`, `steps(8)` |
+| `status` + any | Attacker glow (no projectile) | Short glow beat on attacker sprite |
+
+**Override registry:** `moveAnimations.ts` keyed by move id — stubbed empty; bespoke signature moves land here later without backend changes.
+
+Cross-ref: §6.3 idle breathe, §6.4 physical lunge, §6.5 hurt flash, §6.6 projectile — all `image-rendering: pixelated`, transforms stepped per §6.
