@@ -36,6 +36,8 @@ vite.config.ts.timestamp-*
 # Ignore coding agents
 CLAUDE.md
 .claude/
+.cursor/
+opencode.json
 
 # Playwright
 /test-results/

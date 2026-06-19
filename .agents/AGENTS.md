@@ -114,6 +114,7 @@ example, `app.storage.database.types` should mean the same kind of thing as
 - `development/python-conventions` — Python imports and libs
 - `development/svelte-code-writer` — Svelte 5 docs lookup and component analysis (use for `.svelte` edits)
 - `development/svelte-core-bestpractices` — Svelte 5 reactivity and patterns
+- `vibemon/ui-design` — cozy pixel UI iteration against DESIGN.md, tokens, and styleguide (scoped to `vibemon/frontend/**`)
 - `vibemon/move-generator` — provider-driven move generation playbook (also read `vibemon/move-generator/references/move_balance_reference.md`)
 - `vibemon/provider-balance-analysis` — audit provider move catalogs
 - `vibemon/audio-production-pipeline` — stage, loop-test, and export music cues
@@ -127,5 +128,7 @@ Before designing or building UI, read:
 - **[docs/development/DESIGN.md](../docs/development/DESIGN.md)** — visual spec: battle animation, audio, typography, layout
 - **[docs/development/COLORS.md](../docs/development/COLORS.md)** — locked palette (canonical for `vibemon/frontend/src/lib/ui/tokens.css`)
 - **[docs/development/plans/trainer-setup-storyboard.md](../docs/development/plans/trainer-setup-storyboard.md)** — first-run trainer setup UX wireframes
+
+Cursor auto-attaches `.cursor/rules/design.mdc` when editing `vibemon/frontend/**`. Use the `vibemon/ui-design` skill for iteration workflows.
 
 Domain vocabulary: [docs/development/CONTEXT.md](../docs/development/CONTEXT.md).
