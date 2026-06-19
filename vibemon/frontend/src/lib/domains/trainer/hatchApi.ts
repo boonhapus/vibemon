@@ -81,6 +81,9 @@ export type CrewMember = {
 	level: number;
 	current_hp: number;
 	max_hp: number;
+	xp: number;
+	xp_to_next: number;
+	xp_bar_ratio: number;
 	crew_slot: number;
 	sprite_url: string | null;
 	reference_detected_facing: SpriteFacing | null;

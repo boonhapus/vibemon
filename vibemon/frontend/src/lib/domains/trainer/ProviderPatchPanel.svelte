@@ -101,8 +101,12 @@
 		flex: 1;
 	}
 
+	/* Anchor the grain to the viewport (like .scene-frame__bezel) so a rail reads
+	   as a continuous slice of the same cabinet wood at its screen position,
+	   rather than the full gradient compressed into the thin rail. */
 	.provider-patch-panel__rail {
 		background: var(--vm-cabinet-wood-grain);
+		background-attachment: var(--vm-cabinet-wood-grain-fixed);
 		box-shadow:
 			inset -2px 0 6px rgb(20 12 8 / 0.35),
 			inset 0 1px 0 rgb(240 231 206 / 0.12);

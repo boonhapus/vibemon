@@ -102,21 +102,21 @@
 
 	.bst-radar__grid {
 		fill: none;
-		stroke: color-mix(in srgb, var(--vm-tobacco) 28%, transparent);
+		stroke: color-mix(in srgb, var(--vm-tobacco) 32%, transparent);
 		stroke-width: 1;
 	}
 
 	.bst-radar__fill {
-		fill: color-mix(in srgb, var(--vm-status-sage) 42%, transparent);
-		stroke: var(--vm-status-sage);
+		fill: color-mix(in srgb, var(--vm-crew-readout-fill) 42%, transparent);
+		stroke: var(--vm-crew-readout-fill);
 		stroke-width: 2;
 	}
 
 	.bst-radar__label {
 		font-family: var(--vm-font-ui);
-		font-size: calc(var(--bst-radar-size, 120px) * 0.066);
+		font-size: var(--vm-crew-readout-subtitle);
 		font-weight: 700;
-		fill: color-mix(in srgb, var(--vm-tobacco) 88%, var(--vm-brass));
+		fill: color-mix(in srgb, var(--vm-tobacco) 90%, var(--vm-brass));
 		letter-spacing: 0.06em;
 	}
 </style>

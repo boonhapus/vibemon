@@ -45,24 +45,26 @@
 	}
 
 	.stat-bar__label {
-		font-size: clamp(0.5rem, 1.45vw, 0.625rem);
+		font-size: clamp(0.5rem, 1.3vw, 0.625rem);
 		line-height: 1;
 		letter-spacing: 0.07em;
 		font-weight: 400;
-		color: color-mix(in srgb, var(--vm-plum) 42%, var(--vm-brass));
+		color: color-mix(in srgb, var(--vm-tobacco) 46%, transparent);
 		text-align: right;
 		white-space: nowrap;
 	}
 
+	/* Numerals in the UI voice (inherited Press Start 2P) — sharper than the body
+	   font at small sizes. */
 	.stat-bar__value {
-		font-size: clamp(0.625rem, 1.75vw, 0.75rem);
+		font-size: clamp(0.6875rem, 1.9vw, 0.875rem);
 		line-height: 1;
 		letter-spacing: 0.04em;
-		font-weight: 700;
+		font-weight: 400;
 		color: var(--vm-tobacco-black);
 		font-variant-numeric: tabular-nums;
 		text-align: right;
-		min-width: 1.75rem;
+		min-width: 2.4rem;
 		flex-shrink: 0;
 	}
 
@@ -77,12 +79,12 @@
 		width: var(--hatch-pip-block-w, 0.72rem);
 		height: var(--hatch-pip-block-h, 0.55rem);
 		border-radius: 1px;
-		background: color-mix(in srgb, var(--vm-tobacco) 30%, var(--vm-panel-command-bg));
+		background: color-mix(in srgb, var(--vm-tobacco) 32%, var(--vm-cabinet-guide-surface));
 		box-shadow: inset 0 1px 0 rgb(20 12 8 / 0.18);
 	}
 
 	.stat-bar__block--filled {
-		background: var(--vm-status-sage);
+		background: var(--vm-crew-readout-fill);
 		box-shadow:
 			inset 0 -1px 0 rgb(20 12 8 / 0.22),
 			0 0 0 1px color-mix(in srgb, var(--vm-tobacco) 35%, transparent);

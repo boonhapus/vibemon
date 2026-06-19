@@ -31,7 +31,7 @@
 		createTrainerOnboardingUi,
 		type TrainerOnboardingUi
 	} from '$lib/domains/trainer/trainerOnboardingUi';
-	import { gameSolarContext } from '$lib/domains/game/gameSolarContext.svelte';
+	import { sceneSolarPhase } from '$lib/domains/game/gameSolarContext.svelte';
 	import { sceneBackgroundSrc } from '$lib/domains/game/sceneBackgrounds';
 	import SceneFrame from '$lib/ui/SceneFrame.svelte';
 	import { showGameToast } from '$lib/ui/toastStore.svelte';
@@ -88,7 +88,7 @@
 	let hatchControlsBlockedState = $derived(hatchControlsBlocked(hatchSession, flowBlockers));
 	let hatchable = $derived(!hatchControlsBlockedState && !hatchSession.candidate);
 	let hatchSuspenseActive = $derived(hatchSession.generating || hatchSession.busy);
-	let hatchBackgroundSrc = $derived(sceneBackgroundSrc('hatch', gameSolarContext.phase));
+	let hatchBackgroundSrc = $derived(sceneBackgroundSrc('hatch', sceneSolarPhase()));
 
 	let hatchSceneStyle = $derived.by(() => {
 		const candidate = hatchSession.candidate;

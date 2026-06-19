@@ -403,12 +403,21 @@
 		gap: 0.35rem 0.75rem;
 	}
 
+	/* Cabinet readout name — shares the crew showcase treatment (body voice,
+	   same readout size token) so a hatch candidate and a crew member read as
+	   the same plate. */
 	.hatch-candidate-panel__name {
 		margin: 0;
-		font-size: clamp(0.9375rem, 2.85vw, 1.2rem);
+		font-family: var(--vm-font-body);
+		font-size: var(--vm-crew-readout-name);
 		line-height: var(--vm-leading-tight);
-		letter-spacing: 0.06em;
+		letter-spacing: 0.01em;
+		font-weight: 600;
 		color: var(--vm-tobacco-black);
+		overflow: hidden;
+		text-overflow: ellipsis;
+		white-space: nowrap;
+		min-width: 0;
 	}
 
 	.hatch-candidate-panel__types {
@@ -428,8 +437,6 @@
 		grid-template-columns: var(--hatch-stats-grid);
 		align-items: center;
 		width: 100%;
-		padding-block: 0.55rem 0.2rem;
-		border-top: 1px solid color-mix(in srgb, var(--vm-tobacco) 16%, transparent);
 	}
 
 	.hatch-candidate-panel__ledger-hit:first-child {
@@ -452,24 +459,15 @@
 		-webkit-tap-highlight-color: transparent;
 	}
 
+	/* Span only the STR key + pips, so the hover hit area is the readout itself
+	   (not the whole empty row to the left). */
 	.hatch-candidate-panel__ledger-hit--str {
-		grid-column: 1 / -1;
+		grid-column: 2 / -1;
 		grid-row: 1;
-		display: grid;
-		grid-template-columns: var(--hatch-stats-grid);
+		display: inline-flex;
 		align-items: center;
-		column-gap: 0.28rem;
-	}
-
-	.hatch-candidate-panel__ledger-hit--str .hatch-candidate-panel__ledger-key {
-		grid-column: 2;
 		justify-self: end;
-		margin-right: var(--hatch-readout-pip-gap);
-	}
-
-	.hatch-candidate-panel__ledger-hit--str :global(.power-pips) {
-		grid-column: 3;
-		justify-self: end;
+		gap: var(--hatch-readout-pip-gap);
 	}
 
 	.hatch-candidate-panel__ledger-hit:focus-visible {
@@ -478,45 +476,52 @@
 	}
 
 	.hatch-candidate-panel__ledger-key {
-		font-size: clamp(0.5625rem, 1.6vw, 0.6875rem);
-		line-height: 1;
-		letter-spacing: 0.08em;
-		color: color-mix(in srgb, var(--vm-tobacco) 72%, var(--vm-brass));
+		font-size: var(--vm-crew-readout-subtitle);
+		line-height: var(--vm-leading-tight);
+		letter-spacing: 0.06em;
+		text-transform: uppercase;
+		color: var(--vm-crew-readout-subtitle-color);
 	}
 
+	/* Engraved guide selector — printed index tabs on the plate, not a raised
+	   button bar (mirrors the crew showcase tabs). */
 	.hatch-candidate-panel__tabs {
 		display: grid;
-		grid-template-columns: repeat(3, 1fr);
-		gap: 0.2rem;
+		grid-template-columns: repeat(3, minmax(0, 1fr));
+		gap: 0;
 		margin-bottom: var(--vm-space-sm);
-		padding: 0.18rem;
-		border: 2px solid color-mix(in srgb, var(--vm-tobacco) 18%, transparent);
-		border-radius: var(--vm-radius-sm);
-		background: color-mix(in srgb, var(--vm-tobacco) 8%, var(--vm-panel-command-bg));
+		padding: 0;
+		border: 0;
+		border-bottom: 1px solid color-mix(in srgb, var(--vm-tobacco) 22%, transparent);
+		border-radius: 0;
+		background: transparent;
 		flex-shrink: 0;
 	}
 
 	.hatch-candidate-panel__tab {
-		margin: 0;
-		padding: 0.35rem 0.5rem;
+		margin: 0 0 -1px;
+		padding: var(--vm-space-sm) var(--vm-space-xs);
+		min-height: 2.75rem;
 		border: 0;
-		border-radius: calc(var(--vm-radius-sm) - 2px);
+		border-bottom: 2px solid transparent;
+		border-radius: 0;
 		background: transparent;
-		color: color-mix(in srgb, var(--vm-tobacco) 72%, var(--vm-brass));
+		color: var(--vm-crew-readout-muted-color);
 		font-family: var(--vm-font-ui);
-		font-size: clamp(0.625rem, 1.8vw, 0.75rem);
+		font-size: clamp(0.625rem, 1.55vw, 0.75rem);
 		line-height: var(--vm-leading-tight);
-		letter-spacing: 0.06em;
+		letter-spacing: 0.04em;
+		text-transform: uppercase;
+		font-weight: 400;
 		cursor: pointer;
 		-webkit-tap-highlight-color: transparent;
 	}
 
+	/* Active = ink-darkened label + engraved baseline rule; no raised tile. */
 	.hatch-candidate-panel__tab--active {
-		background: var(--vm-panel-command-bg);
 		color: var(--vm-tobacco-black);
-		box-shadow:
-			inset 0 0 0 1px color-mix(in srgb, var(--vm-tobacco) 22%, transparent),
-			0 1px 0 rgb(42 30 22 / 0.12);
+		border-bottom-color: var(--vm-burnt-orange);
+		text-shadow: 0 1px 0 rgb(240 231 206 / 0.4);
 	}
 
 	.hatch-candidate-panel__tab:focus-visible {
@@ -658,6 +663,9 @@
 		gap: 0.45rem;
 		flex: 1;
 		min-height: 0;
+		/* Match the 8px gap the tabs leave above the grid so the moves tab has
+		   even top/bottom breathing room. */
+		padding-bottom: var(--vm-space-sm);
 	}
 
 	.hatch-candidate-panel__move-hit {
@@ -697,12 +705,12 @@
 
 	.hatch-candidate-panel__source-row {
 		display: grid;
-		grid-template-columns: auto 1fr auto;
+		grid-template-columns: auto minmax(0, 1fr) auto;
 		align-items: center;
 		gap: 0.4rem;
 		width: 100%;
 		margin: 0;
-		padding: 0.38rem 0.45rem;
+		padding: 0.3rem 0.5rem;
 		border: 0;
 		border-bottom: 1px solid color-mix(in srgb, var(--vm-tobacco) 10%, transparent);
 		background: transparent;
@@ -714,7 +722,7 @@
 	}
 
 	.hatch-candidate-panel__source-row--striped {
-		background: color-mix(in srgb, var(--vm-plum) 7%, var(--vm-panel-command-bg));
+		background: color-mix(in srgb, var(--vm-tobacco) 5%, var(--vm-crew-readout-inset-surface));
 	}
 
 	.hatch-candidate-panel__source-row:last-child {
@@ -727,7 +735,7 @@
 	}
 
 	.hatch-candidate-panel__source-row--inactive {
-		color: color-mix(in srgb, var(--vm-tobacco) 52%, var(--vm-panel-command-bg));
+		color: var(--vm-crew-readout-muted-color);
 	}
 
 	.hatch-candidate-panel__source-row--inactive :global(.hatch-candidate-panel__source-icon) {
@@ -741,9 +749,16 @@
 	}
 
 	.hatch-candidate-panel__source-label {
-		font-size: clamp(0.625rem, 1.8vw, 0.75rem);
+		font-family: var(--vm-font-body);
+		font-size: var(--vm-crew-readout-body);
+		font-weight: 500;
 		line-height: var(--vm-leading-tight);
 		letter-spacing: 0.06em;
+		color: var(--vm-tobacco-black);
+		min-width: 0;
+		overflow: hidden;
+		text-overflow: ellipsis;
+		white-space: nowrap;
 	}
 
 	.hatch-candidate-panel__source-lamp {
@@ -765,9 +780,10 @@
 		margin: auto 0;
 		padding: 1rem 0.25rem;
 		text-align: center;
-		font-size: var(--vm-text-caption);
-		line-height: var(--vm-leading-normal);
-		color: color-mix(in srgb, var(--vm-tobacco) 68%, var(--vm-brass));
+		font-family: var(--vm-font-body);
+		font-size: var(--vm-crew-readout-body);
+		line-height: var(--vm-leading-body);
+		color: var(--vm-crew-readout-muted-color);
 	}
 
 	.hatch-candidate-panel__actions {

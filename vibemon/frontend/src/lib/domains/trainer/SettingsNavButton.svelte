@@ -17,28 +17,27 @@
 </script>
 
 <div class="settings-nav">
-	<span class="settings-nav__label" aria-hidden="true">Settings</span>
 	<FreeFormButton class="settings-nav-button" ariaLabel="Settings" {disabled} onclick={toggleMenu}>
 		<span class="settings-nav-button__ridge" aria-hidden="true"></span>
 		<PixelIcon name="gear" class="vm-icon--raised settings-nav-button__icon" />
 	</FreeFormButton>
+	<span class="settings-nav__label" aria-hidden="true">Settings</span>
 </div>
 
 <style>
 	.settings-nav {
 		position: relative;
-		height: 100%;
 		display: flex;
+		flex-direction: column;
 		align-items: center;
-		justify-content: center;
+		justify-content: flex-end;
+		gap: var(--vm-space-xs);
+		height: 100%;
 	}
 
-	/* Micro-label so the knob reads as the settings control at first glance. */
+	/* Micro-label tucked under the knob on the corner plate. */
 	.settings-nav__label {
-		position: absolute;
-		bottom: calc(100% + var(--vm-space-xs));
-		left: 50%;
-		transform: translateX(-50%);
+		flex: 0 0 auto;
 		font-family: var(--vm-font-ui);
 		font-size: 0.5rem;
 		letter-spacing: 0.1em;
@@ -53,42 +52,35 @@
 		pointer-events: none;
 	}
 
-	/* Machined cabinet knob — mounted at the bezel corner (DESIGN.md §5.2).
-	   Brass ring + knurled edge + top-light so it reads as a raised, turnable control. */
+	/* Brass ring only — bezel wood shows through the face. */
 	:global(.settings-nav-button) {
 		position: relative;
 		display: grid;
 		place-items: center;
-		height: 100%;
-		width: auto;
-		aspect-ratio: 1;
+		flex: 0 0 auto;
+		height: clamp(2.35rem, 5.2vh, 3rem);
+		width: clamp(2.35rem, 5.2vh, 3rem);
 		padding: 0;
 		border-radius: 50%;
-		background:
-			radial-gradient(circle at 35% 28%, rgb(240 231 206 / 0.16), transparent 42%),
-			var(--vm-cabinet-wood-grain-corner);
-		box-shadow:
-			inset 0 0 0 2px var(--vm-brass),
-			inset 0 0 0 4px rgb(20 12 8 / 0.4),
-			inset 0 -3px 4px rgb(20 12 8 / 0.45),
-			0 3px 0 rgb(42 30 22 / 0.5),
-			0 4px 6px rgb(20 12 8 / 0.35);
-		color: var(--vm-parchment);
+		background: transparent;
+		box-shadow: none;
 		transform-origin: center bottom;
 	}
 
-	/* Knurled rim — ticks masked to the outer ring only. */
 	.settings-nav-button__ridge {
 		position: absolute;
-		inset: 4px;
+		inset: 0;
 		border-radius: 50%;
-		background: repeating-conic-gradient(
-			rgb(240 231 206 / 0.18) 0deg 5deg,
-			transparent 5deg 15deg
-		);
-		-webkit-mask: radial-gradient(circle, transparent 60%, #fff 62%);
-		mask: radial-gradient(circle, transparent 60%, #fff 62%);
+		border: 2px solid var(--vm-brass);
+		box-shadow: inset 0 0 0 1px rgb(20 12 8 / 0.28);
+		background: transparent;
 		pointer-events: none;
+	}
+
+	:global(.settings-nav-button:active:not(:disabled)) .settings-nav-button__ridge {
+		box-shadow:
+			inset 0 0 0 1px rgb(20 12 8 / 0.32),
+			inset 0 1px 2px rgb(20 12 8 / 0.28);
 	}
 
 	/* Stepped two-frame lift — smooth eased scaling reads modern (DESIGN.md §6.1) */
@@ -101,11 +93,6 @@
 	:global(.settings-nav-button:active:not(:disabled)) {
 		animation: none;
 		transform: translateY(1px) rotate(14deg);
-		box-shadow:
-			inset 0 0 0 2px var(--vm-brass),
-			inset 0 0 0 4px rgb(20 12 8 / 0.4),
-			inset 0 -3px 4px rgb(20 12 8 / 0.45),
-			0 1px 0 rgb(42 30 22 / 0.5);
 	}
 
 	@keyframes settings-nav-lift {
@@ -130,10 +117,11 @@
 
 	/* :global — the svg root lives inside PixelIcon, outside this component's scope. */
 	:global(.settings-nav-button__icon) {
-		width: 62%;
-		height: 62%;
+		width: 56%;
+		height: 56%;
+		color: var(--vm-cabinet-knob-icon-settings);
 		user-select: none;
 		pointer-events: none;
-		filter: drop-shadow(0 1px 0 rgb(20 12 8 / 0.6));
+		filter: drop-shadow(0 1px 0 rgb(20 12 8 / 0.45));
 	}
 </style>
