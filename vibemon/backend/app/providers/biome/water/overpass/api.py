@@ -7,7 +7,8 @@ import datetime as dt
 import niquests
 import structlog
 
-from app.providers._api.hooks import LoggingHook, RateLimiterHook
+from app.providers._api import rate_limits
+from app.providers._api.hooks import LoggingHook
 from app.providers._api.policy import provider_default_headers
 from app.providers._api.session import CachedAPIClient
 from app.storage.cache.redis import make_cache_backend
@@ -23,9 +24,10 @@ class OverpassWaterClient(CachedAPIClient):
     provider_name = const.PROVIDER_NAME
 
     def __init__(self, **session_opts: Any) -> None:
-        rate_limiter = RateLimiterHook(
-            (30, dt.timedelta(minutes=1)),
+        rate_limiter = rate_limits.shared(
+            const.QUOTA_KEY,
             provider=OverpassWaterClient.provider_name,
+            limits=const.RATE_LIMITS,
         )
         session_opts.setdefault("backend", make_cache_backend("overpass_water_api"))
         super().__init__(

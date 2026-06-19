@@ -5,6 +5,16 @@ import datetime as dt
 
 PROVIDER_NAME: Final[str] = "open-meteo.weather_forecast"
 
+# Vendor account quota shared with biome elevation lookups.
+QUOTA_KEY: Final[str] = "open-meteo"
+RATE_LIMITS: Final[tuple[tuple[int, dt.timedelta], ...]] = (
+    (600, dt.timedelta(minutes=1)),
+    (5_000, dt.timedelta(hours=1)),
+    (10_000, dt.timedelta(days=1)),
+    (300_000, dt.timedelta(days=30)),
+)
+CONCURRENCY: Final[int] = 1
+
 WEATHER_API_BASE_URL: Final[str] = "https://api.open-meteo.com/"
 AIR_QUALITY_API_BASE_URL: Final[str] = "https://air-quality-api.open-meteo.com/"
 

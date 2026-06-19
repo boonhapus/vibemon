@@ -5,13 +5,28 @@ import datetime as dt
 
 import niquests
 
+from app.providers._api import rate_limits
 from app.providers._api.hooks import LoggingHook, RateLimiterHook, ThrottledSessionMixin
 from app.providers._api.policy import provider_default_headers, provider_retry_policy
 from app.providers._api.session import CachedAPIClient
 from app.settings import Settings
 from app.storage.cache.redis import make_cache_backend
 
-from . import utils
+from . import const, utils
+
+
+def _musicbrainz_rate_limiter(*, provider: str) -> RateLimiterHook:
+    settings = Settings.load()
+    # DEV NOTE: @boonhapus, 2026/05/31
+    # The local Musicbrainz server is HTTP/1.1, so we enforce "no multiplexing".
+    selfhost_concurrency = 1 if settings.environment == "dev" else None
+    concurrency = 2 if "musicbrainz.org" in str(settings.musicbrainz.base_url) else selfhost_concurrency
+    return rate_limits.shared(
+        f"{const.QUOTA_KEY}:concurrency={concurrency}",
+        provider=provider,
+        limits=const.RATE_LIMITS,
+        concurrency=concurrency,
+    )
 
 
 class MusicBrainzAPIClient(ThrottledSessionMixin, CachedAPIClient):
@@ -22,20 +37,11 @@ class MusicBrainzAPIClient(ThrottledSessionMixin, CachedAPIClient):
       https://musicbrainz.org/doc/MusicBrainz_API
     """
 
-    provider_name = "musicbrainz.web_api"
+    provider_name = const.PROVIDER_NAME
 
     def __init__(self, **session_opts: Any) -> None:
         settings = Settings.load()
-
-        # DEV NOTE: @boonhapus, 2026/05/31
-        # The local Musicbrainz server is HTTP/1.1, so we enforce "no multiplexing".
-        selfhost_concurrency = 1 if settings.environment == "dev" else None
-
-        rate_limiter = RateLimiterHook(
-            (25, dt.timedelta(seconds=1)),
-            provider=MusicBrainzAPIClient.provider_name,
-            concurrency=2 if "musicbrainz.org" in str(settings.musicbrainz.base_url) else selfhost_concurrency,
-        )
+        rate_limiter = _musicbrainz_rate_limiter(provider=MusicBrainzAPIClient.provider_name)
 
         super().__init__(
             backend=make_cache_backend("musicbrainz_web_api"),

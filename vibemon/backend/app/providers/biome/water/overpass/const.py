@@ -1,8 +1,12 @@
 """OSM Overpass API constants for marine and inland water proximity."""
 
 from typing import Final
+import datetime as dt
 
 PROVIDER_NAME: Final[str] = "overpass.api"
+
+QUOTA_KEY: Final[str] = "overpass"
+RATE_LIMITS: Final[tuple[tuple[int, dt.timedelta], ...]] = ((30, dt.timedelta(minutes=1)),)
 
 OVERPASS_ENDPOINTS: Final[tuple[str, ...]] = (
     "https://overpass-api.de/api/interpreter",

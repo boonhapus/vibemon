@@ -366,7 +366,7 @@ class MusicProvider(VibeProvider[schema.MusicPayload]):
         base_stats = normalized.scaled(elements=elements)
 
         # LOAD MOVES
-        all_moves = self.selectable_moves()
+        all_moves = self.starter_moves()
 
         return Affinity(
             identity=Identity(name="__", elements=elements, base=base_stats),

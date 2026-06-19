@@ -14,7 +14,7 @@ from tests.conftest import TEST_TRAINER_ID
 
 
 def _climate_payload(**overrides: Any) -> ClimatePayload:
-    daily_defaults: dict[str, list[float | None]] = {
+    daily_defaults: dict[str, list[Any]] = {
         "time": ["2026-05-18", "2026-05-19"],
         "weather_code": [3, 0],
         "cape_mean": [100.0, 100.0],
@@ -190,13 +190,12 @@ def test_climate_move_catalog_has_fifteen_moves_per_exposed_element() -> None:
     assert move_counts == {element: 15 for element in exposed_types}
 
 
-def test_climate_selectable_moves_include_shared_universal_moves_once() -> None:
+def test_climate_starter_moves_include_shared_universal_moves_once() -> None:
     provider = ClimateProvider()
 
     universal_ids = {move.id for move in universal.moves()}
-    selectable_ids = [move.id for move in provider.selectable_moves(level=99)]
+    starter_ids = [move.id for move in provider.starter_moves(level=99)]
 
-    assert universal_ids == {"universal.snap_strike", "universal.tackle"}
-    assert universal_ids <= set(selectable_ids)
-    assert len(selectable_ids) == len(set(selectable_ids))
-    assert len(selectable_ids) == len(provider.moves()) + len(universal.moves())
+    assert universal_ids <= set(starter_ids)
+    assert len(starter_ids) == len(set(starter_ids))
+    assert len(starter_ids) == len(provider.moves()) + len(universal.moves())

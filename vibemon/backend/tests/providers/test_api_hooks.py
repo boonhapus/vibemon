@@ -6,6 +6,7 @@ import datetime as dt
 import pytest
 
 from app import __project__
+from app.providers._api import rate_limits
 from app.providers._api.hooks import RateLimiterHook
 from app.providers._api.policy import provider_default_headers, provider_retry_policy
 from app.settings import Settings
@@ -89,3 +90,22 @@ async def test_rate_limiter_concurrency_none_allows_parallel_in_flight(monkeypat
             tg.create_task(simulate_request())
 
     assert max_in_flight == 5
+
+
+def test_shared_rate_limiters_reuse_same_hook() -> None:
+    from app.providers.climate.openmeteo import const as openmeteo_const
+
+    rate_limits.clear_shared_rate_limiters()
+    weather = rate_limits.shared(
+        openmeteo_const.QUOTA_KEY,
+        provider="open-meteo.weather_forecast",
+        limits=openmeteo_const.RATE_LIMITS,
+        concurrency=openmeteo_const.CONCURRENCY,
+    )
+    elevation = rate_limits.shared(
+        openmeteo_const.QUOTA_KEY,
+        provider="open-meteo.elevation",
+        limits=openmeteo_const.RATE_LIMITS,
+        concurrency=openmeteo_const.CONCURRENCY,
+    )
+    assert weather is elevation

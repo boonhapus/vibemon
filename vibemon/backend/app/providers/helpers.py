@@ -13,10 +13,11 @@ from app.domains.move.types import VibemonTypeT
 
 _LOGGER = structlog.get_logger(__name__)
 
-# Floor for starter-move sampling weights, relative to the max possible weight of
+# Floor for move-assignment sampling weights, relative to the max possible weight of
 # 2.0 (peak-normalized score x same-type bonus). Keeps unranked move types possible
 # without letting their combined mass grow with catalog size.
-_STARTER_MOVE_WEIGHT_FLOOR = 0.01
+_MOVE_ASSIGNMENT_WEIGHT_FLOOR = 0.01
+_STARTER_MOVE_WEIGHT_FLOOR = _MOVE_ASSIGNMENT_WEIGHT_FLOOR
 
 
 class Signal(pydantic.BaseModel):
@@ -231,6 +232,25 @@ class Signal(pydantic.BaseModel):
         return clamp(v / reach, minimum=0, maximum=1)
 
 
+def move_assignment_weight(
+    move: Move,
+    *,
+    rankings: dict[VibemonTypeT, float],
+    elements: tuple[VibemonTypeT, ...],
+    level_weight_exponent: float = 0.0,
+) -> float:
+    """Relative sampling weight: provider type score x element fit x optional level skew."""
+    peak = max(rankings.values(), default=0.0)
+    normalized = {element: score / peak for element, score in rankings.items()} if peak > 0 else {}
+    type_weight = max(
+        normalized.get(move.type, 0.0) * get_move_assignment_bonus(move.type, vibemon_elements=elements),
+        _MOVE_ASSIGNMENT_WEIGHT_FLOOR,
+    )
+    if level_weight_exponent <= 0:
+        return type_weight
+    return type_weight * max(1.0, move.level_requirement**level_weight_exponent)
+
+
 def pick_starter_moves(
     *,
     moves: tuple[Move, ...],
@@ -242,7 +262,9 @@ def pick_starter_moves(
     """
     Select exactly `k` starter moves from a provider's eligible move catalog.
 
-    Sampling is weighted and without replacement.
+    Sampling is weighted and without replacement. The result always includes
+    at least one damaging move; remaining slots are filled from the rest of
+    the candidate pool.
 
     Candidate moves are level-1 moves. Each candidate receives a relative
     sampling weight:
@@ -264,15 +286,35 @@ def pick_starter_moves(
     if len(candidates) < k:
         raise ValueError(f"Cannot select {k} starter moves from {len(candidates)} eligible starter moves")
 
-    peak = max(rankings.values(), default=0.0)
-    normalized = {t: s / peak for t, s in rankings.items()} if peak > 0 else {}
-
-    weights = [
-        max(
-            normalized.get(move.type, 0.0) * get_move_assignment_bonus(move.type, vibemon_elements=elements),
-            _STARTER_MOVE_WEIGHT_FLOOR,
-        )
+    weighted = [
+        (move, move_assignment_weight(move, rankings=rankings, elements=elements))
         for move in candidates
     ]
+    damaging = [(move, weight) for move, weight in weighted if move.deals_damage]
 
-    return weighted_sample(candidates, weights, k=k, rng=rng)
+    if not damaging:
+        raise ValueError(
+            "Cannot select starter moveset without at least one damaging move "
+            f"from {len(candidates)} eligible starter moves"
+        )
+
+    first = weighted_sample(
+        [move for move, _ in damaging],
+        [weight for _, weight in damaging],
+        k=1,
+        rng=rng,
+    )[0]
+
+    remaining = [(move, weight) for move, weight in weighted if move != first]
+    if k == 1:
+        return [first]
+
+    return [
+        first,
+        *weighted_sample(
+            [move for move, _ in remaining],
+            [weight for _, weight in remaining],
+            k=k - 1,
+            rng=rng,
+        ),
+    ]

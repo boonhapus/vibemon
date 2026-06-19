@@ -5,10 +5,13 @@ import datetime as dt
 
 import niquests
 
-from app.providers._api.hooks import LoggingHook, RateLimiterHook
+from app.providers._api import rate_limits
+from app.providers._api.hooks import LoggingHook
 from app.providers._api.policy import provider_default_headers, provider_retry_policy
 from app.providers._api.session import CachedAPIClient
 from app.storage.cache.redis import make_cache_backend
+
+from . import const
 
 
 class ReccoBeatsAPIClient(CachedAPIClient):
@@ -18,12 +21,13 @@ class ReccoBeatsAPIClient(CachedAPIClient):
     Community rebuild of Spotify's deprecated audio-features endpoint.
     """
 
-    provider_name = "reccobeats.audio_analysis"
+    provider_name = const.PROVIDER_NAME
 
     def __init__(self, **session_opts: Any) -> None:
-        rate_limiter = RateLimiterHook(
-            (300, dt.timedelta(minutes=1)),
+        rate_limiter = rate_limits.shared(
+            const.QUOTA_KEY,
             provider=ReccoBeatsAPIClient.provider_name,
+            limits=const.RATE_LIMITS,
         )
 
         super().__init__(

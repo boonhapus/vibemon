@@ -84,12 +84,13 @@ def test_music_move_catalog_has_fifteen_moves_per_exposed_element(music_provider
     assert move_counts == {element: 15 for element in exposed_types}
 
 
-def test_music_selectable_moves_include_shared_universal_moves_once(music_provider: MusicProvider) -> None:
-    provider = music_provider
+def test_music_starter_moves_include_shared_universal_moves_once(music_provider: MusicProvider) -> None:
     universal_ids = {move.id for move in universal.moves()}
-    selectable_ids = [move.id for move in provider.selectable_moves(level=99)]
-    assert universal_ids <= set(selectable_ids)
-    assert len(selectable_ids) == len(provider.moves()) + len(universal.moves())
+    starter_ids = [move.id for move in music_provider.starter_moves(level=99)]
+
+    assert universal_ids <= set(starter_ids)
+    assert len(starter_ids) == len(set(starter_ids))
+    assert len(starter_ids) == len(music_provider.moves()) + len(universal.moves())
 
 
 def test_derive_signals_uses_play_weighted_means() -> None:

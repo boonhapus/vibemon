@@ -8,7 +8,8 @@ import math
 from PIL import Image
 import structlog
 
-from app.providers._api.hooks import LoggingHook, RateLimiterHook
+from app.providers._api import rate_limits
+from app.providers._api.hooks import LoggingHook
 from app.providers._api.policy import provider_default_headers, provider_retry_policy
 from app.providers._api.session import CachedAPIClient
 from app.providers.biome import const as biome_const
@@ -25,9 +26,10 @@ class TerrascopeWorldCoverClient(CachedAPIClient):
     provider_name = const.PROVIDER_NAME
 
     def __init__(self, **session_opts: Any) -> None:
-        rate_limiter = RateLimiterHook(
-            (120, dt.timedelta(minutes=1)),
+        rate_limiter = rate_limits.shared(
+            const.QUOTA_KEY,
             provider=TerrascopeWorldCoverClient.provider_name,
+            limits=const.RATE_LIMITS,
         )
         session_opts.setdefault("backend", make_cache_backend("terrascope_worldcover_wmts"))
         super().__init__(

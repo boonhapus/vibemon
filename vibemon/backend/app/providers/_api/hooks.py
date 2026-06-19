@@ -78,6 +78,9 @@ class RateLimiterHook(niquests.AsyncLifeCycleHook[HookValue]):
     Optional ``concurrency`` caps in-flight requests (e.g. ``1`` for a mutex).
     Pair with :class:`ThrottledSessionMixin` so slots are released even when
     ``send()`` raises. ``None`` means no in-flight cap.
+
+    Production clients register shared instances via ``app.providers._api.rate_limits.shared``
+    so concurrent workflows honor one upstream bucket per process.
     """
 
     def __init__(

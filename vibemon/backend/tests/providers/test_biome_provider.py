@@ -29,15 +29,15 @@ def test_biome_move_catalog_has_fifteen_moves_per_exposed_element() -> None:
     assert move_counts == {element: 15 for element in exposed_types}
 
 
-def test_biome_selectable_moves_include_shared_universal_moves_once() -> None:
+def test_biome_starter_moves_include_shared_universal_moves_once() -> None:
     provider = BiomeProvider()
 
     universal_ids = {move.id for move in universal.moves()}
-    selectable_ids = [move.id for move in provider.selectable_moves(level=99)]
+    starter_ids = [move.id for move in provider.starter_moves(level=99)]
 
-    assert universal_ids <= set(selectable_ids)
-    assert len(selectable_ids) == len(set(selectable_ids))
-    assert len(selectable_ids) == len(provider.moves()) + len(universal.moves())
+    assert universal_ids <= set(starter_ids)
+    assert len(starter_ids) == len(set(starter_ids))
+    assert len(starter_ids) == len(provider.moves()) + len(universal.moves())
 
 
 def test_worldcover_decode_known_rgb_values() -> None:
@@ -291,6 +291,7 @@ async def test_synthesize_replay_from_london_payload() -> None:
     # built_up base (0.45) + lakeside proximity (0.08 km → ~0.144), no altitude bonus.
     assert first.intensity == 0.594
     assert first.visual_notes == second.visual_notes
+    assert first.visual_notes is not None
     assert first.visual_notes.split("; ")[0] in WorldCoverClassT.BUILT_UP.profile.visual_bases
     assert "still-water mirror flecks" in first.visual_notes
     assert first.identity.model_dump(exclude={"generated_at"}) == second.identity.model_dump(exclude={"generated_at"})

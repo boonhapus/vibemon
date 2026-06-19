@@ -3,7 +3,8 @@ import datetime as dt
 
 import niquests
 
-from app.providers._api.hooks import LoggingHook, RateLimiterHook, ThrottledSessionMixin
+from app.providers._api import rate_limits
+from app.providers._api.hooks import LoggingHook, ThrottledSessionMixin
 from app.providers._api.policy import provider_default_headers, provider_retry_policy
 
 from . import const, utils
@@ -20,13 +21,11 @@ class OpenMeteoClient(ThrottledSessionMixin, niquests.AsyncSession):
     provider_name = const.PROVIDER_NAME
 
     def __init__(self, **session_opts: Any) -> None:
-        rate_limiter = RateLimiterHook(
-            (600, dt.timedelta(minutes=1)),
-            (5_000, dt.timedelta(hours=1)),
-            (10_000, dt.timedelta(days=1)),
-            (300_000, dt.timedelta(days=30)),
+        rate_limiter = rate_limits.shared(
+            const.QUOTA_KEY,
             provider=OpenMeteoClient.provider_name,
-            concurrency=1,
+            limits=const.RATE_LIMITS,
+            concurrency=const.CONCURRENCY,
         )
 
         super().__init__(

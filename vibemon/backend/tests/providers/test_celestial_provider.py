@@ -91,15 +91,15 @@ def test_celestial_move_catalog_has_fifteen_moves_per_exposed_element() -> None:
     assert move_counts == {element: 15 for element in exposed_types}
 
 
-def test_celestial_selectable_moves_include_shared_universal_moves_once() -> None:
+def test_celestial_starter_moves_include_shared_universal_moves_once() -> None:
     provider = CelestialProvider()
 
     universal_ids = {move.id for move in universal.moves()}
-    selectable_ids = [move.id for move in provider.selectable_moves(level=99)]
+    starter_ids = [move.id for move in provider.starter_moves(level=99)]
 
-    assert universal_ids <= set(selectable_ids)
-    assert len(selectable_ids) == len(set(selectable_ids))
-    assert len(selectable_ids) == len(provider.moves()) + len(universal.moves())
+    assert universal_ids <= set(starter_ids)
+    assert len(starter_ids) == len(set(starter_ids))
+    assert len(starter_ids) == len(provider.moves()) + len(universal.moves())
 
 
 @pytest.mark.asyncio
@@ -196,7 +196,7 @@ def test_twilight_midpoint_keeps_phase_leader_primary() -> None:
         twilight_prevalence=1.0,
     )
     rankings = CelestialProvider._sky_rankings(chart)
-    assert max(rankings, key=rankings.get) is VibemonTypeT.FAIRY
+    assert max(rankings.items(), key=lambda kv: kv[1])[0] is VibemonTypeT.FAIRY
 
 
 def test_twilight_edge_waxing_dawn_yields_grass_primary() -> None:
@@ -208,7 +208,7 @@ def test_twilight_edge_waxing_dawn_yields_grass_primary() -> None:
         twilight_prevalence=0.3,
     )
     rankings = CelestialProvider._sky_rankings(chart)
-    assert max(rankings, key=rankings.get) is VibemonTypeT.GRASS
+    assert max(rankings.items(), key=lambda kv: kv[1])[0] is VibemonTypeT.GRASS
     assert rankings[VibemonTypeT.GRASS] > rankings[VibemonTypeT.FIRE]
 
 
@@ -220,7 +220,7 @@ def test_twilight_edge_midwinter_waning_dusk_yields_ice_primary() -> None:
         twilight_prevalence=0.3,
     )
     rankings = CelestialProvider._sky_rankings(chart)
-    assert max(rankings, key=rankings.get) is VibemonTypeT.ICE
+    assert max(rankings.items(), key=lambda kv: kv[1])[0] is VibemonTypeT.ICE
     assert rankings[VibemonTypeT.ICE] > rankings[VibemonTypeT.WATER]
 
 
@@ -243,7 +243,7 @@ def test_offseason_waning_recession_outranks_ice() -> None:
         twilight_prevalence=0.3,
     )
     rankings = CelestialProvider._sky_rankings(chart)
-    assert max(rankings, key=rankings.get) is VibemonTypeT.WATER
+    assert max(rankings.items(), key=lambda kv: kv[1])[0] is VibemonTypeT.WATER
     assert rankings[VibemonTypeT.WATER] > rankings[VibemonTypeT.ICE]
 
 

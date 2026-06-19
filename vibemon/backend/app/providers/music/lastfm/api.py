@@ -5,11 +5,14 @@ import datetime as dt
 
 import niquests
 
-from app.providers._api.hooks import LoggingHook, RateLimiterHook
+from app.providers._api import rate_limits
+from app.providers._api.hooks import LoggingHook
 from app.providers._api.policy import provider_default_headers, provider_retry_policy
 from app.providers._api.session import CachedAPIClient
 from app.settings import Settings
 from app.storage.cache.redis import make_cache_backend
+
+from . import const
 
 
 class LastFmAPIClient(CachedAPIClient):
@@ -20,15 +23,15 @@ class LastFmAPIClient(CachedAPIClient):
       https://www.last.fm/api
     """
 
-    provider_name = "lastfm.web_api"
+    provider_name = const.PROVIDER_NAME
 
     def __init__(self, api_key: str | None = None, **session_opts: Any) -> None:
         self._api_key = api_key or Settings.load().secrets.lastfm_key.get_secret_value()
-
-        rate_limiter = RateLimiterHook(
-            (300, dt.timedelta(minutes=1)),
+        rate_limiter = rate_limits.shared(
+            const.QUOTA_KEY,
             provider=LastFmAPIClient.provider_name,
-            concurrency=5,
+            limits=const.RATE_LIMITS,
+            concurrency=const.CONCURRENCY,
         )
 
         super().__init__(

@@ -344,7 +344,7 @@ class BiomeProvider(VibeProvider[biome_schema.BiomePayload]):
             provider_id=self.name,
             element_rankings=rankings,
             moves=pick_starter_moves(
-                moves=self.selectable_moves(),
+                moves=self.starter_moves(),
                 rankings=rankings,
                 elements=elements,
                 k=10,

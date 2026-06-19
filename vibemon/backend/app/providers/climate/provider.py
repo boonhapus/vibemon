@@ -260,7 +260,7 @@ class ClimateProvider(VibeProvider[climate_schema.ClimatePayload]):
         base_stats = normalized.scaled(elements=elements)
 
         # LOAD MOVES
-        all_moves = self.selectable_moves()
+        all_moves = self.starter_moves()
 
         affinity = Affinity(
             identity=Identity(name="__", elements=elements, base=base_stats),

@@ -175,27 +175,38 @@ class VibeProvider[PayloadT: schema.ProviderPayload](abc.ABC):
         Return a complete Affinity with identity, moves, intensity, and visual_notes.
         """
 
-    def moves(self) -> tuple[Move, ...]:
+    @classmethod
+    def moves(cls) -> tuple[Move, ...]:
         """Return provider-authored moves loaded from JSON content."""
-        if moves := getattr(self, "_moves", False):
-            return cast(tuple[Move], moves)
+        if cached := cls.__dict__.get("_moves_cache"):
+            return cast(tuple[Move, ...], cached)
 
-        module = sys.modules[self.__class__.__module__]
+        module = sys.modules[cls.__module__]
 
         if module.__file__ is None:
-            raise RuntimeError(f"Cannot resolve move data path for provider {self.name!r}")
+            raise RuntimeError(f"Cannot resolve move data path for provider {cls.name!r}")
 
         path = pathlib.Path(module.__file__).resolve().parent / "data" / "moves.json"
         text = path.read_text(encoding="utf-8")
         data = json.loads(text)
 
-        self._moves = tuple(Move.model_validate(move_data) for move_data in data)
+        loaded = tuple(Move.model_validate(move_data) for move_data in data)
+        cls._moves_cache = loaded
+        return loaded
 
-        return self._moves
+    @classmethod
+    def moves_at_level(cls, *, level: int = 1) -> tuple[Move, ...]:
+        """Return provider-authored moves eligible at ``level``."""
+        return tuple(move for move in cls.moves() if move.level_requirement <= level)
 
-    def selectable_moves(self, *, level: int = 1) -> tuple[Move, ...]:
-        """Return shared universal moves plus provider-authored moves."""
-        return tuple(m for m in (*universal.moves(), *self.moves()) if m.level_requirement <= level)
+    @classmethod
+    def starter_moves(cls, *, level: int = 1) -> tuple[Move, ...]:
+        """Return provider moves plus shared universal moves for starter sampling."""
+        return tuple(
+            move
+            for move in (*universal.moves(), *cls.moves())
+            if move.level_requirement <= level
+        )
 
 
 class UnimplementedProvider(VibeProvider[schema.UnimplementedPayload]):

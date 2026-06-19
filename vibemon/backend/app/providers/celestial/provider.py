@@ -105,7 +105,7 @@ class CelestialProvider(VibeProvider[celestial_schema.CelestialPayload]):
             return leader
 
         if cls._has_stellium(chart) and chart_rankings:
-            return max(chart_rankings, key=chart_rankings.get)
+            return max(chart_rankings, key=lambda k: chart_rankings[k])
 
         return None
 
@@ -178,7 +178,7 @@ class CelestialProvider(VibeProvider[celestial_schema.CelestialPayload]):
             score[const.SIGN_ELEMENT[sign]] += weight
 
         if cls._has_stellium(chart) and score:
-            dominant = max(score, key=score.get)
+            dominant = max(score, key=lambda k: score[k])
             score[dominant] *= const.STELLIUM_ELEMENT_BOOST
 
         return dict(score)
@@ -227,6 +227,7 @@ class CelestialProvider(VibeProvider[celestial_schema.CelestialPayload]):
                 return const.SEASONAL_MIDSUMMER_ELEMENTS
             case None:
                 return ()
+        return ()
 
     @classmethod
     def _dignity_score(cls, body: str, sign: str) -> float:
@@ -287,7 +288,7 @@ class CelestialProvider(VibeProvider[celestial_schema.CelestialPayload]):
             provider_id=self.name,
             element_rankings=rankings,
             moves=pick_starter_moves(
-                moves=self.selectable_moves(),
+                moves=self.starter_moves(),
                 rankings=rankings,
                 elements=elements,
                 k=10,
